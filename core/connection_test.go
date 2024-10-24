@@ -13,12 +13,18 @@ import (
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
+	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	rpccalls "github.com/Layr-Labs/eigensdk-go/metrics/collectors/rpc_calls"
+	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	aggregator "github.com/yetanotherco/aligned_layer/aggregator/pkg"
+	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	connection "github.com/yetanotherco/aligned_layer/core"
+	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
@@ -71,8 +77,10 @@ func SetupAnvil(port uint16) (*exec.Cmd, *eth.InstrumentedClient, error) {
 	http_rpc_url := fmt.Sprintf("http://localhost:%d", port)
 
 	// Create a command
-	cmd := exec.Command("anvil", "--port", port_str, "--load-state", "../contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json", "--block-time", "7")
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd := exec.Command("anvil", "--port", port_str, "--load-state", "../contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json", "--block-time", "3")
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
 
 	// Run the command
 	err = cmd.Start()
@@ -154,7 +162,7 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	// Assert Call succeeds why Anvil running
+	// Assert Call succeeds when Anvil running
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
 	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
 	if err.Error() != "not found" {
@@ -164,17 +172,18 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 
 	// Kill Anvil
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
+	time.Sleep(2 * time.Second)
 
-	// Fails with "not found"
+	// Errors out but "not found"
 	receipt, err := utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
 	assert.Nil(t, receipt, "Receipt not empty")
 	assert.NotEqual(t, err.Error(), "not found")
 
 	// Start anvil
-	_, client, err = SetupAnvil(8545)
+	cmd, client, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
@@ -184,71 +193,448 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 	if err.Error() != "not found" {
 		fmt.Printf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
 	}
-}
 
-/*
-
-func TestSendAggregatedResponseRetryable(t *testing.T) {
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
 }
 
 func TestInitializeNewTaskRetryable(t *testing.T) {
-	//TODO: Instantiate Aggregator
+
+	//Start Anvil
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	//Start Aggregator
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	agg, err := aggregator.NewAggregator(*aggregatorConfig)
+	if err != nil {
+		aggregatorConfig.BaseConfig.Logger.Error("Cannot create aggregator", "err", err)
+		return
+	}
+	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(byte(0))}
+	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(byte(57))}
+
+	// Should succeed with err msg
+	err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
+	assert.Nil(t, err)
+	// TODO: Find exact error to assert
+
+	// Kill Anvil
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
+
+	err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
+	assert.NotNil(t, err)
+	fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+
+	// Start Anvil
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	// Should succeed
+	err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
+	assert.Nil(t, err)
+	fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+
+	if err = cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
 }
 
 // |--Server Retry Tests--|
 func TestProcessNewSignatureRetryable(t *testing.T) {
-	agg := NewAggregator()
-	agg.ProcessNewSignatureRetryable()
-}
-
-// |--Subscriber Retry Tests--|
-
-func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
-	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
-
-	baseConfig := core.NewBaseConfig("")
-	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(baseConfig)
+	// Start anvil
+	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		return nil, err
+		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	agg.taskSubscriber, err = avsSubscriber.SubscribeToNewTasksV3Retryable(newBatchChan)
-}
+	//Start Aggregator
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	agg, err := aggregator.NewAggregator(*aggregatorConfig)
+	if err != nil {
+		aggregatorConfig.BaseConfig.Logger.Error("Cannot create aggregator", "err", err)
+		return
+	}
+	zero_bytes := [32]byte{}
+	zero_sig := bls.NewZeroSignature()
+	eigen_bytes := eigentypes.Bytes32{}
 
-// |--AVS-Writer Retry Tests--|
+	err = agg.ProcessNewSignatureRetryable(context.Background(), 0, zero_bytes, zero_sig, eigen_bytes)
+	assert.Nil(t, err)
+	// TODO: Find exact error to assert
 
-func TestRespondToTaskV2(t *testing.T) {
-}
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
+	/*
 
-func TestBatchesStateWriter(t *testing.T) {
-}
+		err = agg.ProcessNewSignatureRetryable(context.Background(), 0, zero_bytes, zero_sig, eigen_bytes)
+		assert.NotNil(t, err)
+		fmt.Printf("Error Processing New Signature: %s\n", err)
 
-func TestBalanceAt(t *testing.T) {
-}
+		// Start anvil
+		cmd, _, err = SetupAnvil(8545)
+		if err != nil {
+			fmt.Printf("Error setting up Anvil: %s\n", err)
+		}
 
-func TestBatchersBalances(t *testing.T) {
+		err = agg.ProcessNewSignatureRetryable(context.Background(), 0, zero_bytes, zero_sig, eigen_bytes)
+		assert.Nil(t, err)
+		fmt.Printf("Error Processing New Signature: %s\n", err)
+
+		// Kill Anvil at end of test
+		if err := cmd.Process.Kill(); err != nil {
+			fmt.Printf("error killing process: %v\n", err)
+			return
+		}
+	*/
 }
 
 // |--AVS-Subscriber Retry Tests--|
 
-func TestSubscribeToNewTasksV2(t *testing.T) {
+func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
+	// Start anvil
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	channel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	baseConfig := aggregatorConfig.BaseConfig
+	s, err := chainio.NewAvsServiceBindings(
+		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr,
+		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr,
+		baseConfig.EthWsClient, baseConfig.EthWsClientFallback, baseConfig.Logger)
+	if err != nil {
+		fmt.Printf("Error setting up Avs Service Bindings: %s\n", err)
+	}
+
+	fmt.Printf("Subscribing")
+	_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
+	assert.Nil(t, err)
+	// TODO: Find exact error to assert
+
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
+
+	/*
+		_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
+		assert.NotNil(t, err)
+		fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+
+		// Start anvil
+		cmd, _, err = SetupAnvil(8545)
+		if err != nil {
+			fmt.Printf("Error setting up Anvil: %s\n", err)
+		}
+
+		_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
+		assert.Nil(t, err)
+		fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+
+		// Kill Anvil at end of test
+		if err := cmd.Process.Kill(); err != nil {
+			fmt.Printf("error killing process: %v\n", err)
+			return
+		}
+	*/
 }
 
-func TestSubscribeToNewTasksV3(t *testing.T) {
+func TestSubscribeToNewTasksV2(t *testing.T) {
+	// Start anvil
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	channel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	baseConfig := aggregatorConfig.BaseConfig
+	s, err := chainio.NewAvsServiceBindings(
+		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr,
+		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr,
+		baseConfig.EthWsClient, baseConfig.EthWsClientFallback, baseConfig.Logger)
+	if err != nil {
+		fmt.Printf("Error setting up Avs Service Bindings: %s\n", err)
+	}
+
+	_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
+	assert.Nil(t, err)
+	// TODO: Find exact error to assert
+
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
+
+	/*
+		_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
+		assert.NotNil(t, err)
+		fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+
+		// Start anvil
+		cmd, _, err = SetupAnvil(8545)
+		if err != nil {
+			fmt.Printf("Error setting up Anvil: %s\n", err)
+		}
+
+		_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
+		assert.Nil(t, err)
+		fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+
+		// Kill Anvil at end of test
+		if err := cmd.Process.Kill(); err != nil {
+			fmt.Printf("error killing process: %v\n", err)
+			return
+		}
+	*/
 }
 
 func TestBlockNumber(t *testing.T) {
+	// Start anvil
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	//channel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	sub, err := chainio.NewAvsSubscriberFromConfig(aggregatorConfig.BaseConfig)
+	_, err = sub.BlockNumberRetryable(context.Background())
+	assert.Nil(t, err, "Failed to Retrieve Block Number")
+
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
 }
 
 func TestFilterBatchV2(t *testing.T) {
+	// Start anvil
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(aggregatorConfig.BaseConfig)
+	if err != nil {
+		return
+	}
+	_, err = avsSubscriber.FilterBatchV2Retryable(0, context.Background())
+	assert.Nil(t, err, "Failed to Retrieve Block Number")
+	// TODO: Find exact error to assert
+
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
 }
 
 func TestFilterBatchV3(t *testing.T) {
+	// Start anvil
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(aggregatorConfig.BaseConfig)
+	if err != nil {
+		return
+	}
+	_, err = avsSubscriber.FilterBatchV3Retryable(0, context.Background())
+	//TODO: Find error to assert
+	assert.NotNil(t, err, "Succeeded in filtering logs")
+
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
 }
 
 func TestBatchesStateSubscriber(t *testing.T) {
+	// Start anvil
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(aggregatorConfig.BaseConfig)
+	if err != nil {
+		return
+	}
+
+	zero_bytes := [32]byte{}
+	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
+	//TODO: Find exact failure error
+	assert.NotNil(t, err, "BatchesState")
+
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
 }
 
 func TestSubscribeNewHead(t *testing.T) {
+	// Start anvil
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	c := make(chan *types.Header)
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(aggregatorConfig.BaseConfig)
+	if err != nil {
+		return
+	}
+
+	avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
+	assert.Nil(t, err, "Should be 0")
+
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
+}
+
+/*
+// |--AVS-Writer Retry Tests--|
+
+func TestRespondToTaskV2(t *testing.T) {
+	// Start anvil
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	w, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	txOpts := *w.Signer.GetTxOpts()
+	aggregator_address := common.HexToAddress("0x0")
+	zero_bytes := [32]byte{}
+
+	w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address)
+	assert.Nil(t, err, "Should be 0")
+
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
 }
 */
+
+func TestBatchesStateWriter(t *testing.T) {
+	// Start anvil
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return
+	}
+	zero_bytes := [32]byte{}
+
+	_, err = avsWriter.BatchesStateRetryable(zero_bytes)
+	assert.Nil(t, err, "Should be 0")
+
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
+}
+
+func TestBalanceAt(t *testing.T) {
+	// Start anvil
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return
+	}
+	//TODO: Source Aggregator Address
+	aggregator_address := common.HexToAddress("0x0")
+
+	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, big.NewInt(0))
+	assert.Nil(t, err, "Should be 0")
+
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
+}
+
+func TestBatchersBalances(t *testing.T) {
+	// Start anvil
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return
+	}
+	//TODO: Source real one
+	sender_address := common.HexToAddress("0x0")
+
+	_, err = avsWriter.BatcherBalancesRetryable(sender_address)
+	assert.Nil(t, err, "Should be 0")
+
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(2 * time.Second)
+}
