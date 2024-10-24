@@ -424,6 +424,9 @@ func TestBlockNumber(t *testing.T) {
 	//channel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
 	sub, err := chainio.NewAvsSubscriberFromConfig(aggregatorConfig.BaseConfig)
+	if err != nil {
+		return
+	}
 	_, err = sub.BlockNumberRetryable(context.Background())
 	assert.Nil(t, err, "Failed to Retrieve Block Number")
 
