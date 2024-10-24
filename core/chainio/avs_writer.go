@@ -75,7 +75,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 	// Retry
-	tx, err := w.respondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts.NoSend = false
 	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
 	// Retry
-	tx, err = w.respondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	tx, err = w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bin
 
 	// Get RespondToTaskFeeLimit
 	// Retry
-	batchState, err := w.batchesStateRetryable(batchIdentifierHash)
+	batchState, err := w.BatchesStateRetryable(batchIdentifierHash)
 	if err != nil {
 		// Fallback also failed
 		// Proceed to check values against simulated costs
@@ -145,7 +145,7 @@ func (w *AvsWriter) compareAggregatorBalance(amount *big.Int, aggregatorAddress 
 
 	// TODO(pat): Separate Retry from call
 	// Retry
-	aggregatorBalance, err := w.balanceAtRetryable(ctx, aggregatorAddress, nil)
+	aggregatorBalance, err := w.BalanceAtRetryable(ctx, aggregatorAddress, nil)
 	if err != nil {
 		// Ignore and continue.
 		w.logger.Error("failed to get aggregator balance: %v", err)
@@ -162,7 +162,7 @@ func (w *AvsWriter) compareBatcherBalance(amount *big.Int, senderAddress [20]byt
 	// Get batcher balance
 	// TODO(pat): Separate Retry from call
 	// Retry
-	batcherBalance, err := w.batcherBalancesRetryable(senderAddress)
+	batcherBalance, err := w.BatcherBalancesRetryable(senderAddress)
 	if err != nil {
 		// Ignore and continue.
 		w.logger.Error("Failed to get batcherBalance", "error", err)
@@ -177,7 +177,7 @@ func (w *AvsWriter) compareBatcherBalance(amount *big.Int, senderAddress [20]byt
 
 // |---RETRYABLE---|
 
-func (w *AvsWriter) respondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkleRoot [32]byte, senderAddress common.Address, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Transaction, error) {
+func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkleRoot [32]byte, senderAddress common.Address, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Transaction, error) {
 	respondToTaskV2_func := func() (*types.Transaction, error) {
 		tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
@@ -192,7 +192,7 @@ func (w *AvsWriter) respondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkl
 	return connection.RetryWithData(respondToTaskV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 }
 
-func (w *AvsWriter) batchesStateRetryable(arg0 [32]byte) (struct {
+func (w *AvsWriter) BatchesStateRetryable(arg0 [32]byte) (struct {
 	TaskCreatedBlock      uint32
 	Responded             bool
 	RespondToTaskFeeLimit *big.Int
@@ -217,7 +217,7 @@ func (w *AvsWriter) batchesStateRetryable(arg0 [32]byte) (struct {
 }
 
 // TODO: separate retry concerns and inline them in real functions
-func (w *AvsWriter) batcherBalancesRetryable(senderAddress common.Address) (*big.Int, error) {
+func (w *AvsWriter) BatcherBalancesRetryable(senderAddress common.Address) (*big.Int, error) {
 	batcherBalances_func := func() (*big.Int, error) {
 		batcherBalance, err := w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
 		if err != nil {
@@ -231,7 +231,7 @@ func (w *AvsWriter) batcherBalancesRetryable(senderAddress common.Address) (*big
 	return connection.RetryWithData(batcherBalances_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 }
 
-func (w *AvsWriter) balanceAtRetryable(ctx context.Context, aggregatorAddress common.Address, blockNumber *big.Int) (*big.Int, error) {
+func (w *AvsWriter) BalanceAtRetryable(ctx context.Context, aggregatorAddress common.Address, blockNumber *big.Int) (*big.Int, error) {
 
 	balanceAt_func := func() (*big.Int, error) {
 		aggregatorBalance, err := w.Client.BalanceAt(ctx, aggregatorAddress, blockNumber)
