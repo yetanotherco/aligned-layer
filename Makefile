@@ -565,7 +565,7 @@ test_sp1_go_bindings_linux_old: build_sp1_linux_old
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/risc_zero/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_ffi.dylib operator/risc_zero/lib/librisc_zero_verifier.dylib
+	@cp operator/risc_zero/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_ffi.dylib operator/risc_zero/lib/librisc_zero_verifier_ffi.dylib
 
 build_risc_zero_linux:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
