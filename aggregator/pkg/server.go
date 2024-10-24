@@ -129,10 +129,11 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 
 // |---RETRYABLE---|
 
+// Error throw is ______
 func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
 	processNewSignature_func := func() error {
 		return agg.blsAggregationService.ProcessNewSignature(
-			context.Background(), taskIndex, taskResponse,
+			ctx, taskIndex, taskResponse,
 			blsSignature, operatorId,
 		)
 	}
