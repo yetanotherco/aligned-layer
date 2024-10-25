@@ -548,7 +548,6 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 	}
 }
 
-// TODO: delete or not
 func (o *Operator) handleVerificationResult(results chan bool, isVerified bool, err error, name string) {
 	if err != nil {
 		o.Logger.Errorf("%v failed %v", name, err)
