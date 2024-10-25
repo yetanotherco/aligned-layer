@@ -967,7 +967,7 @@ impl Batcher {
             .init_task_trace(&hex::encode(batch_merkle_tree.root), leaves.len())
             .await
         {
-            error!("Failed to initialize task trace: {:?}", e);
+            error!("Failed to initialize task trace on telemetry: {:?}", e);
         }
 
         if let Err(e) = self
@@ -986,7 +986,7 @@ impl Batcher {
                 .task_creation_failed(&hex::encode(batch_merkle_tree.root), &reason)
                 .await
             {
-                error!("Failed to send task creation failed telemetry: {:?}", e);
+                error!("Failed to send task status to telemetry: {:?}", e);
             }
             for entry in finalized_batch.into_iter() {
                 if let Some(ws_sink) = entry.messaging_sink {
@@ -1112,7 +1112,7 @@ impl Batcher {
             .task_uploaded_to_s3(&batch_merkle_root_hex)
             .await
         {
-            error!("Failed to send task uploaded to S3 telemetry: {:?}", e);
+            error!("Failed to send task status to telemetry: {:?}", e);
         };
         info!("Batch sent to S3 with name: {}", file_name);
 
@@ -1186,7 +1186,7 @@ impl Batcher {
             .task_created(&hex::encode(batch_merkle_root))
             .await
         {
-            error!("Failed to send task created telemetry: {:?}", e);
+            error!("Failed to send task status to telemetry: {:?}", e);
         };
 
         match try_create_new_task(
