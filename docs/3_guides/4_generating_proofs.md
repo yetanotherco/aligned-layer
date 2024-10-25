@@ -303,6 +303,6 @@ To generate a proof of the execution of your code run the following:
   ```sh
   cargo run --release -- prove-risc0  <PROGRAM_DIRECTORY_PATH> .
   ```
-  Make sure to have [Risc0](https://dev.risczero.com/api/zkvm/quickstart#1-install-the-risc-zero-toolchain) installed with version `v1.0.1`
+  Make sure to have [Risc0](https://dev.risczero.com/api/zkvm/quickstart#1-install-the-risc-zero-toolchain) installed with version `v1.1.2`
 
 For additional information on using zkRust and using it to submit proofs to Aligned see the [zkRust](https://github.com/yetanotherco/zkRust) Github Repository.
