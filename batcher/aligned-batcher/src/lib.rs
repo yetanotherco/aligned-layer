@@ -1226,7 +1226,7 @@ impl Batcher {
     }
 
     pub async fn override_created_task(&self, task_gas_price: U256) {
-        let from_address = self.batcher_signer.address();
+        let batcher_addr = self.batcher_signer.address();
         let current_nonce = self
             .batcher_signer
             .get_transaction_count(from_address, None)
