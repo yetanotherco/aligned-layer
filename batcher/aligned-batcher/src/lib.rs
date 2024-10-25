@@ -571,7 +571,7 @@ impl Batcher {
 
         let Some(user_min_fee) = batch_state_lock.get_user_min_fee(&addr).await else {
             std::mem::drop(batch_state_lock);
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
             return Ok(());
         };
 
