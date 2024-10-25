@@ -17,7 +17,8 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib
+	export LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib
+	OPERATOR_FFIS=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib
 endif
 
 ifeq ($(OS),Linux)
@@ -141,7 +142,7 @@ build_operator_macos:
 
 build_operator_linux:
 	@echo "Building Operator..."
-	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(OPERATOR_FFIS)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
 update_operator:
