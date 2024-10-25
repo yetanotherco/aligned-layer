@@ -124,7 +124,7 @@ defmodule TelemetryApi.Traces do
         | subspans: Map.delete(trace.subspans, :batcher)
       })
 
-      with {:ok, trace} <- set_current_trace(merkle_root) do
+      with {:ok, _trace} <- set_current_trace(merkle_root) do
         Tracer.end_span()
         TraceStore.delete_trace(merkle_root)
       end
@@ -203,7 +203,7 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def batcher_task_uploaded_to_s3(merkle_root) do
-    with {:ok, trace} <- set_current_trace_with_subspan(merkle_root, :batcher) do
+    with {:ok, _trace} <- set_current_trace_with_subspan(merkle_root, :batcher) do
       Tracer.add_event("Batcher Task Uploaded to S3", [])
       :ok
     end
@@ -244,7 +244,7 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def batcher_task_started(merkle_root) do
-    with {:ok, trace} <- set_current_trace_with_subspan(merkle_root, :batcher) do
+    with {:ok, _trace} <- set_current_trace_with_subspan(merkle_root, :batcher) do
       Tracer.add_event("Batcher Task being created", [])
       :ok
     end
@@ -313,7 +313,7 @@ defmodule TelemetryApi.Traces do
 
       Tracer.end_span()
 
-      with {:ok, trace} <- set_current_trace(merkle_root) do
+      with {:ok, _trace} <- set_current_trace(merkle_root) do
         Tracer.end_span()
         TraceStore.delete_trace(merkle_root)
       end
