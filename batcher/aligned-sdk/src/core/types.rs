@@ -329,63 +329,12 @@ impl AlignedVerificationData {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ValidityResponseMessage {
-    Valid,
-    InvalidNonce,
-    InvalidSignature,
-    InvalidChainId,
-    InvalidProof(ProofInvalidReason),
-    InvalidMaxFee,
-    InvalidReplacementMessage,
-    AddToBatchError,
-    ProofTooLarge,
-    InsufficientBalance(Address),
-    EthRpcError,
-    InvalidPaymentServiceAddress(Address, Address),
-    BatchInclusionData(BatchInclusionData),
-    CreateNewTaskError(String, String), //merkle-root, error
-
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ProofInvalidReason {
     RejectedProof,
     VerifierNotSupported,
     DisabledVerifier(ProvingSystemId),
-}
-
-impl Display for ValidityResponseMessage {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ValidityResponseMessage::Valid => write!(f, "Valid"),
-            ValidityResponseMessage::InvalidNonce => write!(f, "Invalid nonce"),
-            ValidityResponseMessage::InvalidSignature => write!(f, "Invalid signature"),
-            ValidityResponseMessage::InvalidChainId => write!(f, "Invalid chain id"),
-            ValidityResponseMessage::InvalidProof(reason) => {
-                write!(f, "Invalid proof: {}", reason)
-            }
-            ValidityResponseMessage::InvalidMaxFee => write!(f, "Invalid max fee"),
-            ValidityResponseMessage::InvalidReplacementMessage => {
-                write!(f, "Invalid replacement message")
-            }
-            ValidityResponseMessage::AddToBatchError => write!(f, "Add to batch error"),
-            ValidityResponseMessage::ProofTooLarge => write!(f, "Proof too large"),
-            ValidityResponseMessage::InsufficientBalance(addr) => {
-                write!(f, "Insufficient balance for address {}", addr)
-            }
-            ValidityResponseMessage::EthRpcError => write!(f, "Eth RPC error"),
-            ValidityResponseMessage::InvalidPaymentServiceAddress(addr, expected) => {
-                write!(
-                    f,
-                    "Invalid payment service address: {}, expected: {}",
-                    addr, expected
-                )
-            }
-            ValidityResponseMessage::BatchInclusionData(data) => write!(f, "Received Batch inclusion data, this means the task was processed: {:?}", data),
-            ValidityResponseMessage::CreateNewTaskError(merkle_root, error) => write!(f, "Create new task error: merkle root: {}, error: {}", merkle_root, error)
-        }
-    }
 }
 
 impl Display for ProofInvalidReason {
@@ -408,6 +357,16 @@ pub enum ResponseMessage {
     InvalidProof(ProofInvalidReason),
     BatchReset,
     Error(String),
+    InvalidNonce,
+    InvalidSignature,
+    ProofTooLarge,
+    InvalidMaxFee,
+    InsufficientBalance,
+    InvalidChainId,
+    InvalidReplacementMessage,
+    AddToBatchError,
+    EthRpcError,
+    InvalidPaymentServiceAddress(Address, Address)
 }
 
 #[derive(Debug, Clone, Copy)]
