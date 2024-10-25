@@ -17,7 +17,7 @@ use crate::{
         errors::SubmitError,
         types::{
             AlignedVerificationData, ClientMessage, NoncedVerificationData, ResponseMessage,
-            ValidityResponseMessage, VerificationData, VerificationDataCommitment,
+            VerificationData, VerificationDataCommitment,
         },
     },
 };
@@ -29,23 +29,21 @@ pub type ResponseStream = TryFilter<
 >;
 
 pub async fn send_messages(
-    response_stream: Arc<Mutex<ResponseStream>>,
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     payment_service_addr: Address,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     mut nonce: U256,
-) -> Result<Vec<NoncedVerificationData>, SubmitError> {
+) -> Result<Vec<VerificationDataCommitment>, SubmitError> {
     let mut sent_verification_data = Vec::new();
-
-    let mut ws_write = ws_write.lock().await;
-
-    let mut response_stream = response_stream.lock().await;
 
     let chain_id = U256::from(wallet.chain_id());
 
+    let mut ws_write = ws_write.lock().await;
+
     for (idx, verification_data) in verification_data.iter().enumerate() {
+        // Build each message to send
         let verification_data = NoncedVerificationData::new(
             verification_data.clone(),
             nonce,
@@ -55,113 +53,41 @@ pub async fn send_messages(
         );
 
         nonce += U256::one();
-
         let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
         let msg_bin = cbor_serialize(&msg).map_err(SubmitError::SerializationError)?;
+
+        // Send the message
         ws_write
             .send(Message::Binary(msg_bin.clone()))
             .await
             .map_err(SubmitError::WebSocketConnectionError)?;
 
-        debug!("Message sent...");
-
-        let msg = match response_stream.next().await {
-            Some(Ok(msg)) => msg,
-            _ => {
-                return Err(SubmitError::GenericError(
-                    "Connection was closed without close message before receiving all messages"
-                        .to_string(),
-                ));
-            }
-        };
-
-        let response_msg: ValidityResponseMessage = cbor_deserialize(msg.into_data().as_slice())
-            .map_err(SubmitError::SerializationError)?;
-
-        match response_msg {
-            ValidityResponseMessage::Valid => {
-                debug!("Message was valid");
-            }
-            ValidityResponseMessage::InvalidNonce => {
-                info!("Invalid Nonce!");
-                return Err(SubmitError::InvalidNonce);
-            }
-            ValidityResponseMessage::InvalidSignature => {
-                error!("Invalid Signature!");
-                return Err(SubmitError::InvalidSignature);
-            }
-            ValidityResponseMessage::ProofTooLarge => {
-                error!("Proof too large!");
-                return Err(SubmitError::ProofTooLarge);
-            }
-            ValidityResponseMessage::InvalidProof(reason) => {
-                error!("Invalid Proof!: {}", reason);
-                return Err(SubmitError::InvalidProof(reason));
-            }
-            ValidityResponseMessage::InvalidMaxFee => {
-                error!("Invalid Max Fee!");
-                return Err(SubmitError::InvalidMaxFee);
-            }
-            ValidityResponseMessage::InsufficientBalance(addr) => {
-                error!("Insufficient balance for address: {}", addr);
-                return Err(SubmitError::InsufficientBalance);
-            }
-            ValidityResponseMessage::InvalidChainId => {
-                error!("Invalid chain id!");
-                return Err(SubmitError::InvalidChainId);
-            }
-            ValidityResponseMessage::InvalidReplacementMessage => {
-                error!("Invalid replacement message!");
-                return Err(SubmitError::InvalidReplacementMessage);
-            }
-            ValidityResponseMessage::AddToBatchError => {
-                error!("Error while pushing the entry to queue");
-                return Err(SubmitError::AddToBatchError);
-            }
-            ValidityResponseMessage::EthRpcError => {
-                return Err(SubmitError::EthereumProviderError(
-                    "Batcher experienced Eth RPC connection error".to_string(),
-                ));
-            }
-            ValidityResponseMessage::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
-                error!(
-                    "Invalid payment service address, received: {}, expected: {}",
-                    received_addr, expected_addr
-                );
-                return Err(SubmitError::InvalidPaymentServiceAddress(
-                    received_addr,
-                    expected_addr,
-                ));
-            }
-            ValidityResponseMessage::BatchInclusionData(data) => {
-                debug!("Message was valid and included with the following BatchInclusionData: {:?}", data);
-
-            }
-            ValidityResponseMessage::CreateNewTaskError(merkle_root, error) => {
-                return Err(SubmitError::BatchSubmissionFailed(
-                    "Could not create task with merkle root ".to_owned() + &merkle_root + ", failed with error: " + &error, 
-                ));
-            }
-
-        };
+        debug!("{:?} Message sent", idx);
 
         sent_verification_data.push(verification_data.clone());
     }
 
-    Ok(sent_verification_data)
+    // This vector is reversed so that when responses are received, the commitments corresponding
+    // to that response can simply be popped of this vector.
+    let verification_data_commitments_rev: Vec<VerificationDataCommitment> =
+        sent_verification_data
+            .into_iter()
+            .map(|vd| vd.into())
+            .rev()
+            .collect();
+
+    Ok(verification_data_commitments_rev)
 }
 
 pub async fn receive(
     response_stream: Arc<Mutex<ResponseStream>>,
-    ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     total_messages: usize,
-    num_responses: Arc<Mutex<usize>>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
 ) -> Result<Vec<AlignedVerificationData>, SubmitError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream = response_stream.lock().await;
-
     let mut aligned_verification_data: Vec<AlignedVerificationData> = Vec::new();
+    let mut num_responses: usize = 0;
 
     while let Some(Ok(msg)) = response_stream.next().await {
         if let Message::Close(close_frame) = msg {
@@ -175,17 +101,17 @@ pub async fn receive(
                     .to_string(),
             ));
         }
+
         process_batch_inclusion_data(
             msg,
             &mut aligned_verification_data,
             verification_data_commitments_rev,
-            num_responses.clone(),
         )
         .await?;
-
-        if *num_responses.lock().await == total_messages {
-            debug!("All messages responded. Closing connection...");
-            ws_write.lock().await.close().await?;
+        
+        num_responses += 1;
+        if num_responses == total_messages {
+            info!("All message responses received");
             return Ok(aligned_verification_data);
         }
     }
@@ -199,19 +125,59 @@ async fn process_batch_inclusion_data(
     msg: Message,
     aligned_verification_data: &mut Vec<AlignedVerificationData>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-    num_responses: Arc<Mutex<usize>>,
 ) -> Result<(), SubmitError> {
-    let mut num_responses_lock = num_responses.lock().await;
-    *num_responses_lock += 1;
 
     let data = msg.into_data();
     match cbor_deserialize(data.as_slice()) {
-        Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
+        Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => { //OK case. Proofs was valid and it was included in this batch.
             let _ = handle_batch_inclusion_data(
                 batch_inclusion_data,
                 aligned_verification_data,
                 verification_data_commitments_rev,
             );
+        }
+        Ok(ResponseMessage::InvalidNonce) => {
+            return Err(SubmitError::InvalidNonce);
+        }
+        Ok(ResponseMessage::InvalidSignature) => {
+            return Err(SubmitError::InvalidSignature);
+        }
+        Ok(ResponseMessage::ProofTooLarge) => {
+            return Err(SubmitError::ProofTooLarge);
+        }
+        Ok(ResponseMessage::InvalidMaxFee) => {
+            return Err(SubmitError::InvalidMaxFee);
+        }
+        Ok(ResponseMessage::InsufficientBalance(addr)) => {
+            return Err(SubmitError::InsufficientBalance(addr));
+        }
+        Ok(ResponseMessage::InvalidChainId) => {
+            return Err(SubmitError::InvalidChainId);
+        }
+        Ok(ResponseMessage::InvalidReplacementMessage) => {
+            return Err(SubmitError::InvalidReplacementMessage);
+        }
+        Ok(ResponseMessage::AddToBatchError) => {
+            return Err(SubmitError::AddToBatchError);
+        }
+        Ok(ResponseMessage::EthRpcError) => {
+            return Err(SubmitError::EthereumProviderError(
+                "Batcher experienced Eth RPC connection error".to_string(),
+            ));
+        }
+        Ok(ResponseMessage::InvalidPaymentServiceAddress(received_addr, expected_addr)) => {
+            return Err(SubmitError::InvalidPaymentServiceAddress(
+                received_addr,
+                expected_addr,
+            ));
+        }
+        Ok(ResponseMessage::InvalidProof(reason)) => { 
+            return Err(SubmitError::InvalidProof(reason));
+        }
+        Ok(ResponseMessage::CreateNewTaskError(merkle_root, error)) => {
+            return Err(SubmitError::BatchSubmissionFailed(
+                "Could not create task with merkle root ".to_owned() + &merkle_root + ", failed with error: " + &error, 
+            ));
         }
         Ok(ResponseMessage::ProtocolVersion(_)) => {
             return Err(SubmitError::UnexpectedBatcherResponse(
@@ -224,14 +190,6 @@ async fn process_batch_inclusion_data(
         }
         Ok(ResponseMessage::Error(e)) => {
             error!("Batcher responded with error: {}", e);
-        }
-        Ok(ResponseMessage::CreateNewTaskError(merkle_root, error)) => {
-            return Err(SubmitError::BatchSubmissionFailed(
-                "Could not create task with merkle root ".to_owned() + &merkle_root + ", failed with error: " + &error, 
-            ));
-        }
-        Ok(ResponseMessage::InvalidProof(reason)) => {
-            return Err(SubmitError::InvalidProof(reason));
         }
         Err(e) => {
             return Err(SubmitError::SerializationError(e));
