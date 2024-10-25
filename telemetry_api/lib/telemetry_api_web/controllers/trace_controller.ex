@@ -17,24 +17,63 @@ defmodule TelemetryApiWeb.TraceController do
     end
   end
 
-  def batcher_task_sent(conn, %{"merkle_root" => merkle_root}) do
-    with :ok <- Traces.batcher_task_sent(merkle_root) do
+  @doc """
+  Register a batcher task sent to Ethereum in the trace of the given merkle_root
+  Method: POST batcherTaskSent
+  """
+  def batcher_task_sent(conn, %{"merkle_root" => merkle_root, "tx_hash" => tx_hash}) do
+    with :ok <- Traces.batcher_task_sent(merkle_root, tx_hash) do
       conn
       |> put_status(:ok)
       |> render(:show_merkle, merkle_root: merkle_root)
     end
   end
 
-  def batcher_new_batch(conn, %{"merkle_root" => merkle_root}) do
-    with :ok <- Traces.batcher_new_batch(merkle_root) do
+  @doc """
+  Register a batcher task uploaded to S3 in the trace of the given merkle_root
+  Method: POST batcherTaskUploadedToS3
+  """
+  def batcher_task_uploaded_to_s3(conn, %{"merkle_root" => merkle_root}) do
+    with :ok <- Traces.batcher_task_uploaded_to_s3(merkle_root) do
+      conn
+      |> put_status(:ok)
+      |> render(:show_merkle, merkle_root: merkle_root)
+    end
+  end
+
+  @doc """
+  Register a batcher task started in the trace of the given merkle_root
+  Method: POST batcherTaskStarted
+  """
+  def batcher_task_started(conn, %{"merkle_root" => merkle_root}) do
+    with :ok <- Traces.batcher_task_started(merkle_root) do
+      conn
+      |> put_status(:ok)
+      |> render(:show_merkle, merkle_root: merkle_root)
+    end
+  end
+
+  @doc """
+  Create a trace for a new batcher task with the given merkle_root
+  Method: POST initBatcherTaskTrace
+  """
+  def create_batcher_task_trace(conn, %{
+        "merkle_root" => merkle_root,
+        "proof_count" => proof_count
+      }) do
+    with :ok <- Traces.create_batcher_task_trace(merkle_root, proof_count) do
       conn
       |> put_status(:created)
       |> render(:show_merkle, merkle_root: merkle_root)
     end
   end
 
-  def batcher_task_started(conn, %{"merkle_root" => merkle_root}) do
-    with :ok <- Traces.batcher_task_started(merkle_root) do
+  @doc """
+  Register a batcher task creation error in the trace of the given merkle_root
+  Method: POST batcherTaskCreationFailed
+  """
+  def batcher_task_creation_failed(conn, %{"merkle_root" => merkle_root, "error" => error}) do
+    with :ok <- Traces.batcher_task_creation_failed(merkle_root, error) do
       conn
       |> put_status(:ok)
       |> render(:show_merkle, merkle_root: merkle_root)

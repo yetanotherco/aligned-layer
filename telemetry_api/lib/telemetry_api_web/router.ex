@@ -17,9 +17,11 @@ defmodule TelemetryApiWeb.Router do
     post "/taskError", TraceController, :task_error
     post "/finishTaskTrace", TraceController, :finish_task_trace
 
-    post "/batcherNewBatch", TraceController, :batcher_new_batch
-    post "/batcherTaskSent", TraceController, :batcher_task_sent
+    post "/initBatcherTaskTrace", TraceController, :create_batcher_task_trace
+    post "/batcherTaskUploadedToS3", TraceController, :batcher_task_uploaded_to_s3
     post "/batcherTaskStarted", TraceController, :batcher_task_started
+    post "/batcherTaskSent", TraceController, :batcher_task_sent
+    post "/batcherTaskCreationFailed", TraceController, :batcher_task_creation_failed
   end
 
   scope "/versions", TelemetryApiWeb do

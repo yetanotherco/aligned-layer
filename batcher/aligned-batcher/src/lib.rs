@@ -53,9 +53,9 @@ pub mod metrics;
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
+pub mod telemetry;
 pub mod types;
 mod zk_utils;
-pub mod telemetry;
 
 pub struct Batcher {
     s3_client: S3Client,
@@ -223,9 +223,7 @@ impl Batcher {
         }
         .expect("Failed to get disabled verifiers");
 
-        let telemetry = TelemetrySender::new(
-            "http://localhost:4001".to_string(),
-        );
+        let telemetry = TelemetrySender::new("http://localhost:4001".to_string());
 
         Self {
             s3_client,
@@ -962,6 +960,14 @@ impl Batcher {
             .collect();
 
         if let Err(e) = self
+            .telemetry
+            .init_task_trace(&hex::encode(batch_merkle_tree.root), leaves.len())
+            .await
+        {
+            error!("Failed to initialize task trace: {:?}", e);
+        }
+
+        if let Err(e) = self
             .submit_batch(
                 &batch_bytes,
                 &batch_merkle_tree.root,
@@ -971,6 +977,14 @@ impl Batcher {
             )
             .await
         {
+            let reason = format!("{:?}", e);
+            if let Err(e) = self
+                .telemetry
+                .task_creation_failed(&hex::encode(batch_merkle_tree.root), &reason)
+                .await
+            {
+                error!("Failed to send task creation failed telemetry: {:?}", e);
+            }
             for entry in finalized_batch.into_iter() {
                 if let Some(ws_sink) = entry.messaging_sink {
                     let merkle_root = hex::encode(batch_merkle_tree.root);
@@ -1055,7 +1069,7 @@ impl Batcher {
             let batch_finalization_result = self
                 .finalize_batch(block_number, finalized_batch, modified_gas_price)
                 .await;
-            
+
             // Resetting this here to avoid doing it on every return path of `finalize_batch` function
             let mut batch_posting = self.posting_batch.lock().await;
             *batch_posting = false;
@@ -1080,7 +1094,6 @@ impl Batcher {
         info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
         let file_name = batch_merkle_root_hex.clone() + ".json";
 
-        self.telemetry.send_new_batch(batch_merkle_root_hex).await.unwrap();
         info!("Uploading batch to S3...");
         s3::upload_object(
             &s3_client,
@@ -1091,6 +1104,13 @@ impl Batcher {
         .await
         .map_err(|e| BatcherError::BatchUploadError(e.to_string()))?;
 
+        if let Err(e) = self
+            .telemetry
+            .task_uploaded_to_s3(&batch_merkle_root_hex)
+            .await
+        {
+            error!("Failed to send task uploaded to S3 telemetry: {:?}", e);
+        };
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
@@ -1158,10 +1178,14 @@ impl Batcher {
     ) -> Result<TransactionReceipt, BatcherError> {
         info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
 
-        self.telemetry.start_task_creation(hex::encode(batch_merkle_root))
+        if let Err(e) = self
+            .telemetry
+            .task_created(&hex::encode(batch_merkle_root))
             .await
-            .unwrap();
-        
+        {
+            error!("Failed to send task created telemetry: {:?}", e);
+        };
+
         match try_create_new_task(
             batch_merkle_root,
             batch_data_pointer.clone(),
@@ -1172,7 +1196,13 @@ impl Batcher {
         .await
         {
             Ok(receipt) => {
-                self.telemetry.send_creating_task(hex::encode(batch_merkle_root)).await.unwrap();
+                if let Err(e) = self
+                    .telemetry
+                    .task_sent(&hex::encode(batch_merkle_root), receipt.transaction_hash)
+                    .await
+                {
+                    error!("Failed to send task status to telemetry: {:?}", e);
+                }
                 Ok(receipt)
             }
             Err(BatcherSendError::TransactionReverted(err)) => {
