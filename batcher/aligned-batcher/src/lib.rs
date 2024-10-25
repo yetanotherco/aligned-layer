@@ -357,7 +357,7 @@ impl Batcher {
                 return Ok(());
             }
         };
-        let msg_nonce = client_msg.verification_data.nonce;
+        let mut msg_nonce = client_msg.verification_data.nonce;
         debug!("Received message with nonce: {msg_nonce:?}",);
         self.metrics.received_proofs.inc();
 
@@ -545,6 +545,10 @@ impl Batcher {
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
             return Ok(());
         };
+
+        if msg_nonce == U256::MAX {
+            msg_nonce = expected_nonce;
+        }
 
         if expected_nonce < msg_nonce {
             std::mem::drop(batch_state_lock);
