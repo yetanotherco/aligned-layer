@@ -34,7 +34,12 @@ cargo run --release -- generate-and-fund-wallets \
         --private-keys-filepath <PATH_TO_PRIVATE_KEYS_FILE>
 ```
 
-In Devnet:
+### In Testnet
+```bash
+NUM_WALLETS=<N> make task_sender_generate_and_fund_wallets_holesky_stage
+```
+
+### In Devnet:
 Run anvil with more prefunded accounts, using the following make target:
 ```bash
 make anvil_start_with_block_time_with_more_prefunded
@@ -69,10 +74,6 @@ BURST_SIZE=<N> BURST_TIME_SECS=<N> make task_sender_infinite_proofs_devnet
 ```bash
 BURST_SIZE=<N> BURST_TIME_SECS=<N> make task_sender_infinite_proofs_holesky_stage
 ```
-```bash
-BURST_SIZE=<N> BURST_TIME_SECS=<N> make task_sender_infinite_proofs_holesky
-```
-
 
 ## TestConnections
 
@@ -91,7 +92,4 @@ NUM_SENDERS=<N> make task_sender_test_connections_devnet
 ```
 ```bash
 NUM_SENDERS=<N> make task_sender_test_connections_holesky_stage
-```
-```bash
-NUM_SENDERS=<N> make task_sender_test_connections_holesky
 ```

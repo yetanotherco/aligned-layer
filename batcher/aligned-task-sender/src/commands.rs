@@ -208,6 +208,10 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
 
 /// infinitely hangs connections
 pub async fn test_connection(args: TestConnectionsArgs) {
+    if args.batcher_url == "wss://batcher.alignedlayer.com" {
+        error!("Network not supported by the connection tester");
+        return;
+    }
     info!("Going to only open a connection");
     let mut handlers = vec![];
 
@@ -243,6 +247,11 @@ struct Sender {
 }
 
 pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
+    if matches!(args.network.into(), Network::Holesky) {
+        error!("Network not supported this infinite proof sender");
+        return;
+    }
+
     info!("Loading wallets");
     let mut senders = vec![];
     let Ok(eth_rpc_provider) = Provider::<Http>::try_from(args.eth_rpc_url.clone()) else {
@@ -342,7 +351,6 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
 
                 match submit_multiple(
                     &batcher_url.clone(),
-                    // &eth_rpc_url.clone(),
                     args.network.into(),
                     &verification_data_to_send.clone(),
                     &max_fees,
