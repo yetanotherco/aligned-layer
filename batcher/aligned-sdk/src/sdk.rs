@@ -97,6 +97,7 @@ pub async fn submit_multiple_and_wait_verification(
     )
     .await?;
 
+    // TODO maybe use a join to .await all at the same time, avoiding the loop
     for aligned_verification_data_item in aligned_verification_data.iter() {
         await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await?;
     }
@@ -305,11 +306,12 @@ async fn _submit_multiple(
 
     let payment_service_addr = get_payment_service_address(network);
 
-    let sent_verification_data = {
-        // The sent verification data will be stored here so that we can calculate
-        // their commitments later.
+    // TODO after i do the initial version, that sends all messages and then receives them. I will refactor it to use a tokio::select
+    // So i can send and receive messages concurrently. This will allow to send infinite messages while receiving their responses
+
+    // Send messages
+    let mut verification_data_commitments_rev = {
         send_messages(
-            response_stream.clone(),
             ws_write,
             payment_service_addr,
             verification_data,
@@ -320,25 +322,17 @@ async fn _submit_multiple(
         .await?
     };
 
-    let num_responses = Arc::new(Mutex::new(0));
-
-    // This vector is reversed so that when responses are received, the commitments corresponding
-    // to that response can simply be popped of this vector.
-    let mut verification_data_commitments_rev: Vec<VerificationDataCommitment> =
-        sent_verification_data
-            .into_iter()
-            .map(|vd| vd.into())
-            .rev()
-            .collect();
-
+    // Receive responses
     let aligned_verification_data = receive(
         response_stream,
-        ws_write_clone,
         verification_data.len(),
-        num_responses,
         &mut verification_data_commitments_rev,
     )
     .await?;
+
+    // Close connection
+    debug!("Closing connection");
+    ws_write_clone.lock().await.close().await?; // no method named close?
 
     Ok(aligned_verification_data)
 }
