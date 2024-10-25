@@ -118,7 +118,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			// Retry with fallback
 			gasPrice, err = w.ClientFallback.SuggestGasPrice(context.Background())
 			if err != nil {
-				return nil, fmt.Errorf("transaction simulation failed: %v", err)
+				return nil, connection.PermanentError{Inner: err}
 			}
 		}
 		txOpts.GasPrice = utils.CalculateGasPriceBumpBasedOnRetry(gasPrice, GasBumpPercentage, i)
