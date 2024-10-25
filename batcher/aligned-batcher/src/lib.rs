@@ -602,7 +602,6 @@ impl Batcher {
         };
 
         info!("Verification data message handled");
-        send_message(ws_conn_sink, ResponseMessage::Valid).await;
         Ok(())
     }
 
@@ -1267,7 +1266,6 @@ impl Batcher {
         };
 
         info!("Non-paying verification data message handled");
-        send_message(ws_sink, ResponseMessage::Valid).await;
         Ok(())
     }
 

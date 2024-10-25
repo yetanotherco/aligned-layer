@@ -13,7 +13,6 @@ use crate::{
         errors,
         types::{
             AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
-            VerificationDataCommitment,
         },
     },
     eth::{
@@ -39,14 +38,14 @@ use log::{debug, info};
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
-    StreamExt, TryStreamExt,
+    StreamExt, TryStreamExt, SinkExt
 };
 
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-
 use serde_json::json;
+
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
 /// * `batcher_url` - The url of the batcher to which the proof will be submitted.

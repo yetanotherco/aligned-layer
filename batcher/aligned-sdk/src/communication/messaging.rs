@@ -148,8 +148,8 @@ async fn process_batch_inclusion_data(
         Ok(ResponseMessage::InvalidMaxFee) => {
             return Err(SubmitError::InvalidMaxFee);
         }
-        Ok(ResponseMessage::InsufficientBalance) => {
-            return Err(SubmitError::InsufficientBalance);
+        Ok(ResponseMessage::InsufficientBalance(addr)) => {
+            return Err(SubmitError::InsufficientBalance(addr));
         }
         Ok(ResponseMessage::InvalidChainId) => {
             return Err(SubmitError::InvalidChainId);
