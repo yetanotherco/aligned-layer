@@ -223,7 +223,10 @@ impl Batcher {
         }
         .expect("Failed to get disabled verifiers");
 
-        let telemetry = TelemetrySender::new("http://localhost:4001".to_string());
+        let telemetry = TelemetrySender::new(format!(
+            "http://{}",
+            config.batcher.telemetry_ip_port_address
+        ));
 
         Self {
             s3_client,
