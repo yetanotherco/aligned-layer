@@ -1245,7 +1245,7 @@ impl Batcher {
             return;
         };
 
-        info!("Task successfully canceled");
+        info!("createNewTask transaction successfully canceled");
     }
 
     /// Only relevant for testing and for users to easily use Aligned
