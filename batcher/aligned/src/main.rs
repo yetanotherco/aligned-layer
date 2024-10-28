@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 use std::fs::File;
-use std::io;
 use std::io::BufReader;
 use std::io::Write;
 use std::path::PathBuf;
@@ -352,9 +351,7 @@ async fn main() -> Result<(), AlignedError> {
             {
                 Ok(aligned_verification_data_vec) => aligned_verification_data_vec,
                 Err(e) => {
-                    let nonce_file = format!("nonce_{:?}.bin", wallet.address());
-
-                    handle_submit_err(e, nonce_file.as_str()).await;
+                    handle_submit_err(e).await;
                     return Ok(());
                 }
             };
@@ -572,7 +569,7 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
     })
 }
 
-async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
+async fn handle_submit_err(err: SubmitError) {
     match err {
         SubmitError::InvalidNonce => {
             error!("Invalid nonce. try again");
@@ -586,10 +583,6 @@ async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
         }
         _ => {}
     }
-
-    delete_file(nonce_file).unwrap_or_else(|e| {
-        error!("Error while deleting nonce file: {}", e);
-    });
 }
 
 fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
@@ -601,15 +594,6 @@ fn read_file_option(param_name: &str, file_name: Option<PathBuf>) -> Result<Vec<
         param_name.to_string(),
     ))?;
     read_file(file_name)
-}
-
-fn write_file(file_name: &str, content: &[u8]) -> Result<(), SubmitError> {
-    std::fs::write(file_name, content)
-        .map_err(|e| SubmitError::IoError(PathBuf::from(file_name), e))
-}
-
-fn delete_file(file_name: &str) -> Result<(), io::Error> {
-    std::fs::remove_file(file_name)
 }
 
 pub async fn get_user_balance(
