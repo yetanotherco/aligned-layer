@@ -15,9 +15,9 @@ use types::batch_state::BatchState;
 use types::user_state::UserState;
 
 use std::collections::HashMap;
+use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::{env, usize};
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
@@ -1218,6 +1218,8 @@ impl Batcher {
         }
     }
 
+    // Sends a transaction to Ethereum with the same nonce as the previous one to override it.
+    // We use the maximum number of retries here because this transaction must be included.
     pub async fn cancel_create_new_task_tx(&self, old_task_gas_price: U256) {
         info!("Canceling created task");
         let iteration = Arc::new(Mutex::new(0));

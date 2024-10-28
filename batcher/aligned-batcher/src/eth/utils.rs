@@ -38,6 +38,8 @@ pub async fn get_batcher_signer(
     Ok(signer)
 }
 
+/// Calculates an increased gas price for retrying a transaction override.
+/// The gas price rises with each retry by applying a multiplier based on the iteration count.
 pub fn get_bumped_gas_price(
     previous_gas_price: U256,
     current_gas_price: U256,
@@ -51,6 +53,7 @@ pub fn get_bumped_gas_price(
         current_gas_price * override_gas_multiplier / U256::from(PERCENTAGE_DIVIDER);
     bumped_current_gas_price.max(bumped_previous_gas_price)
 }
+
 pub async fn get_current_nonce(
     eth_http_provider: &Provider<Http>,
     eth_http_provider_fallback: &Provider<Http>,
@@ -85,4 +88,50 @@ pub async fn get_gas_price(
         error!("Could't get gas price: {e}");
         BatcherError::GasPriceError
     })
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_bumped_gas_price_initial_iteration() {
+        let previous_gas_price = U256::from(1000);
+        let current_gas_price = U256::from(1200);
+        let iteration = 0;
+
+        let expected = U256::from(1440); // (1200 * (120 + 0)) / 100
+
+        assert_eq!(
+            get_bumped_gas_price(previous_gas_price, current_gas_price, iteration),
+            expected
+        );
+    }
+
+    #[test]
+    fn test_get_bumped_gas_price_with_iteration() {
+        let previous_gas_price = U256::from(1000);
+        let current_gas_price = U256::from(1200);
+        let iteration = 2;
+
+        let expected = U256::from(1920); // (1200 * (120 + 40) / 100
+
+        assert_eq!(
+            get_bumped_gas_price(previous_gas_price, current_gas_price, iteration),
+            expected
+        );
+    }
+
+    #[test]
+    fn test_get_bumped_gas_price_previous_higher() {
+        let previous_gas_price = U256::from(1500);
+        let current_gas_price = U256::from(1200);
+        let iteration = 1;
+
+        let expected = U256::from(2100); // (1500 * 140) / 100
+
+        assert_eq!(
+            get_bumped_gas_price(previous_gas_price, current_gas_price, iteration),
+            expected
+        );
+    }
 }
