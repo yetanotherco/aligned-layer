@@ -234,8 +234,9 @@ operator_register_with_aligned_layer:
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
 LIMIT?=-1
+RESPOND_UNTIL?=-1
 operator_register_script:
-	./scripts/operator_full_registration.sh $(LIMIT)
+	./scripts/operator_full_registration.sh $(LIMIT) $(RESPOND_UNTIL)
 
 
 # The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.

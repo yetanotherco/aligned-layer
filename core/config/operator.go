@@ -28,6 +28,7 @@ type OperatorConfig struct {
 		MetricsIpPortAddress          string
 		MaxBatchSize                  int64
 		LastProcessedBatchFilePath    string
+		ShouldRespond                 bool
 	}
 }
 
@@ -45,6 +46,7 @@ type OperatorConfigFromYaml struct {
 		MetricsIpPortAddress          string         `yaml:"metrics_ip_port_address"`
 		MaxBatchSize                  int64          `yaml:"max_batch_size"`
 		LastProcessedBatchFilePath    string         `yaml:"last_processed_batch_filepath"`
+		ShouldRespond                 bool           `yaml:"should_respond"`
 	} `yaml:"operator"`
 	EcdsaConfigFromYaml EcdsaConfigFromYaml `yaml:"ecdsa"`
 	BlsConfigFromYaml   BlsConfigFromYaml   `yaml:"bls"`
@@ -95,6 +97,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 			MetricsIpPortAddress          string
 			MaxBatchSize                  int64
 			LastProcessedBatchFilePath    string
+			ShouldRespond                 bool
 		}(operatorConfigFromYaml.Operator),
 	}
 }

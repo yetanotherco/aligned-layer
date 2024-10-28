@@ -61,6 +61,7 @@ type Operator struct {
 	metrics                   *metrics.Metrics
 	lastProcessedBatch        OperatorLastProcessedBatch
 	lastProcessedBatchLogFile string
+	shouldRespond             bool
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -142,6 +143,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 			BlockNumber:        0,
 			batchProcessedChan: make(chan uint32),
 		},
+		shouldRespond: configuration.Operator.ShouldRespond,
 
 		// Timeout
 		// Socket
@@ -321,6 +323,10 @@ func (o *Operator) ProcessMissedBatchesWhileOffline() {
 
 // Process of handling batches from V2 events:
 func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
+	if !o.shouldRespond {
+		o.Logger.Error("NOT RESPONDING")
+		return
+	}
 	var err error
 	defer func() { o.afterHandlingBatchV2(newBatchLog, err == nil) }()
 
@@ -350,9 +356,9 @@ func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlign
 	)
 
 	o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
+	o.Logger.Info("RESPONDED")
 }
 func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) error {
-
 	o.Logger.Info("Received new batch with proofs to verify",
 		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
 		"sender address", "0x"+hex.EncodeToString(newBatchLog.SenderAddress[:]),
@@ -403,6 +409,11 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 
 // Process of handling batches from V3 events:
 func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) {
+	if !o.shouldRespond {
+		o.Logger.Error("NOT RESPONDING")
+		return
+	}
+
 	var err error
 	defer func() { o.afterHandlingBatchV3(newBatchLog, err == nil) }()
 	o.Logger.Infof("Received new batch log V3")
@@ -429,9 +440,10 @@ func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlign
 		hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
 		hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 	)
-
 	o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
+	o.Logger.Infof("RESPONDED")
 }
+
 func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) error {
 
 	o.Logger.Info("Received new batch with proofs to verify",

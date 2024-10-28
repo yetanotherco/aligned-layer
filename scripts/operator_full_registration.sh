@@ -2,6 +2,7 @@ BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 NUM_OPERATOR=0
 LIMIT=$1
+RESPOND_UNTIL=$2
 
 if [[ -z $LIMIT ]]; then
     LIMIT=-1
@@ -15,13 +16,22 @@ while IFS=, read -r private_key stake; do
     if [[ $private_key == "private_key" ]]; then
         continue
     fi
+
     if [[ $LIMIT == $NUM_OPERATOR ]]; then
         break
     fi
 
-    echo "PRIVATE KEY $private_key"
     NUM_OPERATOR=$((NUM_OPERATOR + 1))
     echo "NUM OPERATOR $NUM_OPERATOR"
+
+    SHOULD_RESPOND=false
+    if [[ -z $RESPOND_UNTIL || $RESPOND_UNTIL -eq -1 ]]; then
+        SHOULD_RESPOND=true
+    elif [ $NUM_OPERATOR -le $RESPOND_UNTIL ]; then
+        SHOULD_RESPOND=true
+    fi
+
+    echo "SHOULD RESPOND $SHOULD_RESPOND"
 
     # Gen keys
     echo "Generating BLS keys"
@@ -69,6 +79,7 @@ while IFS=, read -r private_key stake; do
     echo "  metrics_ip_port_address: 'localhost:9092'" >> $CONFIG_FILE
     echo "  max_batch_size: 268435456 # 256 MiB" >> $CONFIG_FILE
     echo "  last_processed_batch_filepath: 'config-files/operator-$NUM_OPERATOR.last_processed_batch.json'" >> $CONFIG_FILE
+    echo "  should_respond: $SHOULD_RESPOND" >> $CONFIG_FILE
     echo "" >> $CONFIG_FILE
     echo "# Operators variables needed for register it in EigenLayer" >> $CONFIG_FILE
     echo "el_delegation_manager_address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9'" >> $CONFIG_FILE
