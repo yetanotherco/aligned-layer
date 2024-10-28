@@ -94,14 +94,14 @@ COPY batcher/ /aligned_layer/batcher/
 COPY --from=chef_builder /aligned_layer/operator/sp1/lib/target/ /aligned_layer/operator/sp1/lib/target/
 WORKDIR /aligned_layer/operator/sp1/lib
 RUN cargo build ${RELEASE_FLAG}
-RUN cp /aligned_layer/operator/sp1/lib/target/${TARGET_REL_PATH}/libsp1_verifier_ffi.so /aligned_layer/operator/sp1/lib/libsp1_verifier_ffi.so
+RUN cp /aligned_layer/operator/sp1/lib/target/${TARGET_REL_PATH}/libsp1_verifier_ffi.so /aligned_layer/operator/sp1/lib/libsp1_verifier.so
 
 # build_risc_zero_linux
 COPY --from=chef_builder /aligned_layer/operator/risc_zero/lib/target/ /aligned_layer/operator/risc_zero/lib/target/
 WORKDIR /aligned_layer/operator/risc_zero/lib
 RUN cargo build ${RELEASE_FLAG}
 RUN cp /aligned_layer/operator/risc_zero/lib/target/${TARGET_REL_PATH}/librisc_zero_verifier_ffi.so /aligned_layer/operator/risc_zero/lib/librisc_zero_verifier_ffi.so
-RUN cp /aligned_layer/operator/risc_zero_old/lib/target/${TARGET_REL_PATH}/librisc_zero_verifier_old_ffi.so /aligned_layer/operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.so
+#RUN cp /aligned_layer/operator/risc_zero_old/lib/target/${TARGET_REL_PATH}/librisc_zero_verifier_ffi.so /aligned_layer/operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.so
 
 # build_merkle_tree_linux
 COPY --from=chef_builder /aligned_layer/operator/merkle_tree/lib/target/ /aligned_layer/operator/merkle_tree/lib/target/
