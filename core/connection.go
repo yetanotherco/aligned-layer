@@ -1,6 +1,7 @@
 package connection
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -19,6 +20,19 @@ func (e PermanentError) Is(err error) bool {
 	return ok
 }
 
+type TransientError struct {
+	Inner error
+}
+
+func (e TransientError) Error() string { return e.Inner.Error() }
+func (e TransientError) Unwrap() error {
+	return e.Inner
+}
+func (e TransientError) Is(err error) bool {
+	_, ok := err.(TransientError)
+	return ok
+}
+
 const MinDelay = 1000
 const RetryFactor = 2
 const NumRetries = 3
@@ -27,19 +41,27 @@ const NumRetries = 3
 func RetryWithData[T any](functionToRetry func() (*T, error), minDelay uint64, factor float64, maxTries uint64) (*T, error) {
 	i := 0
 	f := func() (*T, error) {
-		// Create a channel to receive results from the protected function call
-		var val *T
-		var err error
-
-		defer func() {
-			if r := recover(); r != nil {
+		var (
+			val *T
+			err error
+		)
+		func() {
+			// I
+			defer func() {
+				if r := recover(); r != nil {
+					if panic_err, ok := r.(error); ok {
+						err = TransientError{panic_err}
+					} else {
+						err = TransientError{fmt.Errorf("panicked: %v", panic_err)}
+					}
+				}
+			}()
+			val, err = functionToRetry()
+			i++
+			if perm, ok := err.(PermanentError); err != nil && ok {
+				err = backoff.Permanent(perm.Inner)
 			}
-			val, err := functionToRetry()
 		}()
-		i++
-		if perm, ok := err.(PermanentError); err != nil && ok {
-			return nil, backoff.Permanent(perm.Inner)
-		}
 		return val, err
 	}
 
