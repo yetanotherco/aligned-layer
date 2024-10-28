@@ -1,14 +1,14 @@
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use aligned_sdk::core::constants::{BATCH_INCLUSION_DELAY, TRANSACTIONS_INCLUSION_DELAY};
 use ethers::prelude::*;
 use log::{info, warn};
-use tokio::{sync::Mutex, time::timeout};
+use tokio::time::timeout;
 
 use crate::{
     eth::{
         payment_service::{BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT},
-        utils::{get_bumped_gas_price, get_current_nonce, get_gas_price},
+        utils::get_current_nonce,
     },
     retry::RetryError,
     types::errors::BatcherError,
@@ -175,11 +175,8 @@ pub async fn create_new_task_retryable(
 pub async fn cancel_create_new_task_retryable(
     batcher_signer: &SignerMiddlewareT,
     batcher_signer_fallback: &SignerMiddlewareT,
-    iteration: Arc<Mutex<usize>>,
-    previous_gas_price: Arc<Mutex<U256>>,
+    bumped_gas_price: U256,
 ) -> Result<TransactionReceipt, RetryError<String>> {
-    let mut iteration = iteration.lock().await;
-    let mut previous_gas_price = previous_gas_price.lock().await;
     let batcher_addr = batcher_signer.address();
 
     let current_nonce = get_current_nonce(
@@ -189,15 +186,6 @@ pub async fn cancel_create_new_task_retryable(
     )
     .await
     .map_err(|e| RetryError::Transient(e.to_string()))?;
-
-    let current_gas_price = get_gas_price(
-        batcher_signer.provider(),
-        batcher_signer_fallback.provider(),
-    )
-    .await
-    .map_err(|e| RetryError::Transient(format!("{:?}", e)))?;
-
-    let bumped_gas_price = get_bumped_gas_price(*previous_gas_price, current_gas_price, *iteration);
 
     let tx = TransactionRequest::new()
         .to(batcher_addr)
@@ -220,8 +208,6 @@ pub async fn cancel_create_new_task_retryable(
     )
     .await
     .map_err(|e| {
-        *iteration += 1;
-        *previous_gas_price = bumped_gas_price;
         warn!("Timeout while waiting for transaction inclusion: {e}");
         RetryError::Transient(e.to_string())
     })?
@@ -229,11 +215,7 @@ pub async fn cancel_create_new_task_retryable(
         warn!("Error while waiting for tx inclusion: {e}");
         RetryError::Transient(e.to_string())
     })?
-    .ok_or({
-        *iteration += 1;
-        *previous_gas_price = bumped_gas_price;
-        RetryError::Transient("Receipt not found".to_string())
-    })
+    .ok_or(RetryError::Transient("Receipt not found".to_string()))
 }
 
 #[cfg(test)]

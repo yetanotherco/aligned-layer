@@ -3,7 +3,7 @@ use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
 use eth::service_manager::ServiceManager;
-use eth::utils::{get_batcher_signer, get_gas_price};
+use eth::utils::{get_batcher_signer, get_bumped_gas_price, get_gas_price};
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use retry::batcher_retryables::{
@@ -1227,13 +1227,32 @@ impl Batcher {
         let previous_gas_price = Arc::new(Mutex::new(old_tx_gas_price));
 
         if let Err(e) = retry_function(
-            || {
+            || async {
+                let mut iteration = iteration.lock().await;
+                let mut previous_gas_price = previous_gas_price.lock().await;
+
+                let current_gas_price = match get_gas_price(
+                    self.batcher_signer.provider(),
+                    self.batcher_signer_fallback.provider(),
+                )
+                .await
+                {
+                    Ok(gas_price) => gas_price,
+                    Err(e) => return Err(RetryError::Transient(format!("{:?}", e))),
+                };
+
+                let bumped_gas_price =
+                    get_bumped_gas_price(*previous_gas_price, current_gas_price, *iteration);
+
+                *iteration += 1;
+                *previous_gas_price = bumped_gas_price;
+
                 cancel_create_new_task_retryable(
                     &self.batcher_signer,
                     &self.batcher_signer_fallback,
-                    iteration.clone(),
-                    previous_gas_price.clone(),
+                    bumped_gas_price,
                 )
+                .await
             },
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
