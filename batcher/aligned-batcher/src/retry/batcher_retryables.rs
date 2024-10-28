@@ -222,7 +222,7 @@ pub async fn cancel_create_new_task_retryable(
     .map_err(|e| {
         *iteration += 1;
         *previous_gas_price = bumped_gas_price;
-        warn!("Timeout while waiting for tx inclusion: {e}");
+        warn!("Timeout while waiting for transaction inclusion: {e}");
         RetryError::Transient(e.to_string())
     })?
     .map_err(|e| {
