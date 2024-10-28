@@ -1241,7 +1241,7 @@ impl Batcher {
         )
         .await
         {
-            error!("Could not cancel created task: {e}");
+            error!("Could not cancel createNewTask transaction: {e}");
             return;
         };
 
