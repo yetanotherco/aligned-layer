@@ -17,7 +17,7 @@ const TIME_BETWEEN_RETRIES: u64 = 10;
 pub fn handle_batch_inclusion_data(
     batch_inclusion_data: BatchInclusionData,
     aligned_verification_data: &mut Vec<AlignedVerificationData>,
-    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
+    verification_data_commitment: VerificationDataCommitment,
 ) -> Result<(), errors::SubmitError> {
     debug!("Received response from batcher");
     debug!(
@@ -25,10 +25,6 @@ pub fn handle_batch_inclusion_data(
         hex::encode(batch_inclusion_data.batch_merkle_root)
     );
     debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
-
-    let verification_data_commitment = verification_data_commitments_rev
-        .pop()
-        .ok_or_else(|| errors::SubmitError::EmptyVerificationDataCommitments)?;
 
     if verify_response(&verification_data_commitment, &batch_inclusion_data) {
         aligned_verification_data.push(AlignedVerificationData::new(

@@ -33,6 +33,7 @@ use sha3::{Digest, Keccak256};
 use std::{str::FromStr, sync::Arc};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
+use tokio::sync::mpsc;
 
 use log::{debug, info};
 
@@ -305,11 +306,9 @@ async fn _submit_multiple(
 
     let payment_service_addr = get_payment_service_address(network);
 
-    // TODO after i do the initial version, that sends all messages and then receives them. I will refactor it to use a tokio::select
-    // So i can send and receive messages concurrently. This will allow to send infinite messages while receiving their responses
+    let (sender_channel, receiver_channel) = mpsc::channel(1024); //TODO Magic number
 
-    // Send messages
-    let mut verification_data_commitments_rev = {
+    let (send_result, receive_result) = tokio::join!(
         send_messages(
             ws_write,
             payment_service_addr,
@@ -317,23 +316,20 @@ async fn _submit_multiple(
             max_fees,
             wallet,
             nonce,
-        )
-        .await?
-    };
-
-    // Receive responses
-    let aligned_verification_data = receive(
-        response_stream,
-        verification_data.len(),
-        &mut verification_data_commitments_rev,
-    )
-    .await?;
-
+            sender_channel,
+        ),
+        receive(
+            response_stream,
+            receiver_channel
+        ),
+    );
+    
     // Close connection
-    debug!("Closing connection");
-    ws_write_clone.lock().await.close().await?; // no method named close?
+    info!("Closing WS connection");
+    ws_write_clone.lock().await.close().await?;
 
-    Ok(aligned_verification_data)
+    send_result?;
+    return receive_result
 }
 
 /// Submits a proof to the batcher to be verified in Aligned and waits for the verification on-chain.

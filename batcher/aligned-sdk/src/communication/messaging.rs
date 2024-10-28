@@ -35,11 +35,9 @@ pub async fn send_messages(
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     mut nonce: U256,
-) -> Result<Vec<VerificationDataCommitment>, SubmitError> {
-    let mut sent_verification_data = Vec::new();
-
+    sender_channel: tokio::sync::mpsc::Sender<VerificationDataCommitment>,
+) -> Result<bool, SubmitError> {
     let chain_id = U256::from(wallet.chain_id());
-
     let mut ws_write = ws_write.lock().await;
 
     for (idx, verification_data) in verification_data.iter().enumerate() {
@@ -64,30 +62,20 @@ pub async fn send_messages(
 
         debug!("{:?} Message sent", idx);
 
-        sent_verification_data.push(verification_data.clone());
+        sender_channel.send(verification_data.into()).await.unwrap();
     }
 
-    // This vector is reversed so that when responses are received, the commitments corresponding
-    // to that response can simply be popped of this vector.
-    let verification_data_commitments_rev: Vec<VerificationDataCommitment> =
-        sent_verification_data
-            .into_iter()
-            .map(|vd| vd.into())
-            .rev()
-            .collect();
-
-    Ok(verification_data_commitments_rev)
+    //sender_channel will be closed as it falls out of scope, sending a 'None' to the receiver
+    Ok(true) 
 }
 
 pub async fn receive(
     response_stream: Arc<Mutex<ResponseStream>>,
-    total_messages: usize,
-    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
+    mut receiver_channnel: tokio::sync::mpsc::Receiver<VerificationDataCommitment>,
 ) -> Result<Vec<AlignedVerificationData>, SubmitError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream = response_stream.lock().await;
     let mut aligned_verification_data: Vec<AlignedVerificationData> = Vec::new();
-    let mut num_responses: usize = 0;
 
     while let Some(Ok(msg)) = response_stream.next().await {
         if let Message::Close(close_frame) = msg {
@@ -102,17 +90,19 @@ pub async fn receive(
             ));
         }
 
-        process_batch_inclusion_data(
-            msg,
-            &mut aligned_verification_data,
-            verification_data_commitments_rev,
-        )
-        .await?;
-        
-        num_responses += 1;
-        if num_responses == total_messages {
-            info!("All message responses received");
-            return Ok(aligned_verification_data);
+        match receiver_channnel.recv().await {
+            Some(verification_data_commitment) => {
+                process_batch_inclusion_data(
+                    msg,
+                    &mut aligned_verification_data,
+                    verification_data_commitment,
+                )
+                .await?;
+            }
+            None => { //channel sends None when writing to it is closed
+                info!("All message responses received");
+                return Ok(aligned_verification_data);
+            }
         }
     }
 
@@ -124,7 +114,7 @@ pub async fn receive(
 async fn process_batch_inclusion_data(
     msg: Message,
     aligned_verification_data: &mut Vec<AlignedVerificationData>,
-    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
+    verification_data_commitment: VerificationDataCommitment,
 ) -> Result<(), SubmitError> {
 
     let data = msg.into_data();
@@ -133,7 +123,7 @@ async fn process_batch_inclusion_data(
             let _ = handle_batch_inclusion_data(
                 batch_inclusion_data,
                 aligned_verification_data,
-                verification_data_commitments_rev,
+                verification_data_commitment,
             );
         }
         Ok(ResponseMessage::InvalidNonce) => {
