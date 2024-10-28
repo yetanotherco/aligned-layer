@@ -408,7 +408,7 @@ impl Batcher {
 
     async fn handle_submit_proof_msg(
         self: Arc<Self>,
-        msg: SubmitProofMessage,
+        msg: Box<SubmitProofMessage>,
         ws_conn_sink: WsMessageSink,
     ) -> Result<(), Error> {
         let msg_nonce = msg.verification_data.nonce;

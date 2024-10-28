@@ -58,7 +58,7 @@ pub async fn send_messages(
         nonce += U256::one();
 
         let data = SubmitProofMessage::new(verification_data.clone(), wallet.clone()).await;
-        let msg = ClientMessage::SubmitProof(data);
+        let msg = ClientMessage::SubmitProof(Box::new(data));
 
         let msg_bin = cbor_serialize(&msg).map_err(SubmitError::SerializationError)?;
         ws_write

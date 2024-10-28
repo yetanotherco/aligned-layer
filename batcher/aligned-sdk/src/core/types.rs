@@ -225,7 +225,9 @@ pub struct SubmitProofMessage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClientMessage {
     GetNonceForAddress(Address),
-    SubmitProof(SubmitProofMessage),
+    // Needs to be wrapped in box as the message is 3x bigger than the others
+    // see https://rust-lang.github.io/rust-clippy/master/index.html#large_enum_variant
+    SubmitProof(Box<SubmitProofMessage>),
 }
 
 impl Eip712 for NoncedVerificationData {
