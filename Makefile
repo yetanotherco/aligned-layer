@@ -3,7 +3,7 @@
 SHELL := /bin/bash
 OS := $(shell uname -s)
 
-CONFIG_FILE?=config-files/config.yaml
+CONFIG_FILE?=onfig-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
 OPERATOR_VERSION=v0.10.2
@@ -232,6 +232,9 @@ operator_register_with_aligned_layer:
 		--config $(CONFIG_FILE)
 
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
+
+operator_register_script:
+	./scripts/operator_full_registration.sh $(NUM_OPERATOR)
 
 
 # The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.
