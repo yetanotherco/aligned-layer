@@ -964,7 +964,7 @@ impl Batcher {
 
         if let Err(e) = self
             .telemetry
-            .init_task_trace(&hex::encode(batch_merkle_tree.root), leaves.len())
+            .init_task_trace(&hex::encode(batch_merkle_tree.root))
             .await
         {
             error!("Failed to initialize task trace on telemetry: {:?}", e);
@@ -1146,6 +1146,18 @@ impl Batcher {
             .gas_price_used_on_latest_batch
             .set(gas_price.as_u64() as i64);
 
+        if let Err(e) = self
+            .telemetry
+            .task_created(
+                &hex::encode(batch_merkle_root),
+                fee_params.fee_per_proof,
+                num_proofs_in_batch,
+            )
+            .await
+        {
+            error!("Failed to send task status to telemetry: {:?}", e);
+        };
+
         match self
             .create_new_task(
                 *batch_merkle_root,
@@ -1180,14 +1192,6 @@ impl Batcher {
         fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
         info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
-
-        if let Err(e) = self
-            .telemetry
-            .task_created(&hex::encode(batch_merkle_root))
-            .await
-        {
-            error!("Failed to send task status to telemetry: {:?}", e);
-        };
 
         match try_create_new_task(
             batch_merkle_root,

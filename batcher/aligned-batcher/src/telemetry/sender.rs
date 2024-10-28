@@ -1,4 +1,4 @@
-use ethers::types::H256;
+use ethers::types::{H256, U256};
 
 #[derive(Debug, serde::Serialize)]
 pub enum TraceMessage {
@@ -10,6 +10,13 @@ pub enum TraceMessage {
 #[derive(Debug, serde::Serialize)]
 pub struct TraceMessageTask {
     merkle_root: String,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct TraceMessageTaskStarted {
+    merkle_root: String,
+    fee_per_proof: U256,
+    num_proofs_in_batch: usize,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -45,16 +52,11 @@ impl TelemetrySender {
         format!("{}/api/{}", self.base_url, path)
     }
 
-    pub async fn init_task_trace(
-        &self,
-        batch_merkle_root: &str,
-        proof_count: usize,
-    ) -> Result<(), reqwest::Error> {
+    pub async fn init_task_trace(&self, batch_merkle_root: &str) -> Result<(), reqwest::Error> {
         let url = self.get_full_url("initBatcherTaskTrace");
         let formatted_merkle_root = format!("0x{}", batch_merkle_root);
-        let task = TraceMessageNewBatch {
+        let task = TraceMessageTask {
             merkle_root: formatted_merkle_root,
-            proof_count,
         };
         self.client.post(&url).json(&task).send().await?;
         Ok(())
@@ -75,11 +77,18 @@ impl TelemetrySender {
         Ok(())
     }
 
-    pub async fn task_created(&self, batch_merkle_root: &str) -> Result<(), reqwest::Error> {
+    pub async fn task_created(
+        &self,
+        batch_merkle_root: &str,
+        fee_per_proof: U256,
+        num_proofs_in_batch: usize,
+    ) -> Result<(), reqwest::Error> {
         let url = self.get_full_url("batcherTaskStarted");
         let formatted_merkle_root = format!("0x{}", batch_merkle_root);
-        let task = TraceMessageTask {
+        let task = TraceMessageTaskStarted {
             merkle_root: formatted_merkle_root,
+            fee_per_proof,
+            num_proofs_in_batch,
         };
         self.client.post(&url).json(&task).send().await?;
         Ok(())

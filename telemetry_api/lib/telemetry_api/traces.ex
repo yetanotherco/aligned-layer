@@ -139,11 +139,10 @@ defmodule TelemetryApi.Traces do
   ## Examples
 
       iex> merkle_root
-      iex> proof_count
-      iex> create_batcher_task_trace(merkle_root, proof_count)
+      iex> create_batcher_task_trace(merkle_root)
       :ok
   """
-  def create_batcher_task_trace(merkle_root, proof_count) do
+  def create_batcher_task_trace(merkle_root) do
     root_span_ctx =
       Tracer.start_span(
         "Task: #{merkle_root}",
@@ -167,6 +166,7 @@ defmodule TelemetryApi.Traces do
     })
 
     with {:ok, trace} <- set_current_trace(merkle_root) do
+      # This span ends inmediately after it's created just to set the correct title to the final task.
       Tracer.with_span "Task: #{merkle_root}" do
         Tracer.set_attributes(%{merkle_root: merkle_root})
       end
@@ -182,7 +182,7 @@ defmodule TelemetryApi.Traces do
         )
 
       Tracer.set_current_span(batcher_subspan_ctx)
-      Tracer.add_event("New batch", [{:proof_count, proof_count}, {:merkle_root, merkle_root}])
+      Tracer.add_event("New batch", [{:merkle_root, merkle_root}])
 
       TraceStore.store_trace(merkle_root, %{
         trace
@@ -243,9 +243,11 @@ defmodule TelemetryApi.Traces do
       iex> batcher_task_started(merkle_root)
       :ok
   """
-  def batcher_task_started(merkle_root) do
+  def batcher_task_started(merkle_root, fee_per_proof, total_proofs) do
     with {:ok, _trace} <- set_current_trace_with_subspan(merkle_root, :batcher) do
-      Tracer.add_event("Batcher Task being created", [])
+      {fee_per_proof, _} = String.slice(fee_per_proof, 2..-1//1) |> Integer.parse(16)
+      IO.inspect("fee_per_proof: #{fee_per_proof}")
+      Tracer.add_event("Batcher Task being created", [fee_per_proof: fee_per_proof, total_proofs: total_proofs])
       :ok
     end
   end
