@@ -322,7 +322,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 		return nil, err
 	}
 
-	agg.logger.Debugf("GAS USED IN AGGREGATED RESPONSE TX %v", receipt.GasUsed)
+	agg.logger.Errorf("GAS USED IN AGGREGATED RESPONSE TX %v", receipt.GasUsed)
 
 	agg.metrics.IncAggregatedResponses()
 
