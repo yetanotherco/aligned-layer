@@ -24,10 +24,11 @@ To get the SDK up and running in your project, you must first import it
 
 ```rust
 use aligned_sdk::core::types::{PriceEstimate, AlignedVerificationData, Network, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{estimate_fee, submit_and_wait, get_next_nonce};
+use aligned_sdk::sdk::{estimate_fee, submit_and_wait, get_address_nonce};
 ```
 
-And then you can do a simple call of, for example, `get_next_nonce`
+And then you can do a simple call of, for example, `get_address_nonce`
+
 ```rust
 const NETWORK: Network = Network::Holesky;
 
@@ -40,7 +41,7 @@ fn main() {
         .with_chain_id(17000u64);
 
     // Call to SDK:
-    let nonce = get_next_nonce(&rpc_url, wallet.address(), NETWORK).await
+    let nonce = get_address_nonce(&rpc_url, wallet.address(), NETWORK).await
     .expect("Failed to get next nonce");
 }
 ```

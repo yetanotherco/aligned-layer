@@ -5,7 +5,7 @@ use aligned_sdk::core::types::{
     AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
 };
 use aligned_sdk::sdk::{deposit_to_aligned, estimate_fee};
-use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
+use aligned_sdk::sdk::{get_nonce_for_address, submit_and_wait_verification};
 use clap::Parser;
 use dialoguer::Confirm;
 use ethers::prelude::*;
@@ -132,7 +132,7 @@ async fn main() {
         .expect("Failed to read user input")
     {   return; }
 
-    let nonce = get_next_nonce(&rpc_url, wallet.address(), args.network)
+    let nonce = get_nonce_for_address(&args.batcher_url, wallet.address())
         .await
         .expect("Failed to get next nonce");
 
