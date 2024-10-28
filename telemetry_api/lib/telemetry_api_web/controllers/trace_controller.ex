@@ -45,7 +45,11 @@ defmodule TelemetryApiWeb.TraceController do
   Register a batcher task started in the trace of the given merkle_root
   Method: POST batcherTaskStarted
   """
-  def batcher_task_started(conn, %{"merkle_root" => merkle_root, "fee_per_proof" => fee_per_proof, "num_proofs_in_batch" => total_proofs}) do
+  def batcher_task_started(conn, %{
+        "merkle_root" => merkle_root,
+        "fee_per_proof" => fee_per_proof,
+        "num_proofs_in_batch" => total_proofs
+      }) do
     with :ok <- Traces.batcher_task_started(merkle_root, fee_per_proof, total_proofs) do
       conn
       |> put_status(:ok)
@@ -58,7 +62,7 @@ defmodule TelemetryApiWeb.TraceController do
   Method: POST initBatcherTaskTrace
   """
   def create_batcher_task_trace(conn, %{
-        "merkle_root" => merkle_root,
+        "merkle_root" => merkle_root
       }) do
     with :ok <- Traces.create_batcher_task_trace(merkle_root) do
       conn
