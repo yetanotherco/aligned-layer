@@ -1211,6 +1211,7 @@ impl Batcher {
         match result {
             Ok(receipt) => Ok(receipt),
             Err(RetryError::Permanent(BatcherError::ReceiptNotFoundError)) => {
+                self.metrics.canceled_batches.inc();
                 self.cancel_create_new_task_tx(fee_params.gas_price).await;
                 Err(BatcherError::ReceiptNotFoundError)
             }
