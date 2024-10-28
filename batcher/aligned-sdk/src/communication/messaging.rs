@@ -79,9 +79,8 @@ pub async fn send_messages(
             }
         };
 
-        let response_msg: ValidityResponseMessage =
-            cbor_deserialize(msg.into_data().as_slice())
-                .map_err(SubmitError::SerializationError)?;
+        let response_msg: ValidityResponseMessage = cbor_deserialize(msg.into_data().as_slice())
+            .map_err(SubmitError::SerializationError)?;
 
         match response_msg {
             ValidityResponseMessage::Valid => {
@@ -128,10 +127,7 @@ pub async fn send_messages(
                     "Batcher experienced Eth RPC connection error".to_string(),
                 ));
             }
-            ValidityResponseMessage::InvalidPaymentServiceAddress(
-                received_addr,
-                expected_addr,
-            ) => {
+            ValidityResponseMessage::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
                 error!(
                     "Invalid payment service address, received: {}, expected: {}",
                     received_addr, expected_addr
