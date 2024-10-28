@@ -37,7 +37,7 @@ defmodule TelemetryApi.Traces do
           )
 
         Tracer.set_current_span(aggregator_subspan_ctx)
-        Tracer.add_event("New task taken", [])
+        Tracer.add_event("New task event received", [])
 
         TraceStore.store_trace(merkle_root, %{
           trace
