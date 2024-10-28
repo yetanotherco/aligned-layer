@@ -20,7 +20,7 @@ The command will log the file where all the aligned verification data was saved 
 [2024-10-09T15:54:42Z INFO  aligned_integration] Saved batch inclusion data to ".../aligned_test/examples/validating-public-input/aligned-integration/batch_inclusion_data/<DATA_FILE_NAME>"
 ```
 
-Save the name since it will be necessary, you can see it in `aligned-layer/examples/validating-public-input/batch_inclusion_data` otherwise.
+Save the name since it will be necessary, you can found it in the path logged in the previous command otherwise.
 
 3. `make deploy_fibonacci_validator_devnet`
 
@@ -61,10 +61,10 @@ transactionHash         <TX_HASH>
 The command will log the file where all the aligned verification data was saved like so:
 
 ```
-[2024-10-09T15:54:42Z INFO  aligned_integration] Saved batch inclusion data to ".../aligned_test/examples/validating-public-input/aligned-integration/batch_inclusion_data/<DATA_FILE_NAME>"
+[2024-10-09T15:54:42Z INFO  aligned_integration] Saved batch inclusion data to "aligned-layer/examples/validating-public-input/aligned-integration/batch_inclusion_data/<DATA_FILE_NAME>"
 ```
 
-Save the name since it will be necessary, you can see it in `aligned-layer/examples/validating-public-input/batch_inclusion_data` otherwise.
+Save the name since it will be necessary, you can found it in the path logged in the previous command otherwise.
 
 3. `make deploy_fibonacci_validator_devnet`
 

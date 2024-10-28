@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 generate_risc0_fibonacci_proof:
 	@cd risc_zero/fibonacci_proof_generator && \
 		cargo run --release && \
