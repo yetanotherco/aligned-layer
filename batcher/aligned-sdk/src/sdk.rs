@@ -3,17 +3,17 @@ use crate::{
         batch::await_batch_verification,
         messaging::{receive, send_messages, ResponseStream},
         protocol::check_protocol_version,
-        serialization::cbor_serialize,
+        serialization::{cbor_deserialize, cbor_serialize},
     },
     core::{
         constants::{
             ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
             MAX_FEE_BATCH_PROOF_NUMBER, MAX_FEE_DEFAULT_PROOF_NUMBER,
         },
-        errors,
+        errors::{self, GetNonceError},
         types::{
-            AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
-            VerificationDataCommitment,
+            AlignedVerificationData, ClientMessage, GetNonceResponseMessage, Network,
+            PriceEstimate, ProvingSystemId, VerificationData, VerificationDataCommitment,
         },
     },
     eth::{
@@ -39,7 +39,7 @@ use log::{debug, info};
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
-    StreamExt, TryStreamExt,
+    SinkExt, StreamExt, TryStreamExt,
 };
 
 use std::fs::File;
@@ -534,36 +534,48 @@ pub fn get_vk_commitment(
 
 /// Returns the next nonce for a given address.
 /// # Arguments
-/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
-/// * `submitter_addr` - The address of the proof submitter for which the nonce will be retrieved.
-/// * `payment_service_addr` - The address of the batcher payment service contract.
+/// * `batcher_url` - The URL of the Ethereum RPC node.
+/// * `address` - The user address for which the nonce will be retrieved.
 /// # Returns
 /// * The next nonce of the proof submitter account.
 /// # Errors
-/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
-/// * `EthereumCallError` if there is an error in the Ethereum call.
-pub async fn get_next_nonce(
-    eth_rpc_url: &str,
-    submitter_addr: Address,
-    network: Network,
-) -> Result<U256, errors::NonceError> {
-    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
-        .map_err(|e| errors::NonceError::EthereumProviderError(e.to_string()))?;
+/// * `EthRpcError` if the batcher has an error in the Ethereum call when retrieving the nonce if not already cached.
+pub async fn get_nonce_for_address(
+    batcher_ws_url: &str,
+    address: Address,
+) -> Result<U256, GetNonceError> {
+    let (ws_stream, _) = connect_async(batcher_ws_url)
+        .await
+        .map_err(|_| GetNonceError::General("Ws connection to batcher failed".to_string()))?;
 
-    let payment_service_address = get_payment_service_address(network);
+    debug!("WebSocket handshake has been successfully completed");
+    let (mut ws_write, mut ws_read) = ws_stream.split();
 
-    match batcher_payment_service(eth_rpc_provider, payment_service_address).await {
-        Ok(contract) => {
-            let call = contract.user_nonces(submitter_addr);
+    let msg = ClientMessage::GetNonceForAddress(address);
 
-            let result = call
-                .call()
-                .await
-                .map_err(|e| errors::NonceError::EthereumCallError(e.to_string()))?;
+    let msg_bin = cbor_serialize(&msg)
+        .map_err(|_| GetNonceError::General("Failed to serialize msg".to_string()))?;
+    ws_write
+        .send(Message::Binary(msg_bin.clone()))
+        .await
+        .map_err(|_| {
+            GetNonceError::General("Ws connection failed to send message to batcher".to_string())
+        })?;
 
-            Ok(result)
+    let msg = match ws_read.next().await {
+        Some(Ok(msg)) => msg,
+        _ => {
+            return Err(GetNonceError::General(
+                "Connection was closed without close message before receiving all messages"
+                    .to_string(),
+            ));
         }
-        Err(e) => Err(errors::NonceError::EthereumCallError(e.to_string())),
+    };
+    let response_msg: GetNonceResponseMessage = cbor_deserialize(msg.into_data().as_slice())
+        .map_err(|_| errors::GetNonceError::General("Failed to deserialize message".to_string()))?;
+
+    match response_msg {
+        GetNonceResponseMessage::Nonce(nonce) => Ok(nonce),
     }
 }
 

@@ -17,8 +17,9 @@ use crate::{
     core::{
         errors::SubmitError,
         types::{
-            AlignedVerificationData, ClientMessage, NoncedVerificationData, ResponseMessage,
-            ValidityResponseMessage, VerificationData, VerificationDataCommitment,
+            AlignedVerificationData, ClientMessage, NoncedVerificationData,
+            SubmitProofResponseMessage, ValidityResponseMessage, VerificationData,
+            VerificationDataCommitment,
         },
     },
 };
@@ -78,8 +79,9 @@ pub async fn send_messages(
             }
         };
 
-        let response_msg: ValidityResponseMessage = cbor_deserialize(msg.into_data().as_slice())
-            .map_err(SubmitError::SerializationError)?;
+        let response_msg: ValidityResponseMessage =
+            cbor_deserialize(msg.into_data().as_slice())
+                .map_err(SubmitError::SerializationError)?;
 
         match response_msg {
             ValidityResponseMessage::Valid => {
@@ -126,7 +128,10 @@ pub async fn send_messages(
                     "Batcher experienced Eth RPC connection error".to_string(),
                 ));
             }
-            ValidityResponseMessage::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
+            ValidityResponseMessage::InvalidPaymentServiceAddress(
+                received_addr,
+                expected_addr,
+            ) => {
                 error!(
                     "Invalid payment service address, received: {}, expected: {}",
                     received_addr, expected_addr
@@ -199,34 +204,33 @@ async fn process_batch_inclusion_data(
 
     let data = msg.into_data();
     match cbor_deserialize(data.as_slice()) {
-        Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
+        Ok(SubmitProofResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
             let _ = handle_batch_inclusion_data(
                 batch_inclusion_data,
                 aligned_verification_data,
                 verification_data_commitments_rev,
             );
         }
-        Ok(ResponseMessage::ProtocolVersion(_)) => {
+        Ok(SubmitProofResponseMessage::ProtocolVersion(_)) => {
             return Err(SubmitError::UnexpectedBatcherResponse(
                 "Batcher responded with protocol version instead of batch inclusion data"
                     .to_string(),
             ));
         }
-        Ok(ResponseMessage::BatchReset) => {
+        Ok(SubmitProofResponseMessage::BatchReset) => {
             return Err(SubmitError::ProofQueueFlushed);
         }
-        Ok(ResponseMessage::Error(e)) => {
+        Ok(SubmitProofResponseMessage::Error(e)) => {
             error!("Batcher responded with error: {}", e);
         }
-        Ok(ResponseMessage::CreateNewTaskError(merkle_root)) => {
+        Ok(SubmitProofResponseMessage::CreateNewTaskError(merkle_root)) => {
             return Err(SubmitError::BatchSubmissionFailed(
                 "Could not create task with merkle root ".to_owned() + &merkle_root,
             ));
         }
-        Ok(ResponseMessage::InvalidProof(reason)) => {
+        Ok(SubmitProofResponseMessage::InvalidProof(reason)) => {
             return Err(SubmitError::InvalidProof(reason));
         }
-        Ok(ResponseMessage::CurrentNonce(_)) => {}
         Err(e) => {
             return Err(SubmitError::SerializationError(e));
         }

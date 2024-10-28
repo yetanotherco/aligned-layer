@@ -12,7 +12,7 @@ use aligned_sdk::core::{
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
 use aligned_sdk::sdk::get_chain_id;
-use aligned_sdk::sdk::get_next_nonce;
+use aligned_sdk::sdk::get_nonce_for_address;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
 use clap::Parser;
@@ -29,6 +29,7 @@ use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
 use crate::AlignedCommands::GetUserBalance;
+use crate::AlignedCommands::GetUserNonce;
 use crate::AlignedCommands::GetVkCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -56,6 +57,8 @@ pub enum AlignedCommands {
     DepositToBatcher(DepositToBatcherArgs),
     #[clap(about = "Get user balance from the batcher", name = "get-user-balance")]
     GetUserBalance(GetUserBalanceArgs),
+    #[clap(about = "Get user nonce from the batcher", name = "get-user-nonce")]
+    GetUserNonce(GetUserNonceArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -199,6 +202,23 @@ pub struct GetUserBalanceArgs {
     user_address: String,
 }
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct GetUserNonceArgs {
+    #[arg(
+        name = "Batcher connection address",
+        long = "batcher_url",
+        default_value = "ws://localhost:8080"
+    )]
+    batcher_url: String,
+    #[arg(
+        name = "The user's Ethereum address",
+        long = "user_addr",
+        required = true
+    )]
+    address: String,
+}
+
 #[derive(Debug, Clone, ValueEnum, Copy)]
 enum NetworkArg {
     Devnet,
@@ -302,15 +322,16 @@ async fn main() -> Result<(), AlignedError> {
 
             let nonce = match &submit_args.nonce {
                 Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
-                None => {
-                    get_nonce(
-                        &eth_rpc_url,
-                        wallet.address(),
-                        submit_args.network.into(),
-                        repetitions,
-                    )
-                    .await?
-                }
+                None => get_nonce_for_address(&connect_addr, wallet.address())
+                    .await
+                    .map_err(|e| match e {
+                        aligned_sdk::core::errors::GetNonceError::EthRpcError(e) => {
+                            SubmitError::GetNonceError(e)
+                        }
+                        aligned_sdk::core::errors::GetNonceError::General(e) => {
+                            SubmitError::GetNonceError(e)
+                        }
+                    })?,
             };
 
             let verification_data = verification_data_from_args(&submit_args)?;
@@ -476,6 +497,18 @@ async fn main() -> Result<(), AlignedError> {
                 }
             }
         }
+        GetUserNonce(args) => {
+            let address = H160::from_str(&args.address).unwrap();
+            match get_nonce_for_address(&args.batcher_url, address).await {
+                Ok(nonce) => {
+                    info!("Nonce for address {} is {}", address, nonce);
+                }
+                Err(e) => {
+                    error!("Error while getting nonce: {:?}", e);
+                    return Ok(());
+                }
+            }
+        }
     }
 
     Ok(())
@@ -577,34 +610,6 @@ fn write_file(file_name: &str, content: &[u8]) -> Result<(), SubmitError> {
 
 fn delete_file(file_name: &str) -> Result<(), io::Error> {
     std::fs::remove_file(file_name)
-}
-
-async fn get_nonce(
-    eth_rpc_url: &str,
-    address: Address,
-    network: Network,
-    proof_count: usize,
-) -> Result<U256, AlignedError> {
-    let nonce = get_next_nonce(eth_rpc_url, address, network).await?;
-
-    let nonce_file = format!("nonce_{:?}.bin", address);
-
-    let local_nonce = read_file(PathBuf::from(nonce_file.clone())).unwrap_or(vec![0u8; 32]);
-    let local_nonce = U256::from_big_endian(local_nonce.as_slice());
-
-    let nonce = if local_nonce > nonce {
-        local_nonce
-    } else {
-        nonce
-    };
-
-    let mut nonce_bytes = [0; 32];
-
-    (nonce + U256::from(proof_count)).to_big_endian(&mut nonce_bytes);
-
-    write_file(nonce_file.as_str(), &nonce_bytes)?;
-
-    Ok(nonce)
 }
 
 pub async fn get_user_balance(

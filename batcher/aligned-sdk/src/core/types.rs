@@ -404,14 +404,18 @@ impl Display for ProofInvalidReason {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ResponseMessage {
+pub enum SubmitProofResponseMessage {
     BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
     CreateNewTaskError(String),
     InvalidProof(ProofInvalidReason),
     BatchReset,
-    CurrentNonce(U256),
     Error(String),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GetNonceResponseMessage {
+    Nonce(U256),
 }
 
 #[derive(Debug, Clone, Copy)]

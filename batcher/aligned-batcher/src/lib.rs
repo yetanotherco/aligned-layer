@@ -1,4 +1,5 @@
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
+use aligned_sdk::core::errors::GetNonceError;
 use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
@@ -20,9 +21,9 @@ use aligned_sdk::core::constants::{
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
-    ClientMessage, NoncedVerificationData, ProofInvalidReason, ProvingSystemId, ResponseMessage,
-    SubmitProofMessage, ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
-    VerificationDataCommitment,
+    ClientMessage, GetNonceResponseMessage, NoncedVerificationData, ProofInvalidReason,
+    ProvingSystemId, SubmitProofMessage, SubmitProofResponseMessage, ValidityResponseMessage,
+    VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
 };
 
 use aws_sdk_s3::client::Client as S3Client;
@@ -314,7 +315,7 @@ impl Batcher {
         let (outgoing, incoming) = ws_stream.split();
         let outgoing = Arc::new(RwLock::new(outgoing));
 
-        let protocol_version_msg = ResponseMessage::ProtocolVersion(
+        let protocol_version_msg = SubmitProofResponseMessage::ProtocolVersion(
             aligned_sdk::communication::protocol::EXPECTED_PROTOCOL_VERSION,
         );
 
@@ -391,7 +392,11 @@ impl Batcher {
                     error!(
                         "Failed to get user nonce from Ethereum for address {address:?}. Error: {e:?}"
                     );
-                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
+                    send_message(
+                        ws_conn_sink.clone(),
+                        GetNonceError::EthRpcError("Eth RPC error".to_string()),
+                    )
+                    .await;
                     return Ok(());
                 }
             }
@@ -399,7 +404,7 @@ impl Batcher {
 
         send_message(
             ws_conn_sink.clone(),
-            ResponseMessage::CurrentNonce(user_nonce),
+            GetNonceResponseMessage::Nonce(user_nonce),
         )
         .await;
 
@@ -1017,7 +1022,7 @@ impl Batcher {
                     let merkle_root = hex::encode(batch_merkle_tree.root);
                     send_message(
                         ws_sink.clone(),
-                        ResponseMessage::CreateNewTaskError(merkle_root),
+                        SubmitProofResponseMessage::CreateNewTaskError(merkle_root),
                     )
                     .await
                 } else {
@@ -1038,7 +1043,7 @@ impl Batcher {
         let mut batch_state_lock = self.batch_state.lock().await;
         for (entry, _) in batch_state_lock.batch_queue.iter() {
             if let Some(ws_sink) = entry.messaging_sink.as_ref() {
-                send_message(ws_sink.clone(), ResponseMessage::BatchReset).await;
+                send_message(ws_sink.clone(), SubmitProofResponseMessage::BatchReset).await;
             } else {
                 warn!("Websocket sink was found empty. This should only happen in tests");
             }
