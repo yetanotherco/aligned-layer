@@ -10,8 +10,7 @@ pub struct BatchVerified {
     pub batch_merkle_root: [u8; 32],
 }
 
-pub type SignerMiddlewareT =
-    SignerMiddleware<GasEscalatorMiddleware<Provider<Http>>, Wallet<SigningKey>>;
+pub type SignerMiddlewareT = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
 
 pub type BatcherPaymentService = BatcherPaymentServiceContract<SignerMiddlewareT>;
 

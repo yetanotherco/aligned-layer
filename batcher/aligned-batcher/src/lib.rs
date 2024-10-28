@@ -3,11 +3,11 @@ use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
 use eth::service_manager::ServiceManager;
-use eth::utils::get_batcher_signer;
+use eth::utils::{get_batcher_signer, get_gas_price};
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use retry::batcher_retryables::{
-    create_new_task_retryable, get_gas_price_retryable, get_user_balance_retryable,
+    cancel_create_new_task_retryable, create_new_task_retryable, get_user_balance_retryable,
     get_user_nonce_from_ethereum_retryable, user_balance_is_unlocked_retryable,
 };
 use retry::{retry_function, RetryError};
@@ -15,16 +15,16 @@ use types::batch_state::BatchState;
 use types::user_state::UserState;
 
 use std::collections::HashMap;
-use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::{env, usize};
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
     DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_FEE_PER_PROOF, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
-    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, OVERRIDE_GAS_PRICE_MULTIPLIER,
-    PERCENTAGE_DIVIDER, RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
+    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
     ClientMessage, NoncedVerificationData, ProofInvalidReason, ProvingSystemId, ResponseMessage,
@@ -34,8 +34,8 @@ use aligned_sdk::core::types::{
 
 use aws_sdk_s3::client::Client as S3Client;
 use eth::payment_service::{BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
-use ethers::prelude::{Http, Middleware, Provider};
-use ethers::types::{Address, Signature, TransactionReceipt, TransactionRequest, U256};
+use ethers::prelude::{Middleware, Provider};
+use ethers::types::{Address, Signature, TransactionReceipt, U256};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
@@ -68,8 +68,6 @@ pub struct Batcher {
     download_endpoint: String,
     eth_ws_url: String,
     eth_ws_url_fallback: String,
-    eth_http_provider: Provider<Http>,
-    eth_http_provider_fallback: Provider<Http>,
     chain_id: U256,
     payment_service: BatcherPaymentService,
     payment_service_fallback: BatcherPaymentService,
@@ -226,20 +224,12 @@ impl Batcher {
         }
         .expect("Failed to get disabled verifiers");
 
-        let eth_http_provider =
-            eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get http provider");
-
-        let eth_http_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
-            .expect("Failed to get fallback http provider");
-
         Self {
             s3_client,
             s3_bucket_name,
             download_endpoint,
             eth_ws_url: config.eth_ws_url,
             eth_ws_url_fallback: config.eth_ws_url_fallback,
-            eth_http_provider,
-            eth_http_provider_fallback,
             chain_id,
             payment_service,
             payment_service_fallback,
@@ -1083,7 +1073,10 @@ impl Batcher {
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
-        let gas_price_future = self.get_gas_price();
+        let gas_price_future = get_gas_price(
+            self.batcher_signer.provider(),
+            self.batcher_signer_fallback.provider(),
+        );
         let disabled_verifiers_future = self.disabled_verifiers();
 
         let (gas_price, disable_verifiers) =
@@ -1218,45 +1211,37 @@ impl Batcher {
         match result {
             Ok(receipt) => Ok(receipt),
             Err(RetryError::Permanent(BatcherError::ReceiptNotFoundError)) => {
-                self.override_created_task(fee_params.gas_price).await;
+                self.cancel_create_new_task_tx(fee_params.gas_price).await;
                 Err(BatcherError::ReceiptNotFoundError)
             }
             Err(_) => Err(BatcherError::TransactionSendError),
         }
     }
 
-    pub async fn override_created_task(&self, task_gas_price: U256) {
-        let batcher_addr = self.batcher_signer.address();
-        let current_nonce = self
-            .batcher_signer
-            .get_transaction_count(from_address, None)
-            .await
-            .unwrap();
-
-        let modified_gas_price = task_gas_price * U256::from(OVERRIDE_GAS_PRICE_MULTIPLIER)
-            / U256::from(PERCENTAGE_DIVIDER);
-
-        let tx = TransactionRequest::new()
-            .to(from_address)
-            .value(U256::zero())
-            .nonce(current_nonce)
-            .gas_price(modified_gas_price);
-
+    pub async fn cancel_create_new_task_tx(&self, old_task_gas_price: U256) {
         info!("Canceling created task");
-        if self
-            .batcher_signer
-            .send_transaction(tx.clone(), None)
-            .await
-            .is_err()
+        let iteration = Arc::new(Mutex::new(0));
+        let previous_gas_price = Arc::new(Mutex::new(old_task_gas_price));
+
+        if let Err(e) = retry_function(
+            || {
+                cancel_create_new_task_retryable(
+                    &self.batcher_signer,
+                    &self.batcher_signer_fallback,
+                    iteration.clone(),
+                    previous_gas_price.clone(),
+                )
+            },
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            usize::MAX,
+        )
+        .await
         {
-            if let Err(e) = self
-                .batcher_signer_fallback
-                .send_transaction(tx, None)
-                .await
-            {
-                warn!("Could not cancel created task: {e}");
-            }
+            error!("Could not cancel created task: {e}");
+            return;
         };
+
         info!("Task successfully canceled");
     }
 
@@ -1393,21 +1378,6 @@ impl Batcher {
             return false;
         };
         unlocked
-    }
-
-    /// Gets the current gas price from Ethereum using exponential backoff.
-    async fn get_gas_price(&self) -> Result<U256, BatcherError> {
-        retry_function(
-            || get_gas_price_retryable(&self.eth_http_provider, &self.eth_http_provider_fallback),
-            DEFAULT_MIN_RETRY_DELAY,
-            DEFAULT_BACKOFF_FACTOR,
-            DEFAULT_MAX_RETRIES,
-        )
-        .await
-        .map_err(|e| {
-            error!("Could't get gas price: {e}");
-            BatcherError::GasPriceError
-        })
     }
 
     /// Uploads the batch to s3 using exponential backoff.

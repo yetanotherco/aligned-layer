@@ -1,12 +1,15 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
-use aligned_sdk::core::constants::BATCH_INCLUSION_DELAY;
+use aligned_sdk::core::constants::{BATCH_INCLUSION_DELAY, TRANSACTIONS_INCLUSION_DELAY};
 use ethers::prelude::*;
 use log::{info, warn};
-use tokio::time::timeout;
+use tokio::{sync::Mutex, time::timeout};
 
 use crate::{
-    eth::payment_service::{BatcherPaymentService, CreateNewTaskFeeParams},
+    eth::{
+        payment_service::{BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT},
+        utils::{get_bumped_gas_price, get_current_nonce, get_gas_price},
+    },
     retry::RetryError,
     types::errors::BatcherError,
 };
@@ -48,6 +51,23 @@ pub async fn get_user_nonce_from_ethereum_retryable(
         })
 }
 
+pub async fn get_current_nonce_retryable(
+    eth_http_provider: &Provider<Http>,
+    eth_http_provider_fallback: &Provider<Http>,
+    addr: Address,
+) -> Result<U256, RetryError<String>> {
+    if let Ok(current_nonce) = eth_http_provider.get_transaction_count(addr, None).await {
+        return Ok(current_nonce);
+    }
+    eth_http_provider_fallback
+        .get_transaction_count(addr, None)
+        .await
+        .map_err(|e| {
+            warn!("Error getting user nonce: {e}");
+            RetryError::Transient(e.to_string())
+        })
+}
+
 pub async fn user_balance_is_unlocked_retryable(
     payment_service: &BatcherPaymentService,
     payment_service_fallback: &BatcherPaymentService,
@@ -68,10 +88,10 @@ pub async fn user_balance_is_unlocked_retryable(
 }
 
 pub async fn get_gas_price_retryable(
-    eth_ws_provider: &Provider<Http>,
-    eth_ws_provider_fallback: &Provider<Http>,
+    eth_http_provider: &Provider<Http>,
+    eth_http_provider_fallback: &Provider<Http>,
 ) -> Result<U256, RetryError<String>> {
-    if let Ok(gas_price) = eth_ws_provider
+    if let Ok(gas_price) = eth_http_provider
         .get_gas_price()
         .await
         .inspect_err(|e| warn!("Failed to get gas price. Trying with fallback: {e:?}"))
@@ -79,10 +99,13 @@ pub async fn get_gas_price_retryable(
         return Ok(gas_price);
     }
 
-    eth_ws_provider_fallback.get_gas_price().await.map_err(|e| {
-        warn!("Failed to get fallback gas price: {e:?}");
-        RetryError::Transient(e.to_string())
-    })
+    eth_http_provider_fallback
+        .get_gas_price()
+        .await
+        .map_err(|e| {
+            warn!("Failed to get fallback gas price: {e:?}");
+            RetryError::Transient(e.to_string())
+        })
 }
 
 pub async fn create_new_task_retryable(
@@ -147,6 +170,70 @@ pub async fn create_new_task_retryable(
             RetryError::Transient(BatcherError::TransactionSendError)
         })?
         .ok_or(RetryError::Permanent(BatcherError::ReceiptNotFoundError))
+}
+
+pub async fn cancel_create_new_task_retryable(
+    batcher_signer: &SignerMiddlewareT,
+    batcher_signer_fallback: &SignerMiddlewareT,
+    iteration: Arc<Mutex<usize>>,
+    previous_gas_price: Arc<Mutex<U256>>,
+) -> Result<TransactionReceipt, RetryError<String>> {
+    let mut iteration = iteration.lock().await;
+    let mut previous_gas_price = previous_gas_price.lock().await;
+    let batcher_addr = batcher_signer.address();
+
+    let current_nonce = get_current_nonce(
+        batcher_signer.provider(),
+        batcher_signer_fallback.provider(),
+        batcher_addr,
+    )
+    .await
+    .map_err(|e| RetryError::Transient(e.to_string()))?;
+
+    let current_gas_price = get_gas_price(
+        batcher_signer.provider(),
+        batcher_signer_fallback.provider(),
+    )
+    .await
+    .map_err(|e| RetryError::Transient(format!("{:?}", e)))?;
+
+    let bumped_gas_price = get_bumped_gas_price(*previous_gas_price, current_gas_price, *iteration);
+
+    let tx = TransactionRequest::new()
+        .to(batcher_addr)
+        .value(U256::zero())
+        .nonce(current_nonce)
+        .gas_price(bumped_gas_price);
+
+    let pending_tx = match batcher_signer.send_transaction(tx.clone(), None).await {
+        Ok(pending_tx) => pending_tx,
+        Err(_) => batcher_signer_fallback
+            .send_transaction(tx.clone(), None)
+            .await
+            .map_err(|e| RetryError::Transient(e.to_string()))?,
+    };
+
+    // timeout to prevent a deadlock while waiting for the transaction to be included in a block.
+    timeout(
+        Duration::from_millis(TRANSACTIONS_INCLUSION_DELAY),
+        pending_tx,
+    )
+    .await
+    .map_err(|e| {
+        *iteration += 1;
+        *previous_gas_price = bumped_gas_price;
+        warn!("Timeout while waiting for tx inclusion: {e}");
+        RetryError::Transient(e.to_string())
+    })?
+    .map_err(|e| {
+        warn!("Error while waiting for tx inclusion: {e}");
+        RetryError::Transient(e.to_string())
+    })?
+    .ok_or({
+        *iteration += 1;
+        *previous_gas_price = bumped_gas_price;
+        RetryError::Transient("Receipt not found".to_string())
+    })
 }
 
 #[cfg(test)]
