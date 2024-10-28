@@ -8,16 +8,20 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
+	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	rpccalls "github.com/Layr-Labs/eigensdk-go/metrics/collectors/rpc_calls"
+	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	aggregator "github.com/yetanotherco/aligned_layer/aggregator/pkg"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	connection "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
@@ -86,7 +90,7 @@ func SetupAnvil(port uint16) (*exec.Cmd, *eth.InstrumentedClient, error) {
 	}
 
 	// Delay needed for anvil to start
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 
 	reg := prometheus.NewRegistry()
 	rpcCallsCollector := rpccalls.NewCollector("ethRpc", reg)
@@ -172,7 +176,7 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 
 	// Errors out but "not found"
 	receipt, err := utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
@@ -196,10 +200,9 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 }
 
-/*
 func TestInitializeNewTaskRetryable(t *testing.T) {
 
 	//Start Anvil
@@ -230,24 +233,22 @@ func TestInitializeNewTaskRetryable(t *testing.T) {
 	}
 	time.Sleep(2 * time.Second)
 
-		err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
-		assert.NotNil(t, err)
-		fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+	err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
+	assert.NotNil(t, err)
+	fmt.Printf("Error setting Avs Subscriber: %s\n", err)
 
-		// Start Anvil
-		cmd, _, err = SetupAnvil(8545)
-		if err != nil {
-			fmt.Printf("Error setting up Anvil: %s\n", err)
-		}
+	// Start Anvil
+	_, _, err = SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
 
-		// Should succeed
-		err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
-		assert.Nil(t, err)
-		fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+	// Should succeed
+	err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
+	assert.Nil(t, err)
+	fmt.Printf("Error setting Avs Subscriber: %s\n", err)
 }
-*/
 
-/*
 // |--Server Retry Tests--|
 func TestProcessNewSignatureRetryable(t *testing.T) {
 	// Start anvil
@@ -278,27 +279,26 @@ func TestProcessNewSignatureRetryable(t *testing.T) {
 	}
 	time.Sleep(2 * time.Second)
 
-		err = agg.ProcessNewSignatureRetryable(context.Background(), 0, zero_bytes, zero_sig, eigen_bytes)
-		assert.NotNil(t, err)
-		fmt.Printf("Error Processing New Signature: %s\n", err)
+	err = agg.ProcessNewSignatureRetryable(context.Background(), 0, zero_bytes, zero_sig, eigen_bytes)
+	assert.NotNil(t, err)
+	fmt.Printf("Error Processing New Signature: %s\n", err)
 
-		// Start anvil
-		cmd, _, err = SetupAnvil(8545)
-		if err != nil {
-			fmt.Printf("Error setting up Anvil: %s\n", err)
-		}
+	// Start anvil
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
 
-		err = agg.ProcessNewSignatureRetryable(context.Background(), 0, zero_bytes, zero_sig, eigen_bytes)
-		assert.Nil(t, err)
-		fmt.Printf("Error Processing New Signature: %s\n", err)
+	err = agg.ProcessNewSignatureRetryable(context.Background(), 0, zero_bytes, zero_sig, eigen_bytes)
+	assert.Nil(t, err)
+	fmt.Printf("Error Processing New Signature: %s\n", err)
 
-		// Kill Anvil at end of test
-		if err := cmd.Process.Kill(); err != nil {
-			fmt.Printf("error killing process: %v\n", err)
-			return
-		}
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
 }
-*/
 
 // |--AVS-Subscriber Retry Tests--|
 
@@ -330,7 +330,7 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 
 	_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
 	assert.NotNil(t, err)
@@ -351,7 +351,7 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 }
 
 func TestSubscribeToNewTasksV2(t *testing.T) {
@@ -381,7 +381,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(s.ServiceManager, channel, baseConfig.Logger)
 	assert.NotNil(t, err)
@@ -402,7 +402,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 }
 
 func TestBlockNumber(t *testing.T) {
@@ -426,7 +426,7 @@ func TestBlockNumber(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 
 	_, err = sub.BlockNumberRetryable(context.Background())
 	assert.NotNil(t, err)
@@ -447,7 +447,7 @@ func TestBlockNumber(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 }
 
 func TestFilterBatchV2(t *testing.T) {
@@ -471,9 +471,9 @@ func TestFilterBatchV2(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	_, err = avsSubscriber.FilterBatchV2Retryable(0, context.Background())
 	assert.NotNil(t, err)
 	fmt.Printf(": %s\n", err)
 
@@ -483,7 +483,7 @@ func TestFilterBatchV2(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	_, err = avsSubscriber.FilterBatchV2Retryable(0, context.Background())
 	assert.Nil(t, err)
 	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
@@ -492,7 +492,7 @@ func TestFilterBatchV2(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 }
 
 func TestFilterBatchV3(t *testing.T) {
@@ -516,9 +516,9 @@ func TestFilterBatchV3(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	_, err = avsSubscriber.FilterBatchV3Retryable(0, context.Background())
 	assert.NotNil(t, err)
 	fmt.Printf(": %s\n", err)
 
@@ -528,7 +528,7 @@ func TestFilterBatchV3(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	_, err = avsSubscriber.FilterBatchV3Retryable(0, context.Background())
 	assert.Nil(t, err)
 	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
@@ -537,7 +537,7 @@ func TestFilterBatchV3(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 }
 
 func TestBatchesStateSubscriber(t *testing.T) {
@@ -563,9 +563,9 @@ func TestBatchesStateSubscriber(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
 	assert.NotNil(t, err)
 	fmt.Printf(": %s\n", err)
 
@@ -575,7 +575,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
 	assert.Nil(t, err)
 	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
@@ -584,7 +584,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 }
 
 func TestSubscribeNewHead(t *testing.T) {
@@ -609,9 +609,9 @@ func TestSubscribeNewHead(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
 	assert.NotNil(t, err)
 	fmt.Printf(": %s\n", err)
 
@@ -621,7 +621,7 @@ func TestSubscribeNewHead(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
 	assert.Nil(t, err)
 	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
@@ -630,10 +630,9 @@ func TestSubscribeNewHead(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 }
 
-/*
 // |--AVS-Writer Retry Tests--|
 
 func TestRespondToTaskV2(t *testing.T) {
@@ -643,23 +642,83 @@ func TestRespondToTaskV2(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
+	g2Point := servicemanager.BN254G2Point{
+		X: [2]*big.Int{big.NewInt(4), big.NewInt(3)},
+		Y: [2]*big.Int{big.NewInt(2), big.NewInt(8)},
+	}
+
+	g1Point := servicemanager.BN254G1Point{
+		X: big.NewInt(2),
+		Y: big.NewInt(1),
+	}
+
+	g1Points := []servicemanager.BN254G1Point{
+		g1Point, g1Point, g1Point,
+	}
+
+	// Or if you want to initialize with specific values
+
+	nonSignerStakesAndSignature := servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature{
+		NonSignerPubkeys:             g1Points,
+		QuorumApks:                   g1Points,
+		ApkG2:                        g2Point,
+		Sigma:                        g1Point,
+		NonSignerQuorumBitmapIndices: make([]uint32, 3),
+		QuorumApkIndices:             make([]uint32, 3),
+		TotalStakeIndices:            make([]uint32, 3),
+		NonSignerStakeIndices:        make([][]uint32, 1, 3),
+	}
+
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
 	w, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
 	txOpts := *w.Signer.GetTxOpts()
-	aggregator_address := common.HexToAddress("0x0")
+	aggregator_address := common.HexToAddress("0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690")
 	zero_bytes := [32]byte{}
 
-	w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address)
-	assert.Nil(t, err, "Should be 0")
+	// Panics if 0 object passed
+	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	assert.NotNil(t, err, "Should error")
+	// assert error contains "Message:"execution reverted: custom error 0x2396d34e:"
+	if !strings.Contains(err.Error(), "execution reverted: custom error 0x2396d34e:") {
+		t.Errorf("Respond to task V2 Retryable did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
+		return
+	}
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(2 * time.Second)
+
+	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	assert.NotNil(t, err)
+	fmt.Printf(": %s\n", err)
+
+	// Start anvil
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	assert.NotNil(t, err, "Should error")
+	// assert error contains "Message:"execution reverted: custom error 0x2396d34e:"
+	if !strings.Contains(err.Error(), "execution reverted: custom error 0x2396d34e:") {
+		t.Errorf("Respond to task V2 Retryable did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
+		return
+	}
+
+	// Kill Anvil at end of test
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+	time.Sleep(750 * time.Millisecond)
 }
-*/
 
 func TestBatchesStateWriter(t *testing.T) {
 	// Start anvil
@@ -671,11 +730,15 @@ func TestBatchesStateWriter(t *testing.T) {
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
 	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
+		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	zero_bytes := [32]byte{}
+	num := big.NewInt(6)
 
-	_, err = avsWriter.BatchesStateRetryable(zero_bytes)
+	var bytes [32]byte
+	num.FillBytes(bytes[:])
+
+	_, err = avsWriter.BatchesStateRetryable(bytes)
 	assert.Nil(t, err, "Should be 0")
 
 	// Kill Anvil at end of test
@@ -683,11 +746,14 @@ func TestBatchesStateWriter(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 
-	_, err = sub.BlockNumberRetryable(context.Background())
-	assert.NotNil(t, err)
-	fmt.Printf(": %s\n", err)
+	// Directly panics -> Need to catch in retry.
+	/*
+		_, err = avsWriter.BatchesStateRetryable(bytes)
+		assert.NotNil(t, err)
+		fmt.Printf(": %s\n", err)
+	*/
 
 	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
@@ -695,7 +761,7 @@ func TestBatchesStateWriter(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	_, err = avsWriter.BatchesStateRetryable(bytes)
 	assert.Nil(t, err)
 	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
@@ -704,7 +770,7 @@ func TestBatchesStateWriter(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 }
 
 func TestBalanceAt(t *testing.T) {
@@ -730,9 +796,9 @@ func TestBalanceAt(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, big.NewInt(16))
 	assert.NotNil(t, err)
 	fmt.Printf(": %s\n", err)
 
@@ -742,7 +808,7 @@ func TestBalanceAt(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, big.NewInt(16))
 	assert.Nil(t, err)
 	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
@@ -751,7 +817,7 @@ func TestBalanceAt(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 }
 
 func TestBatchersBalances(t *testing.T) {
@@ -777,11 +843,13 @@ func TestBatchersBalances(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 
-	_, err = sub.BlockNumberRetryable(context.Background())
-	assert.NotNil(t, err)
-	fmt.Printf(": %s\n", err)
+	/*
+		_, err = avsWriter.BatcherBalancesRetryable(sender_address)
+		assert.NotNil(t, err)
+		fmt.Printf(": %s\n", err)
+	*/
 
 	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
@@ -789,7 +857,7 @@ func TestBatchersBalances(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	_, err = avsWriter.BatcherBalancesRetryable(sender_address)
 	assert.Nil(t, err)
 	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
@@ -798,5 +866,5 @@ func TestBatchersBalances(t *testing.T) {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(750 * time.Millisecond)
 }

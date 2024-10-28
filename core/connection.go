@@ -27,7 +27,15 @@ const NumRetries = 3
 func RetryWithData[T any](functionToRetry func() (*T, error), minDelay uint64, factor float64, maxTries uint64) (*T, error) {
 	i := 0
 	f := func() (*T, error) {
-		val, err := functionToRetry()
+		// Create a channel to receive results from the protected function call
+		var val *T
+		var err error
+
+		defer func() {
+			if r := recover(); r != nil {
+			}
+			val, err := functionToRetry()
+		}()
 		i++
 		if perm, ok := err.(PermanentError); err != nil && ok {
 			return nil, backoff.Permanent(perm.Inner)
