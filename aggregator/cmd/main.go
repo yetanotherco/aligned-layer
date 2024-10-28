@@ -9,6 +9,8 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/aggregator/internal/pkg"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/sched"
+	"github.com/yetanotherco/aligned_layer/core/supervisor"
 )
 
 var (
@@ -49,22 +51,24 @@ func aggregatorMain(ctx *cli.Context) error {
 		return err
 	}
 
+	gcPeriod := aggregatorConfig.Aggregator.GarbageCollectorPeriod
+	aggregatorConfig.BaseConfig.Logger.Info(fmt.Sprintf("- Removing finalized Task Infos from Maps every %v", gcPeriod))
+	lastIdxDeleted := uint32(0)
+
 	// Supervisor revives garbage collector
-	go func() {
-		for {
-			log.Println("Starting Garbage collector")
-			aggregator.ClearTasksFromMaps()
-			log.Println("Garbage collector panicked, Supervisor restarting")
-		}
-	}()
+	sched.Every(gcPeriod, func() error {
+		var err error
+		lastIdxDeleted, err = aggregator.ClearTasksFromMaps(lastIdxDeleted)
+		return err
+	})
 
 	// Listen for new task created in the ServiceManager contract in a separate goroutine, both V1 and V2 subscriptions:
-	go func() {
+	supervisor.Serve(func() {
 		listenErr := aggregator.SubscribeToNewTasks()
 		if listenErr != nil {
 			aggregatorConfig.BaseConfig.Logger.Fatal("Error subscribing for new tasks", "err", listenErr)
 		}
-	}()
+	}, "subscriber")
 
 	err = aggregator.Start(context.Background())
 

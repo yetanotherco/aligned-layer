@@ -22,6 +22,7 @@ import (
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/supervisor"
 	"github.com/yetanotherco/aligned_layer/core/types"
 	"github.com/yetanotherco/aligned_layer/core/utils"
 )
@@ -184,12 +185,12 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 func (agg *Aggregator) Start(ctx context.Context) error {
 	agg.logger.Infof("Starting aggregator...")
 
-	go func() {
+	supervisor.Serve(func() {
 		err := agg.ServeOperators()
 		if err != nil {
 			agg.logger.Fatal("Error listening for tasks", "err", err)
 		}
-	}()
+	}, "operator listener")
 
 	var metricsErrChan <-chan error
 	if agg.AggregatorConfig.Aggregator.EnableMetrics {
@@ -208,7 +209,9 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 			agg.logger.Info("Received response from BLS aggregation service",
 				"taskIndex", blsAggServiceResp.TaskIndex)
 
-			go agg.handleBlsAggServiceResponse(blsAggServiceResp)
+			supervisor.OneShot(func () {
+				agg.handleBlsAggServiceResponse(blsAggServiceResp)
+			}, nil)
 		}
 	}
 }
@@ -389,47 +392,33 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 // Long-lived goroutine that periodically checks and removes old Tasks from stored Maps
 // It runs every GarbageCollectorPeriod and removes all tasks older than GarbageCollectorTasksAge
 // This was added because each task occupies memory in the maps, and we need to free it to avoid a memory leak
-func (agg *Aggregator) ClearTasksFromMaps() {
-	defer func() {
-		err := recover() //stops panics
-		if err != nil {
-			agg.logger.Error("Recovered from panic", "err", err)
-		}
-	}()
-
-	agg.AggregatorConfig.BaseConfig.Logger.Info(fmt.Sprintf("- Removing finalized Task Infos from Maps every %v", agg.AggregatorConfig.Aggregator.GarbageCollectorPeriod))
-	lastIdxDeleted := uint32(0)
-
-	for {
-		time.Sleep(agg.AggregatorConfig.Aggregator.GarbageCollectorPeriod)
-
-		agg.AggregatorConfig.BaseConfig.Logger.Info("Cleaning finalized tasks from maps")
-		oldTaskIdHash, err := agg.avsReader.GetOldTaskHash(agg.AggregatorConfig.Aggregator.GarbageCollectorTasksAge, agg.AggregatorConfig.Aggregator.GarbageCollectorTasksInterval)
-		if err != nil {
-			agg.logger.Error("Error getting old task hash, skipping this garbage collect", "err", err)
-			continue // Retry in the next iteration
-		}
-		if oldTaskIdHash == nil {
-			agg.logger.Warn("No old tasks found")
-			continue // Retry in the next iteration
-		}
-
-		taskIdxToDelete := agg.batchesIdxByIdentifierHash[*oldTaskIdHash]
-		agg.logger.Info("Old task found", "taskIndex", taskIdxToDelete)
-		// delete from lastIdxDeleted to taskIdxToDelete
-		for i := lastIdxDeleted + 1; i <= taskIdxToDelete; i++ {
-			batchIdentifierHash, exists := agg.batchesIdentifierHashByIdx[i]
-			if exists {
-				agg.logger.Info("Cleaning up finalized task", "taskIndex", i)
-				delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
-				delete(agg.batchCreatedBlockByIdx, i)
-				delete(agg.batchesIdentifierHashByIdx, i)
-				delete(agg.batchDataByIdentifierHash, batchIdentifierHash)
-			} else {
-				agg.logger.Warn("Task not found in maps", "taskIndex", i)
-			}
-		}
-		lastIdxDeleted = taskIdxToDelete
-		agg.AggregatorConfig.BaseConfig.Logger.Info("Done cleaning finalized tasks from maps")
+func (agg *Aggregator) ClearTasksFromMaps(since uint32) (uint32, error) {
+	agg.AggregatorConfig.BaseConfig.Logger.Info("Cleaning finalized tasks from maps")
+	oldTaskIdHash, err := agg.avsReader.GetOldTaskHash(agg.AggregatorConfig.Aggregator.GarbageCollectorTasksAge, agg.AggregatorConfig.Aggregator.GarbageCollectorTasksInterval)
+	if err != nil {
+		agg.logger.Error("Error getting old task hash, skipping this garbage collect", "err", err)
+		return since, err // Retry in the next iteration
 	}
+	if oldTaskIdHash == nil {
+		agg.logger.Warn("No old tasks found")
+		return since, nil // Retry in the next iteration
+	}
+
+	taskIdxToDelete := agg.batchesIdxByIdentifierHash[*oldTaskIdHash]
+	agg.logger.Info("Old task found", "taskIndex", taskIdxToDelete)
+	// delete from since to taskIdxToDelete
+	for i := since + 1; i <= taskIdxToDelete; i++ {
+		batchIdentifierHash, exists := agg.batchesIdentifierHashByIdx[i]
+		if exists {
+			agg.logger.Info("Cleaning up finalized task", "taskIndex", i)
+			delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
+			delete(agg.batchCreatedBlockByIdx, i)
+			delete(agg.batchesIdentifierHashByIdx, i)
+			delete(agg.batchDataByIdentifierHash, batchIdentifierHash)
+		} else {
+			agg.logger.Warn("Task not found in maps", "taskIndex", i)
+		}
+	}
+	agg.AggregatorConfig.BaseConfig.Logger.Info("Done cleaning finalized tasks from maps")
+	return taskIdxToDelete, nil
 }

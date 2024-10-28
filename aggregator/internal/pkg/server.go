@@ -7,6 +7,7 @@ import (
 	"net/rpc"
 	"time"
 
+	"github.com/yetanotherco/aligned_layer/core/supervisor"
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
@@ -80,8 +81,8 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	// Create a channel to signal when the task is done
 	done := make(chan struct{})
 
-	agg.logger.Info("Starting bls signature process")
-	go func() {
+	supervisor.OneShot(func() {
+		defer close(done)
 		err := agg.blsAggregationService.ProcessNewSignature(
 			context.Background(), taskIndex, signedTaskResponse.BatchIdentifierHash,
 			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
@@ -93,9 +94,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		} else {
 			agg.logger.Info("BLS process succeeded")
 		}
-
-		close(done)
-	}()
+	}, nil)
 
 	*reply = 1
 	// Wait for either the context to be done or the task to complete

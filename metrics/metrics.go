@@ -10,6 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/yetanotherco/aligned_layer/core/supervisor"
 )
 
 type Metrics struct {
@@ -64,14 +65,14 @@ func (m *Metrics) Start(ctx context.Context, reg prometheus.Gatherer) <-chan err
 		promhttp.HandlerOpts{},
 	))
 
-	go func() {
+	supervisor.Serve(func() {
 		err := server.ListenAndServe()
 		if err != nil {
 			errC <- errors.New("prometheus server failed")
 		} else {
 			errC <- nil
 		}
-	}()
+	}, "prometheus")
 	return errC
 }
 

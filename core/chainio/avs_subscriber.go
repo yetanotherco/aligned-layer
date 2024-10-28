@@ -14,6 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/sched"
+	"github.com/yetanotherco/aligned_layer/core/supervisor"
 
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -85,7 +87,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 	pollLatestBatchTicker := time.NewTicker(PollLatestBatchInterval)
 
 	// Forward the new tasks to the provided channel
-	go func() {
+	supervisor.Serve(func() {
 		defer pollLatestBatchTicker.Stop()
 		newBatchMutex := &sync.Mutex{}
 		batchesSet := make(map[[32]byte]struct{})
@@ -105,10 +107,10 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 			}
 		}
 
-	}()
+	}, "batch listener v2")
 
 	// Handle errors and resubscribe
-	go func() {
+	supervisor.Serve(func() {
 		for {
 			select {
 			case err := <-sub.Err():
@@ -127,7 +129,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 				}
 			}
 		}
-	}()
+	}, "batch listener v2 error handler")
 
 	return errorChannel, nil
 }
@@ -155,7 +157,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 	pollLatestBatchTicker := time.NewTicker(PollLatestBatchInterval)
 
 	// Forward the new tasks to the provided channel
-	go func() {
+	supervisor.Serve(func() {
 		defer pollLatestBatchTicker.Stop()
 		newBatchMutex := &sync.Mutex{}
 		batchesSet := make(map[[32]byte]struct{})
@@ -175,10 +177,10 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 			}
 		}
 
-	}()
+	}, "batch listener v3")
 
 	// Handle errors and resubscribe
-	go func() {
+	supervisor.Serve(func() {
 		for {
 			select {
 			case err := <-sub.Err():
@@ -197,7 +199,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 				}
 			}
 		}
-	}()
+	}, "batcher listener v3 error handler")
 
 	return errorChannel, nil
 }
@@ -263,12 +265,12 @@ func (s *AvsSubscriber) processNewBatchV2(batch *servicemanager.ContractAlignedL
 		newTaskCreatedChan <- batch
 
 		// Remove the batch from the set after RemoveBatchFromSetInterval time
-		go func() {
-			time.Sleep(RemoveBatchFromSetInterval)
+		sched.At(time.Now().Add(RemoveBatchFromSetInterval), func() error {
 			newBatchMutex.Lock()
 			delete(batchesSet, batchIdentifierHash)
 			newBatchMutex.Unlock()
-		}()
+			return nil
+		})
 	}
 }
 
@@ -289,12 +291,12 @@ func (s *AvsSubscriber) processNewBatchV3(batch *servicemanager.ContractAlignedL
 		newTaskCreatedChan <- batch
 
 		// Remove the batch from the set after RemoveBatchFromSetInterval time
-		go func() {
-			time.Sleep(RemoveBatchFromSetInterval)
+		sched.At(time.Now().Add(RemoveBatchFromSetInterval), func() error {
 			newBatchMutex.Lock()
 			delete(batchesSet, batchIdentifierHash)
 			newBatchMutex.Unlock()
-		}()
+			return nil
+		})
 	}
 }
 
