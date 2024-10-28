@@ -11,6 +11,7 @@ use futures_util::stream::{SplitSink, TryFilter};
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
 use crate::communication::serialization::{cbor_deserialize, cbor_serialize};
+use crate::core::types::SubmitProofMessage;
 use crate::{
     communication::batch::handle_batch_inclusion_data,
     core::{
@@ -56,7 +57,9 @@ pub async fn send_messages(
 
         nonce += U256::one();
 
-        let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
+        let data = SubmitProofMessage::new(verification_data.clone(), wallet.clone()).await;
+        let msg = ClientMessage::SubmitProof(data);
+
         let msg_bin = cbor_serialize(&msg).map_err(SubmitError::SerializationError)?;
         ws_write
             .send(Message::Binary(msg_bin.clone()))
@@ -223,6 +226,7 @@ async fn process_batch_inclusion_data(
         Ok(ResponseMessage::InvalidProof(reason)) => {
             return Err(SubmitError::InvalidProof(reason));
         }
+        Ok(ResponseMessage::CurrentNonce(_)) => {}
         Err(e) => {
             return Err(SubmitError::SerializationError(e));
         }

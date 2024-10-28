@@ -217,9 +217,15 @@ impl BatchInclusionData {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClientMessage {
+pub struct SubmitProofMessage {
     pub verification_data: NoncedVerificationData,
     pub signature: Signature,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ClientMessage {
+    GetNonceForAddress(Address),
+    SubmitProof(SubmitProofMessage),
 }
 
 impl Eip712 for NoncedVerificationData {
@@ -272,7 +278,7 @@ impl Eip712 for NoncedVerificationData {
     }
 }
 
-impl ClientMessage {
+impl SubmitProofMessage {
     /// Client message is a wrap around verification data and its signature.
     /// The signature is obtained by calculating the commitments and then hashing them.
     pub async fn new(
@@ -284,7 +290,7 @@ impl ClientMessage {
             .await
             .expect("Failed to sign the verification data");
 
-        ClientMessage {
+        Self {
             verification_data,
             signature,
         }
@@ -402,6 +408,7 @@ pub enum ResponseMessage {
     CreateNewTaskError(String),
     InvalidProof(ProofInvalidReason),
     BatchReset,
+    CurrentNonce(U256),
     Error(String),
 }
 

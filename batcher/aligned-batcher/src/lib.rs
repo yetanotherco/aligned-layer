@@ -21,7 +21,7 @@ use aligned_sdk::core::constants::{
 };
 use aligned_sdk::core::types::{
     ClientMessage, NoncedVerificationData, ProofInvalidReason, ProvingSystemId, ResponseMessage,
-    ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
+    SubmitProofMessage, ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
     VerificationDataCommitment,
 };
 
@@ -357,8 +357,62 @@ impl Batcher {
                 return Ok(());
             }
         };
-        let mut msg_nonce = client_msg.verification_data.nonce;
-        debug!("Received message with nonce: {msg_nonce:?}",);
+        info!("Received new client message of type: {:?}", client_msg);
+        match client_msg {
+            ClientMessage::GetNonceForAddress(address) => {
+                self.clone()
+                    .handle_get_nonce_for_address_msg(address, ws_conn_sink)
+                    .await
+            }
+            ClientMessage::SubmitProof(msg) => {
+                self.clone()
+                    .handle_submit_proof_msg(msg, ws_conn_sink)
+                    .await
+            }
+        }
+    }
+
+    async fn handle_get_nonce_for_address_msg(
+        self: Arc<Self>,
+        address: Address,
+        ws_conn_sink: WsMessageSink,
+    ) -> Result<(), Error> {
+        let cached_user_nonce = {
+            let batch_state_lock = self.batch_state.lock().await;
+            batch_state_lock.get_user_nonce(&address).await
+        };
+
+        let user_nonce = if let Some(user_nonce) = cached_user_nonce {
+            user_nonce
+        } else {
+            match self.get_user_nonce_from_ethereum(address).await {
+                Ok(ethereum_user_nonce) => ethereum_user_nonce,
+                Err(e) => {
+                    error!(
+                        "Failed to get user nonce from Ethereum for address {address:?}. Error: {e:?}"
+                    );
+                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
+                    return Ok(());
+                }
+            }
+        };
+
+        send_message(
+            ws_conn_sink.clone(),
+            ResponseMessage::CurrentNonce(user_nonce),
+        )
+        .await;
+
+        Ok(())
+    }
+
+    async fn handle_submit_proof_msg(
+        self: Arc<Self>,
+        msg: SubmitProofMessage,
+        ws_conn_sink: WsMessageSink,
+    ) -> Result<(), Error> {
+        let msg_nonce = msg.verification_data.nonce;
+        debug!("Received message with nonce: {msg_nonce:?}");
         self.metrics.received_proofs.inc();
 
         // * ---------------------------------------------------*
@@ -366,7 +420,7 @@ impl Batcher {
         // * ---------------------------------------------------*
 
         // This check does not save against "Holesky" and "HoleskyStage", since both are chain_id 17000
-        let msg_chain_id = client_msg.verification_data.chain_id;
+        let msg_chain_id = msg.verification_data.chain_id;
         if msg_chain_id != self.chain_id {
             warn!("Received message with incorrect chain id: {msg_chain_id}");
             send_message(
@@ -379,7 +433,7 @@ impl Batcher {
         }
 
         // This checks saves against "Holesky" and "HoleskyStage", since each one has a different payment service address
-        let msg_payment_service_addr = client_msg.verification_data.payment_service_addr;
+        let msg_payment_service_addr = msg.verification_data.payment_service_addr;
         if msg_payment_service_addr != self.payment_service.address() {
             warn!("Received message with incorrect payment service address: {msg_payment_service_addr}");
             send_message(
@@ -395,7 +449,7 @@ impl Batcher {
         }
 
         info!("Verifying message signature...");
-        let Ok(addr) = client_msg.verify_signature() else {
+        let Ok(addr) = msg.verify_signature() else {
             error!("Signature verification error");
             send_message(
                 ws_conn_sink.clone(),
@@ -406,14 +460,14 @@ impl Batcher {
         };
         info!("Message signature verified");
 
-        let proof_size = client_msg.verification_data.verification_data.proof.len();
+        let proof_size = msg.verification_data.verification_data.proof.len();
         if proof_size > self.max_proof_size {
             error!("Proof size exceeds the maximum allowed size.");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge).await;
             return Ok(());
         }
 
-        let mut nonced_verification_data = client_msg.verification_data.clone();
+        let mut nonced_verification_data = msg.verification_data.clone();
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if self.pre_verification_is_enabled {
@@ -448,9 +502,7 @@ impl Batcher {
         }
 
         if self.is_nonpaying(&addr) {
-            return self
-                .handle_nonpaying_msg(ws_conn_sink.clone(), &client_msg)
-                .await;
+            return self.handle_nonpaying_msg(ws_conn_sink.clone(), &msg).await;
         }
 
         info!("Handling paying message");
@@ -546,10 +598,6 @@ impl Batcher {
             return Ok(());
         };
 
-        if msg_nonce == U256::MAX {
-            msg_nonce = expected_nonce;
-        }
-
         if expected_nonce < msg_nonce {
             std::mem::drop(batch_state_lock);
             warn!("Invalid nonce for address {addr}, had nonce {expected_nonce:?} < {msg_nonce:?}");
@@ -565,7 +613,7 @@ impl Batcher {
                 batch_state_lock,
                 nonced_verification_data,
                 ws_conn_sink.clone(),
-                client_msg.signature,
+                msg.signature,
                 addr,
             )
             .await;
@@ -593,7 +641,7 @@ impl Batcher {
                 batch_state_lock,
                 nonced_verification_data,
                 ws_conn_sink.clone(),
-                client_msg.signature,
+                msg.signature,
                 addr,
             )
             .await
@@ -1197,7 +1245,7 @@ impl Batcher {
     async fn handle_nonpaying_msg(
         &self,
         ws_sink: WsMessageSink,
-        client_msg: &ClientMessage,
+        client_msg: &SubmitProofMessage,
     ) -> Result<(), Error> {
         info!("Handling nonpaying message");
         let Some(non_paying_config) = self.non_paying_config.as_ref() else {
@@ -1246,7 +1294,7 @@ impl Batcher {
             self.payment_service.address(),
         );
 
-        let client_msg = ClientMessage::new(
+        let client_msg = SubmitProofMessage::new(
             nonced_verification_data.clone(),
             non_paying_config.replacement.clone(),
         )
