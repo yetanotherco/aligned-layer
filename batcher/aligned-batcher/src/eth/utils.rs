@@ -45,7 +45,7 @@ pub fn get_bumped_gas_price(
     current_gas_price: U256,
     iteration: usize,
 ) -> U256 {
-    let override_gas_multiplier = U256::from(OVERRIDE_GAS_PRICE_MULTIPLIER) + (20 * iteration);
+    let override_gas_multiplier = U256::from(OVERRIDE_GAS_PRICE_MULTIPLIER) + (5 * iteration);
     let bumped_previous_gas_price =
         previous_gas_price * override_gas_multiplier / U256::from(PERCENTAGE_DIVIDER);
 
@@ -113,7 +113,7 @@ mod tests {
         let current_gas_price = U256::from(1200);
         let iteration = 2;
 
-        let expected = U256::from(1920); // (1200 * (120 + 40) / 100
+        let expected = U256::from(1560); // (1200 * (120 + 10) / 100
 
         assert_eq!(
             get_bumped_gas_price(previous_gas_price, current_gas_price, iteration),
@@ -127,7 +127,7 @@ mod tests {
         let current_gas_price = U256::from(1200);
         let iteration = 1;
 
-        let expected = U256::from(2100); // (1500 * 140) / 100
+        let expected = U256::from(1875); // (1500 * (120 + 5) / 100
 
         assert_eq!(
             get_bumped_gas_price(previous_gas_price, current_gas_price, iteration),
