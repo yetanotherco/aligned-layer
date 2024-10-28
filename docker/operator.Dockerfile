@@ -13,7 +13,6 @@ COPY metrics    ./metrics
 COPY common     ./common
 COPY contracts/bindings/ ./contracts/bindings
 
-RUN go get github.com/ethereum/go-ethereum@latest
 RUN go build -o /aligned_layer/aligned-layer-operator operator/cmd/main.go
 
 FROM debian:bookworm-slim
