@@ -10,10 +10,10 @@ CONFIG_FILE=$BASE_DIR/config/$NUM_OPERATOR/config.yaml
 
 ## Gen keys
 echo "Generating BLS keys"
-echo "q" | echo "" | eigenlayer operator keys create  --insecure --key-type bls operator_$NUM_OPERATOR
+(echo "" | eigenlayer operator keys create  --insecure --key-type bls operator_$NUM_OPERATOR) &
 BLS_KEY_PATH=$HOME/.eigenlayer/operator_keys/operator_$NUM_OPERATOR.bls.key.json
 echo "Generating ECDSA keys"
-echo "q" | echo "" | eigenlayer operator keys create --insecure --key-type ecdsa operator_$NUM_OPERATOR
+(echo "" | eigenlayer operator keys create --insecure --key-type ecdsa operator_$NUM_OPERATOR)
 ECDSA_KEY_PATH=$HOME/.eigenlayer/operator_keys/operator_$NUM_OPERATOR.ecdsa.key.json
 OPERATOR_ADDRESS=`jq -r '.address' $ECDSA_KEY_PATH`
 
