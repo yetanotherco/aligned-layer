@@ -1075,7 +1075,7 @@ impl Batcher {
 
         let (gas_price, disable_verifiers) =
             tokio::join!(gas_price_future, disabled_verifiers_future);
-        let gas_price = gas_price?;
+        let gas_price = gas_price.map_err(|_| BatcherError::GasPriceError)?;
 
         {
             let new_disable_verifiers = disable_verifiers
@@ -1232,7 +1232,7 @@ impl Batcher {
                 .await
                 {
                     Ok(gas_price) => gas_price,
-                    Err(e) => return Err(RetryError::Transient(format!("{:?}", e))),
+                    Err(e) => return Err(RetryError::Transient(e)),
                 };
 
                 let bumped_gas_price =

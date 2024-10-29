@@ -55,7 +55,7 @@ pub async fn get_current_nonce_retryable(
     eth_http_provider: &Provider<Http>,
     eth_http_provider_fallback: &Provider<Http>,
     addr: Address,
-) -> Result<U256, RetryError<String>> {
+) -> Result<U256, RetryError<ProviderError>> {
     match eth_http_provider.get_transaction_count(addr, None).await {
         Ok(current_nonce) => Ok(current_nonce),
         Err(_) => eth_http_provider_fallback
@@ -63,7 +63,7 @@ pub async fn get_current_nonce_retryable(
             .await
             .map_err(|e| {
                 warn!("Error getting user nonce: {e}");
-                RetryError::Transient(e.to_string())
+                RetryError::Transient(e)
             }),
     }
 }
@@ -90,7 +90,7 @@ pub async fn user_balance_is_unlocked_retryable(
 pub async fn get_gas_price_retryable(
     eth_http_provider: &Provider<Http>,
     eth_http_provider_fallback: &Provider<Http>,
-) -> Result<U256, RetryError<String>> {
+) -> Result<U256, RetryError<ProviderError>> {
     match eth_http_provider.get_gas_price().await {
         Ok(gas_price) => Ok(gas_price),
         Err(_) => eth_http_provider_fallback
@@ -98,7 +98,7 @@ pub async fn get_gas_price_retryable(
             .await
             .map_err(|e| {
                 warn!("Failed to get fallback gas price: {e:?}");
-                RetryError::Transient(e.to_string())
+                RetryError::Transient(e)
             }),
     }
 }
@@ -171,7 +171,7 @@ pub async fn cancel_create_new_task_retryable(
     batcher_signer: &SignerMiddlewareT,
     batcher_signer_fallback: &SignerMiddlewareT,
     bumped_gas_price: U256,
-) -> Result<TransactionReceipt, RetryError<String>> {
+) -> Result<TransactionReceipt, RetryError<ProviderError>> {
     let batcher_addr = batcher_signer.address();
 
     let current_nonce = get_current_nonce(
@@ -180,7 +180,7 @@ pub async fn cancel_create_new_task_retryable(
         batcher_addr,
     )
     .await
-    .map_err(|e| RetryError::Transient(e.to_string()))?;
+    .map_err(|e| RetryError::Transient(e))?;
 
     let tx = TransactionRequest::new()
         .to(batcher_addr)
@@ -193,7 +193,7 @@ pub async fn cancel_create_new_task_retryable(
         Err(_) => batcher_signer_fallback
             .send_transaction(tx.clone(), None)
             .await
-            .map_err(|e| RetryError::Transient(e.to_string()))?,
+            .map_err(|e| RetryError::Transient(ProviderError::CustomError(e.to_string())))?,
     };
 
     // timeout to prevent a deadlock while waiting for the transaction to be included in a block.
@@ -201,13 +201,15 @@ pub async fn cancel_create_new_task_retryable(
         .await
         .map_err(|e| {
             warn!("Timeout while waiting for transaction inclusion: {e}");
-            RetryError::Transient(e.to_string())
+            RetryError::Transient(ProviderError::CustomError("Receipt not found".to_string()))
         })?
         .map_err(|e| {
             warn!("Error while waiting for tx inclusion: {e}");
-            RetryError::Transient(e.to_string())
+            RetryError::Transient(e)
         })?
-        .ok_or(RetryError::Transient("Receipt not found".to_string()))
+        .ok_or(RetryError::Transient(ProviderError::CustomError(
+            "Receipt not found".to_string(),
+        )))
 }
 
 #[cfg(test)]

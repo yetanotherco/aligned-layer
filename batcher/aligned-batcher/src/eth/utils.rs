@@ -7,7 +7,6 @@ use crate::{
         batcher_retryables::{get_current_nonce_retryable, get_gas_price_retryable},
         retry_function,
     },
-    types::errors::BatcherError,
 };
 use aligned_sdk::core::constants::{
     DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
@@ -64,7 +63,7 @@ pub async fn get_current_nonce(
     eth_http_provider: &Provider<Http>,
     eth_http_provider_fallback: &Provider<Http>,
     addr: H160,
-) -> Result<U256, String> {
+) -> Result<U256, ProviderError> {
     retry_function(
         || get_current_nonce_retryable(eth_http_provider, eth_http_provider_fallback, addr),
         DEFAULT_MIN_RETRY_DELAY,
@@ -74,7 +73,7 @@ pub async fn get_current_nonce(
     .await
     .map_err(|e| {
         error!("Could't get nonce: {:?}", e);
-        e.to_string()
+        e.inner()
     })
 }
 
@@ -82,7 +81,7 @@ pub async fn get_current_nonce(
 pub async fn get_gas_price(
     eth_http_provider: &Provider<Http>,
     eth_http_provider_fallback: &Provider<Http>,
-) -> Result<U256, BatcherError> {
+) -> Result<U256, ProviderError> {
     retry_function(
         || get_gas_price_retryable(eth_http_provider, eth_http_provider_fallback),
         DEFAULT_MIN_RETRY_DELAY,
@@ -92,7 +91,7 @@ pub async fn get_gas_price(
     .await
     .map_err(|e| {
         error!("Could't get gas price: {e}");
-        BatcherError::GasPriceError
+        e.inner()
     })
 }
 #[cfg(test)]
