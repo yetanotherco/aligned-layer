@@ -56,16 +56,16 @@ pub async fn get_current_nonce_retryable(
     eth_http_provider_fallback: &Provider<Http>,
     addr: Address,
 ) -> Result<U256, RetryError<String>> {
-    if let Ok(current_nonce) = eth_http_provider.get_transaction_count(addr, None).await {
-        return Ok(current_nonce);
+    match eth_http_provider.get_transaction_count(addr, None).await {
+        Ok(current_nonce) => Ok(current_nonce),
+        Err(_) => eth_http_provider_fallback
+            .get_transaction_count(addr, None)
+            .await
+            .map_err(|e| {
+                warn!("Error getting user nonce: {e}");
+                RetryError::Transient(e.to_string())
+            }),
     }
-    eth_http_provider_fallback
-        .get_transaction_count(addr, None)
-        .await
-        .map_err(|e| {
-            warn!("Error getting user nonce: {e}");
-            RetryError::Transient(e.to_string())
-        })
 }
 
 pub async fn user_balance_is_unlocked_retryable(
@@ -91,21 +91,16 @@ pub async fn get_gas_price_retryable(
     eth_http_provider: &Provider<Http>,
     eth_http_provider_fallback: &Provider<Http>,
 ) -> Result<U256, RetryError<String>> {
-    if let Ok(gas_price) = eth_http_provider
-        .get_gas_price()
-        .await
-        .inspect_err(|e| warn!("Failed to get gas price. Trying with fallback: {e:?}"))
-    {
-        return Ok(gas_price);
+    match eth_http_provider.get_gas_price().await {
+        Ok(gas_price) => Ok(gas_price),
+        Err(_) => eth_http_provider_fallback
+            .get_gas_price()
+            .await
+            .map_err(|e| {
+                warn!("Failed to get fallback gas price: {e:?}");
+                RetryError::Transient(e.to_string())
+            }),
     }
-
-    eth_http_provider_fallback
-        .get_gas_price()
-        .await
-        .map_err(|e| {
-            warn!("Failed to get fallback gas price: {e:?}");
-            RetryError::Transient(e.to_string())
-        })
 }
 
 pub async fn create_new_task_retryable(
