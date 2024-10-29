@@ -103,7 +103,7 @@ function register_operator {
         --config $CONFIG_FILE
 }
 
-while IFS=, read -r private_key stake; do
+while IFS=, read -r private_key stake should_respond; do
     # Ignore first line
     if [[ $private_key == "private_key" ]]; then
         continue
@@ -116,13 +116,7 @@ while IFS=, read -r private_key stake; do
         break
     fi
 
-    SHOULD_RESPOND=false
-    if [[ -z $RESPOND_UNTIL || $RESPOND_UNTIL -eq -1 ]]; then
-        SHOULD_RESPOND=true
-    elif [ $NUM_OPERATOR -le $RESPOND_UNTIL ]; then
-        SHOULD_RESPOND=true
-    fi
-
+    SHOULD_RESPOND=$should_respond
     echo "SHOULD RESPOND $SHOULD_RESPOND"
     echo "SHOULD REGISTER $SHOULD_REGISTER"
 
@@ -131,7 +125,7 @@ while IFS=, read -r private_key stake; do
     fi
 
     CONFIG_FILE=$BASE_DIR/config/$NUM_OPERATOR/config.yaml
-    sed -i "" "s/should_respond: .*/should_respond: ${SHOULD_RESPOND}/g" "$CONFIG_FILE"
+    sed -i "s/should_respond: .*/should_respond: ${SHOULD_RESPOND}/g" "$CONFIG_FILE"
 
     # Start operator
     echo "Starting Operator..."
