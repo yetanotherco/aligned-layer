@@ -11,7 +11,8 @@ use crate::{
 };
 use aligned_sdk::core::constants::{
     DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
-    OVERRIDE_GAS_PRICE_MULTIPLIER, PERCENTAGE_DIVIDER,
+    GAS_PRICE_INCREMENT_PERCENTAGE_PER_ITERATION, OVERRIDE_GAS_PRICE_MULTIPLIER,
+    PERCENTAGE_DIVIDER,
 };
 use ethers::prelude::*;
 use ethers::providers::{Http, Provider};
@@ -49,7 +50,8 @@ pub fn get_bumped_gas_price(
     current_gas_price: U256,
     iteration: usize,
 ) -> U256 {
-    let override_gas_multiplier = U256::from(OVERRIDE_GAS_PRICE_MULTIPLIER) + (5 * iteration);
+    let override_gas_multiplier = U256::from(OVERRIDE_GAS_PRICE_MULTIPLIER)
+        + (GAS_PRICE_INCREMENT_PERCENTAGE_PER_ITERATION * iteration);
     let bumped_previous_gas_price =
         previous_gas_price * override_gas_multiplier / U256::from(PERCENTAGE_DIVIDER);
 

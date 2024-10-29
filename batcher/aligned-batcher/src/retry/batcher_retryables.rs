@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use aligned_sdk::core::constants::{BATCH_INCLUSION_DELAY, TRANSACTIONS_INCLUSION_DELAY};
+use aligned_sdk::core::constants::TRANSACTION_WAIT_TIMEOUT;
 use ethers::prelude::*;
 use log::{info, warn};
 use tokio::time::timeout;
@@ -159,7 +159,7 @@ pub async fn create_new_task_retryable(
     };
 
     // timeout to prevent a deadlock while waiting for the transaction to be included in a block.
-    timeout(Duration::from_millis(BATCH_INCLUSION_DELAY), pending_tx)
+    timeout(Duration::from_millis(TRANSACTION_WAIT_TIMEOUT), pending_tx)
         .await
         .map_err(|e| {
             warn!("Error while waiting for batch inclusion: {e}");
@@ -202,20 +202,17 @@ pub async fn cancel_create_new_task_retryable(
     };
 
     // timeout to prevent a deadlock while waiting for the transaction to be included in a block.
-    timeout(
-        Duration::from_millis(TRANSACTIONS_INCLUSION_DELAY),
-        pending_tx,
-    )
-    .await
-    .map_err(|e| {
-        warn!("Timeout while waiting for transaction inclusion: {e}");
-        RetryError::Transient(e.to_string())
-    })?
-    .map_err(|e| {
-        warn!("Error while waiting for tx inclusion: {e}");
-        RetryError::Transient(e.to_string())
-    })?
-    .ok_or(RetryError::Transient("Receipt not found".to_string()))
+    timeout(Duration::from_millis(TRANSACTION_WAIT_TIMEOUT), pending_tx)
+        .await
+        .map_err(|e| {
+            warn!("Timeout while waiting for transaction inclusion: {e}");
+            RetryError::Transient(e.to_string())
+        })?
+        .map_err(|e| {
+            warn!("Error while waiting for tx inclusion: {e}");
+            RetryError::Transient(e.to_string())
+        })?
+        .ok_or(RetryError::Transient("Receipt not found".to_string()))
 }
 
 #[cfg(test)]
