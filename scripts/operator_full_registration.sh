@@ -110,22 +110,20 @@ while IFS=, read -r private_key stake should_respond; do
     fi
 
     NUM_OPERATOR=$((NUM_OPERATOR + 1))
-    echo "NUM OPERATOR $NUM_OPERATOR"
-
     if [[ $LIMIT -lt $NUM_OPERATOR ]]; then
         break
     fi
 
-    SHOULD_RESPOND=$should_respond
-    echo "SHOULD RESPOND $SHOULD_RESPOND"
+    echo "NUM OPERATOR $NUM_OPERATOR"
+    echo "SHOULD RESPOND $should_respond"
     echo "SHOULD REGISTER $SHOULD_REGISTER"
 
     if [[ $SHOULD_REGISTER == true ]]; then 
-        register_operator $NUM_OPERATOR $private_key $stake $SHOULD_RESPOND
+        register_operator $NUM_OPERATOR $private_key $stake $should_respond
     fi
 
     CONFIG_FILE=$BASE_DIR/config/$NUM_OPERATOR/config.yaml
-    sed -i "s/should_respond: .*/should_respond: ${SHOULD_RESPOND}/g" "$CONFIG_FILE"
+    sed -i "s/should_respond: .*/should_respond: ${$should_respond}/g" "$CONFIG_FILE"
 
     # Start operator
     echo "Starting Operator..."
