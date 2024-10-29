@@ -2,17 +2,20 @@ BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 NUM_OPERATOR=0
 LIMIT=$1
-RESPOND_UNTIL=$2
-
 if [[ -z $LIMIT ]]; then
     LIMIT=-1
 fi
 
-SHOULD_REGISTER=$3
+SHOULD_REGISTER=$2
 if [[ -z $SHOULD_REGISTER || $SHOULD_REGISTER == true ]]; then
     # Remove prior configs as they will get regenerated
     rm -rf $BASE_DIR/config
     SHOULD_REGISTER=true
+fi
+
+PARETO_DISTRIBUTION=$3
+if [[ -z $PARETO_DISTRIBUTION ]]; then
+    PARETO_DISTRIBUTION=false
 fi
 
 function register_operator {
@@ -20,6 +23,22 @@ function register_operator {
     private_key=$2 
     stake=$3
     SHOULD_RESPOND=$4
+
+    ## Here the 20% of total stakers hold 80% percent of the total stake
+    ## The rest 80% hold the rest of the stake equally, they are not responding
+    if [[ $PARETO_DISTRIBUTION == true ]]; then
+        MAJORITY_NUMBER=$((LIMIT * 20 / 100))
+        MINORITY_NUMBER=$((LIMIT - $MAJORITY_NUMBER))
+        IS_MAJORITY=false
+
+        if [[ $NUM_OPERATOR -le $MAJORITY_NUMBER ]]; then
+            SHOULD_RESPOND=true
+            stake=$((stake * 80 / 100 / MAJORITY_NUMBER)) 
+        else 
+            SHOULD_RESPOND=false
+            stake=$((stake * 20 / 100 / MINORITY_NUMBER)) 
+        fi
+    fi
 
     # Gen keys
     echo "Generating BLS keys"
