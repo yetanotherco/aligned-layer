@@ -24,7 +24,7 @@ pub fn get_provider(eth_rpc_url: String) -> Result<Provider<Http>, anyhow::Error
 pub async fn get_batcher_signer(
     provider: Provider<Http>,
     ecdsa_config: ECDSAConfig,
-) -> Result<Arc<SignerMiddlewareT>, anyhow::Error> {
+) -> anyhow::Result<Arc<SignerMiddlewareT>> {
     let chain_id = provider.get_chainid().await?;
 
     // get private key from keystore
