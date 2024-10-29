@@ -110,7 +110,7 @@ anvil_start_with_block_time:
 
 anvil_start_with_block_time_with_more_prefunded:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 -a 1000
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 -a 2000
 
 _AGGREGATOR_:
 
@@ -270,6 +270,11 @@ batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
 
 batcher_start_local: user_fund_payment_service
+	@echo "Starting Batcher..."
+	@$(MAKE) run_storage &
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
+
+batcher_start_local_no_fund:
 	@echo "Starting Batcher..."
 	@$(MAKE) run_storage &
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
