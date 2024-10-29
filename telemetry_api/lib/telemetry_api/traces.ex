@@ -245,7 +245,6 @@ defmodule TelemetryApi.Traces do
   """
   def batcher_task_started(merkle_root, fee_per_proof, total_proofs) do
     with {:ok, _trace} <- set_current_trace_with_subspan(merkle_root, :batcher) do
-      {fee_per_proof, _} = String.slice(fee_per_proof, 2..-1//1) |> Integer.parse(16)
       IO.inspect("fee_per_proof: #{fee_per_proof}")
 
       Tracer.add_event("Batcher Task being created",

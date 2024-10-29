@@ -1150,7 +1150,7 @@ impl Batcher {
             .telemetry
             .task_created(
                 &hex::encode(batch_merkle_root),
-                fee_params.fee_per_proof,
+                ethers::utils::format_ether(fee_per_proof),
                 num_proofs_in_batch,
             )
             .await

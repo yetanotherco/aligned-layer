@@ -1,4 +1,4 @@
-use ethers::types::{H256, U256};
+use ethers::types::H256;
 
 #[derive(Debug, serde::Serialize)]
 pub enum TraceMessage {
@@ -15,7 +15,7 @@ pub struct TraceMessageTask {
 #[derive(Debug, serde::Serialize)]
 pub struct TraceMessageTaskStarted {
     merkle_root: String,
-    fee_per_proof: U256,
+    fee_per_proof: String,
     num_proofs_in_batch: usize,
 }
 
@@ -80,7 +80,7 @@ impl TelemetrySender {
     pub async fn task_created(
         &self,
         batch_merkle_root: &str,
-        fee_per_proof: U256,
+        fee_per_proof: String,
         num_proofs_in_batch: usize,
     ) -> Result<(), reqwest::Error> {
         let url = self.get_full_url("batcherTaskStarted");
