@@ -1,10 +1,14 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use crate::config::ECDSAConfig;
-use crate::retry::batcher_retryables::{get_current_nonce_retryable, get_gas_price_retryable};
-use crate::retry::retry_function;
-use crate::types::errors::BatcherError;
+use crate::{
+    config::ECDSAConfig,
+    retry::{
+        batcher_retryables::{get_current_nonce_retryable, get_gas_price_retryable},
+        retry_function,
+    },
+    types::errors::BatcherError,
+};
 use aligned_sdk::core::constants::{
     DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
     OVERRIDE_GAS_PRICE_MULTIPLIER, PERCENTAGE_DIVIDER,
