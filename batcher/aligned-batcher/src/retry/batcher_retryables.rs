@@ -180,7 +180,7 @@ pub async fn cancel_create_new_task_retryable(
         batcher_addr,
     )
     .await
-    .map_err(|e| RetryError::Transient(e))?;
+    .map_err(RetryError::Transient)?;
 
     let tx = TransactionRequest::new()
         .to(batcher_addr)
