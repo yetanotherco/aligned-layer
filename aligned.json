@@ -1,7 +1,7 @@
 {
-    "name": "Aligned",
+    "name": "Aligned-stage-1",
     "website": "https://alignedlayer.com",
-    "description": "Aligned Layer is a verification layer for zero-knowledge proofs using Eigen Layer. Our mission is to accelerate the adoption of zero-knowledge and validity proofs on Ethereum",
+    "description": "Aligned Layer is a verification layer for zero-knowledge proofs using Eigen Layer. Our mission is to accelerate the adoption of zero-knowledge and validity proofs on Ethereum. This is a test implementation",
     "logo": "https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/logo.png",
     "twitter": "https://twitter.com/alignedlayer"
 }
