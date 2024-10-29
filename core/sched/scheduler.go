@@ -29,7 +29,19 @@ func init() {
 }
 
 func NewJobRunner() JobRunner {
-	return JobRunner{}
+	// Initialize to any time, we only want to get an initialized struct
+	nextExpiration := time.NewTimer(time.Since(time.Now()))
+	// We don't want accidental triggers
+	nextExpiration.Stop()
+
+	queue := prioQueue(make([]Job, 0, 1024))
+	heap.Init(&queue)
+
+	return JobRunner{
+		incomingJobChannel: make(chan Job, 16),
+		nextExpiration: *nextExpiration,
+		queue: &queue,
+	}
 }
 
 func (runner *JobRunner) StartRunner() {
@@ -99,13 +111,8 @@ func (runner *JobRunner) runExpiredJobs(now time.Time) {
 
 // Not exported, use the `StartRunner` interface to handle `panic`s
 func (runner *JobRunner) serve() {
-	// TODO: move to NewJobRunner
-	// Initialize to any time, we only want to get an initialized struct
-	nextExpiration := time.NewTimer(time.Since(time.Now()))
-	// We don't want accidental triggers
-	nextExpiration.Stop()
-
 	// We might be recovering from a crash, so there may be jobs waiting
+	// This also resets the timer if there are tasks in the queue
 	runner.runExpiredJobs(time.Now())
 
 	for {
