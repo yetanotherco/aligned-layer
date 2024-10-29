@@ -7,7 +7,7 @@ use std::str::FromStr;
 use aligned_sdk::core::errors::SubmitError;
 use aligned_sdk::core::types::Network;
 use aligned_sdk::core::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{get_nonce_for_address, submit_and_wait_verification};
+use aligned_sdk::sdk::{get_nonce_from_ethereum, submit_and_wait_verification};
 use clap::Parser;
 use env_logger::Env;
 use ethers::signers::{LocalWallet, Signer};
@@ -68,7 +68,7 @@ async fn main() -> Result<(), SubmitError> {
     // Set a fee of 0.1 Eth
     let max_fee = U256::from(5) * U256::from(100_000_000_000_000_000u128);
 
-    let nonce = get_nonce_for_address(BATCHER_URL, wallet.address())
+    let nonce = get_nonce_from_ethereum(RPC_URL, wallet.address(), NETWORK)
         .await
         .expect("Failed to get next nonce");
 

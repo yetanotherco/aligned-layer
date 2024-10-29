@@ -55,7 +55,7 @@ use serde_json::json;
 /// * `verification_data` - An array of verification data of each proof.
 /// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce of the submitter address. See `get_address_nonce`.
+/// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
 /// * `payment_service_addr` - The address of the payment service contract.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
@@ -212,7 +212,7 @@ async fn fetch_gas_price(
 /// * `verification_data` - An array of verification data of each proof.
 /// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce of the submitter address. See `get_address_nonce`.
+/// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -351,7 +351,7 @@ async fn _submit_multiple(
 /// * `verification_data` - The verification data of the proof.
 /// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce of the submitter address. See `get_address_nonce`.
+/// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
 /// * `payment_service_addr` - The address of the payment service contract.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
@@ -406,7 +406,7 @@ pub async fn submit_and_wait_verification(
 /// * `verification_data` - The verification data of the proof.
 /// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce of the submitter address. See `get_address_nonce`.
+/// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
