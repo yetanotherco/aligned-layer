@@ -34,14 +34,20 @@ function register_operator {
         MAJORITY_NUMBER=$((LIMIT * 20 / 100))
         MINORITY_NUMBER=$((LIMIT - $MAJORITY_NUMBER))
         IS_MAJORITY=false
+        echo "MAJORITY NUMBER $MAJORITY_NUMBER"
+        echo "MINORITY $MINORITY_NUMBER"
+        echo "TOTAL STAKE $TOTAL_STAKE"
 
         if [[ $NUM_OPERATOR -le $MAJORITY_NUMBER ]]; then
             SHOULD_RESPOND=true
             stake=$((TOTAL_STAKE * 80 / 100 / MAJORITY_NUMBER)) 
+            echo "OPERATOR $NUM_OPERATOR REGISTERED AS MAJORITY, STAKE $stake"
         else 
             SHOULD_RESPOND=false
             stake=$((TOTAL_STAKE * 20 / 100 / MINORITY_NUMBER)) 
+            echo "OPERATOR $NUM_OPERATOR REGISTERED AS A MINORITY, STAKE $stake"
         fi
+        echo "SHOULD RESPOND $should_respond"
     fi
 
     # Gen keys
@@ -138,7 +144,6 @@ while IFS=, read -r private_key stake should_respond; do
     fi
 
     echo "NUM OPERATOR $NUM_OPERATOR"
-    echo "SHOULD RESPOND $should_respond"
     echo "SHOULD REGISTER $SHOULD_REGISTER"
 
     if [[ $SHOULD_REGISTER == true ]]; then 
@@ -146,7 +151,6 @@ while IFS=, read -r private_key stake should_respond; do
     fi
 
     CONFIG_FILE=$BASE_DIR/config/$NUM_OPERATOR/config.yaml
-    sed -i "s/should_respond: .*/should_respond: ${should_respond}/g" "$CONFIG_FILE"
 
     # Start operator
     echo "Starting Operator..."

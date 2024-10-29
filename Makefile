@@ -234,10 +234,9 @@ operator_register_with_aligned_layer:
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
 LIMIT?=-1
-RESPOND_UNTIL?=-1
 SHOULD_REGISTER?=true
 PARETO_DISTRIBUTION?=true
-TOTAL_STAKE?=400000000000000000
+TOTAL_STAKE?=10000000000000000
 operator_register_script:
 	./scripts/operator_full_registration.sh $(LIMIT) $(SHOULD_REGISTER) $(PARETO_DISTRIBUTION) $(TOTAL_STAKE)
 
