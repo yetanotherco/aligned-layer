@@ -17,12 +17,12 @@ while IFS=, read -r private_key stake; do
         continue
     fi
 
-    if [[ $LIMIT == $NUM_OPERATOR ]]; then
-        break
-    fi
-
     NUM_OPERATOR=$((NUM_OPERATOR + 1))
     echo "NUM OPERATOR $NUM_OPERATOR"
+
+    if [[ $LIMIT -lt $NUM_OPERATOR ]]; then
+        break
+    fi
 
     SHOULD_RESPOND=false
     if [[ -z $RESPOND_UNTIL || $RESPOND_UNTIL -eq -1 ]]; then
