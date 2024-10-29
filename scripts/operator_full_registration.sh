@@ -123,7 +123,7 @@ while IFS=, read -r private_key stake should_respond; do
     fi
 
     CONFIG_FILE=$BASE_DIR/config/$NUM_OPERATOR/config.yaml
-    sed -i "s/should_respond: .*/should_respond: ${$should_respond}/g" "$CONFIG_FILE"
+    sed -i "s/should_respond: .*/should_respond: ${should_respond}/g" "$CONFIG_FILE"
 
     # Start operator
     echo "Starting Operator..."
