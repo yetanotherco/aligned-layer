@@ -46,7 +46,6 @@ func RetryWithData[T any](functionToRetry func() (*T, error), minDelay uint64, f
 			err error
 		)
 		func() {
-			// I
 			defer func() {
 				if r := recover(); r != nil {
 					if panic_err, ok := r.(error); ok {

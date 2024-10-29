@@ -206,8 +206,9 @@ func (w *AvsWriter) BatchesStateRetryable(arg0 [32]byte) (struct {
 		if err != nil {
 			// Retry with fallback
 			state, err = w.AvsContractBindings.ServiceManagerFallback.BatchesState(&bind.CallOpts{}, arg0)
+			// If error is not nil throw out result in state!
 			if err != nil {
-				return nil, err
+				return &state, err
 			}
 		}
 		return &state, err
@@ -216,7 +217,6 @@ func (w *AvsWriter) BatchesStateRetryable(arg0 [32]byte) (struct {
 	return *state, err
 }
 
-// TODO: separate retry concerns and inline them in real functions
 func (w *AvsWriter) BatcherBalancesRetryable(senderAddress common.Address) (*big.Int, error) {
 	batcherBalances_func := func() (*big.Int, error) {
 		batcherBalance, err := w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
