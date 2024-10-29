@@ -135,8 +135,9 @@ while IFS=, read -r private_key stake; do
 
     # Start operator
     echo "Starting Operator..."
-    go run operator/cmd/main.go start --config $CONFIG_FILE \
-    2>&1 | zap-pretty
+    (go run operator/cmd/main.go start --config $CONFIG_FILE \
+        2>&1 | zap-pretty) &
 done < $BASE_DIR/rich-wallets-anvil.csv
 
 wait
+
