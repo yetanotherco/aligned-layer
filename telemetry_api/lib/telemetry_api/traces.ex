@@ -285,7 +285,7 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def task_error(merkle_root, error) do
-    with {:ok, _trace} <- set_current_trace(merkle_root) do
+    with {:ok, _trace} <- set_current_trace_with_subspan(merkle_root, :aggregator) do
       Tracer.add_event(
         "Batch verification failed",
         [
