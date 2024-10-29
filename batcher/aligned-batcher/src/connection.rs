@@ -6,7 +6,7 @@ use aligned_sdk::{
 };
 use futures_util::{stream::SplitSink, SinkExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use log::{error, info};
+use log::{error, debug};
 use serde::Serialize;
 use tokio::{net::TcpStream, sync::RwLock};
 use tokio_tungstenite::{
@@ -45,7 +45,7 @@ pub(crate) async fn send_batch_inclusion_data_responses(
             Ok(_) => (),
         }
 
-        info!("Response sent");
+        debug!("Response sent");
     }
 
     Ok(())

@@ -669,6 +669,8 @@ impl Batcher {
                 if let Err(e) = old_sink.close().await {
                     // we dont want to exit here, just log the error
                     warn!("Error closing sink: {e:?}");
+                } else {
+                    info!("Old websocket sink closed");
                 }
             } else {
                 warn!(
@@ -693,6 +695,10 @@ impl Batcher {
             "Replacement entry is valid, incrementing fee for sender: {:?}, nonce: {:?}, max_fee: {:?}",
             replacement_entry.sender, replacement_entry.nonced_verification_data.nonce, replacement_max_fee
         );
+        send_message(
+            ws_conn_sink.clone(),
+            ResponseMessage::ReplacementMessageReceived,
+        ).await;
 
         // remove the old entry and insert the new one
         // note that the entries are considered equal for the priority queue
