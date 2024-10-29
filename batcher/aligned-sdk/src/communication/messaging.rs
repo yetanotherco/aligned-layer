@@ -36,7 +36,7 @@ pub async fn send_messages(
     wallet: Wallet<SigningKey>,
     mut nonce: U256,
     sender_channel: tokio::sync::mpsc::Sender<VerificationDataCommitment>,
-) -> Result<bool, SubmitError> {
+) -> Result<(), SubmitError> {
     let chain_id = U256::from(wallet.chain_id());
     let mut ws_write = ws_write.lock().await;
 
@@ -62,11 +62,25 @@ pub async fn send_messages(
 
         debug!("{:?} Message sent", idx);
 
-        sender_channel.send(verification_data.into()).await.unwrap();
+        match sender_channel.send(verification_data.into()).await {//.map_err(|e| SubmitError::GenericError(e.to_string()))?;
+            Ok(_) => {
+                debug!("Message sent to channel");
+            }
+            Err(e) if e.to_string() == "channel closed" => { // happens when receive has exited, because batcher replied with error
+                error!("Error sending message because batcher has previously replied with an error");
+                // return Err(SubmitError::GenericError(("Batcher has previously replied with an error").to_string()));
+                return Ok(());
+            }
+            Err(e) => {
+                error!("Error sending message to channel: {:?}", e.to_string());
+                return Err(SubmitError::GenericError(e.to_string()));
+            }
+        }
     }
 
     //sender_channel will be closed as it falls out of scope, sending a 'None' to the receiver
-    Ok(true) 
+    info!("All messages sent");
+    Ok(()) 
 }
 
 pub async fn receive(
@@ -77,7 +91,11 @@ pub async fn receive(
     let mut response_stream = response_stream.lock().await;
     let mut aligned_verification_data: Vec<AlignedVerificationData> = Vec::new();
 
-    while let Some(Ok(msg)) = response_stream.next().await {
+    while let Some(verification_data_commitment) = receiver_channnel.recv().await { //while there are messages in the channel
+        // Read from WS
+        let msg = response_stream.next().await.unwrap().map_err(SubmitError::WebSocketConnectionError)?;
+
+        // If websocket was closed prematurely:
         if let Message::Close(close_frame) = msg {
             if let Some(close_msg) = close_frame {
                 return Err(SubmitError::WebSocketClosedUnexpectedlyError(
@@ -85,30 +103,20 @@ pub async fn receive(
                 ));
             }
             return Err(SubmitError::GenericError(
-                "Connection was closed without close message before receiving all messages"
+                "Connection was closed before receive() processed all sent messages "
                     .to_string(),
             ));
         }
 
-        match receiver_channnel.recv().await {
-            Some(verification_data_commitment) => {
-                process_batch_inclusion_data(
-                    msg,
-                    &mut aligned_verification_data,
-                    verification_data_commitment,
-                )
-                .await?;
-            }
-            None => { //channel sends None when writing to it is closed
-                info!("All message responses received");
-                return Ok(aligned_verification_data);
-            }
-        }
+        process_batch_inclusion_data(
+            msg,
+            &mut aligned_verification_data,
+            verification_data_commitment,
+        ).await?; // If batcher returned an error, this will close the channel and return the error
     }
 
-    Err(SubmitError::GenericError(
-        "Connection was closed without close message before receiving all messages".to_string(),
-    ))
+    info!("All message responses handled succesfully");
+    Ok(aligned_verification_data)
 }
 
 async fn process_batch_inclusion_data(
@@ -126,62 +134,85 @@ async fn process_batch_inclusion_data(
                 verification_data_commitment,
             );
         }
+        Ok(ResponseMessage::ReplacementMessageReceived) => {
+            // This message is not processed, it is only used to signal the client that the replacement message was received by the batcher.
+            // This is because the sender expects to receive the same amount of messages as it has sent.
+        }
         Ok(ResponseMessage::InvalidNonce) => {
+            error!("Batcher responded with invalid nonce");
             return Err(SubmitError::InvalidNonce);
         }
         Ok(ResponseMessage::InvalidSignature) => {
+            error!("Batcher responded with invalid signature");
             return Err(SubmitError::InvalidSignature);
         }
         Ok(ResponseMessage::ProofTooLarge) => {
+            error!("Batcher responded with proof too large");
             return Err(SubmitError::ProofTooLarge);
         }
         Ok(ResponseMessage::InvalidMaxFee) => {
+            error!("Batcher responded with invalid max fee");
             return Err(SubmitError::InvalidMaxFee);
         }
         Ok(ResponseMessage::InsufficientBalance(addr)) => {
+            error!("Batcher responded with insufficient balance");
             return Err(SubmitError::InsufficientBalance(addr));
         }
         Ok(ResponseMessage::InvalidChainId) => {
+            error!("Batcher responded with invalid chain id");
             return Err(SubmitError::InvalidChainId);
         }
         Ok(ResponseMessage::InvalidReplacementMessage) => {
+            error!("Batcher responded with invalid replacement message");
             return Err(SubmitError::InvalidReplacementMessage);
         }
         Ok(ResponseMessage::AddToBatchError) => {
+            error!("Batcher responded with add to batch error");
             return Err(SubmitError::AddToBatchError);
         }
         Ok(ResponseMessage::EthRpcError) => {
+            error!("Batcher experienced Eth RPC connection error");
             return Err(SubmitError::EthereumProviderError(
                 "Batcher experienced Eth RPC connection error".to_string(),
             ));
         }
         Ok(ResponseMessage::InvalidPaymentServiceAddress(received_addr, expected_addr)) => {
+            error!(
+                "Batcher responded with invalid payment service address: {:?}, expected: {:?}",
+                received_addr, expected_addr
+            );
             return Err(SubmitError::InvalidPaymentServiceAddress(
                 received_addr,
                 expected_addr,
             ));
         }
         Ok(ResponseMessage::InvalidProof(reason)) => { 
+            error!("Batcher responded with invalid proof: {}", reason);
             return Err(SubmitError::InvalidProof(reason));
         }
         Ok(ResponseMessage::CreateNewTaskError(merkle_root, error)) => {
+            error!("Batcher responded with create new task error: {}", error);
             return Err(SubmitError::BatchSubmissionFailed(
                 "Could not create task with merkle root ".to_owned() + &merkle_root + ", failed with error: " + &error, 
             ));
         }
         Ok(ResponseMessage::ProtocolVersion(_)) => {
+            error!("Batcher responded with protocol version instead of batch inclusion data");
             return Err(SubmitError::UnexpectedBatcherResponse(
                 "Batcher responded with protocol version instead of batch inclusion data"
                     .to_string(),
             ));
         }
         Ok(ResponseMessage::BatchReset) => {
+            error!("Batcher responded with batch reset");
             return Err(SubmitError::ProofQueueFlushed);
         }
         Ok(ResponseMessage::Error(e)) => {
             error!("Batcher responded with error: {}", e);
+            error!("Batcher responded with error: {}", e);
         }
         Err(e) => {
+            error!("Error while deserializing batch inclusion data: {}", e);
             return Err(SubmitError::SerializationError(e));
         }
     }
