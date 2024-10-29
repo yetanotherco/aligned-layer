@@ -532,9 +532,9 @@ pub fn get_vk_commitment(
     hasher.finalize().into()
 }
 
-/// Returns the next nonce for a given address.
+/// Returns the next nonce for a given address from the batcher.
 /// # Arguments
-/// * `batcher_url` - The URL of the Ethereum RPC node.
+/// * `batcher_url` - The batcher websocket url.
 /// * `address` - The user address for which the nonce will be retrieved.
 /// # Returns
 /// * The next nonce of the proof submitter account.
@@ -576,6 +576,38 @@ pub async fn get_nonce_for_address(
 
     match response_msg {
         GetNonceResponseMessage::Nonce(nonce) => Ok(nonce),
+    }
+}
+
+/// Returns the next nonce for a given address in Ethereum from aligned payment service contract.
+/// Note that it might be out of sync if you recently sent proofs. For that see [`get_nonce_from_address`]
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// * `address` - The user address for which the nonce will be retrieved.
+/// # Returns
+/// * The next nonce of the proof submitter account from ethereum.
+/// # Errors
+/// * `EthRpcError` if the batcher has an error in the Ethereum call when retrieving the nonce if not already cached.
+pub async fn get_nonce_from_ethereum(
+    eth_rpc_url: &str,
+    submitter_addr: Address,
+    network: Network,
+) -> Result<U256, GetNonceError> {
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e| GetNonceError::EthRpcError(e.to_string()))?;
+
+    let payment_service_address = get_payment_service_address(network);
+
+    match batcher_payment_service(eth_rpc_provider, payment_service_address).await {
+        Ok(contract) => {
+            let call = contract.user_nonces(submitter_addr);
+            let result = call
+                .call()
+                .await
+                .map_err(|e| GetNonceError::General(e.to_string()))?;
+            Ok(result)
+        }
+        Err(e) => Err(GetNonceError::General(e.to_string())),
     }
 }
 
