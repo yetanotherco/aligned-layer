@@ -300,6 +300,23 @@ defmodule TelemetryApi.Traces do
   end
 
   @doc """
+  Registers the sending of an aggregator task to Ethereum in the task trace.
+
+  ## Examples
+
+      iex> merkle_root
+      iex> tx_hash
+      iex> aggregator_task_sent(merkle_root, tx_hash)
+      :ok
+  """
+  def aggregator_task_sent(merkle_root, tx_hash) do
+    with {:ok, _trace} <- set_current_trace_with_subspan(merkle_root, :aggregator) do
+      Tracer.add_event("Task Sent to Ethereum", [{"tx_hash", tx_hash}])
+      :ok
+    end
+  end
+
+  @doc """
   Finish the task trace
 
   This function is responsible for ending the span and cleaning up the context.

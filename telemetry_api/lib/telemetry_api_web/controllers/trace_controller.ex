@@ -123,6 +123,18 @@ defmodule TelemetryApiWeb.TraceController do
   end
 
   @doc """
+  Register a task sent, from the aggregator, to Ethereum in the trace of the given merkle_root
+  Method: POST aggregatorTaskSent
+  """
+  def aggregator_task_sent(conn, %{"merkle_root" => merkle_root, "tx_hash" => tx_hash}) do
+    with :ok <- Traces.aggregator_task_sent(merkle_root, tx_hash) do
+      conn
+      |> put_status(:ok)
+      |> render(:show_merkle, merkle_root: merkle_root)
+    end
+  end
+
+  @doc """
   Finish a trace for the given merkle_root
   Method: POST finishTaskTrace
   """
