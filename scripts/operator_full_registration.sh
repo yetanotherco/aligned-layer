@@ -8,30 +8,18 @@ if [[ -z $LIMIT ]]; then
     LIMIT=-1
 fi
 
-# Remove prior configs as they will get regenerated
-rm -rf $BASE_DIR/config
+SHOULD_REGISTER=$3
+if [[ -z $SHOULD_REGISTER ]]; then
+    # Remove prior configs as they will get regenerated
+    rm -rf $BASE_DIR/config
+    SHOULD_REGISTER=true
+fi
 
-while IFS=, read -r private_key stake; do
-    # Ignore first line
-    if [[ $private_key == "private_key" ]]; then
-        continue
-    fi
-
-    NUM_OPERATOR=$((NUM_OPERATOR + 1))
-    echo "NUM OPERATOR $NUM_OPERATOR"
-
-    if [[ $LIMIT -lt $NUM_OPERATOR ]]; then
-        break
-    fi
-
-    SHOULD_RESPOND=false
-    if [[ -z $RESPOND_UNTIL || $RESPOND_UNTIL -eq -1 ]]; then
-        SHOULD_RESPOND=true
-    elif [ $NUM_OPERATOR -le $RESPOND_UNTIL ]; then
-        SHOULD_RESPOND=true
-    fi
-
-    echo "SHOULD RESPOND $SHOULD_RESPOND"
+function register_operator {
+    NUM_OPERATOR=$1
+    private_key=$2 
+    stake=$3
+    SHOULD_RESPOND=$4
 
     # Gen keys
     echo "Generating BLS keys"
@@ -113,11 +101,40 @@ while IFS=, read -r private_key stake; do
     echo "Registering operator with AlignedLayer"
     go run operator/cmd/main.go register \
         --config $CONFIG_FILE
+}
+
+while IFS=, read -r private_key stake; do
+    # Ignore first line
+    if [[ $private_key == "private_key" ]]; then
+        continue
+    fi
+
+    NUM_OPERATOR=$((NUM_OPERATOR + 1))
+    echo "NUM OPERATOR $NUM_OPERATOR"
+
+    if [[ $LIMIT -lt $NUM_OPERATOR ]]; then
+        break
+    fi
+
+    SHOULD_RESPOND=false
+    if [[ -z $RESPOND_UNTIL || $RESPOND_UNTIL -eq -1 ]]; then
+        SHOULD_RESPOND=true
+    elif [ $NUM_OPERATOR -le $RESPOND_UNTIL ]; then
+        SHOULD_RESPOND=true
+    fi
+
+    echo "SHOULD RESPOND $SHOULD_RESPOND"
+    echo "SHOULD REGISTER $SHOULD_REGISTER"
+
+    if [[ $SHOULD_REGISTER == true ]]; then 
+        register_operator $NUM_OPERATOR $private_key $stake $SHOULD_RESPOND
+    fi
 
     # Start operator
+    CONFIG_FILE=$BASE_DIR/config/$NUM_OPERATOR/config.yaml
     echo "Starting Operator..."
     go run operator/cmd/main.go start --config $CONFIG_FILE \
-    2>&1 | zap-pretty &
+    2>&1 | zap-pretty
 done < $BASE_DIR/rich-wallets-anvil.csv
 
 wait

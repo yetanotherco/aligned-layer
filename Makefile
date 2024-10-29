@@ -106,7 +106,7 @@ anvil_start:
 
 anvil_start_with_block_time:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 --accounts 100
+	anvil --load-state ./anvil_state.json --block-time 7 --accounts 100 
 
 _AGGREGATOR_:
 
@@ -235,8 +235,9 @@ operator_deposit_and_register: operator_deposit_into_strategy operator_register_
 
 LIMIT?=-1
 RESPOND_UNTIL?=-1
+SHOULD_REGISTER?=true
 operator_register_script:
-	./scripts/operator_full_registration.sh $(LIMIT) $(RESPOND_UNTIL)
+	./scripts/operator_full_registration.sh $(LIMIT) $(RESPOND_UNTIL) $(SHOULD_REGISTER)
 
 
 # The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.
