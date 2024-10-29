@@ -306,7 +306,7 @@ async fn _submit_multiple(
 
     let payment_service_addr = get_payment_service_address(network);
 
-    let (sender_channel, receiver_channel) = mpsc::channel(1024); //TODO Magic number
+    let (sender_channel, receiver_channel) = mpsc::channel(50000); //TODO Magic number
 
     let (send_result, receive_result) = tokio::join!(
         send_messages(
@@ -323,13 +323,13 @@ async fn _submit_multiple(
             receiver_channel
         ),
     );
-    
+
     // Close connection
     info!("Closing WS connection");
     ws_write_clone.lock().await.close().await?;
 
     send_result?;
-    return receive_result
+    return receive_result;
 }
 
 /// Submits a proof to the batcher to be verified in Aligned and waits for the verification on-chain.
