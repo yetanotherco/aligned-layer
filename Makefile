@@ -8,6 +8,8 @@ AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
 OPERATOR_VERSION=v0.10.1
 
+FOUNDRY_VERSION=nightly-a428ba6ad8856611339a6319290aade3347d25d9
+
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
 endif
@@ -55,7 +57,7 @@ go_deps:
 	go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 
 install_foundry:
-	curl -L https://foundry.paradigm.xyz | bash
+	curl -L https://foundry.paradigm.xyz | bash -s -- -v ${FOUNDRY_VERSION}
 
 anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
