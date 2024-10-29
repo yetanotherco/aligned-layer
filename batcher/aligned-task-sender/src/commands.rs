@@ -361,7 +361,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                 {
                     Ok(_aligned_verification_data) => {
                         info!(
-                            "{:?} Proofs to the Aligned Batcher on{:?} sent from sender {}",
+                            "{:?} Proofs to the Aligned Batcher on {:?} correctly sent from sender {}",
                             args.burst_size, args.network, i
                         );
                         nonce += U256::from(args.burst_size);
