@@ -91,7 +91,7 @@ function register_operator {
     go run operator/cmd/main.go deposit-into-strategy \
         --config $CONFIG_FILE \
         --strategy-address $STRATEGY_ADDRESS \
-        --amount 100000000000000000
+        --amount $stake
 
     # Whitelist operator
     echo "Whitelisting operator"
