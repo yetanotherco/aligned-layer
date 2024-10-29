@@ -11,7 +11,7 @@ use aligned_sdk::core::{
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
 use aligned_sdk::sdk::get_chain_id;
-use aligned_sdk::sdk::get_nonce_for_address;
+use aligned_sdk::sdk::get_nonce_from_batcher;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
 use clap::Parser;
@@ -321,7 +321,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let nonce = match &submit_args.nonce {
                 Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
-                None => get_nonce_for_address(&connect_addr, wallet.address())
+                None => get_nonce_from_batcher(&connect_addr, wallet.address())
                     .await
                     .map_err(|e| match e {
                         aligned_sdk::core::errors::GetNonceError::EthRpcError(e) => {
@@ -496,7 +496,7 @@ async fn main() -> Result<(), AlignedError> {
         }
         GetUserNonce(args) => {
             let address = H160::from_str(&args.address).unwrap();
-            match get_nonce_for_address(&args.batcher_url, address).await {
+            match get_nonce_from_batcher(&args.batcher_url, address).await {
                 Ok(nonce) => {
                     info!("Nonce for address {} is {}", address, nonce);
                 }

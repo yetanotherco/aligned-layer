@@ -533,6 +533,9 @@ pub fn get_vk_commitment(
 }
 
 /// Returns the next nonce for a given address from the batcher.
+/// You should prefer this method instead of [`get_nonce_from_ethereum`] if you have recently sent proofs,
+/// as the batcher proofs might not yet be on ethereum,
+/// producing an out-of-sync nonce with the payment service contract on ethereum
 /// # Arguments
 /// * `batcher_url` - The batcher websocket url.
 /// * `address` - The user address for which the nonce will be retrieved.
@@ -540,7 +543,7 @@ pub fn get_vk_commitment(
 /// * The next nonce of the proof submitter account.
 /// # Errors
 /// * `EthRpcError` if the batcher has an error in the Ethereum call when retrieving the nonce if not already cached.
-pub async fn get_nonce_for_address(
+pub async fn get_nonce_from_batcher(
     batcher_ws_url: &str,
     address: Address,
 ) -> Result<U256, GetNonceError> {
@@ -580,7 +583,7 @@ pub async fn get_nonce_for_address(
 }
 
 /// Returns the next nonce for a given address in Ethereum from aligned payment service contract.
-/// Note that it might be out of sync if you recently sent proofs. For that see [`get_nonce_from_address`]
+/// Note that it might be out of sync if you recently sent proofs. For that see [`get_nonce_from_batcher`]
 /// # Arguments
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `address` - The user address for which the nonce will be retrieved.
