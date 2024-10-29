@@ -9,7 +9,7 @@ if [[ -z $LIMIT ]]; then
 fi
 
 SHOULD_REGISTER=$3
-if [[ -z $SHOULD_REGISTER ]]; then
+if [[ -z $SHOULD_REGISTER || $SHOULD_REGISTER == true ]]; then
     # Remove prior configs as they will get regenerated
     rm -rf $BASE_DIR/config
     SHOULD_REGISTER=true
