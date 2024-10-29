@@ -1,13 +1,13 @@
 {
-  "address": {
-    "batcherWallet": "<batcher_wallet_address>",
-    "alignedLayerServiceManager": "<aligned_layer_service_manager_address>"
-  },
-  "amounts": {
-    "gasForAggregator": "300000",
-    "gasPerProof": "21000"
-  },
-  "permissions": {
-    "owner": "<owner_address>"
-  }
+	"address": {
+		"batcherWallet": "0x937Fbf933F4E97aDf3E9F88035cB013C14d99B34",
+		"alignedLayerServiceManager": "<aligned_layer_service_manager_address>"
+	},
+	"amounts": {
+		"gasForAggregator": "300000",
+		"gasPerProof": "21000"
+	},
+	"permissions": {
+		"owner": "0x5c60C514bB8A0C6D6ba949b7b67a4C14af0d6125"
+	}
 }

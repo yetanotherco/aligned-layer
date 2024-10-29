@@ -1,33 +1,31 @@
 {
-    "chainInfo": {
-      "chainId": 17000
-    },
-    "permissions" : {
-      "owner": "<owner_address>",
-      "aggregator": "<aggregator_address>",
-      "upgrader": "<upgrader_address>",
-      "churner": "<churner_address>",
-      "ejector": "<ejector_address>",
-      "deployer": "<deployer_address>",
-      "initalPausedStatus": 0
-    },
-    "minimumStakes": [
-      1
-    ],
-    "strategyWeights": [
-      [
-        {
-          "0_strategy": "0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9",
-          "1_multiplier": 1e+18
-        }
-      ]
-    ],
-    "operatorSetParams": [
-      {
-        "0_maxOperatorCount": 200,
-        "1_kickBIPsOfOperatorStake": 11000,
-        "2_kickBIPsOfTotalStake": 50
-      }
-    ],
-    "uri": ""
-  }
+	"chainInfo": {
+		"chainId": 17000
+	},
+	"permissions": {
+		"owner": "0x5c60C514bB8A0C6D6ba949b7b67a4C14af0d6125",
+		"aggregator": "0xf27872dddbF006Ca5D8Fd44357745bA9a4B175E9",
+		"upgrader": "0x5c60C514bB8A0C6D6ba949b7b67a4C14af0d6125",
+		"churner": "0x5c60C514bB8A0C6D6ba949b7b67a4C14af0d6125",
+		"ejector": "0x5c60C514bB8A0C6D6ba949b7b67a4C14af0d6125",
+		"deployer": "0xB78C71b883323325Ca430C419955771eB21B655C",
+		"initalPausedStatus": 0
+	},
+	"minimumStakes": [1],
+	"strategyWeights": [
+		[
+			{
+				"0_strategy": "0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9",
+				"1_multiplier": 1e18
+			}
+		]
+	],
+	"operatorSetParams": [
+		{
+			"0_maxOperatorCount": 200,
+			"1_kickBIPsOfOperatorStake": 11000,
+			"2_kickBIPsOfTotalStake": 50
+		}
+	],
+	"uri": ""
+}
