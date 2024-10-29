@@ -113,28 +113,22 @@ impl Batcher {
         let metrics = metrics::BatcherMetrics::start(config.batcher.metrics_port)
             .expect("Failed to start metrics server");
 
-        let eth_rpc_provider =
+        let eth_http_provider =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
 
-        let eth_rpc_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
+        let eth_http_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
             .expect("Failed to get fallback provider");
-
-        let eth_rpc_provider_service_manager =
-            eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
-
-        let eth_rpc_provider_service_manager_fallback =
-            eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
 
         // FIXME(marian): We are getting just the last block number right now, but we should really
         // have the last submitted batch block registered and query it when the batcher is initialized.
-        let last_uploaded_batch_block = match eth_rpc_provider.get_block_number().await {
+        let last_uploaded_batch_block = match eth_http_provider.get_block_number().await {
             Ok(block_num) => block_num,
             Err(e) => {
                 warn!(
                     "Failed to get block number with main rpc, trying with fallback rpc. Err: {:?}",
                     e
                 );
-                eth_rpc_provider_fallback
+                eth_http_provider_fallback
                     .get_block_number()
                     .await
                     .expect("Failed to get block number with fallback rpc")
@@ -143,23 +137,23 @@ impl Batcher {
 
         let last_uploaded_batch_block = last_uploaded_batch_block.as_u64();
 
-        let chain_id = match eth_rpc_provider.get_chainid().await {
+        let chain_id = match eth_http_provider.get_chainid().await {
             Ok(chain_id) => chain_id,
             Err(e) => {
                 warn!("Failed to get chain id with main rpc: {}", e);
-                eth_rpc_provider_fallback
+                eth_http_provider_fallback
                     .get_chainid()
                     .await
                     .expect("Failed to get chain id with fallback rpc")
             }
         };
 
-        let batcher_signer = get_batcher_signer(eth_rpc_provider, config.ecdsa.clone())
+        let batcher_signer = get_batcher_signer(eth_http_provider.clone(), config.ecdsa.clone())
             .await
             .expect("Failed to get Batcher signer");
 
         let batcher_signer_fallback =
-            get_batcher_signer(eth_rpc_provider_fallback, config.ecdsa.clone())
+            get_batcher_signer(eth_http_provider_fallback.clone(), config.ecdsa.clone())
                 .await
                 .expect("Failed to get Batcher signer fallback");
 
@@ -178,7 +172,7 @@ impl Batcher {
         .expect("Failed to get fallback Batcher Payment Service contract");
 
         let service_manager = eth::service_manager::get_service_manager(
-            eth_rpc_provider_service_manager,
+            eth_http_provider.clone(),
             config.ecdsa.clone(),
             deployment_output.addresses.service_manager.clone(),
         )
@@ -186,7 +180,7 @@ impl Batcher {
         .expect("Failed to get Service Manager contract");
 
         let service_manager_fallback = eth::service_manager::get_service_manager(
-            eth_rpc_provider_service_manager_fallback,
+            eth_http_provider_fallback.clone(),
             config.ecdsa,
             deployment_output.addresses.service_manager,
         )

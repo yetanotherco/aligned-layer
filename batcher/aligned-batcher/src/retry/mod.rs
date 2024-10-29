@@ -30,6 +30,7 @@ impl<E> RetryError<E> {
 
 impl<E: std::fmt::Display> std::error::Error for RetryError<E> where E: std::fmt::Debug {}
 
+// Supports retries only on async functions. See: https://docs.rs/backon/latest/backon/#retry-an-async-function
 pub async fn retry_function<FutureFn, Fut, T, E>(
     function: FutureFn,
     min_delay: u64,

@@ -289,7 +289,7 @@ mod test {
                     .unwrap();
 
             assert_eq!(balance, U256::zero());
-            // Kill anvil
+            // Anvil is killed when the scope is left
         }
 
         let result =
@@ -325,7 +325,7 @@ mod test {
             .unwrap();
 
             assert_eq!(unlocked, false);
-            // Kill Anvil
+            // Anvil is killed when the scope is left
         }
 
         let result = user_balance_is_unlocked_retryable(
@@ -367,7 +367,7 @@ mod test {
             .unwrap();
 
             assert_eq!(nonce, U256::zero());
-            // Kill Anvil
+            // Anvil is killed when the scope is left
         }
 
         let result = get_user_nonce_from_ethereum_retryable(
@@ -403,7 +403,7 @@ mod test {
             let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider).await;
 
             assert!(result.is_ok());
-            // kill Anvil
+            // Anvil is killed when the scope is left
         }
         let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider).await;
         assert!(matches!(result, Err(RetryError::Transient(_))));
