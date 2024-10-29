@@ -2,6 +2,7 @@ package sched
 
 import (
 	"container/heap"
+	"log/slog"
 	"time"
 
 	"github.com/yetanotherco/aligned_layer/core/supervisor"
@@ -88,14 +89,17 @@ func (runner *JobRunner) pushJob(job Job) {
 func (runner *JobRunner) runExpiredJobs(now time.Time) {
 	runner.nextExpiration.Stop()
 	// In Go <1.23 we need to drain the channel for rearming to be safe
-	_, _ = <-runner.nextExpiration.C
+	<-runner.nextExpiration.C
 	for runner.queue.Len() > 0 {
 		job := runner.queue.Pop().(Job)
 		if now.Before(job.nextRun) {
 			runner.queue.Push(job)
 			break
 		}
-		job.task()
+		err := job.task()
+		if err != nil {
+			slog.Error("periodic task failed", "error", err)
+		}
 		if job.recurrent {
 			job.nextRun = now.Add(job.period)
 			runner.queue.Push(job)
