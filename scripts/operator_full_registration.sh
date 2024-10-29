@@ -14,9 +14,13 @@ if [[ -z $SHOULD_REGISTER || $SHOULD_REGISTER == true ]]; then
 fi
 
 PARETO_DISTRIBUTION=$3
-if [[ -z $PARETO_DISTRIBUTION ]]; then
+TOTAL_STAKE=$4
+if [[ ! -z $PARETO_DISTRIBUTION && -z $TOTAL_STAKE ]]; then
     PARETO_DISTRIBUTION=false
+    echo "YOU MUST PROVIDE A TOTAL STAKE IN THIRD ARGV"
+    exit 1
 fi
+
 
 function register_operator {
     NUM_OPERATOR=$1
@@ -33,10 +37,10 @@ function register_operator {
 
         if [[ $NUM_OPERATOR -le $MAJORITY_NUMBER ]]; then
             SHOULD_RESPOND=true
-            stake=$((stake * 80 / 100 / MAJORITY_NUMBER)) 
+            stake=$((TOTAL_STAKE * 80 / 100 / MAJORITY_NUMBER)) 
         else 
             SHOULD_RESPOND=false
-            stake=$((stake * 20 / 100 / MINORITY_NUMBER)) 
+            stake=$((TOTAL_STAKE * 20 / 100 / MINORITY_NUMBER)) 
         fi
     fi
 

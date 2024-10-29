@@ -236,8 +236,10 @@ operator_deposit_and_register: operator_deposit_into_strategy operator_register_
 LIMIT?=-1
 RESPOND_UNTIL?=-1
 SHOULD_REGISTER?=true
+PARETO_DISTRIBUTION?=true
+TOTAL_STAKE?=400000000000000000
 operator_register_script:
-	./scripts/operator_full_registration.sh $(LIMIT) $(RESPOND_UNTIL) $(SHOULD_REGISTER)
+	./scripts/operator_full_registration.sh $(LIMIT) $(SHOULD_REGISTER) $(PARETO_DISTRIBUTION) $(TOTAL_STAKE)
 
 
 # The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.
