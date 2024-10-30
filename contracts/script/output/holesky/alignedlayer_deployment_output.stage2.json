@@ -13,8 +13,8 @@
     "serviceManagerRouter": "0x6b13b22389BAD6dC9B2a9990449709eB4ba5d622",
     "stakeRegistry": "0x36e1700F1FAadf38AF717f49D12d563CFf87C448",
     "stakeRegistryImplementation": "0x30f2Ac7F87b60f43764e8ecb91f193d977E53483",
-    "batcherPaymentService": "0xA03b649c092D1cbEeBbDDAd3B3e3493933Ac7259",
-    "batcherPaymentServiceImplementation": "0x10376a0e664b54C18A0Bc064bAD6889eeF970729"
+    "batcherPaymentService": "0x21a083297A245722245fF2C8fC8D22409e11327E",
+    "batcherPaymentServiceImplementation": "0xdC5Fe1CC20B7E8421235CA3f741dC896EE99F99C"
   },
   "chainInfo": {
     "chainId": 17000,
