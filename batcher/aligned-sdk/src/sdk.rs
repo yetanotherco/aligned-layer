@@ -262,7 +262,7 @@ pub async fn submit_multiple(
 pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {
     match network {
         Network::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap(),
-        Network::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").unwrap(),
+        Network::Holesky => H160::from_str("0xA03b649c092D1cbEeBbDDAd3B3e3493933Ac7259").unwrap(),
         Network::HoleskyStage => {
             H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").unwrap()
         }
@@ -272,7 +272,7 @@ pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {
 pub fn get_aligned_service_manager_address(network: Network) -> ethers::types::H160 {
     match network {
         Network::Devnet => H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap(),
-        Network::Holesky => H160::from_str("0x58F280BeBE9B34c9939C3C39e0890C81f163B623").unwrap(),
+        Network::Holesky => H160::from_str("0xbb869A726ce52061C86117b515b805dDA2303c84").unwrap(),
         Network::HoleskyStage => {
             H160::from_str("0x9C5231FC88059C086Ea95712d105A2026048c39B").unwrap()
         }
