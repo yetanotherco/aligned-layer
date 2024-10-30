@@ -262,7 +262,7 @@ pub async fn submit_multiple(
 pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {
     match network {
         Network::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap(),
-        Network::Holesky => H160::from_str("0xA03b649c092D1cbEeBbDDAd3B3e3493933Ac7259").unwrap(),
+        Network::Holesky => H160::from_str("0x21a083297A245722245fF2C8fC8D22409e11327E").unwrap(),
         Network::HoleskyStage => {
             H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").unwrap()
         }
