@@ -1,7 +1,7 @@
 - import_playbook: setup.yaml
 - import_playbook: webserver.yaml
 - import_playbook: rust.yaml
-- import_playbook: docker.yaml
+#- import_playbook: docker.yaml
 
 - hosts: aligned-holesky-metrics
   become: true
@@ -25,18 +25,18 @@
       become_user: "{{ user }}"
       loop:
         - metrics
-        - tracker
+        - telemetry
 
     # Clone Aligned repository for each service
     - name: Clone Aligned repository
       ansible.builtin.git:
         repo: https://github.com/yetanotherco/aligned_layer.git
         dest: /home/{{ user }}/repos/{{ item }}/aligned_layer
-        version: v0.9.2
+        version: v0.10.2
       become_user: "{{ user }}"
       loop:
         - metrics
-        - tracker
+        - telemetry
       register: repo_clone
       failed_when:
         - repo_clone.failed
