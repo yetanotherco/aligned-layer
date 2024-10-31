@@ -4,10 +4,10 @@
 - import_playbook: go.yaml
 - import_playbook: eigenlayer-cli.yaml
 
-- hosts: aligned-holesky-batcher
+- hosts: batcher
   become: true
   vars:
-    user: "{{ user }}"
+    service: "batcher"
 
   tasks:
     # Install required packages
@@ -16,32 +16,30 @@
         pkg:
           - pkg-config
           - libssl-dev
-          - gcc
         state: latest
         update_cache: true
 
     # Create directories for each service
     - name: Create directories for each service if do not exist
       ansible.builtin.file:
-        path: /home/{{ user }}/repos/{{ item }}
+        path: /home/{{ ansible_user }}/repos/{{ service }}
         state: directory
         mode: '0755'
-      become_user: "{{ user }}"
-      loop:
-        - batcher
+      become_user: "{{ ansible_user }}"
 
-    # Clone Aligned repository for each service
+    # Clone Aligned repository for the service
     - name: Clone Aligned repository
       ansible.builtin.git:
         repo: https://github.com/yetanotherco/aligned_layer.git
-        dest: /home/{{ user }}/repos/{{ item }}/aligned_layer
-        version: v0.10.2
-      become_user: "{{ user }}"
-      loop:
-        - batcher
-      register: repo_clone
-      failed_when:
-        - repo_clone.failed
-        - not 'Local modifications exist in the destination' in repo_clone.msg
+        dest: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
+        version: batcher_ansible
+      become_user: "{{ ansible_user }}"
 
+    # Build the batcher
+    - name: Build Batcher
+      shell: cd /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer && make deps && make install_batcher
+      become_user: "{{ ansible_user }}"
+      environment:
+        PATH: "$PATH:/home/admin/.cargo/bin:/usr/local/go/bin:$GOPATH/bin:/$HOME/go/bin:/usr/bin"
 
+    # Copy systemd service to user services

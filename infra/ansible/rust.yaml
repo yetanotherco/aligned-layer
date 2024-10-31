@@ -1,8 +1,6 @@
 - name: Rust Setup
   hosts: all
   become: true
-  vars:
-    user: "{{ user }}"
 
   pre_tasks:
     - name: update repositories
@@ -28,6 +26,6 @@
     - name: install rust/cargo
       when: cargo_exists is failed
       shell: /tmp/sh.rustup.rs -y
-      become_user: "{{ user }}"
+      become_user: "{{ ansible_user }}"
       tags:
         - rust

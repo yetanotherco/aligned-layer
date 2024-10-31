@@ -1,8 +1,6 @@
 - name: Eigenlayer CLI Setup
   hosts: all
   become: true
-  vars:
-    user: "{{ user }}"
 
   tasks:
     - name: check if eigenlayer is installed
@@ -14,7 +12,7 @@
       when: eigenlayer_exists is failed
       shell:
         cmd: curl -sSfL https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh  | sh -s
-      become_user: "{{ user }}"
+      become_user: "{{ ansible_user }}"
 
     - name: Add eigenlayer path to ~/.profile
       when: eigenlayer_exists is failed

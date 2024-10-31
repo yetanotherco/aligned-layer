@@ -1,8 +1,6 @@
 - hosts: all
 
   become: true
-  vars:
-    user: "{{ user }}"
 
   tasks:
     # Install required packages
@@ -14,6 +12,7 @@
           - git
           - ufw
           - make
+          - gcc
         state: latest
         update_cache: true
 
@@ -31,10 +30,10 @@
     # Create basic directories
     - name: Create basic directories if do not exist
       ansible.builtin.file:
-        path: /home/{{ user }}/{{ item }}
+        path: /home/{{ ansible_user }}/{{ item }}
         state: directory
         mode: '0755'
-      become_user: "{{ user }}"
+      become_user: "{{ ansible_user }}"
       loop:
         - repos
         - config
