@@ -41,6 +41,10 @@
         - config
         - services
 
+    - name: Enable linger for {{ app_user }}
+      become: true
+      shell: loginctl enable-linger {{ app_user }}
+
     # Clone Aligned repository
 #    - name: Clone Aligned repository
 #      ansible.builtin.git:
