@@ -410,6 +410,7 @@ pub enum Network {
     Devnet,
     Holesky,
     HoleskyStage,
+    HoleskyStage1,
 }
 
 impl FromStr for Network {

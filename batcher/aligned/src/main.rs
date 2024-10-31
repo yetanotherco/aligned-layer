@@ -204,6 +204,7 @@ enum NetworkArg {
     Devnet,
     Holesky,
     HoleskyStage,
+    HoleskyStage1,
 }
 
 impl From<NetworkArg> for Network {
@@ -212,6 +213,7 @@ impl From<NetworkArg> for Network {
             NetworkArg::Devnet => Network::Devnet,
             NetworkArg::Holesky => Network::Holesky,
             NetworkArg::HoleskyStage => Network::HoleskyStage,
+            NetworkArg::HoleskyStage1 => Network::HoleskyStage1,
         }
     }
 }

@@ -266,6 +266,9 @@ pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {
         Network::HoleskyStage => {
             H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").unwrap()
         }
+        Network::HoleskyStage1 => {
+            H160::from_str("0xA018972f44Fda69E4Ee15F29376c1f418B2E7fB5").unwrap()
+        }
     }
 }
 
@@ -275,6 +278,9 @@ pub fn get_aligned_service_manager_address(network: Network) -> ethers::types::H
         Network::Holesky => H160::from_str("0x58F280BeBE9B34c9939C3C39e0890C81f163B623").unwrap(),
         Network::HoleskyStage => {
             H160::from_str("0x9C5231FC88059C086Ea95712d105A2026048c39B").unwrap()
+        }
+        Network::HoleskyStage1 => {
+            H160::from_str("0x820D6589f3017A3AdBe18CDD74ab874960dd02A0").unwrap()
         }
     }
 }
