@@ -47,6 +47,12 @@
         group: '{{ app_user }}'
         recurse: yes
 
+    - name: Compile all FFIs
+      become: true
+      shell:
+        chdir: /home/{{ app_user }}/repos/aggregator/aligned_layer
+        cmd: sudo -u {{ app_user }} . /home/{{ app_user }}/.profile && sudo -u {{ app_user }} make build_all_ffi_linux
+
     - name: Allow access to tcp port 8090
       become: true
       ufw:
