@@ -1,12 +1,9 @@
 - hosts: all
 
-  become: true
-  vars:
-    user: "{{ user }}"
-
   tasks:
     # Install required packages
     - name: Update apt and install required system packages
+      become: true
       apt:
         pkg:
           - curl
@@ -19,22 +16,26 @@
 
     # Allow SSH connections and deny by default
     - name: UFW - Allow SSH connections
+      become: true
       community.general.ufw:
         rule: allow
         name: OpenSSH
 
     - name: UFW - Enable and deny by default
+      become: true
       community.general.ufw:
         state: enabled
         default: deny
 
     # Create basic directories
     - name: Create basic directories if do not exist
+      become: true
       ansible.builtin.file:
-        path: /home/{{ user }}/{{ item }}
+        path: /home/{{ app_user }}/{{ item }}
         state: directory
         mode: '0755'
-      become_user: "{{ user }}"
+        owner: '{{ app_user }}'
+        group: '{{ app_user }}'
       loop:
         - repos
         - config
@@ -44,6 +45,6 @@
 #    - name: Clone Aligned repository
 #      ansible.builtin.git:
 #        repo: https://github.com/yetanotherco/aligned_layer.git
-#        dest: /home/{{ user }}/repos/aligned_layer
+#        dest: /home/{{ app_user }}/repos/aligned_layer
 #        version: main
-#      become_user: "{{ user }}"
+#      become_user: '{{ app_user }}'
