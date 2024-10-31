@@ -126,7 +126,6 @@ mod test {
         (anvil, payment_service)
     }
 
-    #[ignore]
     #[tokio::test]
     async fn test_get_user_balance_retryable() {
         let payment_service;
@@ -159,7 +158,6 @@ mod test {
         assert_eq!(balance, U256::zero());
     }
 
-    #[ignore]
     #[tokio::test]
     async fn test_user_balance_is_unlocked_retryable() {
         let payment_service;
@@ -202,7 +200,6 @@ mod test {
         assert_eq!(unlocked, false);
     }
 
-    #[ignore]
     #[tokio::test]
     async fn test_get_user_nonce_retryable() {
         let payment_service;
@@ -245,7 +242,6 @@ mod test {
         assert_eq!(nonce, U256::zero());
     }
 
-    #[ignore]
     #[tokio::test]
     async fn test_get_gas_price_retryable() {
         let eth_rpc_provider;
