@@ -54,6 +54,7 @@ pub mod s3;
 pub mod sp1;
 pub mod types;
 mod zk_utils;
+mod testonly;
 
 pub struct Batcher {
     s3_client: S3Client,
@@ -1026,11 +1027,11 @@ impl Batcher {
             let mut disabled_verifiers_lock = self.disabled_verifiers.lock().await;
             if new_disable_verifiers != *disabled_verifiers_lock {
                 let mut batch_state = self.batch_state.lock().await;
-                *disabled_verifiers = new_disable_verifiers;
+                *disabled_verifiers_lock = new_disable_verifiers;
                 warn!("Disabled verifiers updated, filtering queue");
                 let filered_batch_queue = zk_utils::filter_disabled_verifiers(
                     batch_state.batch_queue.clone(),
-                    disabled_verifiers,
+                    disabled_verifiers_lock,
                 )
                 .await;
                 batch_state.batch_queue = filered_batch_queue;
