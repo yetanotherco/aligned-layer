@@ -13,11 +13,18 @@ use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use aligned_sdk::core::constants::{
+    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
+    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
+    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
+    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+};
 use aligned_sdk::core::types::{
-    ClientMessage, NoncedVerificationData, ProofInvalidReason, ResponseMessage,
+    ClientMessage, NoncedVerificationData, ProofInvalidReason, ProvingSystemId, ResponseMessage,
     ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
     VerificationDataCommitment,
 };
+
 use aws_sdk_s3::client::Client as S3Client;
 use eth::payment_service::{
     try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT,
@@ -47,23 +54,6 @@ pub mod s3;
 pub mod sp1;
 pub mod types;
 mod zk_utils;
-
-#[cfg(test)]
-mod testonly;
-
-const AGGREGATOR_GAS_COST: u128 = 400_000;
-const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
-pub(crate) const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
-pub(crate) const CONSTANT_GAS_COST: u128 =
-    ((AGGREGATOR_GAS_COST * DEFAULT_AGGREGATOR_FEE_MULTIPLIER) / DEFAULT_AGGREGATOR_FEE_DIVIDER)
-        + BATCHER_SUBMISSION_BASE_GAS_COST;
-
-const DEFAULT_MAX_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // gas_price = 100 Gwei = 0.0000001 ether (high gas price)
-const MIN_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000; // gas_price = 0.1 Gwei = 0.0000000001 ether (low gas price)
-const RESPOND_TO_TASK_FEE_LIMIT_MULTIPLIER: u128 = 5; // to set the respondToTaskFeeLimit variable higher than fee_for_aggregator
-const RESPOND_TO_TASK_FEE_LIMIT_DIVIDER: u128 = 2;
-const DEFAULT_AGGREGATOR_FEE_MULTIPLIER: u128 = 3; // to set the feeForAggregator variable higher than what was calculated
-const DEFAULT_AGGREGATOR_FEE_DIVIDER: u128 = 2;
 
 pub struct Batcher {
     s3_client: S3Client,
@@ -342,7 +332,10 @@ impl Batcher {
             .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
             .await
         {
-            Err(e) => error!("Unexpected error: {}", e),
+            Err(e) => {
+                self.metrics.broken_ws_connections.inc();
+                error!("Unexpected error: {}", e)
+            }
             Ok(_) => info!("{} disconnected", &addr),
         }
 
@@ -424,16 +417,11 @@ impl Batcher {
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if self.pre_verification_is_enabled {
-            let disabled_verifiers = match self.disabled_verifiers().await {
-                Ok(disabled_verifiers) => disabled_verifiers,
-                Err(e) => {
-                    error!("Failed to get disabled verifiers: {e:?}");
-                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
-                    return Ok(());
-                }
-            };
             let verification_data = &nonced_verification_data.verification_data;
-            if zk_utils::is_verifier_disabled(disabled_verifiers, verification_data) {
+            if self
+                .is_verifier_disabled(verification_data.proving_system)
+                .await
+            {
                 warn!(
                     "Verifier for proving system {} is disabled, skipping verification",
                     verification_data.proving_system
@@ -478,16 +466,6 @@ impl Batcher {
             .await;
             return Ok(());
         }
-
-        // Nonce and max fee verification
-        let max_fee = nonced_verification_data.max_fee;
-        if max_fee < U256::from(MIN_FEE_PER_PROOF) {
-            error!("The max fee signed in the message is less than the accepted minimum fee to be included in the batch.");
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
-            return Ok(());
-        }
-
-        // Check that we had a user state entry for this user and insert it if not.
 
         // We aquire the lock first only to query if the user is already present and the lock is dropped.
         // If it was not present, then the user nonce is queried to the Aligned contract.
@@ -617,6 +595,11 @@ impl Batcher {
         info!("Verification data message handled");
         send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
         Ok(())
+    }
+
+    async fn is_verifier_disabled(&self, verifier: ProvingSystemId) -> bool {
+        let disabled_verifiers = self.disabled_verifiers.lock().await;
+        zk_utils::is_verifier_disabled(*disabled_verifiers, verifier)
     }
 
     // Checks user has sufficient balance for paying all its the proofs in the current batch.
@@ -1036,25 +1019,30 @@ impl Batcher {
         let (gas_price, disable_verifiers) =
             tokio::join!(gas_price_future, disabled_verifiers_future);
         let gas_price = gas_price.ok_or(BatcherError::GasPriceError)?;
-        let new_disable_verifiers =
-            disable_verifiers.map_err(|e| BatcherError::DisabledVerifiersError(e.to_string()))?;
 
-        let mut disabled_verifiers = self.disabled_verifiers.lock().await;
-        if new_disable_verifiers != *disabled_verifiers {
-            let mut batch_state = self.batch_state.lock().await;
-            *disabled_verifiers = new_disable_verifiers;
-            warn!("Disabled verifiers updated, filtering queue");
-            let filered_batch_queue = zk_utils::filter_disabled_verifiers(
-                batch_state.batch_queue.clone(),
-                disabled_verifiers,
-            )
-            .await;
-            batch_state.batch_queue = filered_batch_queue;
+        {
+            let new_disable_verifiers = disable_verifiers
+                .map_err(|e| BatcherError::DisabledVerifiersError(e.to_string()))?;
+            let mut disabled_verifiers_lock = self.disabled_verifiers.lock().await;
+            if new_disable_verifiers != *disabled_verifiers_lock {
+                let mut batch_state = self.batch_state.lock().await;
+                *disabled_verifiers = new_disable_verifiers;
+                warn!("Disabled verifiers updated, filtering queue");
+                let filered_batch_queue = zk_utils::filter_disabled_verifiers(
+                    batch_state.batch_queue.clone(),
+                    disabled_verifiers,
+                )
+                .await;
+                batch_state.batch_queue = filered_batch_queue;
+            }
         }
 
-        if let Some(finalized_batch) = self.is_batch_ready(block_number, gas_price).await {
+        let modified_gas_price = gas_price * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER)
+            / U256::from(PERCENTAGE_DIVIDER);
+
+        if let Some(finalized_batch) = self.is_batch_ready(block_number, modified_gas_price).await {
             let batch_finalization_result = self
-                .finalize_batch(block_number, finalized_batch, gas_price)
+                .finalize_batch(block_number, finalized_batch, modified_gas_price)
                 .await;
 
             // Resetting this here to avoid doing it on every return path of `finalize_batch` function
@@ -1105,11 +1093,11 @@ impl Batcher {
         let fee_per_proof = U256::from(gas_per_proof) * gas_price;
         let fee_for_aggregator = (U256::from(AGGREGATOR_GAS_COST)
             * gas_price
-            * U256::from(DEFAULT_AGGREGATOR_FEE_MULTIPLIER))
-            / U256::from(DEFAULT_AGGREGATOR_FEE_DIVIDER);
+            * U256::from(DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER))
+            / U256::from(PERCENTAGE_DIVIDER);
         let respond_to_task_fee_limit = (fee_for_aggregator
-            * U256::from(RESPOND_TO_TASK_FEE_LIMIT_MULTIPLIER))
-            / U256::from(RESPOND_TO_TASK_FEE_LIMIT_DIVIDER);
+            * U256::from(RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER))
+            / U256::from(PERCENTAGE_DIVIDER);
         let fee_params = CreateNewTaskFeeParams::new(
             fee_for_aggregator,
             fee_per_proof,

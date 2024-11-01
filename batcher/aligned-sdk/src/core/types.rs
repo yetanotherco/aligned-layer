@@ -388,8 +388,8 @@ impl Display for ProofInvalidReason {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             ProofInvalidReason::VerifierNotSupported => write!(f, "Verifier not supported"),
-            ProofInvalidReason::DisabledVerifier(id) => {
-                write!(f, "Disabled {} verifier ", id)
+            ProofInvalidReason::DisabledVerifier(proving_system_id) => {
+                write!(f, "Disabled {} verifier ", proving_system_id)
             }
             ProofInvalidReason::PriorProofInvalidity => write!(f, "Prior proof was invalidated"),
             ProofInvalidReason::RejectedProof => write!(f, "Proof did not verify"),

@@ -1,11 +1,8 @@
-use crate::connection::send_message;
+use crate::{connection::send_message, types::batch_queue::BatchQueue};
 use crate::gnark::verify_gnark;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
-use crate::types::batch_queue::BatchQueue;
-use aligned_sdk::core::types::{
-    ProofInvalidReason, ProvingSystemId, ValidityResponseMessage, VerificationData,
-};
+use aligned_sdk::core::types::{ProofInvalidReason, ProvingSystemId, ValidityResponseMessage, VerificationData};
 use ethers::types::U256;
 use log::{debug, warn};
 use tokio::sync::MutexGuard;
@@ -73,9 +70,9 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
 
 pub(crate) fn is_verifier_disabled(
     disabled_verifiers: U256,
-    verification_data: &VerificationData,
+    proving_system: ProvingSystemId,
 ) -> bool {
-    disabled_verifiers & (U256::one() << verification_data.proving_system as u64) != U256::zero()
+    disabled_verifiers & (U256::one() << proving_system as u64) != U256::zero()
 }
 
 /// Filters out proofs from the batch queue that are using disabled verifiers.
@@ -88,7 +85,7 @@ pub(crate) async fn filter_disabled_verifiers(
     let mut filtered_batch_queue = BatchQueue::new();
     for (entry, entry_priority) in batch_queue.iter() {
         let verification_data = &entry.nonced_verification_data.verification_data;
-        if is_verifier_disabled(*disabled_verifiers, verification_data) {
+        if is_verifier_disabled(*disabled_verifiers, verification_data.proving_system) {
             warn!(
                 "Verifier for proving system {} is now disabled, removing proofs from batch",
                 verification_data.proving_system
@@ -127,10 +124,8 @@ pub(crate) async fn filter_disabled_verifiers(
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        types::batch_queue::{BatchQueue, BatchQueueEntry, BatchQueueEntryPriority},
-        zk_utils::filter_disabled_verifiers,
-    };
+
+    use crate::{types::batch_queue::{BatchQueue, BatchQueueEntry, BatchQueueEntryPriority}, zk_utils::filter_disabled_verifiers};
 
     use super::is_verifier_disabled;
     use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
@@ -171,7 +166,7 @@ mod test {
                 proof_generator_addr: Address::zero(),
             };
             assert!(
-                !is_verifier_disabled(disabled_verifiers, &verification_data),
+                !is_verifier_disabled(disabled_verifiers, verification_data.proving_system),
                 "Verifier {:?} should not be disabled",
                 verifier
             );
@@ -193,7 +188,7 @@ mod test {
                 proof_generator_addr: Address::zero(),
             };
             assert!(
-                is_verifier_disabled(disabled_verifiers, &verification_data),
+                is_verifier_disabled(disabled_verifiers, verification_data.proving_system),
                 "Verifier {:?} should be disabled",
                 verifier
             );
@@ -216,13 +211,13 @@ mod test {
             };
             if verifier == &verifiers[0] || verifier == &verifiers[verifiers.len() - 1] {
                 assert!(
-                    is_verifier_disabled(disabled_verifiers, &verification_data),
+                    is_verifier_disabled(disabled_verifiers, verification_data.proving_system),
                     "Verifier {:?} should be disabled",
                     verifier
                 );
             } else {
                 assert!(
-                    !is_verifier_disabled(disabled_verifiers, &verification_data),
+                    !is_verifier_disabled(disabled_verifiers, verification_data.proving_system),
                     "Verifier {:?} should not be disabled",
                     verifier
                 );
