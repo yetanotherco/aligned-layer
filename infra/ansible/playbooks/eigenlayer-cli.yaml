@@ -1,0 +1,26 @@
+- name: Eigenlayer CLI Setup
+  hosts: all
+
+  tasks:
+    - name: check if eigenlayer is installed
+      stat:
+        path: /home/{{ ansible_user }}/bin/eigenlayer
+      register: eigenlayer_exists
+
+    - name: Download Eigenlayer CLI
+      when: not eigenlayer_exists.stat.exists
+      get_url:
+        url: https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh
+        dest: /tmp/eigenlayer.sh
+        mode: '0755'
+
+    - name: Install Eigenlayer CLI
+      when: not eigenlayer_exists.stat.exists
+      shell: /tmp/eigenlayer.sh
+
+    - name: Add eigenlayer path to ~/.profile
+      when: not eigenlayer_exists.stat.exists
+      lineinfile:
+        path: ~/.profile
+        line: 'export PATH=$PATH:~/bin'
+        state: present

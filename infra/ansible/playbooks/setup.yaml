@@ -14,6 +14,8 @@
           - gcc
         state: latest
         update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
 
     # Allow SSH connections and deny by default
     - name: UFW - Allow SSH connections
@@ -21,35 +23,40 @@
       community.general.ufw:
         rule: allow
         name: OpenSSH
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
 
     - name: UFW - Enable and deny by default
       become: true
       community.general.ufw:
         state: enabled
         default: deny
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
 
     # Create basic directories
     - name: Create basic directories if do not exist
-      become: true
       ansible.builtin.file:
-        path: /home/{{ app_user }}/{{ item }}
+        path: /home/{{ ansible_user }}/{{ item }}
         state: directory
         mode: '0755'
-        owner: '{{ app_user }}'
-        group: '{{ app_user }}'
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
       loop:
         - repos
         - config
         - services
 
-    - name: Enable linger for {{ app_user }}
-      become: true
-      shell: loginctl enable-linger {{ app_user }}
+    - name: Enable linger for {{ ansible_user }}
+      shell: sudo loginctl enable-linger {{ ansible_user }}
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
 
     # Clone Aligned repository
 #    - name: Clone Aligned repository
 #      ansible.builtin.git:
 #        repo: https://github.com/yetanotherco/aligned_layer.git
-#        dest: /home/{{ app_user }}/repos/aligned_layer
+#        dest: /home/{{ ansible_user }}/repos/aligned_layer
 #        version: main
-#      become_user: '{{ app_user }}'
+#      become_user: '{{ ansible_user }}'

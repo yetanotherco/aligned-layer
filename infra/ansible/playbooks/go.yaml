@@ -1,0 +1,48 @@
+# https://everythingcoding.in/go-setup-through-ansible/
+- name: Go Setup
+  hosts: all
+  vars:
+    version: 1.22.2
+
+  tasks:
+    - name: check if go is installed
+      stat:
+        path: /usr/local/go/bin/go
+      register: go_exists
+
+    - name: get golang download link
+      set_fact:
+        go_download_url: >-
+          {% if ansible_architecture == 'x86_64' %}
+            https://go.dev/dl/go{{ version }}.linux-amd64.tar.gz
+          {% elif ansible_architecture == 'aarch64' %}
+            https://go.dev/dl/go{{ version }}.linux-arm64.tar.gz
+          {% endif %}
+
+    - name: download Go tarball
+      when: not go_exists.stat.exists
+      get_url:
+        url: "{{ go_download_url }}"
+        dest: "/tmp/{{ go_download_url | basename }}"
+        mode: '0755'
+
+    - name: install Go
+      when: not go_exists.stat.exists
+      ansible.builtin.unarchive:
+        src: "/tmp/{{ go_download_url | basename }}"
+        dest: /usr/local/
+        remote_src: yes
+      become: yes
+      vars:
+        ansible_ssh_user: admin
+
+    - name: update user PATH
+      when: not go_exists.stat.exists
+      lineinfile:
+        path: "/home/{{ ansible_user }}/.bashrc"
+        line: "{{ item }}"
+        state: present
+      with_items:
+        - 'export PATH=$PATH:/usr/local/go/bin'
+        - 'export GOPATH=$HOME/go'
+        - 'export PATH=$PATH:$GOPATH/bin'

@@ -1,0 +1,74 @@
+#- import_playbook: setup.yaml
+#- import_playbook: webserver.yaml
+#- import_playbook: rust.yaml
+#- import_playbook: go.yaml
+#- import_playbook: eigenlayer-cli.yaml
+
+- hosts: batcher
+  vars:
+    service: "batcher"
+
+  tasks:
+    # Install required packages
+    - name: Update apt and install required system packages
+      become: true
+      apt:
+        pkg:
+          - pkg-config
+          - libssl-dev
+        state: latest
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    # Create directories for each service
+    - name: Create directories for each service if do not exist
+      ansible.builtin.file:
+        path: /home/{{ ansible_user }}/repos/{{ service }}
+        state: directory
+        mode: '0755'
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+
+    # Clone Aligned repository for the service
+    - name: Clone Aligned repository
+      ansible.builtin.git:
+        repo: https://github.com/yetanotherco/aligned_layer.git
+        dest: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
+        version: batcher_ansible
+        recursive: false
+
+#    - name: Set permissions for cloned repository
+#      ansible.builtin.file:
+#        path: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
+#        mode: '0755'
+#        owner: '{{ ansible_user }}'
+#        group: '{{ ansible_user }}'
+#        recurse: yes
+
+    # Build the batcher
+    - name: Install deps
+      make:
+        chdir: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
+        target: deps
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
+
+    - name: Install batcher
+      make:
+        chdir: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
+        target: install_batcher
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
+
+
+    # Copy systemd service to user services
+#    - name: Copy systemd service file to server
+#      copy:
+#        src: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer/infra/services/batcher.service
+#        remote_src: true
+#        dest: /home/admin/.config/systemd/user/
+#        owner: "{{ ansible_user }}"
+#        group: "{{ ansible_user }}"
+
+
