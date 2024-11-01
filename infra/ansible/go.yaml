@@ -28,13 +28,14 @@
       shell: rm -rf go{{version}}.linux-amd64.tar.gz*
 
     - name: Add go binary path to ~/.profile
+      become_user: '{{ app_user }}'
       when: go_exists is failed
       lineinfile:
         path: ~/.profile
-        line: 'export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:/$HOME/go/bin'
-        create: true
+        line: 'export PATH=$PATH:/usr/local/go/bin'
         state: present
 
     - name: Source updated profile and test go version
+      become_user: '{{ app_user }}'
       when: go_exists is failed
       shell: . ~/.profile && go version
