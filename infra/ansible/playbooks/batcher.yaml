@@ -38,14 +38,6 @@
         version: batcher_ansible
         recursive: false
 
-#    - name: Set permissions for cloned repository
-#      ansible.builtin.file:
-#        path: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
-#        mode: '0755'
-#        owner: '{{ ansible_user }}'
-#        group: '{{ ansible_user }}'
-#        recurse: yes
-
     # Build the batcher
     - name: Install deps
       make:
@@ -61,14 +53,43 @@
       environment:
         PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
 
+    - name: Create systemd services directory
+      file:
+        path: "/home/{{ ansible_user }}/.config/systemd/user/"
+        state: directory
 
-    # Copy systemd service to user services
-#    - name: Copy systemd service file to server
-#      copy:
-#        src: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer/infra/services/batcher.service
-#        remote_src: true
-#        dest: /home/admin/.config/systemd/user/
-#        owner: "{{ ansible_user }}"
-#        group: "{{ ansible_user }}"
+    - name: Add service to systemd
+      template:
+        src: services/batcher.service.j2
+        dest: "/home/{{ ansible_user }}/.config/systemd/user/batcher.service"
+        force: no
+
+    - name: Upload config file for batcher
+      template:
+        src: config-files/config-batcher.yaml.j2
+        dest: "/home/{{ ansible_user }}/config/config-batcher-holesky.yaml"
+      vars:
+        aligned_layer_deployment_config_file_path: "{{ lookup('ini', 'aligned_layer_deployment_config_file_path', file='ini/config-batcher.ini') }}"
+        eigen_layer_deployment_config_file_path: "{{ lookup('ini', 'eigen_layer_deployment_config_file_path', file='ini/config-batcher.ini') }}"
+        eth_rpc_url: "{{ lookup('ini', 'eth_rpc_url', file='ini/config-batcher.ini') }}"
+        eth_rpc_url_fallback: "{{ lookup('ini', 'eth_rpc_url_fallback', file='ini/config-batcher.ini') }}"
+        eth_ws_url: "{{ lookup('ini', 'eth_ws_url', file='ini/config-batcher.ini') }}"
+        eth_ws_url_fallback: "{{ lookup('ini', 'eth_ws_url_fallback', file='ini/config-batcher.ini') }}"
+        ecdsa_private_key_store_path: "{{ lookup('ini', 'ecdsa_private_key_store_path', file='ini/config-batcher.ini') }}"
+        ecdsa_private_key_store_password: "{{ lookup('ini', 'ecdsa_private_key_store_password', file='ini/config-batcher.ini') }}"
+        batcher_replacement_private_key: "{{ lookup('ini', 'batcher_replacement_private_key', file='ini/config-batcher.ini') }}"
+
+
+    - name: Upload env file for batcher
+      template:
+        src: config-files/env-batcher.j2
+        dest: "/home/{{ ansible_user }}/config/.env.batcher"
+      vars:
+        secret_access_key: "{{ lookup('ini', 'secret_access_key', file='ini/env-batcher.ini') }}"
+        region: "{{ lookup('ini', 'region', file='ini/env-batcher.ini') }}"
+        access_key_id: "{{ lookup('ini', 'access_key_id', file='ini/env-batcher.ini') }}"
+        bucket_name: "{{ lookup('ini', 'bucket_name', file='ini/env-batcher.ini') }}"
+        download_endpoint: "{{ lookup('ini', 'download_endpoint', file='ini/env-batcher.ini') }}"
+        log_level: "{{ lookup('ini', 'log_level', file='ini/env-batcher.ini') }}"
 
 
