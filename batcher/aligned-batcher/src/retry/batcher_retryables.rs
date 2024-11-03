@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use aligned_sdk::core::constants::TRANSACTION_WAIT_TIMEOUT;
 use ethers::prelude::*;
 use log::{info, warn};
 use tokio::time::timeout;
@@ -108,6 +107,7 @@ pub async fn create_new_task_retryable(
     batch_data_pointer: String,
     proofs_submitters: Vec<Address>,
     fee_params: CreateNewTaskFeeParams,
+    transaction_wait_timeout: u64,
     payment_service: &BatcherPaymentService,
     payment_service_fallback: &BatcherPaymentService,
 ) -> Result<TransactionReceipt, RetryError<BatcherError>> {
@@ -154,7 +154,7 @@ pub async fn create_new_task_retryable(
     };
 
     // timeout to prevent a deadlock while waiting for the transaction to be included in a block.
-    timeout(Duration::from_millis(TRANSACTION_WAIT_TIMEOUT), pending_tx)
+    timeout(Duration::from_millis(transaction_wait_timeout), pending_tx)
         .await
         .map_err(|e| {
             warn!("Error while waiting for batch inclusion: {e}");
@@ -171,6 +171,7 @@ pub async fn cancel_create_new_task_retryable(
     batcher_signer: &SignerMiddlewareT,
     batcher_signer_fallback: &SignerMiddlewareT,
     bumped_gas_price: U256,
+    transaction_wait_timeout: u64,
 ) -> Result<TransactionReceipt, RetryError<ProviderError>> {
     let batcher_addr = batcher_signer.address();
 
@@ -197,7 +198,7 @@ pub async fn cancel_create_new_task_retryable(
     };
 
     // timeout to prevent a deadlock while waiting for the transaction to be included in a block.
-    timeout(Duration::from_millis(TRANSACTION_WAIT_TIMEOUT), pending_tx)
+    timeout(Duration::from_millis(transaction_wait_timeout), pending_tx)
         .await
         .map_err(|e| {
             warn!("Timeout while waiting for transaction inclusion: {e}");

@@ -77,6 +77,7 @@ pub struct Batcher {
     service_manager_fallback: ServiceManager,
     batch_state: Mutex<BatchState>,
     max_block_interval: u64,
+    transaction_wait_timeout: u64,
     max_proof_size: usize,
     max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
@@ -232,6 +233,7 @@ impl Batcher {
             service_manager,
             service_manager_fallback,
             max_block_interval: config.batcher.block_interval,
+            transaction_wait_timeout: config.batcher.transaction_wait_timeout,
             max_proof_size: config.batcher.max_proof_size,
             max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
@@ -1193,6 +1195,7 @@ impl Batcher {
                     batch_data_pointer.clone(),
                     proof_submitters.clone(),
                     fee_params.clone(),
+                    self.transaction_wait_timeout,
                     &self.payment_service,
                     &self.payment_service_fallback,
                 )
@@ -1245,6 +1248,7 @@ impl Batcher {
                     &self.batcher_signer,
                     &self.batcher_signer_fallback,
                     bumped_gas_price,
+                    self.transaction_wait_timeout,
                 )
                 .await
             },
