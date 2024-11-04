@@ -297,6 +297,12 @@ async fn _submit_multiple(
             "verification_data".to_string(),
         ));
     }
+    if verification_data.len() > 10000 { //TODO unhardcode value
+        return Err(errors::SubmitError::GenericError(
+            "Trying to submit too many proofs at once".to_string(),
+        ));
+    }
+
     let ws_write_clone = ws_write.clone();
 
     let response_stream: ResponseStream =
@@ -308,28 +314,21 @@ async fn _submit_multiple(
 
     let (sender_channel, receiver_channel) = mpsc::channel(50000); //TODO Magic number
 
-    let (send_result, receive_result) = tokio::join!(
-        send_messages(
-            ws_write,
-            payment_service_addr,
-            verification_data,
-            max_fees,
-            wallet,
-            nonce,
-            sender_channel,
-        ),
-        receive(
-            response_stream,
-            receiver_channel
-        ),
-    );
+        // done sequencial
+        // added size check to avoid sequencial is too big
+    // chequeando el nonce del ultimo, puedo cortar la conexión cuando recibo su respuesta
+    // agregar nonce en la respuesta del batcher al sender
+    // sacar el mensaje de que la proof es una replacement
+
+    let result = async {
+        send_messages(ws_write, payment_service_addr, verification_data, max_fees, wallet, nonce, sender_channel).await?;
+        receive(response_stream, receiver_channel).await
+    }.await;
 
     // Close connection
     info!("Closing WS connection");
     ws_write_clone.lock().await.close().await?;
-
-    send_result?;
-    return receive_result;
+    result
 }
 
 /// Submits a proof to the batcher to be verified in Aligned and waits for the verification on-chain.
