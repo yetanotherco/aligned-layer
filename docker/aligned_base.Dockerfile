@@ -90,37 +90,37 @@ ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 COPY operator/sp1/ /aligned_layer/operator/sp1/
 COPY --from=planner /aligned_layer/operator/sp1/lib/recipe.json /aligned_layer/operator/sp1/lib/recipe.json
 WORKDIR /aligned_layer/operator/sp1/lib/
-RUN cargo chef cook --recipe-path /aligned_layer/operator/sp1/lib/recipe.json
+RUN cargo chef cook --release --recipe-path /aligned_layer/operator/sp1/lib/recipe.json
 
 # build_risc_zero_linux
 COPY operator/risc_zero/ /aligned_layer/operator/risc_zero/
 COPY --from=planner /aligned_layer/operator/risc_zero/lib/recipe.json /aligned_layer/operator/risc_zero/lib/recipe.json
 WORKDIR /aligned_layer/operator/risc_zero/lib/
-RUN cargo chef cook --recipe-path /aligned_layer/operator/risc_zero/lib/recipe.json
+RUN cargo chef cook --release --recipe-path /aligned_layer/operator/risc_zero/lib/recipe.json
 
 # build_sp1_linux_old
 COPY operator/sp1_old/ /aligned_layer/operator/sp1_old/
 COPY --from=planner /aligned_layer/operator/sp1_old/lib/recipe.json /aligned_layer/operator/sp1_old/lib/recipe.json
 WORKDIR /aligned_layer/operator/sp1_old/lib/
-RUN cargo chef cook --recipe-path /aligned_layer/operator/sp1_old/lib/recipe.json
+RUN cargo chef cook --release --recipe-path /aligned_layer/operator/sp1_old/lib/recipe.json
 
 # build_risc_zero_linux_old
 COPY operator/risc_zero_old/ /aligned_layer/operator/risc_zero_old/
 COPY --from=planner /aligned_layer/operator/risc_zero_old/lib/recipe.json /aligned_layer/operator/risc_zero_old/lib/recipe.json
 WORKDIR /aligned_layer/operator/risc_zero_old/lib/
-RUN cargo chef cook --recipe-path /aligned_layer/operator/risc_zero_old/lib/recipe.json
+RUN cargo chef cook --release --recipe-path /aligned_layer/operator/risc_zero_old/lib/recipe.json
 
 # build_merkle_tree_linux
 COPY operator/merkle_tree/ /aligned_layer/operator/merkle_tree/
 COPY --from=planner /aligned_layer/operator/merkle_tree/lib/recipe.json /aligned_layer/operator/merkle_tree/lib/recipe.json
 WORKDIR /aligned_layer/operator/merkle_tree/lib/
-RUN cargo chef cook --recipe-path /aligned_layer/operator/merkle_tree/lib/recipe.json
+RUN cargo chef cook --release --recipe-path /aligned_layer/operator/merkle_tree/lib/recipe.json
 
 FROM base AS builder
 
 RUN apt install -y lld
 
-# ENV RELEASE_FLAG=--release
+ENV RELEASE_FLAG=--release
 ENV TARGET_REL_PATH=release
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
@@ -132,30 +132,30 @@ COPY --from=chef_builder /aligned_layer/batcher/aligned-sdk /aligned_layer/batch
 # build_sp1_linux
 COPY --from=chef_builder /aligned_layer/operator/sp1/lib/target/ /aligned_layer/operator/sp1/lib/target/
 WORKDIR /aligned_layer/operator/sp1/lib
-RUN cargo build 
+RUN cargo build ${RELEASE_FLAG}
 RUN cp /aligned_layer/operator/sp1/lib/target/${TARGET_REL_PATH}/libsp1_verifier_ffi.so /aligned_layer/operator/sp1/lib/libsp1_verifier_ffi.so
 
 # build_risc_zero_linux
 COPY --from=chef_builder /aligned_layer/operator/risc_zero/lib/target/ /aligned_layer/operator/risc_zero/lib/target/
 WORKDIR /aligned_layer/operator/risc_zero/lib
-RUN cargo build 
+RUN cargo build ${RELEASE_FLAG}
 RUN cp /aligned_layer/operator/risc_zero/lib/target/${TARGET_REL_PATH}/librisc_zero_verifier_ffi.so /aligned_layer/operator/risc_zero/lib/librisc_zero_verifier_ffi.so
 
 # build_sp1_linux_old
 COPY --from=chef_builder /aligned_layer/operator/sp1_old/lib/target/ /aligned_layer/operator/sp1_old/lib/target/
 WORKDIR /aligned_layer/operator/sp1_old/lib
-RUN cargo build 
+RUN cargo build ${RELEASE_FLAG}
 RUN cp /aligned_layer/operator/sp1_old/lib/target/${TARGET_REL_PATH}/libsp1_verifier_old_ffi.so /aligned_layer/operator/sp1_old/lib/libsp1_verifier_old_ffi.so
 
 # build_risc_zero_linux_old
 COPY --from=chef_builder /aligned_layer/operator/risc_zero_old/lib/target/ /aligned_layer/operator/risc_zero_old/lib/target/
 WORKDIR /aligned_layer/operator/risc_zero_old/lib
-RUN cargo build 
+RUN cargo build ${RELEASE_FLAG}
 RUN cp /aligned_layer/operator/risc_zero_old/lib/target/${TARGET_REL_PATH}/librisc_zero_verifier_old_ffi.so /aligned_layer/operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.so
 
 # build_merkle_tree_linux
 COPY --from=chef_builder /aligned_layer/operator/merkle_tree/lib/target/ /aligned_layer/operator/merkle_tree/lib/target/
 WORKDIR /aligned_layer/operator/merkle_tree/lib
-RUN cargo build 
+RUN cargo build ${RELEASE_FLAG}
 RUN cp /aligned_layer/operator/merkle_tree/lib/target/${TARGET_REL_PATH}/libmerkle_tree.so /aligned_layer/operator/merkle_tree/lib/libmerkle_tree.so
 RUN cp /aligned_layer/operator/merkle_tree/lib/target/${TARGET_REL_PATH}/libmerkle_tree.a /aligned_layer/operator/merkle_tree/lib/libmerkle_tree.a
