@@ -313,9 +313,8 @@ async fn _submit_multiple(
 
         // done sequencial
         // added size check to avoid sequencial is too big
-    // chequeando el nonce del ultimo, puedo cortar la conexión cuando recibo su respuesta
-    // agregar nonce en la respuesta del batcher al sender
-    // sacar el mensaje de que la proof es una replacement
+        // done added nonce en la respuesta del batcher al sender
+        // done check last nonce to close connection.
 
     let result = async {
         let sent_verification_data = send_messages(ws_write, payment_service_addr, verification_data, max_fees, wallet, nonce).await?;

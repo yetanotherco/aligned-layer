@@ -14,8 +14,8 @@ const RETRIES: u64 = 10;
 const TIME_BETWEEN_RETRIES: u64 = 10;
 
 pub fn process_batcher_response(
-    batch_inclusion_data: BatchInclusionData,
-    verification_data_commitment: VerificationDataCommitment,
+    batch_inclusion_data: &BatchInclusionData,
+    verification_data_commitment: &VerificationDataCommitment,
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     debug!("Received response from batcher");
     debug!(
@@ -24,11 +24,11 @@ pub fn process_batcher_response(
     );
     debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
 
-    if verify_proof_inclusion(&verification_data_commitment, &batch_inclusion_data) {
+    if verify_proof_inclusion(verification_data_commitment, batch_inclusion_data) {
         Ok(
             AlignedVerificationData::new(
-                &verification_data_commitment,
-                &batch_inclusion_data,
+                verification_data_commitment,
+                batch_inclusion_data,
             )
         )
     } else {
