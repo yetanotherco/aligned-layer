@@ -33,7 +33,6 @@ use sha3::{Digest, Keccak256};
 use std::{str::FromStr, sync::Arc};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
-use tokio::sync::mpsc;
 
 use log::{debug, info};
 
@@ -312,8 +311,6 @@ async fn _submit_multiple(
 
     let payment_service_addr = get_payment_service_address(network);
 
-    let (sender_channel, receiver_channel) = mpsc::channel(50000); //TODO Magic number
-
         // done sequencial
         // added size check to avoid sequencial is too big
     // chequeando el nonce del ultimo, puedo cortar la conexión cuando recibo su respuesta
@@ -321,8 +318,8 @@ async fn _submit_multiple(
     // sacar el mensaje de que la proof es una replacement
 
     let result = async {
-        send_messages(ws_write, payment_service_addr, verification_data, max_fees, wallet, nonce, sender_channel).await?;
-        receive(response_stream, receiver_channel).await
+        let sent_verification_data = send_messages(ws_write, payment_service_addr, verification_data, max_fees, wallet, nonce).await?;
+        receive(response_stream, sent_verification_data).await
     }.await;
 
     // Close connection
