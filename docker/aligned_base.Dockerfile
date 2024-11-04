@@ -14,7 +14,8 @@ RUN apt install -y wget \
                    openssl \
                    libssl-dev \
                    yq \
-                   jq
+                   jq \
+                   lld
 
 RUN wget https://golang.org/dl/go$GO_VERSION.linux-${BUILDARCH}.tar.gz
 RUN tar -C /usr/local -xzf go$GO_VERSION.linux-${BUILDARCH}.tar.gz
@@ -41,6 +42,7 @@ FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 
 FROM chef AS planner
 
+RUN apt install -y lld
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
 # build_sp1_linux
@@ -111,6 +113,8 @@ RUN cargo chef cook --recipe-path /aligned_layer/operator/merkle_tree/lib/recipe
 
 FROM base AS builder
 
+RUN apt install -y lld
+
 # ENV RELEASE_FLAG=--release
 ENV TARGET_REL_PATH=release
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
@@ -143,7 +147,6 @@ COPY --from=chef_builder /aligned_layer/operator/risc_zero_old/lib/target/ /alig
 WORKDIR /aligned_layer/operator/risc_zero_old/lib
 RUN cargo build 
 RUN cp /aligned_layer/operator/risc_zero_old/lib/target/${TARGET_REL_PATH}/librisc_zero_verifier_old_ffi.so /aligned_layer/operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.so
-
 
 # build_merkle_tree_linux
 COPY --from=chef_builder /aligned_layer/operator/merkle_tree/lib/target/ /aligned_layer/operator/merkle_tree/lib/target/
