@@ -109,8 +109,6 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         //deploy service manager router
         serviceManagerRouter = new ServiceManagerRouter();
 
-        emptyContract = new EmptyContract();
-
         /**
          * First, deploy upgradeable proxy contracts that **will point** to the implementations. Since the implementation contracts are
          * not yet deployed, we give these proxies an empty contract as the initial implementation, to act as if they have no code.
