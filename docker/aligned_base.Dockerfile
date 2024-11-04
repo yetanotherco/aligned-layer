@@ -14,8 +14,7 @@ RUN apt install -y wget \
                    openssl \
                    libssl-dev \
                    yq \
-                   jq \
-                   lld
+                   jq
 
 RUN wget https://golang.org/dl/go$GO_VERSION.linux-${BUILDARCH}.tar.gz
 RUN tar -C /usr/local -xzf go$GO_VERSION.linux-${BUILDARCH}.tar.gz
@@ -49,13 +48,6 @@ ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 
 FROM chef AS planner
-
-RUN echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-19 main" | tee /etc/apt/sources.list.d/llvm.list \
-    && echo "deb-src http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-19 main" | tee -a /etc/apt/sources.list.d/llvm.list \
-    && wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - \
-    && apt-get update
-
-RUN apt install -y lld
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
 # build_sp1_linux
@@ -126,12 +118,10 @@ RUN cargo chef cook --release --recipe-path /aligned_layer/operator/merkle_tree/
 
 FROM base AS builder
 
-RUN apt install -y lld
-
 ENV RELEASE_FLAG=--release
 ENV TARGET_REL_PATH=release
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
-ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
 COPY operator/ /aligned_layer/operator/
 COPY batcher/ /aligned_layer/batcher/
