@@ -23,8 +23,6 @@ use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
     DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_FEE_PER_PROOF, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
-    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_BACKOFF_FACTOR,
-    DEFAULT_MAX_FEE_PER_PROOF, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
     GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
@@ -56,14 +54,11 @@ mod eth;
 pub mod gnark;
 pub mod metrics;
 pub mod retry;
-pub mod retry;
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
 pub mod types;
 mod zk_utils;
-
-pub const LISTEN_NEW_BLOCKS_MAX_TIMES: usize = usize::MAX;
 
 pub const LISTEN_NEW_BLOCKS_MAX_TIMES: usize = usize::MAX;
 
@@ -120,16 +115,13 @@ impl Batcher {
             .expect("Failed to start metrics server");
 
         let eth_http_provider =
-        let eth_http_provider =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
 
-        let eth_http_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
         let eth_http_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
             .expect("Failed to get fallback provider");
 
         // FIXME(marian): We are getting just the last block number right now, but we should really
         // have the last submitted batch block registered and query it when the batcher is initialized.
-        let last_uploaded_batch_block = match eth_http_provider.get_block_number().await {
         let last_uploaded_batch_block = match eth_http_provider.get_block_number().await {
             Ok(block_num) => block_num,
             Err(e) => {
@@ -137,7 +129,6 @@ impl Batcher {
                     "Failed to get block number with main rpc, trying with fallback rpc. Err: {:?}",
                     e
                 );
-                eth_http_provider_fallback
                 eth_http_provider_fallback
                     .get_block_number()
                     .await
@@ -148,11 +139,9 @@ impl Batcher {
         let last_uploaded_batch_block = last_uploaded_batch_block.as_u64();
 
         let chain_id = match eth_http_provider.get_chainid().await {
-        let chain_id = match eth_http_provider.get_chainid().await {
             Ok(chain_id) => chain_id,
             Err(e) => {
                 warn!("Failed to get chain id with main rpc: {}", e);
-                eth_http_provider_fallback
                 eth_http_provider_fallback
                     .get_chainid()
                     .await
@@ -185,7 +174,6 @@ impl Batcher {
 
         let service_manager = eth::service_manager::get_service_manager(
             eth_http_provider.clone(),
-            eth_http_provider.clone(),
             config.ecdsa.clone(),
             deployment_output.addresses.service_manager.clone(),
         )
@@ -193,7 +181,6 @@ impl Batcher {
         .expect("Failed to get Service Manager contract");
 
         let service_manager_fallback = eth::service_manager::get_service_manager(
-            eth_http_provider_fallback.clone(),
             eth_http_provider_fallback.clone(),
             config.ecdsa,
             deployment_output.addresses.service_manager,
@@ -296,48 +283,7 @@ impl Batcher {
             warn!("Failed to instantiate Ethereum websocket provider");
             RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
         })?;
-        retry_function(
-            || {
-                let app = self.clone();
-                async move { app.listen_new_blocks_retryable().await }
-            },
-            DEFAULT_MIN_RETRY_DELAY,
-            DEFAULT_BACKOFF_FACTOR,
-            LISTEN_NEW_BLOCKS_MAX_TIMES,
-        )
-        .await
-        .map_err(|e| e.inner())
-    }
 
-    pub async fn listen_new_blocks_retryable(
-        self: Arc<Self>,
-    ) -> Result<(), RetryError<BatcherError>> {
-        let eth_ws_provider = Provider::connect(&self.eth_ws_url).await.map_err(|e| {
-            warn!("Failed to instantiate Ethereum websocket provider");
-            RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
-        })?;
-
-        let eth_ws_provider_fallback =
-            Provider::connect(&self.eth_ws_url_fallback)
-                .await
-                .map_err(|e| {
-                    warn!("Failed to instantiate fallback Ethereum websocket provider");
-                    RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
-                })?;
-
-        let mut stream = eth_ws_provider.subscribe_blocks().await.map_err(|e| {
-            warn!("Error subscribing to blocks.");
-            RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
-        })?;
-
-        let mut stream_fallback =
-            eth_ws_provider_fallback
-                .subscribe_blocks()
-                .await
-                .map_err(|e| {
-                    warn!("Error subscribing to blocks.");
-                    RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
-                })?;
         let eth_ws_provider_fallback =
             Provider::connect(&self.eth_ws_url_fallback)
                 .await
@@ -1420,20 +1366,6 @@ impl Batcher {
         )
         .await
         .ok()
-        retry_function(
-            || {
-                get_user_balance_retryable(
-                    &self.payment_service,
-                    &self.payment_service_fallback,
-                    addr,
-                )
-            },
-            DEFAULT_MIN_RETRY_DELAY,
-            DEFAULT_BACKOFF_FACTOR,
-            DEFAULT_MAX_RETRIES,
-        )
-        .await
-        .ok()
     }
 
     /// Checks if the user's balance is unlocked for a given address using exponential backoff.
@@ -1492,11 +1424,6 @@ impl Batcher {
     ) -> Result<(), RetryError<String>> {
         s3::upload_object(&s3_client, s3_bucket_name, batch_bytes.to_vec(), file_name)
             .await
-            .map_err(|e| {
-                warn!("Error uploading batch to s3 {e}");
-                RetryError::Transient(e.to_string())
-            })?;
-        Ok(())
             .map_err(|e| {
                 warn!("Error uploading batch to s3 {e}");
                 RetryError::Transient(e.to_string())

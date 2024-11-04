@@ -17,7 +17,6 @@ pub type ServiceManager = AlignedLayerServiceManagerContract<SignerMiddlewareT>;
 
 pub async fn get_service_manager(
     provider: Provider<Http>,
-    provider: Provider<Http>,
     ecdsa_config: ECDSAConfig,
     contract_address: String,
 ) -> Result<ServiceManager, anyhow::Error> {
