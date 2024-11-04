@@ -38,14 +38,14 @@ func (agg *Aggregator) ServeOperators() error {
 // Waits for the arrival of task associated with signedTaskResponse and returns true on success or false on failure
 // If the task is not present in the internal map, it will try to fetch it from logs and retry.
 // The number of retries is specified by `waitForEventRetries`, and the waiting time between each by `waitForEventSleepSeconds`
-func (agg *Aggregator) waitForTask(signedTaskResponse *types.SignedTaskResponse) bool {
+func (agg *Aggregator) waitForTaskAndFetchIfLost(signedTaskResponse *types.SignedTaskResponse) bool {
 	for i := 0; i < waitForEventRetries; i++ {
 		// Lock
 		agg.taskMutex.Lock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Check if task is present")
 		_, ok := agg.batchesIdxByIdentifierHash[signedTaskResponse.BatchIdentifierHash]
 		// Unlock
-		agg.logger.Info("- Unlocked Resources: Task not found in the internal map")
+		agg.logger.Info("- Unlocked Resources: Check if task is present")
 		agg.taskMutex.Unlock()
 		if ok {
 			return true
@@ -92,23 +92,23 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"BatchIdentifierHash", "0x"+hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 
-	if !agg.waitForTask(signedTaskResponse) {
+	if !agg.waitForTaskAndFetchIfLost(signedTaskResponse) {
 		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
 		*reply = 1
 		return nil
 	}
 
 	agg.taskMutex.Lock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Get task taskIndex")
 	taskIndex, ok := agg.batchesIdxByIdentifierHash[signedTaskResponse.BatchIdentifierHash]
+	// Unlock
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Get task taskIndex")
+	agg.taskMutex.Unlock()
 	if !ok {
 		agg.logger.Errorf("Unexpected error fetching for task with merkle root 0x%x", signedTaskResponse.BatchMerkleRoot)
 		*reply = 1
 		return nil
 	}
-	// Unlock
-	agg.logger.Info("- Unlocked Resources: Task not found in the internal map")
-	agg.taskMutex.Unlock()
 
 	agg.telemetry.LogOperatorResponse(signedTaskResponse.BatchMerkleRoot, signedTaskResponse.OperatorId)
 
@@ -148,8 +148,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		agg.logger.Info("Bls context finished correctly")
 		*reply = 0
 	}
-
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Task response processing finished")
 
 	return nil
 }
