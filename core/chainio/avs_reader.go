@@ -17,6 +17,10 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
 )
 
+const (
+	BatchFetchBlocksRange uint64 = 1000
+)
+
 type AvsReader struct {
 	*sdkavsregistry.ChainReader
 	AvsContractBindings            *AvsServiceBindings
@@ -149,4 +153,45 @@ func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64, interval uint64) (*[32]byt
 	batchIdentifier := append(task.BatchMerkleRoot[:], task.SenderAddress[:]...)
 	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 	return &batchIdentifierHash, nil
+}
+
+// Returns a pending batch from its merkle root or nil if it doesn't exist
+// Searches the last `BatchFetchBlocksRange` blocks at most
+func (r *AvsReader) GetPendingBatchFromMerkleRoot(merkleRoot [32]byte) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
+	latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(context.Background())
+	if err != nil {
+		latestBlock, err = r.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get latest block number: %w", err)
+		}
+	}
+
+	var fromBlock uint64 = 0
+
+	if latestBlock > BatchFetchBlocksRange {
+		fromBlock = latestBlock - BatchFetchBlocksRange
+	}
+
+	logs, err := r.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: &latestBlock, Context: context.Background()}, [][32]byte{merkleRoot})
+	if err != nil {
+		return nil, err
+	}
+	if err := logs.Error(); err != nil {
+		return nil, err
+	}
+
+	if !logs.Next() {
+		return nil, nil //not an error, but no tasks found
+	}
+
+	batch := logs.Event
+
+	batchIdentifier := append(batch.BatchMerkleRoot[:], batch.SenderAddress[:]...)
+	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+	state, err := r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
+	if state.Responded {
+		return nil, nil
+	}
+
+	return batch, nil
 }
