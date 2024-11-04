@@ -7,4 +7,5 @@ RUN apt install -y curl git
 # Install foundry
 RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH="/root/.foundry/bin:${PATH}"
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 RUN foundryup
