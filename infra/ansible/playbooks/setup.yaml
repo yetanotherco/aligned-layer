@@ -46,6 +46,7 @@
         - repos
         - config
         - services
+        - .keystores
 
     - name: Enable linger for {{ ansible_user }}
       shell: sudo loginctl enable-linger {{ ansible_user }}

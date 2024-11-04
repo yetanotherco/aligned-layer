@@ -92,4 +92,37 @@
         download_endpoint: "{{ lookup('ini', 'download_endpoint', file='ini/env-batcher.ini') }}"
         log_level: "{{ lookup('ini', 'log_level', file='ini/env-batcher.ini') }}"
 
+    # Missing steps
+      # add reverse proxy to caddy
+      # create wallets
 
+    - name: Add reverse proxy to Caddy
+      become: true
+      template:
+        src: caddy/Caddyfile.batcher.j2
+        dest: "/etc/caddy/Caddyfile"
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+        batcher_domain: "{{ lookup('ini', 'batcher_domain', file='ini/caddy-batcher.ini') }}"
+
+    - name: Copy keystore to server
+      ansible.builtin.copy:
+        src: '{{ keystore_path }}'
+        dest: /home/{{ ansible_user }}/.keystores/batcher
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+
+    - name: Start Batcher service
+      ansible.builtin.systemd_service:
+        name: batcher
+        state: started
+        enabled: true
+        scope: user
+
+    - name: Restart Caddy service
+      become: true
+      ansible.builtin.systemd_service:
+        name: caddy
+        state: restarted
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
