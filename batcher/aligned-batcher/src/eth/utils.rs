@@ -10,7 +10,7 @@ use crate::{
 };
 use aligned_sdk::core::constants::{
     DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
-    GAS_PRICE_INCREMENT_PERCENTAGE_PER_ITERATION, OVERRIDE_GAS_PRICE_PORCENTAGE_MULTIPLIER,
+    GAS_PRICE_INCREMENT_PERCENTAGE_PER_ITERATION, OVERRIDE_GAS_PRICE_PERCENTAGE_MULTIPLIER,
     PERCENTAGE_DIVIDER,
 };
 use ethers::prelude::*;
@@ -49,13 +49,15 @@ pub fn get_bumped_gas_price(
     current_gas_price: U256,
     iteration: usize,
 ) -> U256 {
-    let override_gas_multiplier = U256::from(OVERRIDE_GAS_PRICE_PORCENTAGE_MULTIPLIER)
+    let override_gas_multiplier = U256::from(OVERRIDE_GAS_PRICE_PERCENTAGE_MULTIPLIER)
         + (GAS_PRICE_INCREMENT_PERCENTAGE_PER_ITERATION * iteration);
     let bumped_previous_gas_price =
         previous_gas_price * override_gas_multiplier / U256::from(PERCENTAGE_DIVIDER);
 
     let bumped_current_gas_price =
         current_gas_price * override_gas_multiplier / U256::from(PERCENTAGE_DIVIDER);
+    // Return the maximum of the previous and current gas prices
+    // to avoid sending a transaction with a gas price lower than the previous one.
     bumped_current_gas_price.max(bumped_previous_gas_price)
 }
 
