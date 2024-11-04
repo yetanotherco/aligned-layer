@@ -197,12 +197,14 @@ pub struct BatchInclusionData {
     pub batch_merkle_root: [u8; 32],
     pub batch_inclusion_proof: Proof<[u8; 32]>,
     pub index_in_batch: usize,
+    pub user_nonce: U256,
 }
 
 impl BatchInclusionData {
     pub fn new(
         verification_data_batch_index: usize,
         batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
+        user_nonce: U256,
     ) -> Self {
         let batch_inclusion_proof = batch_merkle_tree
             .get_proof_by_pos(verification_data_batch_index)
@@ -212,6 +214,7 @@ impl BatchInclusionData {
             batch_merkle_root: batch_merkle_tree.root,
             batch_inclusion_proof,
             index_in_batch: verification_data_batch_index,
+            user_nonce: user_nonce,
         }
     }
 }

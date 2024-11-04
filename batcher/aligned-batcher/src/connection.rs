@@ -23,7 +23,7 @@ pub(crate) async fn send_batch_inclusion_data_responses(
     batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
 ) -> Result<(), BatcherError> {
     for (vd_batch_idx, entry) in finalized_batch.iter().enumerate() {
-        let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
+        let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree, entry.nonced_verification_data.nonce);
         let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
 
         let serialized_response = cbor_serialize(&response)
