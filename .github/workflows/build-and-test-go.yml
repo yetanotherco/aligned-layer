@@ -1,7 +1,6 @@
 name: build-go-projects
 
 on:
-  merge_group:
   push:
     branches: [main]
   pull_request:

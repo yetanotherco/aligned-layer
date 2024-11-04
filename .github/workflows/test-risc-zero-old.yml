@@ -1,7 +1,6 @@
 name: test-risc-zero-old
 
 on:
-  merge_group:
   push:
     branches: [main]
   pull_request:

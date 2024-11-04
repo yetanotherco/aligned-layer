@@ -1,6 +1,7 @@
 name: "[CI] Send proofs to network"
 
 on:
+  merge_group:
   pull_request:
     types:
       - opened
