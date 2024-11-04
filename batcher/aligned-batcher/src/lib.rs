@@ -547,7 +547,7 @@ impl Batcher {
 
         if expected_nonce < msg_nonce {
             std::mem::drop(batch_state_lock);
-            warn!("Invalid nonce for address {addr}, had nonce {expected_nonce:?} < {msg_nonce:?}");
+            warn!("Invalid nonce for address {addr}, expected nonce: {expected_nonce:?}, received nonce: {msg_nonce:?}");
             send_message(ws_conn_sink.clone(), ResponseMessage::InvalidNonce).await;
             return Ok(());
         }
