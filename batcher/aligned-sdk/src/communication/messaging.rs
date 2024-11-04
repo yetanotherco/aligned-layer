@@ -134,10 +134,6 @@ async fn process_batch_inclusion_data(
                 verification_data_commitment,
             );
         }
-        Ok(ResponseMessage::ReplacementMessageReceived) => {
-            // This message is not processed, it is only used to signal the client that the replacement message was received by the batcher.
-            // This is because the sender expects to receive the same amount of messages as it has sent.
-        }
         Ok(ResponseMessage::InvalidNonce) => {
             error!("Batcher responded with invalid nonce");
             return Err(SubmitError::InvalidNonce);

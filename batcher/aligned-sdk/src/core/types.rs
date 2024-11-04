@@ -367,7 +367,6 @@ pub enum ResponseMessage {
     AddToBatchError,
     EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
-    ReplacementMessageReceived,
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -695,10 +695,6 @@ impl Batcher {
             "Replacement entry is valid, incrementing fee for sender: {:?}, nonce: {:?}, max_fee: {:?}",
             replacement_entry.sender, replacement_entry.nonced_verification_data.nonce, replacement_max_fee
         );
-        send_message(
-            ws_conn_sink.clone(),
-            ResponseMessage::ReplacementMessageReceived,
-        ).await;
 
         // remove the old entry and insert the new one
         // note that the entries are considered equal for the priority queue
