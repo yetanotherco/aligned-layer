@@ -21,8 +21,11 @@ import (
 )
 
 const (
-	GasBumpPercentage int = 20
-	// wait as much as 3 blocks time for the receipt
+	// How much to bump every retry (constant)
+	GasBaseBumpPercentage int = 20
+	// An extra percentage to bump every retry i*5 (linear)
+	GasBumpIncrementalBumpPercentage int = 5
+	// Wait as much as 3 blocks time for the receipt
 	SendAggregateResponseReceiptTimeout time.Duration = time.Second * 36
 )
 
@@ -82,9 +85,9 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 // it will try again bumping the last tx gas price based on `CalculateGasPriceBump`
 // This process happens indefinitely until the transaction is included.
 //
-// Note: If the rpc endpoints fail, the retry will stop it returning a permanent error.
-// This is because the retries are infinite and we want to prevent increasing the time between them too much as it is exponential.
-// And we might also if the rpc is down for a good period of time, we might fall into an infinite waiting.
+// Note: If the rpc endpoints fail, the retry mechanism stops, returning a permanent error.
+// This is because retries are infinite and we want to prevent increasing the time between them too much as it is exponential.
+// And, if the rpc is down for a good period of time, we might fall into an infinite waiting.
 func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, onRetry func()) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
@@ -124,7 +127,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 				return nil, connection.PermanentError{Inner: err}
 			}
 		}
-		txOpts.GasPrice = utils.CalculateGasPriceBumpBasedOnRetry(gasPrice, GasBumpPercentage, i)
+		txOpts.GasPrice = utils.CalculateGasPriceBumpBasedOnRetry(gasPrice, GasBaseBumpPercentage, GasBumpIncrementalBumpPercentage, i)
 
 		w.logger.Infof("Sending ResponseToTask transaction with a gas price of %v", txOpts.GasPrice)
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)

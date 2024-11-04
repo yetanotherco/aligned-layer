@@ -19,11 +19,13 @@ func (e PermanentError) Is(err error) bool {
 	return ok
 }
 
-// Same as Retry only that the functionToRetry can return a value upon correct execution
+// Retries a given function in an exponential backoff manner and returns a value upon correct execution.
+// It will retry calling the function while it returns a non permanent error, until the max retries.
+// If maxTries == 0 then the retry function will run indefinitely until success or until a `PermanentError` is returned.
 func RetryWithData[T any](functionToRetry func() (*T, error), minDelay uint64, factor float64, maxTries uint64) (*T, error) {
 	f := func() (*T, error) {
 		val, err := functionToRetry()
-		if perm, ok := err.(PermanentError); err != nil && ok {
+		if perm, ok := err.(PermanentError); ok && err != nil {
 			return nil, backoff.Permanent(perm.Inner)
 		}
 		return val, err
@@ -46,15 +48,12 @@ func RetryWithData[T any](functionToRetry func() (*T, error), minDelay uint64, f
 }
 
 // Retries a given function in an exponential backoff manner.
-// It will retry calling the function while it returns an error, until the max retries.
-// If maxTries == 0 then the retry function will run indefinitely until success
-// from the configuration are reached, or until a `PermanentError` is returned.
-// The function to be retried should return `PermanentError` when the condition for stop retrying
-// is met.
+// It will retry calling the function while it returns a non permanent error, until the max retries.
+// If maxTries == 0 then the retry function will run indefinitely.
 func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTries uint64) error {
 	f := func() error {
 		err := functionToRetry()
-		if perm, ok := err.(PermanentError); err != nil && ok {
+		if perm, ok := err.(PermanentError); ok && err != nil {
 			return backoff.Permanent(perm.Inner)
 		}
 		return err
