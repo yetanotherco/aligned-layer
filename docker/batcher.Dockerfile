@@ -38,11 +38,11 @@ COPY batcher/aligned-sdk/ /aligned_layer/batcher/aligned-sdk/
 
 COPY --from=planner /aligned_layer/batcher/aligned-batcher/recipe.json /aligned_layer/batcher/aligned-batcher/recipe.json
 WORKDIR /aligned_layer/batcher/aligned-batcher
-RUN cargo chef cook --recipe-path /aligned_layer/batcher/aligned-batcher/recipe.json
+RUN cargo chef cook --release --recipe-path /aligned_layer/batcher/aligned-batcher/recipe.json
 
 COPY --from=planner /aligned_layer/batcher/aligned/recipe.json /aligned_layer/batcher/aligned/recipe.json
 WORKDIR /aligned_layer/batcher/aligned/
-RUN cargo chef cook --recipe-path /aligned_layer/batcher/aligned/recipe.json
+RUN cargo chef cook --release --recipe-path /aligned_layer/batcher/aligned/recipe.json
 
 FROM base AS builder
 
