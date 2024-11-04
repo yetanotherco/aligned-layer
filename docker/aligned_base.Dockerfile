@@ -122,6 +122,7 @@ ENV RELEASE_FLAG=--release
 ENV TARGET_REL_PATH=release
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
+ENV PATH=$PATH:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin
 
 COPY operator/ /aligned_layer/operator/
 COPY batcher/ /aligned_layer/batcher/
