@@ -6,7 +6,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.10.0
+OPERATOR_VERSION=v0.10.2
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -17,7 +17,8 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	LD_LIBRARY_PATH += $(CURDIR)/operator/risc_zero/lib
+	export LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib
+	OPERATOR_FFIS=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib
 endif
 
 ifeq ($(OS),Linux)
@@ -141,7 +142,7 @@ build_operator_macos:
 
 build_operator_linux:
 	@echo "Building Operator..."
-	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(OPERATOR_FFIS)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
 update_operator:
@@ -513,11 +514,11 @@ build_binaries:
 __SP1_FFI__: ##
 build_sp1_macos:
 	@cd operator/sp1/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier.dylib
+	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier_ffi.dylib
 
 build_sp1_linux:
 	@cd operator/sp1/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier.so
+	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier_ffi.so
 
 test_sp1_rust_ffi:
 	@echo "Testing SP1 Rust FFI source code..."
@@ -542,6 +543,25 @@ generate_risc_zero_empty_journal_proof:
 	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
 	@echo "Fibonacci proof and ELF with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
 
+build_sp1_macos_old:
+	@cd operator/sp1_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_old_ffi.dylib operator/sp1_old/lib/libsp1_verifier_old_ffi.dylib
+
+build_sp1_linux_old:
+	@cd operator/sp1_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_old_ffi.so operator/sp1_old/lib/libsp1_verifier_old_ffi.so
+
+test_sp1_rust_ffi_old:
+	@echo "Testing SP1 Rust FFI source code..."
+	@cd operator/sp1_old/lib && RUST_MIN_STACK=83886080 cargo t --release
+
+test_sp1_go_bindings_macos_old: build_sp1_macos_old
+	@echo "Testing SP1 Go bindings..."
+	go test ./operator/sp1_old/... -v
+
+test_sp1_go_bindings_linux_old: build_sp1_linux_old
+	@echo "Testing SP1 Go bindings..."
+	go test ./operator/sp1_old/... -v
 
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
@@ -568,6 +588,27 @@ generate_risc_zero_fibonacci_proof:
 	@cd scripts/test_files/risc_zero/fibonacci_proof_generator && \
 		RUST_LOG=info cargo run --release && \
 		echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero folder"
+
+build_risc_zero_macos_old:
+	@cd operator/risc_zero_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/risc_zero_old/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_old_ffi.dylib operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.dylib
+
+build_risc_zero_linux_old:
+	@cd operator/risc_zero_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/risc_zero_old/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_old_ffi.so operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.so
+
+test_risc_zero_rust_ffi_old:
+	@echo "Testing RISC Zero Rust FFI source code..."
+	@cd operator/risc_zero_old/lib && cargo test --release
+
+test_risc_zero_go_bindings_macos_old: build_risc_zero_macos_old
+	@echo "Testing RISC Zero Go bindings..."
+	go test ./operator/risc_zero_old/... -v
+
+test_risc_zero_go_bindings_linux_old: build_risc_zero_linux_old
+	@echo "Testing RISC Zero Go bindings..."
+	go test ./operator/risc_zero_old/... -v
+
 
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
@@ -607,6 +648,8 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@echo "Building all FFIs for macOS..."
 	@$(MAKE) build_sp1_macos
 	@$(MAKE) build_risc_zero_macos
+	@$(MAKE) build_sp1_macos_old
+	@$(MAKE) build_risc_zero_macos_old
 	@$(MAKE) build_merkle_tree_macos
 	@echo "All macOS FFIs built successfully."
 
@@ -614,6 +657,8 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "Building all FFIs for Linux..."
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
+	@$(MAKE) build_sp1_linux_old
+	@$(MAKE) build_risc_zero_linux_old
 	@$(MAKE) build_merkle_tree_linux
 	@echo "All Linux FFIs built successfully."
 
