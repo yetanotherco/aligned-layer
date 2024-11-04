@@ -11,6 +11,8 @@ FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 
 FROM chef AS planner
 
+ENV RUSTFLAGS="-C codegen-units=256 -C incremental=true -C opt-level=0"
+
 COPY batcher/aligned-batcher/Cargo.toml /aligned_layer/batcher/aligned-batcher/Cargo.toml
 COPY batcher/aligned-batcher/src/main.rs /aligned_layer/batcher/aligned-batcher/src/main.rs
 WORKDIR /aligned_layer/batcher/aligned-batcher/
@@ -22,6 +24,9 @@ WORKDIR /aligned_layer/batcher/aligned/
 RUN cargo chef prepare --recipe-path /aligned_layer/batcher/aligned/recipe.json
 
 FROM chef AS chef_builder
+
+ENV RUSTFLAGS="-C codegen-units=256 -C incremental=true -C opt-level=0"
+
 COPY batcher/aligned-sdk/ /aligned_layer/batcher/aligned-sdk/
 
 COPY --from=planner /aligned_layer/batcher/aligned-batcher/recipe.json /aligned_layer/batcher/aligned-batcher/recipe.json
@@ -33,6 +38,9 @@ WORKDIR /aligned_layer/batcher/aligned/
 RUN cargo chef cook --release --recipe-path /aligned_layer/batcher/aligned/recipe.json
 
 FROM base AS builder
+
+ENV RUSTFLAGS="-C codegen-units=256 -C incremental=true -C opt-level=0"
+
 COPY . /aligned_layer/
 
 COPY --from=chef_builder /aligned_layer/batcher/aligned-batcher/target/ /aligned_layer/batcher/aligned-batcher/target/
