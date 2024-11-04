@@ -215,8 +215,6 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 
 const MaxSentTxRetries = 5
 
-const BLS_AGG_SERVICE_TIMEOUT = 100 * time.Second
-
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching task data")
@@ -375,7 +373,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
-	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, BLS_AGG_SERVICE_TIMEOUT)
+	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, agg.AggregatorConfig.Aggregator.BlsServiceTaskTimeout)
 	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
 	if err != nil {
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
