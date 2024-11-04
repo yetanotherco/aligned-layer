@@ -88,9 +88,6 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         let mut i = 0;
         for line in file_reader.lines() {
             i += 1;
-            if i > args.number_of_wallets {
-                break;
-            }
             // Load the wallet
             let private_key_str = line.unwrap();
             let wallet = Wallet::from_str(private_key_str.trim())
@@ -115,6 +112,10 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
                 info!("Successfully deposited to aligned for wallet {}", i);
             });
         }
+
+        tokio::time::sleep(Duration::from_secs(1)).await; // Wait for last tx to be sent
+
+        info!("All wallets funded");
 
         return;
     }
@@ -407,10 +408,10 @@ fn get_verification_data_from_proofs_folder(
             if proof_folder_dir.to_str().unwrap().contains("groth16") {
                 // Get the first file from the folder
                 let first_file = fs::read_dir(proof_folder_dir.clone())
-                    .expect("Can't read directory")
+                    .expect("Can't read proofs directory")
                     .filter_map(|entry| entry.ok().map(|e| e.path()))
                     .find(|path| path.is_file()) // Find any valid file
-                    .expect("No valid files found");
+                    .expect("No valid proof files found");
 
                 // Extract the base name (file stem) without extension
                 let base_name = first_file

@@ -446,7 +446,6 @@ task_sender_generate_and_fund_wallets_devnet:
 	cargo run --release -- generate-and-fund-wallets \
 	--eth-rpc-url http://localhost:8545 \
 	--network devnet \
-	--number-wallets $(NUM_WALLETS) \
 	--amount-to-deposit 1 \
 	--amount-to-deposit-to-aligned 0.9999 \
 	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet

@@ -62,7 +62,8 @@ pub struct GenerateAndFundWalletsArgs {
     pub funding_wallet_private_key: String,
     #[arg(
         name = "The number of wallets to generate",
-        long = "number-wallets"
+        long = "number-wallets",
+        default_value = "1"
     )]
     pub number_of_wallets: usize,
     #[arg(
