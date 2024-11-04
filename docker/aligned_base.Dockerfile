@@ -79,31 +79,31 @@ COPY batcher/aligned-sdk /aligned_layer/batcher/aligned-sdk/
 COPY operator/sp1/ /aligned_layer/operator/sp1/
 COPY --from=planner /aligned_layer/operator/sp1/lib/recipe.json /aligned_layer/operator/sp1/lib/recipe.json
 WORKDIR /aligned_layer/operator/sp1/lib/
-RUN cargo chef cook --release --recipe-path /aligned_layer/operator/sp1/lib/recipe.json
+RUN cargo chef cook --recipe-path /aligned_layer/operator/sp1/lib/recipe.json
 
 # build_risc_zero_linux
 COPY operator/risc_zero/ /aligned_layer/operator/risc_zero/
 COPY --from=planner /aligned_layer/operator/risc_zero/lib/recipe.json /aligned_layer/operator/risc_zero/lib/recipe.json
 WORKDIR /aligned_layer/operator/risc_zero/lib/
-RUN cargo chef cook --release --recipe-path /aligned_layer/operator/risc_zero/lib/recipe.json
+RUN cargo chef cook --recipe-path /aligned_layer/operator/risc_zero/lib/recipe.json
 
 # build_sp1_linux_old
 COPY operator/sp1_old/ /aligned_layer/operator/sp1_old/
 COPY --from=planner /aligned_layer/operator/sp1_old/lib/recipe.json /aligned_layer/operator/sp1_old/lib/recipe.json
 WORKDIR /aligned_layer/operator/sp1_old/lib/
-RUN cargo chef cook --release --recipe-path /aligned_layer/operator/sp1_old/lib/recipe.json
+RUN cargo chef cook --recipe-path /aligned_layer/operator/sp1_old/lib/recipe.json
 
 # build_risc_zero_linux_old
 COPY operator/risc_zero_old/ /aligned_layer/operator/risc_zero_old/
 COPY --from=planner /aligned_layer/operator/risc_zero_old/lib/recipe.json /aligned_layer/operator/risc_zero_old/lib/recipe.json
 WORKDIR /aligned_layer/operator/risc_zero_old/lib/
-RUN cargo chef cook --release --recipe-path /aligned_layer/operator/risc_zero_old/lib/recipe.json
+RUN cargo chef cook --recipe-path /aligned_layer/operator/risc_zero_old/lib/recipe.json
 
 # build_merkle_tree_linux
 COPY operator/merkle_tree/ /aligned_layer/operator/merkle_tree/
 COPY --from=planner /aligned_layer/operator/merkle_tree/lib/recipe.json /aligned_layer/operator/merkle_tree/lib/recipe.json
 WORKDIR /aligned_layer/operator/merkle_tree/lib/
-RUN cargo chef cook --release --recipe-path /aligned_layer/operator/merkle_tree/lib/recipe.json
+RUN cargo chef cook --recipe-path /aligned_layer/operator/merkle_tree/lib/recipe.json
 
 FROM base AS builder
 
