@@ -7,8 +7,10 @@ package risc_zero
 #include "lib/risc_zero.h"
 */
 import "C"
-import "unsafe"
-import "fmt"
+import (
+	"fmt"
+	"unsafe"
+)
 
 func VerifyRiscZeroReceipt(innerReceiptBuffer []byte, imageIdBuffer []byte, publicInputBuffer []byte) (isVerified bool, err error) {
 	// Here we define the return value on failure
