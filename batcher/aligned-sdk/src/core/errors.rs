@@ -101,6 +101,7 @@ pub enum SubmitError {
     InvalidPaymentServiceAddress(H160, H160),
     BatchSubmissionFailed(String),
     AddToBatchError,
+    InvalidProofInclusionData,
     GenericError(String),
 }
 
@@ -210,6 +211,9 @@ impl fmt::Display for SubmitError {
             }
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
             SubmitError::AddToBatchError => write!(f, "Error while adding entry to batch"),
+            SubmitError::InvalidProofInclusionData => {
+                write!(f, "Batcher responded with invalid batch inclusion data. Your proof was not correctly included in the batch.")
+            }
         }
     }
 }

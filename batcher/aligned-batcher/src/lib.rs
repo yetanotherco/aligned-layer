@@ -669,6 +669,8 @@ impl Batcher {
                 if let Err(e) = old_sink.close().await {
                     // we dont want to exit here, just log the error
                     warn!("Error closing sink: {e:?}");
+                } else {
+                    info!("Old websocket sink closed");
                 }
             } else {
                 warn!(

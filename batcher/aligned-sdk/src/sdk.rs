@@ -33,7 +33,6 @@ use sha3::{Digest, Keccak256};
 use std::{str::FromStr, sync::Arc};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
-use tokio::sync::mpsc;
 
 use log::{debug, info};
 
@@ -297,6 +296,12 @@ async fn _submit_multiple(
             "verification_data".to_string(),
         ));
     }
+    if verification_data.len() > 10000 { //TODO unhardcode value
+        return Err(errors::SubmitError::GenericError(
+            "Trying to submit too many proofs at once".to_string(),
+        ));
+    }
+
     let ws_write_clone = ws_write.clone();
 
     let response_stream: ResponseStream =
@@ -306,30 +311,21 @@ async fn _submit_multiple(
 
     let payment_service_addr = get_payment_service_address(network);
 
-    let (sender_channel, receiver_channel) = mpsc::channel(1024); //TODO Magic number
+        // done sequencial
+        // added size check to avoid sequencial is too big
+    // chequeando el nonce del ultimo, puedo cortar la conexión cuando recibo su respuesta
+    // agregar nonce en la respuesta del batcher al sender
+    // sacar el mensaje de que la proof es una replacement
 
-    let (send_result, receive_result) = tokio::join!(
-        send_messages(
-            ws_write,
-            payment_service_addr,
-            verification_data,
-            max_fees,
-            wallet,
-            nonce,
-            sender_channel,
-        ),
-        receive(
-            response_stream,
-            receiver_channel
-        ),
-    );
-    
+    let result = async {
+        let sent_verification_data = send_messages(ws_write, payment_service_addr, verification_data, max_fees, wallet, nonce).await?;
+        receive(response_stream, sent_verification_data).await
+    }.await;
+
     // Close connection
     info!("Closing WS connection");
     ws_write_clone.lock().await.close().await?;
-
-    send_result?;
-    return receive_result
+    result
 }
 
 /// Submits a proof to the batcher to be verified in Aligned and waits for the verification on-chain.

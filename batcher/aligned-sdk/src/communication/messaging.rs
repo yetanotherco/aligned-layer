@@ -11,8 +11,9 @@ use futures_util::stream::{SplitSink, TryFilter};
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
 use crate::communication::serialization::{cbor_deserialize, cbor_serialize};
+use crate::core::types::BatchInclusionData;
 use crate::{
-    communication::batch::handle_batch_inclusion_data,
+    communication::batch::process_batcher_response,
     core::{
         errors::SubmitError,
         types::{
@@ -35,10 +36,10 @@ pub async fn send_messages(
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     mut nonce: U256,
-    sender_channel: tokio::sync::mpsc::Sender<VerificationDataCommitment>,
-) -> Result<bool, SubmitError> {
+) -> Result<Vec<NoncedVerificationData>, SubmitError> {
     let chain_id = U256::from(wallet.chain_id());
     let mut ws_write = ws_write.lock().await;
+    let mut sent_verification_data: Vec<NoncedVerificationData> = Vec::new();
 
     for (idx, verification_data) in verification_data.iter().enumerate() {
         // Build each message to send
@@ -61,23 +62,32 @@ pub async fn send_messages(
             .map_err(SubmitError::WebSocketConnectionError)?;
 
         debug!("{:?} Message sent", idx);
-
-        sender_channel.send(verification_data.into()).await.unwrap();
+        
+        // Save the verification data commitment to read its response later
+        sent_verification_data.push(verification_data);
     }
 
-    //sender_channel will be closed as it falls out of scope, sending a 'None' to the receiver
-    Ok(true) 
+    info!("All messages sent");
+    Ok(sent_verification_data) 
 }
 
+
+// Instead of using a channel, use a storage.
+// From there, you can match received messages to the ones you sent.
+
+// TODO missing analyzing which is the last expected nonce.
+// When received message of last expected nonce, i can exit this function
 pub async fn receive(
     response_stream: Arc<Mutex<ResponseStream>>,
-    mut receiver_channnel: tokio::sync::mpsc::Receiver<VerificationDataCommitment>,
+    mut sent_verification_data: Vec<NoncedVerificationData>,
 ) -> Result<Vec<AlignedVerificationData>, SubmitError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream = response_stream.lock().await;
-    let mut aligned_verification_data: Vec<AlignedVerificationData> = Vec::new();
+    let mut aligned_submitted_data: Vec<AlignedVerificationData> = Vec::new();
 
+    // read from WS
     while let Some(Ok(msg)) = response_stream.next().await {
+        // unexpected WS close:
         if let Message::Close(close_frame) = msg {
             if let Some(close_msg) = close_frame {
                 return Err(SubmitError::WebSocketClosedUnexpectedlyError(
@@ -85,106 +95,142 @@ pub async fn receive(
                 ));
             }
             return Err(SubmitError::GenericError(
-                "Connection was closed without close message before receiving all messages"
+                "Connection was closed before receive() processed all sent messages "
                     .to_string(),
             ));
         }
+ 
+        let batch_inclusion_data_message = handle_batcher_response(
+            msg,
+        ).await?;
 
-        match receiver_channnel.recv().await {
-            Some(verification_data_commitment) => {
-                process_batch_inclusion_data(
-                    msg,
-                    &mut aligned_verification_data,
-                    verification_data_commitment,
-                )
-                .await?;
-            }
-            None => { //channel sends None when writing to it is closed
-                info!("All message responses received");
-                return Ok(aligned_verification_data);
-            }
-        }
+        let related_verification_data = match_batcher_response_with_stored_verification_data(
+            &batch_inclusion_data_message,
+            &mut sent_verification_data,
+        )?;
+            
+        let aligned_verification_data = process_batcher_response(
+            batch_inclusion_data_message,
+            related_verification_data,
+        )?;
+
+        aligned_submitted_data.push(aligned_verification_data);
     }
 
-    Err(SubmitError::GenericError(
-        "Connection was closed without close message before receiving all messages".to_string(),
-    ))
+    debug!("All message responses handled succesfully");
+    Ok(aligned_submitted_data)
 }
 
-async fn process_batch_inclusion_data(
+async fn handle_batcher_response(
     msg: Message,
-    aligned_verification_data: &mut Vec<AlignedVerificationData>,
-    verification_data_commitment: VerificationDataCommitment,
-) -> Result<(), SubmitError> {
+) -> Result<BatchInclusionData, SubmitError> {
 
     let data = msg.into_data();
     match cbor_deserialize(data.as_slice()) {
         Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => { //OK case. Proofs was valid and it was included in this batch.
-            let _ = handle_batch_inclusion_data(
-                batch_inclusion_data,
-                aligned_verification_data,
-                verification_data_commitment,
-            );
+            return Ok(batch_inclusion_data);
         }
         Ok(ResponseMessage::InvalidNonce) => {
+            error!("Batcher responded with invalid nonce");
             return Err(SubmitError::InvalidNonce);
         }
         Ok(ResponseMessage::InvalidSignature) => {
+            error!("Batcher responded with invalid signature");
             return Err(SubmitError::InvalidSignature);
         }
         Ok(ResponseMessage::ProofTooLarge) => {
+            error!("Batcher responded with proof too large");
             return Err(SubmitError::ProofTooLarge);
         }
         Ok(ResponseMessage::InvalidMaxFee) => {
+            error!("Batcher responded with invalid max fee");
             return Err(SubmitError::InvalidMaxFee);
         }
         Ok(ResponseMessage::InsufficientBalance(addr)) => {
+            error!("Batcher responded with insufficient balance");
             return Err(SubmitError::InsufficientBalance(addr));
         }
         Ok(ResponseMessage::InvalidChainId) => {
+            error!("Batcher responded with invalid chain id");
             return Err(SubmitError::InvalidChainId);
         }
         Ok(ResponseMessage::InvalidReplacementMessage) => {
+            error!("Batcher responded with invalid replacement message");
             return Err(SubmitError::InvalidReplacementMessage);
         }
         Ok(ResponseMessage::AddToBatchError) => {
+            error!("Batcher responded with add to batch error");
             return Err(SubmitError::AddToBatchError);
         }
         Ok(ResponseMessage::EthRpcError) => {
+            error!("Batcher experienced Eth RPC connection error");
             return Err(SubmitError::EthereumProviderError(
                 "Batcher experienced Eth RPC connection error".to_string(),
             ));
         }
         Ok(ResponseMessage::InvalidPaymentServiceAddress(received_addr, expected_addr)) => {
+            error!(
+                "Batcher responded with invalid payment service address: {:?}, expected: {:?}",
+                received_addr, expected_addr
+            );
             return Err(SubmitError::InvalidPaymentServiceAddress(
                 received_addr,
                 expected_addr,
             ));
         }
         Ok(ResponseMessage::InvalidProof(reason)) => { 
+            error!("Batcher responded with invalid proof: {}", reason);
             return Err(SubmitError::InvalidProof(reason));
         }
         Ok(ResponseMessage::CreateNewTaskError(merkle_root, error)) => {
+            error!("Batcher responded with create new task error: {}", error);
             return Err(SubmitError::BatchSubmissionFailed(
                 "Could not create task with merkle root ".to_owned() + &merkle_root + ", failed with error: " + &error, 
             ));
         }
         Ok(ResponseMessage::ProtocolVersion(_)) => {
+            error!("Batcher responded with protocol version instead of batch inclusion data");
             return Err(SubmitError::UnexpectedBatcherResponse(
                 "Batcher responded with protocol version instead of batch inclusion data"
                     .to_string(),
             ));
         }
         Ok(ResponseMessage::BatchReset) => {
+            error!("Batcher responded with batch reset");
             return Err(SubmitError::ProofQueueFlushed);
         }
         Ok(ResponseMessage::Error(e)) => {
             error!("Batcher responded with error: {}", e);
+            return Err(SubmitError::GenericError(e))
         }
         Err(e) => {
+            error!("Error while deserializing batch inclusion data: {}", e);
             return Err(SubmitError::SerializationError(e));
         }
     }
+}
 
-    Ok(())
+// Used to match the message received from the batcher,
+// a BatchInclusionData corresponding to the data you need to verify your proof is in a batch
+// with the NoncedVerificationData you sent, used to verify the proof was indeed included in the batch
+fn match_batcher_response_with_stored_verification_data(
+    batch_inclusion_data: &BatchInclusionData,
+    sent_verification_data: &mut Vec<NoncedVerificationData>,
+) -> Result<VerificationDataCommitment, SubmitError> {
+    debug!("Matching verification data with batcher response ...");
+    let mut index = None;
+    for (i, sent_nonced_verification_data) in sent_verification_data.iter_mut().enumerate() {
+        if sent_nonced_verification_data.nonce == batch_inclusion_data.user_nonce {
+            debug!("local nonced verification data matched with batcher response");
+            index = Some(i);
+            break;
+        }
+    }
+
+    if let Some(i) = index {
+        let verification_data = sent_verification_data.swap_remove(i); //TODO maybe only remove?
+        return Ok(verification_data.verification_data.clone().into());
+    }
+
+    Err(SubmitError::InvalidProofInclusionData)
 }
