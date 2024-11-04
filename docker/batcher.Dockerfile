@@ -4,7 +4,7 @@ COPY go.mod .
 COPY go.sum .
 COPY batcher/aligned-batcher/gnark/verifier.go /aligned_layer/batcher/aligned-batcher/gnark/verifier.go
 
-RUN apt update -y && apt install -y gcc lld
+RUN apt update -y && apt install -y gcc
 RUN go build -buildmode=c-archive -o libverifier.a /aligned_layer/batcher/aligned-batcher/gnark/verifier.go
 
 FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
@@ -39,7 +39,6 @@ RUN cargo chef cook --release --recipe-path /aligned_layer/batcher/aligned/recip
 
 FROM base AS builder
 
-RUN apt install -y lld
 COPY . /aligned_layer/
 
 COPY --from=chef_builder /aligned_layer/batcher/aligned-batcher/target/ /aligned_layer/batcher/aligned-batcher/target/
