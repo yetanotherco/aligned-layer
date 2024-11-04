@@ -18,7 +18,7 @@ RUN echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-19 main" | t
 
 RUN apt install -y lld
 
-ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
 COPY batcher/aligned-batcher/Cargo.toml /aligned_layer/batcher/aligned-batcher/Cargo.toml
 COPY batcher/aligned-batcher/src/main.rs /aligned_layer/batcher/aligned-batcher/src/main.rs
@@ -32,7 +32,7 @@ RUN cargo chef prepare --recipe-path /aligned_layer/batcher/aligned/recipe.json
 
 FROM chef AS chef_builder
 
-ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
 COPY batcher/aligned-sdk/ /aligned_layer/batcher/aligned-sdk/
 

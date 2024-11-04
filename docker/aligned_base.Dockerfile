@@ -33,6 +33,14 @@ RUN go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
+# Install Mold Linker
+RUN git clone --branch stable https://github.com/rui314/mold.git
+WORKDIR mold
+RUN ./install-build-deps.sh
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=c++ -B build
+RUN cmake --build build -j24
+RUN sudo cmake --build build --target install
+
 WORKDIR /aligned_layer
 
 COPY Makefile .
@@ -48,7 +56,7 @@ RUN echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-19 main" | t
     && apt-get update
 
 RUN apt install -y lld
-ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
 # build_sp1_linux
 COPY operator/sp1/lib/Cargo.toml /aligned_layer/operator/sp1/lib/Cargo.toml
@@ -84,7 +92,7 @@ FROM chef AS chef_builder
 
 COPY batcher/aligned-sdk /aligned_layer/batcher/aligned-sdk/
 
-ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
 # build_sp1_linux
 COPY operator/sp1/ /aligned_layer/operator/sp1/
