@@ -189,6 +189,9 @@ func (r *AvsReader) GetPendingBatchFromMerkleRoot(merkleRoot [32]byte) (*service
 	batchIdentifier := append(batch.BatchMerkleRoot[:], batch.SenderAddress[:]...)
 	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 	state, err := r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
+	if err != nil {
+		return nil, err
+	}
 	if state.Responded {
 		return nil, nil
 	}
