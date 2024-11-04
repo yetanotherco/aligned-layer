@@ -1,12 +1,9 @@
 package operator
 
 import (
-	"fmt"
-	"math/big"
-	"regexp"
-	"strings"
-
 	"github.com/yetanotherco/aligned_layer/common"
+	"math/big"
+	"net/url"
 )
 
 func IsVerifierDisabled(disabledVerifiersBitmap *big.Int, verifierId common.ProvingSystemId) bool {
@@ -19,27 +16,11 @@ func IsVerifierDisabled(disabledVerifiersBitmap *big.Int, verifierId common.Prov
 }
 
 func BaseUrlOnly(input string) (string, error) {
-	// Define a regex pattern to match the URL format
-	// The pattern captures the scheme, host, and path
-	pattern := `^(?P<scheme>[^:]+)://(?P<host>[^/]+)(?P<path>/.*)?$`
-	re := regexp.MustCompile(pattern)
-
-	matches := re.FindStringSubmatch(input)
-
-	if matches == nil {
-		return "", fmt.Errorf("invalid URL: %s", input)
+	// https://gobyexample.com/url-parsing
+	u, err := url.Parse(input)
+	if err != nil {
+		return "", err
 	}
 
-	host := matches[2]
-	path := matches[3]
-
-	// If the path is not empty, append the path without the last segment (api_key)
-	if path != "" {
-		pathSegments := strings.Split(path, "/")
-		if len(pathSegments) > 1 {
-			return host + strings.Join(pathSegments[:len(pathSegments)-1], "/"), nil
-		}
-	}
-
-	return host, nil
+	return u.Host, nil
 }

@@ -20,6 +20,7 @@ use log::error;
 use super::payment_service::SignerMiddlewareT;
 
 pub fn get_provider(eth_rpc_url: String) -> Result<Provider<Http>, anyhow::Error> {
+pub fn get_provider(eth_rpc_url: String) -> Result<Provider<Http>, anyhow::Error> {
     let provider = Http::from_str(eth_rpc_url.as_str())
         .map_err(|e| anyhow::Error::msg(format!("Failed to create provider: {}", e)))?;
     Ok(Provider::new(provider))
