@@ -84,6 +84,7 @@ pub async fn receive(
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream = response_stream.lock().await;
     let mut aligned_submitted_data: Vec<AlignedVerificationData> = Vec::new();
+    let last_proof_nonce = get_biggest_nonce(&sent_verification_data);
 
     // read from WS
     while let Some(Ok(msg)) = response_stream.next().await {
@@ -110,11 +111,16 @@ pub async fn receive(
         )?;
             
         let aligned_verification_data = process_batcher_response(
-            batch_inclusion_data_message,
-            related_verification_data,
+            &batch_inclusion_data_message,
+            &related_verification_data,
         )?;
 
         aligned_submitted_data.push(aligned_verification_data);
+        info!("Message response handled succesfully");
+
+        if batch_inclusion_data_message.user_nonce == last_proof_nonce {
+            break;
+        }
     }
 
     debug!("All message responses handled succesfully");
@@ -233,4 +239,14 @@ fn match_batcher_response_with_stored_verification_data(
     }
 
     Err(SubmitError::InvalidProofInclusionData)
+}
+
+fn get_biggest_nonce(sent_verification_data: &Vec<NoncedVerificationData>) -> U256 {
+    let mut biggest_nonce = U256::zero();
+    for verification_data in sent_verification_data.iter() {
+        if verification_data.nonce > biggest_nonce {
+            biggest_nonce = verification_data.nonce;
+        }
+    }
+    biggest_nonce
 }
