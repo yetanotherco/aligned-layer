@@ -441,7 +441,7 @@ task_sender_generate_groth16_proofs:
 	--dir-to-save-proofs $(CURDIR)/scripts/test_files/task_sender/proofs
 
 # ===== DEVNET =====
-task_sender_generate_and_fund_wallets_devnet:
+task_sender_fund_wallets_devnet:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- generate-and-fund-wallets \
 	--eth-rpc-url http://localhost:8545 \
