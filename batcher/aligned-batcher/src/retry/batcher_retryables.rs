@@ -202,7 +202,9 @@ pub async fn cancel_create_new_task_retryable(
         .await
         .map_err(|e| {
             warn!("Timeout while waiting for transaction inclusion: {e}");
-            RetryError::Transient(ProviderError::CustomError("Receipt not found".to_string()))
+            RetryError::Transient(ProviderError::CustomError(format!(
+                "Timeout while waiting for transaction inclusion: {e}"
+            )))
         })?
         .map_err(|e| {
             warn!("Error while waiting for tx inclusion: {e}");
