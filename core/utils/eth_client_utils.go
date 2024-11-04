@@ -25,9 +25,8 @@ func WaitForTransactionReceipt(client eth.InstrumentedClient, ctx context.Contex
 		// if context has timed out, return
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
-		} else {
-			time.Sleep(sleepTime)
 		}
+		time.Sleep(sleepTime)
 	}
 	return nil, fmt.Errorf("transaction receipt not found for txHash: %s", txHash.String())
 }
@@ -48,13 +47,21 @@ func BytesToQuorumThresholdPercentages(quorumThresholdPercentagesBytes []byte) e
 	return quorumThresholdPercentages
 }
 
-// Very basic algorithm to calculate the gasPrice bump based on the currentGasPrice a constant percentage and the retry number.
-// It adds a the percentage to the current gas price and a 5% * i, where i is the iteration number. That is:
-func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, percentage int, i int) *big.Int {
-	retryPercentage := new(big.Int).Mul(big.NewInt(5), big.NewInt(int64(i)))
-	percentageBump := new(big.Int).Add(big.NewInt(int64(percentage)), retryPercentage)
-	bumpAmount := new(big.Int).Mul(currentGasPrice, percentageBump)
+// Simple algorithm to calculate the gasPrice bump based on:
+// the currentGasPrice, a base bump percentage, a retry percentage, and the retry count.
+// Formula: currentGasPrice + (currentGasPrice * (baseBumpPercentage + retryCount * incrementalRetryPercentage) / 100)
+func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercentage int, retryAttemptPercentage int, retryCount int) *big.Int {
+	// Incremental percentage increase for each retry attempt (i*5%)
+	incrementalRetryPercentage := new(big.Int).Mul(big.NewInt(int64(retryAttemptPercentage)), big.NewInt(int64(retryCount)))
+
+	// Total bump percentage: base bump + incremental retry percentage
+	totalBumpPercentage := new(big.Int).Add(big.NewInt(int64(baseBumpPercentage)), incrementalRetryPercentage)
+
+	// Calculate the bump amount: currentGasPrice * totalBumpPercentage / 100
+	bumpAmount := new(big.Int).Mul(currentGasPrice, totalBumpPercentage)
 	bumpAmount = new(big.Int).Div(bumpAmount, big.NewInt(100))
+
+	// Final bumped gas price: currentGasPrice + bumpAmount
 	bumpedGasPrice := new(big.Int).Add(currentGasPrice, bumpAmount)
 
 	return bumpedGasPrice
