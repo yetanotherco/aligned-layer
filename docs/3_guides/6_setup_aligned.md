@@ -29,7 +29,7 @@ Install [Foundry](https://book.getfoundry.sh/getting-started/installation):
 
 ```bash
 make install_foundry
-foundryup
+foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
 ```
 
 Install the necessary submodules and build all the FFIs for your OS:
@@ -319,6 +319,11 @@ To start the [Batcher](../2_architecture/components/1_batcher.md):
 make batcher_start
 ```
 
+If you are testing locally, you can run this instead:
+```bash
+make batcher_start_local
+```
+
 <details>
 <summary>More information about Batcher configuration:</summary>
 
@@ -351,7 +356,6 @@ batcher:
   batch_size_interval: <batch_size_interval>
   max_proof_size: <max_proof_size_in_bytes>
   max_batch_size: <max_batch_size_in_bytes>
-  eth_ws_reconnects: <eth_ws_reconnects_amount>
   pre_verification_is_enabled: <true|false>
 
 ## ECDSA Configurations
@@ -365,6 +369,15 @@ ecdsa:
 ```bash
 make batcher_start
 ```
+
+or
+
+```bash
+make batcher_start_local
+```
+
+The latter version sets up a [localstack](https://www.localstack.cloud/) to act as a replacement for S3,
+so you don't need to interact with (and give money to) AWS for your tests.
 
 </details>
 
