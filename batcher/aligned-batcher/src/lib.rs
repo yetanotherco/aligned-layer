@@ -1163,7 +1163,7 @@ impl Batcher {
                 // Since transaction was reverted, we don't want to retry with fallback.
                 warn!("Transaction reverted {:?}", err);
 
-                Err(BatcherError::TransactionSendError)
+                Err(BatcherError::TransactionSendError(err))
             }
             Err(_) => {
                 let receipt = try_create_new_task(
