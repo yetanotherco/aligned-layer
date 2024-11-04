@@ -42,6 +42,7 @@ pub struct BatcherConfigFromYaml {
     pub max_batch_size: usize,
     pub pre_verification_is_enabled: bool,
     pub metrics_port: u16,
+    pub telemetry_ip_port_address: String,
     pub non_paying: Option<NonPayingConfigFromYaml>,
 }
 
