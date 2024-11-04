@@ -42,6 +42,11 @@ FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 
 FROM chef AS planner
 
+RUN echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-19 main" | tee /etc/apt/sources.list.d/llvm.list \
+    && echo "deb-src http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-19 main" | tee -a /etc/apt/sources.list.d/llvm.list \
+    && wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - \
+    && apt-get update
+
 RUN apt install -y lld
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
