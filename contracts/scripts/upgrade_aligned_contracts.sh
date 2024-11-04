@@ -4,6 +4,22 @@ if [ -z "$MULTISIG" ]; then
   echo "Missing MULTISIG env variable"
   exit 1
 fi
+if [ -z "$OUTPUT_PATH" ]; then
+  echo "Missing OUTPUT_PATH env variable"
+  exit 1
+fi
+if [ -z "$EXISTING_DEPLOYMENT_INFO_PATH" ]; then
+  echo "Missing EXISTING_DEPLOYMENT_INFO_PATH env variable"
+  exit 1
+fi
+if [ -z "$RPC_URL" ]; then
+  echo "Missing RPC_URL env variable"
+  exit 1
+fi
+if [ -z "$PRIVATE_KEY" ]; then
+  echo "Missing PRIVATE_KEY env variable"
+  exit 1
+fi
 
 # cd to the directory of this script so that this can be run from anywhere
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
@@ -34,9 +50,6 @@ jq --arg new_aligned_layer_service_manager_implementation "$new_aligned_layer_se
 
 # Replace the original file with the temporary file
 mv "script/output/holesky/alignedlayer_deployment_output.temp.json" $OUTPUT_PATH
-
-# Delete the temporary file
-rm -f "script/output/holesky/alignedlayer_deployment_output.temp.json"
 
 data=$(cast calldata "upgrade(address, address)" $aligned_layer_service_manager $new_aligned_layer_service_manager_implementation)
 
