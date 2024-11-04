@@ -932,7 +932,13 @@
         },
         {
           "id": "calculateField",
-          "options": {}
+          "options": {
+            "alias": "total",
+            "mode": "reduceRow",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
         }
       ],
       "type": "timeseries"
@@ -1037,7 +1043,7 @@
         {
           "id": "calculateField",
           "options": {
-            "alias": "total",
+            "alias": "Total",
             "mode": "reduceRow",
             "reduce": {
               "reducer": "sum"
@@ -1571,7 +1577,7 @@
     "list": []
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
