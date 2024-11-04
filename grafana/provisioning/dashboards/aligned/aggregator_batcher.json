@@ -870,9 +870,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 9,
-        "x": 12,
-        "y": 19
+        "w": 11,
+        "x": 0,
+        "y": 27
       },
       "id": 21,
       "options": {
@@ -905,7 +905,134 @@
           "useBackend": false
         }
       ],
-      "title": "User Errors",
+      "title": "User Error Count",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "proof_rejected",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "rejected_proof"
+              ],
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "rejected_proof": true
+            },
+            "indexByName": {},
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {}
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 11,
+        "y": 27
+      },
+      "id": 22,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "user_errors{proving_system!~\"\"}",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "{{proving_system}}",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Proving System Error Count",
       "transformations": [
         {
           "id": "calculateField",
@@ -926,7 +1053,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 35
       },
       "id": 10,
       "panels": [
@@ -968,7 +1095,7 @@
             "h": 7,
             "w": 10,
             "x": 0,
-            "y": 50
+            "y": 58
           },
           "id": 9,
           "options": {
@@ -1120,7 +1247,7 @@
             "h": 7,
             "w": 10,
             "x": 10,
-            "y": 50
+            "y": 58
           },
           "id": 1,
           "options": {
@@ -1184,7 +1311,7 @@
             "h": 7,
             "w": 5,
             "x": 0,
-            "y": 57
+            "y": 65
           },
           "id": 8,
           "options": {
@@ -1254,7 +1381,7 @@
             "h": 7,
             "w": 5,
             "x": 5,
-            "y": 57
+            "y": 65
           },
           "id": 7,
           "options": {
@@ -1319,7 +1446,7 @@
             "h": 7,
             "w": 5,
             "x": 0,
-            "y": 64
+            "y": 72
           },
           "id": 2,
           "options": {
@@ -1389,7 +1516,7 @@
             "h": 7,
             "w": 5,
             "x": 5,
-            "y": 64
+            "y": 72
           },
           "id": 5,
           "options": {
@@ -1444,7 +1571,7 @@
     "list": []
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-30m",
     "to": "now"
   },
   "timepicker": {},
