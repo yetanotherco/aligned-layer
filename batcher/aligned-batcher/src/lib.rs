@@ -68,11 +68,11 @@ pub struct Batcher {
     download_endpoint: String,
     eth_ws_url: String,
     eth_ws_url_fallback: String,
+    batcher_signer: Arc<SignerMiddlewareT>,
+    batcher_signer_fallback: Arc<SignerMiddlewareT>,
     chain_id: U256,
     payment_service: BatcherPaymentService,
     payment_service_fallback: BatcherPaymentService,
-    batcher_signer: Arc<SignerMiddlewareT>,
-    batcher_signer_fallback: Arc<SignerMiddlewareT>,
     service_manager: ServiceManager,
     service_manager_fallback: ServiceManager,
     batch_state: Mutex<BatchState>,
@@ -225,11 +225,11 @@ impl Batcher {
             download_endpoint,
             eth_ws_url: config.eth_ws_url,
             eth_ws_url_fallback: config.eth_ws_url_fallback,
+            batcher_signer,
+            batcher_signer_fallback,
             chain_id,
             payment_service,
             payment_service_fallback,
-            batcher_signer,
-            batcher_signer_fallback,
             service_manager,
             service_manager_fallback,
             max_block_interval: config.batcher.block_interval,
@@ -1348,7 +1348,6 @@ impl Batcher {
     }
 
     /// Gets the balance of user with address `addr` from Ethereum using exponential backoff.
-    /// Gets the balance of user with address `addr` from Ethereum using exponential backoff.
     /// Returns `None` if the balance couldn't be returned
     /// FIXME: This should return a `Result` instead.
     async fn get_user_balance(&self, addr: &Address) -> Option<U256> {
@@ -1368,8 +1367,6 @@ impl Batcher {
         .ok()
     }
 
-    /// Checks if the user's balance is unlocked for a given address using exponential backoff.
-    /// Returns `false` if an error occurs during the retries.
     /// Checks if the user's balance is unlocked for a given address using exponential backoff.
     /// Returns `false` if an error occurs during the retries.
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
