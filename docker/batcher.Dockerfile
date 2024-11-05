@@ -4,10 +4,12 @@ COPY go.mod .
 COPY go.sum .
 COPY batcher/aligned-batcher/gnark/verifier.go /aligned_layer/batcher/aligned-batcher/gnark/verifier.go
 
-RUN apt update -y && apt install -y gcc binutils
+RUN apt update -y && apt install -y gcc
 RUN go build -buildmode=c-archive -o libverifier.a /aligned_layer/batcher/aligned-batcher/gnark/verifier.go
 
 FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
+
+RUN apt install -y binutils
 
 FROM chef AS planner
 
@@ -38,6 +40,8 @@ WORKDIR /aligned_layer/batcher/aligned/
 RUN cargo chef cook --release --recipe-path /aligned_layer/batcher/aligned/recipe.json
 
 FROM base AS builder
+
+RUN apt install -y binutils
 
 COPY . /aligned_layer/
 
