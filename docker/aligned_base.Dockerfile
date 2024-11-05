@@ -53,7 +53,7 @@ ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
 # Include mold binary
-RUN apt install -y binutils
+RUN apt install -y binutils clang gcc
 COPY --from=base /usr/local/bin/mold /usr/local/bin/mold
 
 # build_sp1_linux
@@ -88,13 +88,13 @@ RUN cargo chef prepare --recipe-path /aligned_layer/operator/merkle_tree/lib/rec
 
 FROM chef AS chef_builder
 
-COPY batcher/aligned-sdk /aligned_layer/batcher/aligned-sdk/
-
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
-RUN apt install -y binutils
+RUN apt install -y binutils clang gcc
 COPY --from=base /usr/local/bin/mold /usr/local/bin/mold
+
+COPY batcher/aligned-sdk /aligned_layer/batcher/aligned-sdk/
 
 # build_sp1_linux
 COPY operator/sp1/ /aligned_layer/operator/sp1/
