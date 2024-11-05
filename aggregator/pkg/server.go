@@ -3,8 +3,10 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/rpc"
+	"strings"
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
@@ -86,7 +88,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 
 	agg.logger.Info("Starting bls signature process")
 	go func() {
-		// Retry
 		err := agg.ProcessNewSignatureRetryable(
 			context.Background(), taskIndex, signedTaskResponse.BatchIdentifierHash,
 			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
@@ -131,11 +132,29 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 
 // Error throw is ______
 func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
+	var err error
 	processNewSignature_func := func() error {
-		return agg.blsAggregationService.ProcessNewSignature(
+		err = agg.blsAggregationService.ProcessNewSignature(
 			ctx, taskIndex, taskResponse,
 			blsSignature, operatorId,
 		)
+		if err != nil {
+			// Note return type will be nil
+			if err.Error() == "not found" {
+				err = connection.TransientError{Inner: err}
+				return err
+			}
+			if strings.Contains(err.Error(), "connect: connection refused") {
+				err = connection.TransientError{Inner: err}
+				return err
+			}
+			if strings.Contains(err.Error(), "read: connection reset by peer") {
+				err = connection.TransientError{Inner: err}
+				return err
+			}
+			err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+		}
+		return err
 	}
 
 	return connection.Retry(processNewSignature_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
