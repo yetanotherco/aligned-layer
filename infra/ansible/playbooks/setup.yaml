@@ -52,12 +52,3 @@
       shell: sudo loginctl enable-linger {{ ansible_user }}
       vars:
         ansible_ssh_user: "{{ admin_user }}"
-
-
-    # Clone Aligned repository
-#    - name: Clone Aligned repository
-#      ansible.builtin.git:
-#        repo: https://github.com/yetanotherco/aligned_layer.git
-#        dest: /home/{{ ansible_user }}/repos/aligned_layer
-#        version: main
-#      become_user: '{{ ansible_user }}'
