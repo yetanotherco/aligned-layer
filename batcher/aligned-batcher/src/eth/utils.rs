@@ -44,7 +44,7 @@ pub async fn get_batcher_signer(
 
 /// Calculates an increased gas price for retrying a transaction override.
 /// The gas price rises with each retry by applying a multiplier based on the iteration count.
-pub fn get_bumped_gas_price(
+pub fn calculate_bumped_gas_price(
     previous_gas_price: U256,
     current_gas_price: U256,
     iteration: usize,
@@ -109,7 +109,7 @@ mod tests {
         let expected = U256::from(1440); // (1200 * (120 + 0)) / 100
 
         assert_eq!(
-            get_bumped_gas_price(previous_gas_price, current_gas_price, iteration),
+            calculate_bumped_gas_price(previous_gas_price, current_gas_price, iteration),
             expected
         );
     }
@@ -123,7 +123,7 @@ mod tests {
         let expected = U256::from(1560); // (1200 * (120 + 10) / 100
 
         assert_eq!(
-            get_bumped_gas_price(previous_gas_price, current_gas_price, iteration),
+            calculate_bumped_gas_price(previous_gas_price, current_gas_price, iteration),
             expected
         );
     }
@@ -137,7 +137,7 @@ mod tests {
         let expected = U256::from(1875); // (1500 * (120 + 5) / 100
 
         assert_eq!(
-            get_bumped_gas_price(previous_gas_price, current_gas_price, iteration),
+            calculate_bumped_gas_price(previous_gas_price, current_gas_price, iteration),
             expected
         );
     }

@@ -3,7 +3,7 @@ use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
 use eth::service_manager::ServiceManager;
-use eth::utils::{get_batcher_signer, get_bumped_gas_price, get_gas_price};
+use eth::utils::{calculate_bumped_gas_price, get_batcher_signer, get_gas_price};
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use retry::batcher_retryables::{
@@ -20,8 +20,8 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aligned_sdk::core::constants::{
-    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
-    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_BACKOFF_FACTOR,
+    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CANCEL_TRANSACTION_MAX_RETRIES,
+    CONSTANT_GAS_COST, DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_FEE_PER_PROOF, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
     GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
@@ -1260,10 +1260,10 @@ impl Batcher {
     }
 
     /// Sends a transaction to Ethereum with the same nonce as the previous one to override it.
-    /// In case of a recoverable error, it will retry with an exponential backoff forever
-    /// A tx not included in 3 blocks will be considered an error, and will trigger a bump of the fee, with the rules on ```get_bumped_gas_price```
+    /// In case of a recoverable error, it will retry with an exponential backoff up to CANCEL_TRANSACTION_MAX_RETRIES times.
+    /// A tx not included in 3 blocks will be considered an error, and will trigger a bump of the fee, with the rules on ```calculate_bumped_gas_price```
     /// This will do 5 bumps every 3 blocks, and then the exponential backoff will dominate, doing bumps at 8,13,24,45,89 and so on
-   /// Errors on get_gas_price are considered transient, so this function will keep going
+    /// Errors on get_gas_price are considered transient, so this function will keep going
     pub async fn cancel_create_new_task_tx(&self, old_tx_gas_price: U256) {
         info!("Cancelling createNewTask transaction...");
         let iteration = Arc::new(Mutex::new(0));
@@ -1285,7 +1285,7 @@ impl Batcher {
                 };
 
                 let bumped_gas_price =
-                    get_bumped_gas_price(*previous_gas_price, current_gas_price, *iteration);
+                    calculate_bumped_gas_price(*previous_gas_price, current_gas_price, *iteration);
 
                 *iteration += 1;
                 *previous_gas_price = bumped_gas_price;
@@ -1300,7 +1300,7 @@ impl Batcher {
             },
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
-            usize::MAX,
+            CANCEL_TRANSACTION_MAX_RETRIES,
         ) // TODO (#1380): Set a gas price limit when canceling a created task
         .await
         {
