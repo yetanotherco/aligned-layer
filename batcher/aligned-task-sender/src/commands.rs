@@ -4,7 +4,7 @@ use ethers::prelude::*;
 use ethers::utils::parse_ether;
 use futures_util::StreamExt;
 use k256::ecdsa::SigningKey;
-use log::{error, info};
+use log::{error, info, debug};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::fs::{self, File};
@@ -228,7 +228,7 @@ pub async fn test_connection(args: TestConnectionsArgs) {
                 info!("Opened connection for {}", i);
                 while let Some(msg) = ws_stream.next().await {
                     match msg {
-                        Ok(message) => info!("Received message: {:?}", message),
+                        Ok(message) => debug!("Received message: {:?}", message),
                         Err(e) => {
                             info!("WebSocket error: {}", e);
                             break;
