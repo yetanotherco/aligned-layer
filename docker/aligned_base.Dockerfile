@@ -14,7 +14,8 @@ RUN apt install -y wget \
                    openssl \
                    libssl-dev \
                    yq \
-                   jq
+                   jq \
+                   binutils
 
 RUN wget https://golang.org/dl/go$GO_VERSION.linux-${BUILDARCH}.tar.gz
 RUN tar -C /usr/local -xzf go$GO_VERSION.linux-${BUILDARCH}.tar.gz
