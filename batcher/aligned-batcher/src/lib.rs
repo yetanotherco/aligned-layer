@@ -1262,8 +1262,9 @@ impl Batcher {
     /// Sends a transaction to Ethereum with the same nonce as the previous one to override it.
     /// In case of a recoverable error, it will retry with an exponential backoff up to CANCEL_TRANSACTION_MAX_RETRIES times.
     /// A tx not included in 3 blocks will be considered an error, and will trigger a bump of the fee, with the rules on ```calculate_bumped_gas_price```
-    /// This will do 5 bumps every 3 blocks, and then the exponential backoff will dominate, doing bumps at 8,13,24,45,89 and so on
-    /// Errors on get_gas_price are considered transient, so this function will keep going
+    /// This will do 5 bumps every 3 blocks, and then the exponential backoff will dominate, doing bumps at 8,13,24,45,89 and so on.
+    /// Errors on ```get_gas_price``` calls inside this function are considered transient,
+    /// so they won't stop the retries.
     pub async fn cancel_create_new_task_tx(&self, old_tx_gas_price: U256) {
         info!("Cancelling createNewTask transaction...");
         let iteration = Arc::new(Mutex::new(0));
@@ -1301,7 +1302,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             CANCEL_TRANSACTION_MAX_RETRIES,
-        ) // TODO (#1380): Set a gas price limit when canceling a created task
+        )
         .await
         {
             error!("Could not cancel createNewTask transaction: {e}");
