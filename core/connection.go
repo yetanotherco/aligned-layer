@@ -38,11 +38,11 @@ const RetryFactor = 2
 const NumRetries = 3
 
 // Same as Retry only that the functionToRetry can return a value upon correct execution
-func RetryWithData[T any](functionToRetry func() (*T, error), minDelay uint64, factor float64, maxTries uint64) (*T, error) {
+func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, factor float64, maxTries uint64) (T, error) {
 	i := 0
-	f := func() (*T, error) {
+	f := func() (T, error) {
 		var (
-			val *T
+			val T
 			err error
 		)
 		func() {

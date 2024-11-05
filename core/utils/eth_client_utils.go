@@ -29,6 +29,9 @@ func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, ctx conte
 			if strings.Contains(err.Error(), "connect: connection refused") {
 				return nil, connection.TransientError{Inner: err}
 			}
+			if strings.Contains(err.Error(), "read: connection reset by peer") {
+				return nil, connection.TransientError{Inner: err}
+			}
 			return nil, connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
 		}
 		return tx, err
