@@ -720,7 +720,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	aggregator_address := common.HexToAddress("0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690")
 	zero_bytes := [32]byte{}
 
-	// Panics if 0 object passed
+	// NOTE: With zero bytes the tx reverts
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
 	assert.NotNil(t, err)
 	// assert error contains "Message:"execution reverted: custom error 0x2396d34e:"
@@ -753,7 +753,7 @@ func TestRespondToTaskV2(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	//TODO: address custom error
+	// NOTE: With zero bytes the tx reverts
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
 	assert.NotNil(t, err)
 	// assert error contains "Message:"execution reverted: custom error 0x2396d34e:"
@@ -796,7 +796,6 @@ func TestBatchesStateWriter(t *testing.T) {
 		return
 	}
 
-	// Directly panics -> Need to catch in retry.
 	_, err = avsWriter.BatchesStateRetryable(bytes)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
@@ -889,7 +888,6 @@ func TestBatchersBalances(t *testing.T) {
 	if err != nil {
 		return
 	}
-	//TODO: Source real one
 	sender_address := common.HexToAddress("0x0")
 
 	_, err = avsWriter.BatcherBalancesRetryable(sender_address)
