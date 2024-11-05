@@ -16,6 +16,7 @@ pub enum BatcherError {
     MaxRetriesReachedError,
     SerializationError(String),
     GasPriceError,
+    DisabledVerifiersError(String),
     BatchCostTooHigh,
     WsSinkEmpty,
     AddressNotFoundInUserStates(Address),
@@ -90,23 +91,13 @@ impl fmt::Debug for BatcherError {
                     "User with address {addr:?} was not found in Batcher user states cache"
                 )
             }
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum BatcherSendError {
-    TransactionReverted(String),
-    ReceiptNotFound,
-    UnknownError(String),
-}
-
-impl From<BatcherSendError> for BatcherError {
-    fn from(value: BatcherSendError) -> Self {
-        match value {
-            BatcherSendError::TransactionReverted(_) => BatcherError::TransactionSendError,
-            BatcherSendError::ReceiptNotFound => BatcherError::ReceiptNotFoundError,
-            BatcherSendError::UnknownError(err) => BatcherError::TaskCreationError(err),
+            BatcherError::DisabledVerifiersError(reason) => {
+                write!(
+                    f,
+                    "Error while trying to get disabled verifiers: {}",
+                    reason
+                )
+            }
         }
     }
 }
