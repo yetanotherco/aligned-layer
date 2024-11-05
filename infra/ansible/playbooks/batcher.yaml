@@ -92,10 +92,6 @@
         download_endpoint: "{{ lookup('ini', 'download_endpoint', file='ini/env-batcher.ini') }}"
         log_level: "{{ lookup('ini', 'log_level', file='ini/env-batcher.ini') }}"
 
-    # Missing steps
-      # add reverse proxy to caddy
-      # create wallets
-
     - name: Add reverse proxy to Caddy
       become: true
       template:
