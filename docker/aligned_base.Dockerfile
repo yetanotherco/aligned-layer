@@ -38,7 +38,7 @@ WORKDIR mold
 RUN ./install-build-deps.sh
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=c++ -B build
 RUN cmake --build build -j24
-RUN sudo cmake --build build --target install
+RUN cmake --build build --target install
 
 
 # Build Aligned Layer
