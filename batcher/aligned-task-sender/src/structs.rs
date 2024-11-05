@@ -43,10 +43,6 @@ pub enum ProofType {
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-pub struct CleanProofsArgs {}
-
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
 pub struct GenerateAndFundWalletsArgs {
     #[arg(
         name = "Ethereum RPC provider connection address",
