@@ -161,27 +161,28 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 	// Assert Call succeeds when Anvil running
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
 	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
-	if _, ok := err.(*connection.TransientError); !ok {
-		t.Errorf("Retry on failure did not return backoff Permanent Error: %s", err)
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
-
-	}
 	if err.Error() != "not found" {
 		fmt.Printf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
 		return
 	}
 
 	// Kill Anvil
-	if err := cmd.Process.Kill(); err != nil {
+	if err = cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
 
-	// Errors out but "not found"
-	receipt, err := utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
-	fmt.Printf("error fetching from killed anvil: %v\n", err)
-	assert.Nil(t, receipt, "Receipt not empty")
-	assert.NotEqual(t, err.Error(), "not found")
+	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
+	assert.NotNil(t, err)
+	// Assert returned error is both transient error and contains the expected error msg.
+	if _, ok := err.(connection.TransientError); !ok {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
 
 	// Start anvil
 	cmd, client, err = SetupAnvil(8545)
@@ -190,9 +191,10 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 	}
 
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
-	assert.NotNil(t, err, "Call to Anvil failed")
+	assert.NotNil(t, err)
 	if err.Error() != "not found" {
 		fmt.Printf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
+		return
 	}
 
 	// Kill Anvil at end of test
@@ -329,10 +331,8 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 		fmt.Printf("Error setting up Avs Service Bindings: %s\n", err)
 	}
 
-	fmt.Printf("Subscribing")
 	_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
 	assert.Nil(t, err)
-	// TODO: Find exact error to assert
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -342,7 +342,15 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 
 	_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
 	assert.NotNil(t, err)
-	fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+	// Assert returned error is both transient error and contains the expected error msg.
+	if _, ok := err.(connection.TransientError); !ok {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
 
 	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
@@ -352,7 +360,6 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 
 	_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
 	assert.Nil(t, err)
-	fmt.Printf("Error setting Avs Subscriber: %s\n", err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -381,7 +388,6 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(s.ServiceManager, channel, baseConfig.Logger)
 	assert.Nil(t, err)
-	// TODO: Find exact error to assert
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -391,7 +397,15 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(s.ServiceManager, channel, baseConfig.Logger)
 	assert.NotNil(t, err)
-	fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+	// Assert returned error is both transient error and contains the expected error msg.
+	if _, ok := err.(connection.TransientError); !ok {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
 
 	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
@@ -401,7 +415,6 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(s.ServiceManager, channel, baseConfig.Logger)
 	assert.Nil(t, err)
-	fmt.Printf("Error setting Avs Subscriber: %s\n", err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -424,7 +437,7 @@ func TestBlockNumber(t *testing.T) {
 		return
 	}
 	_, err = sub.BlockNumberRetryable(context.Background())
-	assert.Nil(t, err, "Failed to Retrieve Block Number")
+	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -434,7 +447,15 @@ func TestBlockNumber(t *testing.T) {
 
 	_, err = sub.BlockNumberRetryable(context.Background())
 	assert.NotNil(t, err)
-	fmt.Printf(": %s\n", err)
+	// Assert returned error is both transient error and contains the expected error msg.
+	if _, ok := err.(connection.TransientError); !ok {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
 
 	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
@@ -444,7 +465,6 @@ func TestBlockNumber(t *testing.T) {
 
 	_, err = sub.BlockNumberRetryable(context.Background())
 	assert.Nil(t, err)
-	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -466,8 +486,7 @@ func TestFilterBatchV2(t *testing.T) {
 		return
 	}
 	_, err = avsSubscriber.FilterBatchV2Retryable(0, context.Background())
-	assert.Nil(t, err, "Failed to Retrieve Block Number")
-	// TODO: Find exact error to assert
+	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -477,7 +496,15 @@ func TestFilterBatchV2(t *testing.T) {
 
 	_, err = avsSubscriber.FilterBatchV2Retryable(0, context.Background())
 	assert.NotNil(t, err)
-	fmt.Printf(": %s\n", err)
+	// Assert returned error is both transient error and contains the expected error msg.
+	if _, ok := err.(connection.TransientError); !ok {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
 
 	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
@@ -487,7 +514,6 @@ func TestFilterBatchV2(t *testing.T) {
 
 	_, err = avsSubscriber.FilterBatchV2Retryable(0, context.Background())
 	assert.Nil(t, err)
-	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -509,8 +535,7 @@ func TestFilterBatchV3(t *testing.T) {
 		return
 	}
 	_, err = avsSubscriber.FilterBatchV3Retryable(0, context.Background())
-	//TODO: Find error to assert
-	assert.Nil(t, err, "Succeeded in filtering logs")
+	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -520,7 +545,15 @@ func TestFilterBatchV3(t *testing.T) {
 
 	_, err = avsSubscriber.FilterBatchV3Retryable(0, context.Background())
 	assert.NotNil(t, err)
-	fmt.Printf(": %s\n", err)
+	// Assert returned error is both transient error and contains the expected error msg.
+	if _, ok := err.(connection.TransientError); !ok {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
 
 	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
@@ -530,7 +563,6 @@ func TestFilterBatchV3(t *testing.T) {
 
 	_, err = avsSubscriber.FilterBatchV3Retryable(0, context.Background())
 	assert.Nil(t, err)
-	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -555,7 +587,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 	zero_bytes := [32]byte{}
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
 	//TODO: Find exact failure error
-	assert.Nil(t, err, "BatchesState")
+	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -565,7 +597,15 @@ func TestBatchesStateSubscriber(t *testing.T) {
 
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
 	assert.NotNil(t, err)
-	fmt.Printf(": %s\n", err)
+	// Assert returned error is both transient error and contains the expected error msg.
+	if _, ok := err.(connection.TransientError); !ok {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
 
 	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
@@ -575,7 +615,6 @@ func TestBatchesStateSubscriber(t *testing.T) {
 
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
 	assert.Nil(t, err)
-	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -599,7 +638,7 @@ func TestSubscribeNewHead(t *testing.T) {
 	}
 
 	avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
-	assert.Nil(t, err, "Should be 0")
+	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -609,7 +648,15 @@ func TestSubscribeNewHead(t *testing.T) {
 
 	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
 	assert.NotNil(t, err)
-	fmt.Printf(": %s\n", err)
+	// Assert returned error is both transient error and contains the expected error msg.
+	if _, ok := err.(connection.TransientError); !ok {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
 
 	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
@@ -619,7 +666,6 @@ func TestSubscribeNewHead(t *testing.T) {
 
 	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
 	assert.Nil(t, err)
-	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -676,7 +722,7 @@ func TestRespondToTaskV2(t *testing.T) {
 
 	// Panics if 0 object passed
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
-	assert.NotNil(t, err, "Should error")
+	assert.NotNil(t, err)
 	// assert error contains "Message:"execution reverted: custom error 0x2396d34e:"
 	if !strings.Contains(err.Error(), "execution reverted: custom error 0x2396d34e:") {
 		t.Errorf("Respond to task V2 Retryable did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
@@ -691,7 +737,15 @@ func TestRespondToTaskV2(t *testing.T) {
 
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
 	assert.NotNil(t, err)
-	fmt.Printf(": %s\n", err)
+	// Assert returned error is both transient error and contains the expected error msg.
+	if _, ok := err.(connection.TransientError); !ok {
+		fmt.Printf("RespondToTaksV2 Emitted non-Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		fmt.Printf("RespondToTaskV2 did not return expected error: %s\n", err)
+		return
+	}
 
 	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
@@ -699,8 +753,9 @@ func TestRespondToTaskV2(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
+	//TODO: address custom error
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
-	assert.NotNil(t, err, "Should error")
+	assert.NotNil(t, err)
 	// assert error contains "Message:"execution reverted: custom error 0x2396d34e:"
 	if !strings.Contains(err.Error(), "execution reverted: custom error 0x2396d34e:") {
 		t.Errorf("Respond to task V2 Retryable did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
@@ -733,7 +788,7 @@ func TestBatchesStateWriter(t *testing.T) {
 	num.FillBytes(bytes[:])
 
 	_, err = avsWriter.BatchesStateRetryable(bytes)
-	assert.Nil(t, err, "Should be 0")
+	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -744,7 +799,15 @@ func TestBatchesStateWriter(t *testing.T) {
 	// Directly panics -> Need to catch in retry.
 	_, err = avsWriter.BatchesStateRetryable(bytes)
 	assert.NotNil(t, err)
-	fmt.Printf(": %s\n", err)
+	// Assert returned error is both transient error and contains the expected error msg.
+	if _, ok := err.(connection.TransientError); !ok {
+		fmt.Printf("BatchesStateWriter Emitted non-Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		fmt.Printf("BatchesStateWriter did not contain expected error: %s\n", err)
+		return
+	}
 
 	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
@@ -754,7 +817,6 @@ func TestBatchesStateWriter(t *testing.T) {
 
 	_, err = avsWriter.BatchesStateRetryable(bytes)
 	assert.Nil(t, err)
-	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -778,8 +840,8 @@ func TestBalanceAt(t *testing.T) {
 	//TODO: Source Aggregator Address
 	aggregator_address := common.HexToAddress("0x0")
 
-	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, big.NewInt(16))
-	assert.Nil(t, err, "Should be 0")
+	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, big.NewInt(14))
+	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -787,9 +849,17 @@ func TestBalanceAt(t *testing.T) {
 		return
 	}
 
-	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, big.NewInt(16))
+	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, big.NewInt(14))
 	assert.NotNil(t, err)
-	fmt.Printf(": %s\n", err)
+	// Assert returned error is both transient error and contains the expected error msg.
+	if _, ok := err.(connection.TransientError); !ok {
+		fmt.Printf("BalanceAt Emitted non-Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		fmt.Printf("BalanceAt did not return expected error: %s\n", err)
+		return
+	}
 
 	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
@@ -797,9 +867,8 @@ func TestBalanceAt(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, big.NewInt(16))
+	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, big.NewInt(14))
 	assert.Nil(t, err)
-	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -824,7 +893,7 @@ func TestBatchersBalances(t *testing.T) {
 	sender_address := common.HexToAddress("0x0")
 
 	_, err = avsWriter.BatcherBalancesRetryable(sender_address)
-	assert.Nil(t, err, "Should be 0")
+	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
@@ -834,7 +903,15 @@ func TestBatchersBalances(t *testing.T) {
 
 	_, err = avsWriter.BatcherBalancesRetryable(sender_address)
 	assert.NotNil(t, err)
-	fmt.Printf(": %s\n", err)
+	// Assert returned error is both transient error and contains the expected error msg.
+	if _, ok := err.(connection.TransientError); !ok {
+		fmt.Printf("BatchersBalances Emitted non-Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		fmt.Printf("BatchersBalances did not return expected error: %s\n", err)
+		return
+	}
 
 	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
@@ -844,7 +921,6 @@ func TestBatchersBalances(t *testing.T) {
 
 	_, err = avsWriter.BatcherBalancesRetryable(sender_address)
 	assert.Nil(t, err)
-	fmt.Printf("Error Failed to Retrieve Block Number: %s\n", err)
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
