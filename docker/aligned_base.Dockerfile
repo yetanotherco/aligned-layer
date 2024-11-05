@@ -53,7 +53,7 @@ ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
 # Include mold binary
-RUN apt install -y binutils clang gcc
+RUN apt install -y binutils gcc
 COPY --from=base /usr/local/bin/mold /usr/local/bin/mold
 
 # build_sp1_linux
