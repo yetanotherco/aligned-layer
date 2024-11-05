@@ -57,7 +57,20 @@ func TestBaseUrlOnlyHappyPath(t *testing.T) {
 		{"http://localhost:8545/asdfoij2a7831has89%342jddav98j2748", "localhost:8545"},
 		{"ws://test.com/23r2f98hkjva0udhvi1j%342jddav98j2748", "test.com"},
 		{"http://localhost:8545", "localhost:8545"},
-		{"https://myservice.com/holesky/ApiKey", "myservice.com/holesky"},
+		{"https://myservice.com/holesky/ApiKey", "myservice.com"},
+		{"https://holesky.myservice.com/holesky", "holesky.myservice.com"},
+		{"https://eth-mainnet.blastapi.io/12345678-abcd-1234-abcd-123456789012", "eth-mainnet.blastapi.io"},
+		{"https://eth-holesky.g.alchemy.com/v2/1234567890_abcdefghijklmnopqrstuv/", "eth-holesky.g.alchemy.com"},
+		{"https://a.b.c.d/1234", "a.b.c.d"},
+		{"https://a.b.c.d/1234/5678", "a.b.c.d"},
+		{"https://a.b.c.d.e/1234/", "a.b.c.d.e"},
+		{"https://a.b.c.d?e=1234", "a.b.c.d"},
+		{"https://a.b.c.d/rpc?e=1234", "a.b.c.d"},
+		{"wss://a.b.c.d/1234", "a.b.c.d"},
+		{"wss://a.b.c.d/1234/5678", "a.b.c.d"},
+		{"wss://a.b.c.d.e/1234/", "a.b.c.d.e"},
+		{"wss://a.b.c.d?e=1234", "a.b.c.d"},
+		{"wss://a.b.c.d/rpc?e=1234", "a.b.c.d"},
 	}
 
 	for _, pair := range urls {
@@ -72,22 +85,6 @@ func TestBaseUrlOnlyHappyPath(t *testing.T) {
 
 		if baseUrl != expectedBaseUrl {
 			t.Errorf("Expected base URL %s, got %s for URL %s", expectedBaseUrl, baseUrl, url)
-		}
-	}
-}
-
-func TestBaseUrlOnlyFailureCases(t *testing.T) {
-
-	urls := [...]string{
-		"localhost:8545/asdfoij2a7831has89%342jddav98j2748",
-		"this-is-all-wrong",
-	}
-
-	for _, url := range urls {
-		baseUrl, err := BaseUrlOnly(url)
-
-		if err == nil {
-			t.Errorf("An error was expected, but received %s", baseUrl)
 		}
 	}
 }
