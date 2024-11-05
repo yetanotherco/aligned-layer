@@ -1,20 +1,19 @@
 use std::sync::Arc;
 
+use crate::types::{batch_queue::BatchQueueEntry, errors::BatcherError};
 use aligned_sdk::{
     communication::serialization::cbor_serialize,
     core::types::{BatchInclusionData, ResponseMessage, VerificationCommitmentBatch},
 };
 use futures_util::{stream::SplitSink, SinkExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use log::{error, debug};
+use log::{debug, error};
 use serde::Serialize;
 use tokio::{net::TcpStream, sync::RwLock};
 use tokio_tungstenite::{
     tungstenite::{Error, Message},
     WebSocketStream,
 };
-
-use crate::types::{batch_queue::BatchQueueEntry, errors::BatcherError};
 
 pub(crate) type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
 
@@ -23,7 +22,11 @@ pub(crate) async fn send_batch_inclusion_data_responses(
     batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
 ) -> Result<(), BatcherError> {
     for (vd_batch_idx, entry) in finalized_batch.iter().enumerate() {
-        let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree, entry.nonced_verification_data.nonce);
+        let batch_inclusion_data = BatchInclusionData::new(
+            vd_batch_idx,
+            batch_merkle_tree,
+            entry.nonced_verification_data.nonce,
+        );
         let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
 
         let serialized_response = cbor_serialize(&response)

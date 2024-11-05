@@ -201,7 +201,9 @@ impl fmt::Display for SubmitError {
             SubmitError::InvalidProof(reason) => write!(f, "Invalid proof {}", reason),
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
             SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
-            SubmitError::InsufficientBalance(addr) => write!(f, "Insufficient balance, address: {}", addr),
+            SubmitError::InsufficientBalance(addr) => {
+                write!(f, "Insufficient balance, address: {}", addr)
+            }
             SubmitError::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
                 write!(
                     f,
@@ -212,7 +214,7 @@ impl fmt::Display for SubmitError {
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
             SubmitError::AddToBatchError => write!(f, "Error while adding entry to batch"),
             SubmitError::InvalidProofInclusionData => {
-                write!(f, "Batcher responded with invalid batch inclusion data. Your proof was not correctly included in the batch.")
+                write!(f, "Batcher responded with invalid batch inclusion data. Can't verify your proof was correctly included in the batch.")
             }
         }
     }

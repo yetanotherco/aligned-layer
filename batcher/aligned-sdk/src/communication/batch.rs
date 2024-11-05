@@ -4,7 +4,8 @@ use crate::{
     core::{
         errors,
         types::{
-            AlignedVerificationData, BatchInclusionData, Network, VerificationCommitmentBatch, VerificationDataCommitment
+            AlignedVerificationData, BatchInclusionData, Network, VerificationCommitmentBatch,
+            VerificationDataCommitment,
         },
     },
     sdk::is_proof_verified,
@@ -25,12 +26,10 @@ pub fn process_batcher_response(
     debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
 
     if verify_proof_inclusion(verification_data_commitment, batch_inclusion_data) {
-        Ok(
-            AlignedVerificationData::new(
-                verification_data_commitment,
-                batch_inclusion_data,
-            )
-        )
+        Ok(AlignedVerificationData::new(
+            verification_data_commitment,
+            batch_inclusion_data,
+        ))
     } else {
         Err(errors::SubmitError::InvalidProofInclusionData)
     }
