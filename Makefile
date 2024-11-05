@@ -1009,7 +1009,7 @@ telemetry_create_env:
 
 __ANSIBLE__: ## ____
 
-ansible_batcher_create_env: ## Create empty variables files for the Batcer deploy
+ansible_batcher_create_env: ## Create empty variables files for the Batcher deploy
 	@cp infra/ansible/playbooks/ini/caddy-batcher.ini.example infra/ansible/playbooks/ini/caddy-batcher.ini
 	@cp infra/ansible/playbooks/ini/config-batcher.ini.example infra/ansible/playbooks/ini/config-batcher.ini
 	@cp infra/ansible/playbooks/ini/env-batcher.ini.example infra/ansible/playbooks/ini/env-batcher.ini
