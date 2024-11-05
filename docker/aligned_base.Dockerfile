@@ -47,12 +47,12 @@ COPY Makefile .
 
 FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 
-RUN apt install -y binutils
-
 FROM chef AS planner
 
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
+
+RUN apt install -y binutils
 
 # build_sp1_linux
 COPY operator/sp1/lib/Cargo.toml /aligned_layer/operator/sp1/lib/Cargo.toml
@@ -90,6 +90,8 @@ COPY batcher/aligned-sdk /aligned_layer/batcher/aligned-sdk/
 
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
+
+RUN apt install -y binutils
 
 # build_sp1_linux
 COPY operator/sp1/ /aligned_layer/operator/sp1/
