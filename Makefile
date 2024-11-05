@@ -302,10 +302,6 @@ batcher/target/release/aligned:
 RPC_URL=http://localhost:8545
 NETWORK=devnet # devnet | holesky-stage | holesky
 
-# Infinite stream of one proof
-batcher_send_infinite_stream:
-	@cd batcher/aligned-task-sender && cargo run --release -- --burst-size 1 --action infinite-proofs
-
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
