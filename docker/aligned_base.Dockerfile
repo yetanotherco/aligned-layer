@@ -52,7 +52,9 @@ FROM chef AS planner
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
+# Include mold binary
 RUN apt install -y binutils
+COPY --from=base /usr/bin/mold /usr/bin/mold
 
 # build_sp1_linux
 COPY operator/sp1/lib/Cargo.toml /aligned_layer/operator/sp1/lib/Cargo.toml
@@ -92,6 +94,7 @@ ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
 RUN apt install -y binutils
+COPY --from=base /usr/bin/mold /usr/bin/mold
 
 # build_sp1_linux
 COPY operator/sp1/ /aligned_layer/operator/sp1/
