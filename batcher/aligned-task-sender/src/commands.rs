@@ -86,9 +86,7 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         let file_reader = BufReader::new(file);
 
         let mut last_handle = None;
-        let mut i = 0;
-        for line in file_reader.lines() {
-            i += 1;
+        for (i, line) in file_reader.lines().enumerate() {
             // Load the wallet
             let private_key_str = line.unwrap();
             let wallet = Wallet::from_str(private_key_str.trim())
