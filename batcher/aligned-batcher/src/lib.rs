@@ -1298,7 +1298,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             usize::MAX,
-        )
+        ) // TODO (#1380): Set a gas price limit when canceling a created task
         .await
         {
             error!("Could not cancel createNewTask transaction: {e}");
