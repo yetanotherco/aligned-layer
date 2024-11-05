@@ -1260,7 +1260,8 @@ impl Batcher {
     }
 
     // Sends a transaction to Ethereum with the same nonce as the previous one to override it.
-    // We use the maximum number of retries here because this transaction must be included.
+    // Uses exponential backoff with the maximum number of retries because this transaction must be included.
+    // Bumps the gas price used and waits for 3 blocks on each attepmt to get the Receipt of the cancel transaction.
     pub async fn cancel_create_new_task_tx(&self, old_tx_gas_price: U256) {
         info!("Cancelling createNewTask transaction...");
         let iteration = Arc::new(Mutex::new(0));
