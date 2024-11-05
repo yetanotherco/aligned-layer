@@ -128,87 +128,87 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
     match cbor_deserialize(data.as_slice()) {
         Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
             //OK case. Proofs was valid and it was included in this batch.
-            return Ok(batch_inclusion_data);
+            Ok(batch_inclusion_data)
         }
         Ok(ResponseMessage::InvalidNonce) => {
             error!("Batcher responded with invalid nonce");
-            return Err(SubmitError::InvalidNonce);
+            Err(SubmitError::InvalidNonce)
         }
         Ok(ResponseMessage::InvalidSignature) => {
             error!("Batcher responded with invalid signature");
-            return Err(SubmitError::InvalidSignature);
+            Err(SubmitError::InvalidSignature)
         }
         Ok(ResponseMessage::ProofTooLarge) => {
             error!("Batcher responded with proof too large");
-            return Err(SubmitError::ProofTooLarge);
+            Err(SubmitError::ProofTooLarge)
         }
         Ok(ResponseMessage::InvalidMaxFee) => {
             error!("Batcher responded with invalid max fee");
-            return Err(SubmitError::InvalidMaxFee);
+            Err(SubmitError::InvalidMaxFee)
         }
         Ok(ResponseMessage::InsufficientBalance(addr)) => {
             error!("Batcher responded with insufficient balance");
-            return Err(SubmitError::InsufficientBalance(addr));
+            Err(SubmitError::InsufficientBalance(addr))
         }
         Ok(ResponseMessage::InvalidChainId) => {
             error!("Batcher responded with invalid chain id");
-            return Err(SubmitError::InvalidChainId);
+            Err(SubmitError::InvalidChainId)
         }
         Ok(ResponseMessage::InvalidReplacementMessage) => {
             error!("Batcher responded with invalid replacement message");
-            return Err(SubmitError::InvalidReplacementMessage);
+            Err(SubmitError::InvalidReplacementMessage)
         }
         Ok(ResponseMessage::AddToBatchError) => {
             error!("Batcher responded with add to batch error");
-            return Err(SubmitError::AddToBatchError);
+            Err(SubmitError::AddToBatchError)
         }
         Ok(ResponseMessage::EthRpcError) => {
             error!("Batcher experienced Eth RPC connection error");
-            return Err(SubmitError::EthereumProviderError(
+            Err(SubmitError::EthereumProviderError(
                 "Batcher experienced Eth RPC connection error".to_string(),
-            ));
+            ))
         }
         Ok(ResponseMessage::InvalidPaymentServiceAddress(received_addr, expected_addr)) => {
             error!(
                 "Batcher responded with invalid payment service address: {:?}, expected: {:?}",
                 received_addr, expected_addr
             );
-            return Err(SubmitError::InvalidPaymentServiceAddress(
+            Err(SubmitError::InvalidPaymentServiceAddress(
                 received_addr,
                 expected_addr,
-            ));
+            ))
         }
         Ok(ResponseMessage::InvalidProof(reason)) => {
             error!("Batcher responded with invalid proof: {}", reason);
-            return Err(SubmitError::InvalidProof(reason));
+            Err(SubmitError::InvalidProof(reason))
         }
         Ok(ResponseMessage::CreateNewTaskError(merkle_root, error)) => {
             error!("Batcher responded with create new task error: {}", error);
-            return Err(SubmitError::BatchSubmissionFailed(
+            Err(SubmitError::BatchSubmissionFailed(
                 "Could not create task with merkle root ".to_owned()
                     + &merkle_root
                     + ", failed with error: "
                     + &error,
-            ));
+            ))
         }
         Ok(ResponseMessage::ProtocolVersion(_)) => {
             error!("Batcher responded with protocol version instead of batch inclusion data");
-            return Err(SubmitError::UnexpectedBatcherResponse(
+            Err(SubmitError::UnexpectedBatcherResponse(
                 "Batcher responded with protocol version instead of batch inclusion data"
                     .to_string(),
-            ));
+            ))
         }
         Ok(ResponseMessage::BatchReset) => {
             error!("Batcher responded with batch reset");
-            return Err(SubmitError::ProofQueueFlushed);
+            Err(SubmitError::ProofQueueFlushed)
         }
         Ok(ResponseMessage::Error(e)) => {
             error!("Batcher responded with error: {}", e);
-            return Err(SubmitError::GenericError(e));
+            Err(SubmitError::GenericError(e))
         }
         Err(e) => {
             error!("Error while deserializing batch inclusion data: {}", e);
-            return Err(SubmitError::SerializationError(e));
+            Err(SubmitError::SerializationError(e))
         }
     }
 }
@@ -241,7 +241,7 @@ fn match_batcher_response_with_stored_verification_data(
 // Returns the biggest nonce from the sent verification data
 // Used to know which is the last proof sent to the Batcher,
 // to know when to stop reading the WS for responses
-fn get_biggest_nonce(sent_verification_data: &Vec<NoncedVerificationData>) -> U256 {
+fn get_biggest_nonce(sent_verification_data: &[NoncedVerificationData]) -> U256 {
     let mut biggest_nonce = U256::zero();
     for verification_data in sent_verification_data.iter() {
         if verification_data.nonce > biggest_nonce {
