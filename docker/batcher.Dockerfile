@@ -13,7 +13,12 @@ RUN apt install -y binutils
 
 FROM chef AS planner
 
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
+
+# Include mold binary
+RUN apt install -y binutils
+COPY --from=base /usr/local/bin/mold /usr/local/bin/mold
 
 COPY batcher/aligned-batcher/Cargo.toml /aligned_layer/batcher/aligned-batcher/Cargo.toml
 COPY batcher/aligned-batcher/src/main.rs /aligned_layer/batcher/aligned-batcher/src/main.rs
@@ -27,7 +32,12 @@ RUN cargo chef prepare --recipe-path /aligned_layer/batcher/aligned/recipe.json
 
 FROM chef AS chef_builder
 
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
+
+# Include mold binary
+RUN apt install -y binutils
+COPY --from=base /usr/local/bin/mold /usr/local/bin/mold
 
 COPY batcher/aligned-sdk/ /aligned_layer/batcher/aligned-sdk/
 
@@ -40,6 +50,9 @@ WORKDIR /aligned_layer/batcher/aligned/
 RUN cargo chef cook --release --recipe-path /aligned_layer/batcher/aligned/recipe.json
 
 FROM base AS builder
+
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
 RUN apt install -y binutils
 
