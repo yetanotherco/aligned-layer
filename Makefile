@@ -1006,3 +1006,21 @@ telemetry_dump_db:
 telemetry_create_env:
 	@cd telemetry_api && \
 		cp .env.dev .env
+
+__ANSIBLE__: ## ____
+
+ansible_batcher_create_env: ## Create empty variables files for the Batcer deploy
+	@cp infra/ansible/playbooks/ini/caddy-batcher.ini.example infra/ansible/playbooks/ini/caddy-batcher.ini
+	@cp infra/ansible/playbooks/ini/config-batcher.ini.example infra/ansible/playbooks/ini/config-batcher.ini
+	@cp infra/ansible/playbooks/ini/env-batcher.ini.example infra/ansible/playbooks/ini/env-batcher.ini
+	@echo "Config files for the Batcher created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_batcher_deploy"
+
+ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
+	@if [ -z "$(INVENTORY)" ] || [ -z "$(KEYSTORE)" ]; then \
+		echo "Error: Both INVENTORY and KEYSTORE must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/batcher.yaml \
+		-i $(INVENTORY) \
+		-e "keystore_path=$(KEYSTORE)"

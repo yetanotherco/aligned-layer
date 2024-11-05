@@ -1,0 +1,7 @@
+[global]
+secret_access_key=
+region=
+access_key_id=
+bucket_name=
+download_endpoint=
+log_level=<debug, info, warn, error>

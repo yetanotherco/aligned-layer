@@ -1,8 +1,8 @@
-#- import_playbook: setup.yaml
-#- import_playbook: webserver.yaml
-#- import_playbook: rust.yaml
-#- import_playbook: go.yaml
-#- import_playbook: eigenlayer-cli.yaml
+- import_playbook: setup.yaml
+- import_playbook: webserver.yaml
+- import_playbook: rust.yaml
+- import_playbook: go.yaml
+- import_playbook: eigenlayer-cli.yaml
 
 - hosts: batcher
   vars:
