@@ -1,6 +1,6 @@
 # https://everythingcoding.in/go-setup-through-ansible/
 - name: Go Setup
-  hosts: all
+  hosts: "{{ host }}"
   vars:
     version: 1.22.2
 

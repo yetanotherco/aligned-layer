@@ -1,8 +1,27 @@
-- import_playbook: setup.yaml
-- import_playbook: webserver.yaml
-- import_playbook: rust.yaml
-- import_playbook: go.yaml
-- import_playbook: eigenlayer-cli.yaml
+- name: Run setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: batcher
+
+- name: Run webserver playbook
+  ansible.builtin.import_playbook: webserver.yaml
+  vars:
+    host: batcher
+
+- name: Run go playbook
+  ansible.builtin.import_playbook: go.yaml
+  vars:
+    host: batcher
+
+- name: Run rust playbook
+  ansible.builtin.import_playbook: rust.yaml
+  vars:
+    host: batcher
+
+- name: Run eigenlayer-cli playbook
+  ansible.builtin.import_playbook: eigenlayer-cli.yaml
+  vars:
+    host: batcher
 
 - hosts: batcher
   vars:

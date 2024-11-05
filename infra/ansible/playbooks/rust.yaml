@@ -1,5 +1,5 @@
 - name: Rust Setup
-  hosts: all
+  hosts: "{{ host }}"
 
   pre_tasks:
     - name: update repositories

@@ -1,5 +1,5 @@
 - name: Eigenlayer CLI Setup
-  hosts: all
+  hosts: "{{ host }}"
 
   tasks:
     - name: check if eigenlayer is installed
