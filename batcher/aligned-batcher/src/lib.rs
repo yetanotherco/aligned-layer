@@ -1231,6 +1231,7 @@ impl Batcher {
                 Err(BatcherError::TransactionSendError(err))
             }
             Err(_) => {
+                warn!("Failed to send transaction to contract. Trying with fallback");
                 let receipt = try_create_new_task(
                     batch_merkle_root,
                     batch_data_pointer,

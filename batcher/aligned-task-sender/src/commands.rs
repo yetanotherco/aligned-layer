@@ -85,6 +85,7 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         };
         let file_reader = BufReader::new(file);
 
+        let mut last_handle = None;
         let mut i = 0;
         for line in file_reader.lines() {
             i += 1;
@@ -98,7 +99,7 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
             let funded_wallet_signer =
                 SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
             tokio::time::sleep(Duration::from_millis(50)).await; // To avoid overloading the RPC
-            tokio::spawn(async move {
+            last_handle = Some(tokio::spawn(async move {
                 if let Err(err) = deposit_to_aligned(
                     amount_to_deposit_to_aligned,
                     funded_wallet_signer.clone(),
@@ -110,10 +111,13 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
                     return;
                 }
                 info!("Successfully deposited to aligned for wallet {}", i);
-            });
+            }));
         }
 
-        tokio::time::sleep(Duration::from_secs(1)).await; // Wait for last tx to be sent
+        // Wait for last tx to be sent
+        if let Some(handle) = last_handle {
+            handle.await.expect("The task panicked");
+        }
 
         info!("All wallets funded");
 
