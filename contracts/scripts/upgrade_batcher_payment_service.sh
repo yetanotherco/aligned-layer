@@ -41,7 +41,7 @@ mv "$OUTPUT_PATH.temp" $OUTPUT_PATH
 # Delete the temporary file
 rm -f "$OUTPUT_PATH.temp"
 
-data=$(cast calldata "upgradeToAndCall(address, bytes)" $batcher_payment_service_implementation "0x")
+data=$(cast calldata "upgradeTo(address)" $batcher_payment_service_implementation)
 
 if [ "$MULTISIG" = false ]; then
   echo "Executing upgrade transaction"
