@@ -41,7 +41,7 @@ FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 
 FROM chef AS planner
 
-ENV RUSTFLAGS="-C codegen-units=256 -C incremental=true -C opt-level=0"
+ENV RUSTFLAGS="-C codegen-units=256 -C incremental=true -C opt-level=1"
 
 # build_sp1_linux
 COPY operator/sp1/lib/Cargo.toml /aligned_layer/operator/sp1/lib/Cargo.toml
@@ -75,7 +75,7 @@ RUN cargo chef prepare --recipe-path /aligned_layer/operator/merkle_tree/lib/rec
 
 FROM chef AS chef_builder
 
-ENV RUSTFLAGS="-C codegen-units=256 -C incremental=true -C opt-level=0"
+ENV RUSTFLAGS="-C codegen-units=256 -C incremental=true -C opt-level=1"
 
 COPY batcher/aligned-sdk /aligned_layer/batcher/aligned-sdk/
 
@@ -111,7 +111,7 @@ RUN cargo chef cook --release --recipe-path /aligned_layer/operator/merkle_tree/
 
 FROM base AS builder
 
-ENV RUSTFLAGS="-C codegen-units=256 -C incremental=true -C opt-level=0"
+ENV RUSTFLAGS="-C codegen-units=256 -C incremental=true -C opt-level=1"
 
 ENV RELEASE_FLAG=--release
 ENV TARGET_REL_PATH=release
