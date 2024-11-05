@@ -91,7 +91,7 @@ FROM chef AS chef_builder
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
-RUN apt install -y binutils gcc
+COPY --from=base /usr/bin/ld /usr/bin/ld
 COPY --from=base /usr/local/bin/mold /usr/local/bin/mold
 
 COPY batcher/aligned-sdk /aligned_layer/batcher/aligned-sdk/
