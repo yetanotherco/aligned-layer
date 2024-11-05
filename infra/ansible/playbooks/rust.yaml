@@ -1,33 +1,31 @@
 - name: Rust Setup
-  hosts: all
+  hosts: "{{ host }}"
 
   pre_tasks:
     - name: update repositories
-      apt: update_cache=yes
       become: true
+      apt: update_cache=yes
       changed_when: false
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
 
   tasks:
     - name: check if cargo is installed
-      become_user: '{{ app_user }}'
-      shell: /home/{{ app_user }}/.cargo/bin/cargo -v
+      stat:
+        path: "/home/{{ ansible_user }}/.cargo/bin/cargo"
       register: cargo_exists
-      ignore_errors: true
 
     - name: Download Installer
-      when: cargo_exists is failed
-      become_user: '{{ app_user }}'
+      when: not cargo_exists.stat.exists
       get_url:
         url: https://sh.rustup.rs
         dest: /tmp/sh.rustup.rs
         mode: '0755'
-        force: 'yes'
       tags:
         - rust
 
     - name: install rust/cargo
-      when: cargo_exists is failed
-      become_user: "{{ app_user }}"
+      when: not cargo_exists.stat.exists
       shell: /tmp/sh.rustup.rs -y && rm /tmp/sh.rustup.rs
       tags:
         - rust

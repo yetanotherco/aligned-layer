@@ -1,27 +1,28 @@
-#sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
-#curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-#curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
-#sudo apt update
-#sudo apt install caddy
-- hosts: all
-  become: true
-  vars:
+# Reference https://caddyserver.com/docs/install#debian-ubuntu-raspbian
+- hosts: "{{ host }}"
 
   tasks:
     - name: Allow all access to tcp port 80
+      become: true
       ufw:
         rule: allow
         port: 80
         proto: tcp
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
 
     - name: Allow all access to tcp port 443
+      become: true
       ufw:
         rule: allow
         port: 443
         proto: tcp
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
 
     # https://peterbabic.dev/blog/how-to-install-caddy-using-ansible/
     - name: Install required packages
+      become: true
       apt:
         update_cache: yes
         name:
@@ -29,36 +30,54 @@
           - debian-archive-keyring
           - apt-transport-https
         state: present
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
 
     - name: Add Cloudsmith repository
+      become: true
       apt_key:
         url: "https://dl.cloudsmith.io/public/caddy/stable/gpg.key"
         state: present
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
 
     - name: Add Caddy repository to sources list
+      become: true
       apt_repository:
         repo:
           "deb https://dl.cloudsmith.io/public/caddy/stable/deb/debian
           any-version main"
         state: present
         filename: caddy-stable
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
 
     - name: Add Caddy src repository to sources list
+      become: true
       apt_repository:
         repo:
           "deb-src https://dl.cloudsmith.io/public/caddy/stable/deb/debian
           any-version main"
         state: present
         filename: caddy-stable
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
 
     - name: Install Caddy
+      become: true
       apt:
         update_cache: yes
         name: caddy
         state: present
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
 
     - name: Enable and start Caddy service
+      become: true
       service:
         name: caddy
         enabled: yes
         state: started
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"

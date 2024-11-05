@@ -1,0 +1,141 @@
+- name: Run setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: batcher
+
+- name: Run webserver playbook
+  ansible.builtin.import_playbook: webserver.yaml
+  vars:
+    host: batcher
+
+- name: Run go playbook
+  ansible.builtin.import_playbook: go.yaml
+  vars:
+    host: batcher
+
+- name: Run rust playbook
+  ansible.builtin.import_playbook: rust.yaml
+  vars:
+    host: batcher
+
+- name: Run eigenlayer-cli playbook
+  ansible.builtin.import_playbook: eigenlayer-cli.yaml
+  vars:
+    host: batcher
+
+- hosts: batcher
+
+  tasks:
+    # Install required packages
+    - name: Update apt and install required system packages
+      become: true
+      apt:
+        pkg:
+          - pkg-config
+          - libssl-dev
+        state: latest
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    # Create directories for each service
+    - name: Create directories for each service if do not exist
+      ansible.builtin.file:
+        path: /home/{{ ansible_user }}/repos/batcher
+        state: directory
+        mode: '0755'
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+
+    # Clone Aligned repository for the service
+    - name: Clone Aligned repository
+      ansible.builtin.git:
+        repo: https://github.com/yetanotherco/aligned_layer.git
+        dest: /home/{{ ansible_user }}/repos/batcher/aligned_layer
+        version: batcher_ansible
+        recursive: false
+
+    # Build the batcher
+    - name: Install deps
+      make:
+        chdir: /home/{{ ansible_user }}/repos/batcher/aligned_layer
+        target: deps
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
+
+    - name: Install batcher
+      make:
+        chdir: /home/{{ ansible_user }}/repos/batcher/aligned_layer
+        target: install_batcher
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
+
+    - name: Create systemd services directory
+      file:
+        path: "/home/{{ ansible_user }}/.config/systemd/user/"
+        state: directory
+
+    - name: Add service to systemd
+      template:
+        src: services/batcher.service.j2
+        dest: "/home/{{ ansible_user }}/.config/systemd/user/batcher.service"
+        force: no
+
+    - name: Upload config file for batcher
+      template:
+        src: config-files/config-batcher.yaml.j2
+        dest: "/home/{{ ansible_user }}/config/config-batcher-holesky.yaml"
+      vars:
+        aligned_layer_deployment_config_file_path: "{{ lookup('ini', 'aligned_layer_deployment_config_file_path', file='ini/config-batcher.ini') }}"
+        eigen_layer_deployment_config_file_path: "{{ lookup('ini', 'eigen_layer_deployment_config_file_path', file='ini/config-batcher.ini') }}"
+        eth_rpc_url: "{{ lookup('ini', 'eth_rpc_url', file='ini/config-batcher.ini') }}"
+        eth_rpc_url_fallback: "{{ lookup('ini', 'eth_rpc_url_fallback', file='ini/config-batcher.ini') }}"
+        eth_ws_url: "{{ lookup('ini', 'eth_ws_url', file='ini/config-batcher.ini') }}"
+        eth_ws_url_fallback: "{{ lookup('ini', 'eth_ws_url_fallback', file='ini/config-batcher.ini') }}"
+        ecdsa_private_key_store_path: "{{ lookup('ini', 'ecdsa_private_key_store_path', file='ini/config-batcher.ini') }}"
+        ecdsa_private_key_store_password: "{{ lookup('ini', 'ecdsa_private_key_store_password', file='ini/config-batcher.ini') }}"
+        batcher_replacement_private_key: "{{ lookup('ini', 'batcher_replacement_private_key', file='ini/config-batcher.ini') }}"
+
+
+    - name: Upload env file for batcher
+      template:
+        src: config-files/env-batcher.j2
+        dest: "/home/{{ ansible_user }}/config/.env.batcher"
+      vars:
+        secret_access_key: "{{ lookup('ini', 'secret_access_key', file='ini/env-batcher.ini') }}"
+        region: "{{ lookup('ini', 'region', file='ini/env-batcher.ini') }}"
+        access_key_id: "{{ lookup('ini', 'access_key_id', file='ini/env-batcher.ini') }}"
+        bucket_name: "{{ lookup('ini', 'bucket_name', file='ini/env-batcher.ini') }}"
+        download_endpoint: "{{ lookup('ini', 'download_endpoint', file='ini/env-batcher.ini') }}"
+        log_level: "{{ lookup('ini', 'log_level', file='ini/env-batcher.ini') }}"
+
+    - name: Add reverse proxy to Caddy
+      become: true
+      template:
+        src: caddy/Caddyfile.batcher.j2
+        dest: "/etc/caddy/Caddyfile"
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+        batcher_domain: "{{ lookup('ini', 'batcher_domain', file='ini/caddy-batcher.ini') }}"
+
+    - name: Copy keystore to server
+      ansible.builtin.copy:
+        src: '{{ keystore_path }}'
+        dest: /home/{{ ansible_user }}/.keystores/batcher
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+
+    - name: Start Batcher service
+      ansible.builtin.systemd_service:
+        name: batcher
+        state: started
+        enabled: true
+        scope: user
+
+    - name: Restart Caddy service
+      become: true
+      ansible.builtin.systemd_service:
+        name: caddy
+        state: restarted
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
