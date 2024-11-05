@@ -49,6 +49,7 @@
         - .keystores
 
     - name: Enable linger for {{ ansible_user }}
-      shell: sudo loginctl enable-linger {{ ansible_user }}
+      become: true
+      shell: loginctl enable-linger {{ ansible_user }}
       vars:
         ansible_ssh_user: "{{ admin_user }}"
