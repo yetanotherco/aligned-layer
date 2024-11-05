@@ -29,6 +29,9 @@ pub type ResponseStream = TryFilter<
     fn(&Message) -> Ready<bool>,
 >;
 
+// Sends the proofs to the batcher via WS
+// Stores the proofs sent in an array
+// Returns the array
 pub async fn send_messages(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     payment_service_addr: Address,
@@ -73,10 +76,16 @@ pub async fn send_messages(
 
 
 // Instead of using a channel, use a storage.
+// Using a 
 // From there, you can match received messages to the ones you sent.
 
 // TODO missing analyzing which is the last expected nonce.
 // When received message of last expected nonce, i can exit this function
+
+// Receives the array of proofs sent
+// Reads the WS responses
+// Matches each response with the corresponding proof sent
+// finishes when the last proof sent receives its response
 pub async fn receive(
     response_stream: Arc<Mutex<ResponseStream>>,
     mut sent_verification_data: Vec<NoncedVerificationData>,
@@ -217,8 +226,8 @@ async fn handle_batcher_response(
 }
 
 // Used to match the message received from the batcher,
-// a BatchInclusionData corresponding to the data you need to verify your proof is in a batch
-// with the NoncedVerificationData you sent, used to verify the proof was indeed included in the batch
+// with the NoncedVerificationData you sent
+// This is used to verify the proof you sent was indeed included in the batch
 fn match_batcher_response_with_stored_verification_data(
     batch_inclusion_data: &BatchInclusionData,
     sent_verification_data: &mut Vec<NoncedVerificationData>,
@@ -241,6 +250,9 @@ fn match_batcher_response_with_stored_verification_data(
     Err(SubmitError::InvalidProofInclusionData)
 }
 
+// Returns the biggest nonce from the sent verification data
+// Used to know which is the last proof sent to the Batcher,
+// to know when to stop reading the WS for responses
 fn get_biggest_nonce(sent_verification_data: &Vec<NoncedVerificationData>) -> U256 {
     let mut biggest_nonce = U256::zero();
     for verification_data in sent_verification_data.iter() {

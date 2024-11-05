@@ -212,7 +212,7 @@ impl fmt::Display for SubmitError {
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
             SubmitError::AddToBatchError => write!(f, "Error while adding entry to batch"),
             SubmitError::InvalidProofInclusionData => {
-                write!(f, "Batcher responded with invalid batch inclusion data. Your proof was not correctly included in the batch.")
+                write!(f, "Batcher responded with invalid batch inclusion data. Can't verify your proof was correctly included in the batch.")
             }
         }
     }
