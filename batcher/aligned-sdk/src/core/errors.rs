@@ -201,7 +201,9 @@ impl fmt::Display for SubmitError {
             SubmitError::InvalidProof(reason) => write!(f, "Invalid proof {}", reason),
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
             SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
-            SubmitError::InsufficientBalance(addr) => write!(f, "Insufficient balance, address: {}", addr),
+            SubmitError::InsufficientBalance(addr) => {
+                write!(f, "Insufficient balance, address: {}", addr)
+            }
             SubmitError::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
                 write!(
                     f,

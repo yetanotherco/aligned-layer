@@ -368,11 +368,7 @@ impl Batcher {
         let msg_chain_id = client_msg.verification_data.chain_id;
         if msg_chain_id != self.chain_id {
             warn!("Received message with incorrect chain id: {msg_chain_id}");
-            send_message(
-                ws_conn_sink.clone(),
-                ResponseMessage::InvalidChainId,
-            )
-            .await;
+            send_message(ws_conn_sink.clone(), ResponseMessage::InvalidChainId).await;
 
             return Ok(());
         }
@@ -396,11 +392,7 @@ impl Batcher {
         info!("Verifying message signature...");
         let Ok(addr) = client_msg.verify_signature() else {
             error!("Signature verification error");
-            send_message(
-                ws_conn_sink.clone(),
-                ResponseMessage::InvalidSignature,
-            )
-            .await;
+            send_message(ws_conn_sink.clone(), ResponseMessage::InvalidSignature).await;
             return Ok(());
         };
         info!("Message signature verified");

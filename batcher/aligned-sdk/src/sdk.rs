@@ -38,13 +38,13 @@ use log::{debug, info};
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
-    StreamExt, TryStreamExt, SinkExt
+    SinkExt, StreamExt, TryStreamExt,
 };
 
+use serde_json::json;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use serde_json::json;
 
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
@@ -297,7 +297,8 @@ async fn _submit_multiple(
             "verification_data".to_string(),
         ));
     }
-    if verification_data.len() > 10000 { //TODO Magic number
+    if verification_data.len() > 10000 {
+        //TODO Magic number
         return Err(errors::SubmitError::GenericError(
             "Trying to submit too many proofs at once".to_string(),
         ));
@@ -313,9 +314,18 @@ async fn _submit_multiple(
     let payment_service_addr = get_payment_service_address(network);
 
     let result = async {
-        let sent_verification_data = send_messages(ws_write, payment_service_addr, verification_data, max_fees, wallet, nonce).await?;
+        let sent_verification_data = send_messages(
+            ws_write,
+            payment_service_addr,
+            verification_data,
+            max_fees,
+            wallet,
+            nonce,
+        )
+        .await?;
         receive(response_stream, sent_verification_data).await
-    }.await;
+    }
+    .await;
 
     // Close connection
     info!("Closing WS connection");

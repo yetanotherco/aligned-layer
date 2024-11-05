@@ -65,22 +65,14 @@ pub async fn send_messages(
             .map_err(SubmitError::WebSocketConnectionError)?;
 
         debug!("{:?} Message sent", idx);
-        
+
         // Save the verification data commitment to read its response later
         sent_verification_data.push(verification_data);
     }
 
     info!("All messages sent");
-    Ok(sent_verification_data) 
+    Ok(sent_verification_data)
 }
-
-
-// Instead of using a channel, use a storage.
-// Using a 
-// From there, you can match received messages to the ones you sent.
-
-// TODO missing analyzing which is the last expected nonce.
-// When received message of last expected nonce, i can exit this function
 
 // Receives the array of proofs sent
 // Reads the WS responses
@@ -105,24 +97,19 @@ pub async fn receive(
                 ));
             }
             return Err(SubmitError::GenericError(
-                "Connection was closed before receive() processed all sent messages "
-                    .to_string(),
+                "Connection was closed before receive() processed all sent messages ".to_string(),
             ));
         }
- 
-        let batch_inclusion_data_message = handle_batcher_response(
-            msg,
-        ).await?;
+
+        let batch_inclusion_data_message = handle_batcher_response(msg).await?;
 
         let related_verification_data = match_batcher_response_with_stored_verification_data(
             &batch_inclusion_data_message,
             &mut sent_verification_data,
         )?;
-            
-        let aligned_verification_data = process_batcher_response(
-            &batch_inclusion_data_message,
-            &related_verification_data,
-        )?;
+
+        let aligned_verification_data =
+            process_batcher_response(&batch_inclusion_data_message, &related_verification_data)?;
 
         aligned_submitted_data.push(aligned_verification_data);
         info!("Message response handled succesfully");
@@ -136,13 +123,11 @@ pub async fn receive(
     Ok(aligned_submitted_data)
 }
 
-async fn handle_batcher_response(
-    msg: Message,
-) -> Result<BatchInclusionData, SubmitError> {
-
+async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, SubmitError> {
     let data = msg.into_data();
     match cbor_deserialize(data.as_slice()) {
-        Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => { //OK case. Proofs was valid and it was included in this batch.
+        Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
+            //OK case. Proofs was valid and it was included in this batch.
             return Ok(batch_inclusion_data);
         }
         Ok(ResponseMessage::InvalidNonce) => {
@@ -193,14 +178,17 @@ async fn handle_batcher_response(
                 expected_addr,
             ));
         }
-        Ok(ResponseMessage::InvalidProof(reason)) => { 
+        Ok(ResponseMessage::InvalidProof(reason)) => {
             error!("Batcher responded with invalid proof: {}", reason);
             return Err(SubmitError::InvalidProof(reason));
         }
         Ok(ResponseMessage::CreateNewTaskError(merkle_root, error)) => {
             error!("Batcher responded with create new task error: {}", error);
             return Err(SubmitError::BatchSubmissionFailed(
-                "Could not create task with merkle root ".to_owned() + &merkle_root + ", failed with error: " + &error, 
+                "Could not create task with merkle root ".to_owned()
+                    + &merkle_root
+                    + ", failed with error: "
+                    + &error,
             ));
         }
         Ok(ResponseMessage::ProtocolVersion(_)) => {
@@ -216,7 +204,7 @@ async fn handle_batcher_response(
         }
         Ok(ResponseMessage::Error(e)) => {
             error!("Batcher responded with error: {}", e);
-            return Err(SubmitError::GenericError(e))
+            return Err(SubmitError::GenericError(e));
         }
         Err(e) => {
             error!("Error while deserializing batch inclusion data: {}", e);

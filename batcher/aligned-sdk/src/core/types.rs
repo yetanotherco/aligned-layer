@@ -332,7 +332,6 @@ impl AlignedVerificationData {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ProofInvalidReason {
     RejectedProof,
