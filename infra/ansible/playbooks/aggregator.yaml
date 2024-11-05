@@ -8,11 +8,6 @@
   vars:
     host: aggregator
 
-- name: Run rust playbook
-  ansible.builtin.import_playbook: rust.yaml
-  vars:
-    host: aggregator
-
 - name: Run eigenlayer-cli playbook
   ansible.builtin.import_playbook: eigenlayer-cli.yaml
   vars:
@@ -61,12 +56,45 @@
         group: '{{ ansible_user }}'
         recurse: yes
 
-    - name: Compile all FFIs
-      make:
-        chdir: /home/{{ ansible_user }}/repos/aggregator/aligned_layer
-        target: build_all_ffi_linux
-      environment:
-        PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
+    - name: Create systemd services directory
+      file:
+        path: "/home/{{ ansible_user }}/.config/systemd/user/"
+        state: directory
+
+    - name: Add service to systemd
+      template:
+        src: services/aggregator.service.j2
+        dest: "/home/{{ ansible_user }}/.config/systemd/user/aggregator.service"
+        force: no
+
+    - name: Upload config file for aggregator
+      template:
+        src: config-files/config-aggregator.yaml.j2
+        dest: "/home/{{ ansible_user }}/config/config-aggregator-holesky.yaml"
+      vars:
+        aligned_layer_deployment_config_file_path: "{{ lookup('ini', 'aligned_layer_deployment_config_file_path', file='ini/config-aggregator.ini') }}"
+        eigen_layer_deployment_config_file_path: "{{ lookup('ini', 'eigen_layer_deployment_config_file_path', file='ini/config-aggregator.ini') }}"
+        eth_rpc_url: "{{ lookup('ini', 'eth_rpc_url', file='ini/config-aggregator.ini') }}"
+        eth_rpc_url_fallback: "{{ lookup('ini', 'eth_rpc_url_fallback', file='ini/config-aggregator.ini') }}"
+        eth_ws_url: "{{ lookup('ini', 'eth_ws_url', file='ini/config-aggregator.ini') }}"
+        eth_ws_url_fallback: "{{ lookup('ini', 'eth_ws_url_fallback', file='ini/config-aggregator.ini') }}"
+        ecdsa_private_key_store_path: "{{ lookup('ini', 'ecdsa_private_key_store_path', file='ini/config-aggregator.ini') }}"
+        ecdsa_private_key_store_password: "{{ lookup('ini', 'ecdsa_private_key_store_password', file='ini/config-aggregator.ini') }}"
+        aggregator_replacement_private_key: "{{ lookup('ini', 'aggregator_replacement_private_key', file='ini/config-aggregator.ini') }}"
+
+
+    - name: Upload env file for aggregator
+      template:
+        src: config-files/env-aggregator.j2
+        dest: "/home/{{ ansible_user }}/config/.env.aggregator"
+      vars:
+        secret_access_key: "{{ lookup('ini', 'secret_access_key', file='ini/env-aggregator.ini') }}"
+        region: "{{ lookup('ini', 'region', file='ini/env-aggregator.ini') }}"
+        access_key_id: "{{ lookup('ini', 'access_key_id', file='ini/env-aggregator.ini') }}"
+        bucket_name: "{{ lookup('ini', 'bucket_name', file='ini/env-aggregator.ini') }}"
+        download_endpoint: "{{ lookup('ini', 'download_endpoint', file='ini/env-aggregator.ini') }}"
+        log_level: "{{ lookup('ini', 'log_level', file='ini/env-aggregator.ini') }}"
+
 
     - name: Allow access to tcp port 8090
       become: true
