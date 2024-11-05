@@ -4,7 +4,7 @@ use ethers::prelude::*;
 use ethers::utils::parse_ether;
 use futures_util::StreamExt;
 use k256::ecdsa::SigningKey;
-use log::{error, info, debug};
+use log::{debug, error, info};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::fs::{self, File};
