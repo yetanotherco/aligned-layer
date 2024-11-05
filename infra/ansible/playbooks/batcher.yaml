@@ -24,8 +24,6 @@
     host: batcher
 
 - hosts: batcher
-  vars:
-    service: "batcher"
 
   tasks:
     # Install required packages
@@ -43,7 +41,7 @@
     # Create directories for each service
     - name: Create directories for each service if do not exist
       ansible.builtin.file:
-        path: /home/{{ ansible_user }}/repos/{{ service }}
+        path: /home/{{ ansible_user }}/repos/batcher
         state: directory
         mode: '0755'
         owner: '{{ ansible_user }}'
@@ -53,21 +51,21 @@
     - name: Clone Aligned repository
       ansible.builtin.git:
         repo: https://github.com/yetanotherco/aligned_layer.git
-        dest: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
+        dest: /home/{{ ansible_user }}/repos/batcher/aligned_layer
         version: batcher_ansible
         recursive: false
 
     # Build the batcher
     - name: Install deps
       make:
-        chdir: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
+        chdir: /home/{{ ansible_user }}/repos/batcher/aligned_layer
         target: deps
       environment:
         PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
 
     - name: Install batcher
       make:
-        chdir: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
+        chdir: /home/{{ ansible_user }}/repos/batcher/aligned_layer
         target: install_batcher
       environment:
         PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
