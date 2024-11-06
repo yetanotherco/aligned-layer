@@ -24,7 +24,6 @@
         pkg:
           - pkg-config
           - libssl-dev
-          - gcc
         state: latest
         update_cache: true
       vars:
