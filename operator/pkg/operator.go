@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,12 +18,14 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
+	"github.com/yetanotherco/aligned_layer/operator/risc_zero_old"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	"github.com/yetanotherco/aligned_layer/operator/sp1_old"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
@@ -368,10 +371,18 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 	results := make(chan bool, verificationDataBatchLen)
 	var wg sync.WaitGroup
 	wg.Add(verificationDataBatchLen)
+
+	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
+	if err != nil {
+		o.Logger.Errorf("Could not check verifiers status: %s", err)
+		results <- false
+		return err
+	}
+
 	for _, verificationData := range verificationDataBatch {
 		go func(data VerificationData) {
 			defer wg.Done()
-			o.verify(data, results)
+			o.verify(data, disabledVerifiersBitmap, results)
 			o.metrics.IncOperatorTaskResponses()
 		}(verificationData)
 	}
@@ -441,10 +452,16 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	results := make(chan bool, verificationDataBatchLen)
 	var wg sync.WaitGroup
 	wg.Add(verificationDataBatchLen)
+	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
+	if err != nil {
+		o.Logger.Errorf("Could not check verifiers status: %s", err)
+		results <- false
+		return err
+	}
 	for _, verificationData := range verificationDataBatch {
 		go func(data VerificationData) {
 			defer wg.Done()
-			o.verify(data, results)
+			o.verify(data, disabledVerifiersBitmap, results)
 			o.metrics.IncOperatorTaskResponses()
 		}(verificationData)
 	}
@@ -475,7 +492,13 @@ func (o *Operator) afterHandlingBatchV3(log *servicemanager.ContractAlignedLayer
 	}
 }
 
-func (o *Operator) verify(verificationData VerificationData, results chan bool) {
+func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBitmap *big.Int, results chan bool) {
+	IsVerifierDisabled := IsVerifierDisabled(disabledVerifiersBitmap, verificationData.ProvingSystemId)
+	if IsVerifierDisabled {
+		o.Logger.Infof("Verifier %s is disabled. Returning false", verificationData.ProvingSystemId.String())
+		results <- false
+		return
+	}
 	switch verificationData.ProvingSystemId {
 	case common.GnarkPlonkBls12_381:
 		verificationResult := o.verifyPlonkProofBLS12_381(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
@@ -496,19 +519,42 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		results <- verificationResult
 
 	case common.SP1:
-		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
+		verificationResult, err := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
+		if !verificationResult {
+			o.Logger.Infof("SP1 proof verification failed. Trying old SP1 version...")
+			verificationResult, err = sp1_old.VerifySp1ProofOld(verificationData.Proof, verificationData.VmProgramCode)
+			if !verificationResult {
+				o.Logger.Errorf("Old SP1 proof verification failed")
+			}
+		}
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
-		results <- verificationResult
+		o.handleVerificationResult(results, verificationResult, err, "SP1 proof verification")
 
 	case common.Risc0:
-		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
+		verificationResult, err := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
 			verificationData.VmProgramCode, verificationData.PubInput)
-
+		if !verificationResult {
+			o.Logger.Infof("Risc0 proof verification failed. Trying old Risc0 version...")
+			verificationResult, err = risc_zero_old.VerifyRiscZeroReceiptOld(verificationData.Proof, verificationData.VmProgramCode, verificationData.PubInput)
+			if !verificationResult {
+				o.Logger.Errorf("Old Risc0 proof verification failed")
+			}
+		}
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
-		results <- verificationResult
+		o.handleVerificationResult(results, verificationResult, err, "Risc0 proof verification")
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
+	}
+}
+
+func (o *Operator) handleVerificationResult(results chan bool, isVerified bool, err error, name string) {
+	if err != nil {
+		o.Logger.Errorf("%v failed %v", name, err)
+		results <- false
+	} else {
+		o.Logger.Infof("%v result: %t", name, isVerified)
+		results <- isVerified
 	}
 }
 
