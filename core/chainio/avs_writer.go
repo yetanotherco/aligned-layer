@@ -179,10 +179,6 @@ func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkl
 			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 			if err != nil {
 				// Note return type will be nil
-				if err.Error() == "not found" {
-					err = connection.TransientError{Inner: err}
-					return tx, err
-				}
 				if strings.Contains(err.Error(), "connect: connection refused") {
 					err = connection.TransientError{Inner: err}
 					return tx, err
@@ -222,10 +218,6 @@ func (w *AvsWriter) BatchesStateRetryable(arg0 [32]byte) (struct {
 			// If error is not nil throw out result in state!
 			if err != nil {
 				// Note return type will be nil
-				if err.Error() == "not found" {
-					err = connection.TransientError{Inner: err}
-					return state, err
-				}
 				if strings.Contains(err.Error(), "connect: connection refused") {
 					err = connection.TransientError{Inner: err}
 					return state, err
@@ -252,10 +244,6 @@ func (w *AvsWriter) BatcherBalancesRetryable(senderAddress common.Address) (*big
 			batcherBalance, err = w.AvsContractBindings.ServiceManagerFallback.BatchersBalances(&bind.CallOpts{}, senderAddress)
 			if err != nil {
 				// Note return type will be nil
-				if err.Error() == "not found" {
-					err = connection.TransientError{Inner: err}
-					return batcherBalance, err
-				}
 				if strings.Contains(err.Error(), "connect: connection refused") {
 					err = connection.TransientError{Inner: err}
 					return batcherBalance, err
@@ -282,10 +270,6 @@ func (w *AvsWriter) BalanceAtRetryable(ctx context.Context, aggregatorAddress co
 			aggregatorBalance, err = w.ClientFallback.BalanceAt(ctx, aggregatorAddress, blockNumber)
 			if err != nil {
 				// Note return type will be nil
-				if err.Error() == "not found" {
-					err = connection.TransientError{Inner: err}
-					return aggregatorBalance, err
-				}
 				if strings.Contains(err.Error(), "connect: connection refused") {
 					err = connection.TransientError{Inner: err}
 					return aggregatorBalance, err

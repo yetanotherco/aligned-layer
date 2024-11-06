@@ -412,10 +412,6 @@ func (s *AvsSubscriber) BlockNumberRetryable(ctx context.Context) (uint64, error
 		if err != nil {
 			latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(ctx)
 			if err != nil {
-				if err.Error() == "not found" {
-					err = connection.TransientError{Inner: err}
-					return latestBlock, err
-				}
 				if strings.Contains(err.Error(), "connect: connection refused") {
 					err = connection.TransientError{Inner: err}
 					return latestBlock, err
@@ -441,10 +437,6 @@ func (s *AvsSubscriber) FilterBatchV2Retryable(fromBlock uint64, ctx context.Con
 		logs, err = s.AvsContractBindings.ServiceManager.FilterNewBatchV2(&bind.FilterOpts{Start: fromBlock, End: nil, Context: ctx}, nil)
 		if err != nil {
 			// Note return type will be nil
-			if err.Error() == "not found" {
-				err = connection.TransientError{Inner: err}
-				return logs, err
-			}
 			if strings.Contains(err.Error(), "connect: connection refused") {
 				err = connection.TransientError{Inner: err}
 				return logs, err
@@ -468,10 +460,6 @@ func (s *AvsSubscriber) FilterBatchV3Retryable(fromBlock uint64, ctx context.Con
 		logs, err = s.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: nil, Context: ctx}, nil)
 		if err != nil {
 			// Note return type will be nil
-			if err.Error() == "not found" {
-				err = connection.TransientError{Inner: err}
-				return logs, err
-			}
 			if strings.Contains(err.Error(), "connect: connection refused") {
 				err = connection.TransientError{Inner: err}
 				return logs, err
@@ -507,10 +495,6 @@ func (s *AvsSubscriber) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte
 		state, err = s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
 		if err != nil {
 			// Note return type will be nil
-			if err.Error() == "not found" {
-				err = connection.TransientError{Inner: err}
-				return state, err
-			}
 			if strings.Contains(err.Error(), "connect: connection refused") {
 				err = connection.TransientError{Inner: err}
 				return state, err
@@ -537,10 +521,6 @@ func (s *AvsSubscriber) SubscribeNewHeadRetryable(ctx context.Context, c chan<- 
 			sub, err = s.AvsContractBindings.ethClientFallback.SubscribeNewHead(ctx, c)
 			if err != nil {
 				// Note return type will be nil
-				if err.Error() == "not found" {
-					err = connection.TransientError{Inner: err}
-					return sub, err
-				}
 				if strings.Contains(err.Error(), "connect: connection refused") {
 					err = connection.TransientError{Inner: err}
 					return sub, err
@@ -569,10 +549,6 @@ func SubscribeToNewTasksV2Retrayable(
 		sub, err = serviceManager.WatchNewBatchV2(&bind.WatchOpts{}, newTaskCreatedChan, nil)
 		if err != nil {
 			// Note return type will be nil
-			if err.Error() == "not found" {
-				err = connection.TransientError{Inner: err}
-				return sub, err
-			}
 			if strings.Contains(err.Error(), "connect: connection refused") {
 				err = connection.TransientError{Inner: err}
 				return sub, err
@@ -599,11 +575,6 @@ func SubscribeToNewTasksV3Retryable(
 	subscribe_func := func() (event.Subscription, error) {
 		sub, err = serviceManager.WatchNewBatchV3(&bind.WatchOpts{}, newTaskCreatedChan, nil)
 		if err != nil {
-			// Note return type will be nil
-			if err.Error() == "not found" {
-				err = connection.TransientError{Inner: err}
-				return sub, err
-			}
 			if strings.Contains(err.Error(), "connect: connection refused") {
 				err = connection.TransientError{Inner: err}
 				return sub, err
