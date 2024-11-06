@@ -590,8 +590,10 @@ pub async fn get_nonce_from_batcher(
         }
     };
 
+    let _ = ws_write.close().await;
+
     match cbor_deserialize(msg.into_data().as_slice()) {
-        Ok(GetNonceResponseMessage::Nonce(nonce)) => Ok(U256::from_dec_str(&nonce).unwrap()),
+        Ok(GetNonceResponseMessage::Nonce(nonce)) => Ok(U256::from(nonce)),
         Ok(GetNonceResponseMessage::EthRpcError(e)) => Err(GetNonceError::EthRpcError(e)),
         Err(_) => Err(GetNonceError::SerializationError(
             "Failed to deserialize batcher message".to_string(),
