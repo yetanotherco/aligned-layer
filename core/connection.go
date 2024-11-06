@@ -62,6 +62,7 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 			}()
 			val, err = functionToRetry()
 			// Convert the returned `PermanentError` (our implementation) to `backoff.PermanentError`.
+			//This exits the retry loop in the `backoff` library.
 			if perm, ok := err.(PermanentError); err != nil && ok {
 				err = backoff.Permanent(perm.Inner)
 			}
@@ -106,7 +107,8 @@ func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTri
 				}
 			}()
 			err = functionToRetry()
-			// Convert the returned `PermanentError`` (our implementation) to a `backoff.PermanentError``
+			// Convert the returned `PermanentError` (our implementation) to a `backoff.PermanentError`.
+			//This exits the retry loop in the `backoff` library.
 			if perm, ok := err.(PermanentError); err != nil && ok {
 				err = backoff.Permanent(perm.Inner)
 			}
