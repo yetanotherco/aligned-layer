@@ -45,7 +45,6 @@ const MaxInterval = 60000
 
 // Same as Retry only that the functionToRetry can return a value upon correct execution
 func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, factor float64, maxTries uint64, maxInterval uint64) (T, error) {
-	i := 0
 	f := func() (T, error) {
 		var (
 			val T
@@ -62,7 +61,6 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 				}
 			}()
 			val, err = functionToRetry()
-			i++
 			if perm, ok := err.(PermanentError); err != nil && ok {
 				err = backoff.Permanent(perm.Inner)
 			}
@@ -94,10 +92,8 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 // The function to be retried should return `PermanentError` when the condition for stop retrying
 // is met.
 func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTries uint64, maxInterval uint64) error {
-	i := 0
 	f := func() error {
 		err := functionToRetry()
-		i++
 		if perm, ok := err.(PermanentError); err != nil && ok {
 			return backoff.Permanent(perm.Inner)
 		}
