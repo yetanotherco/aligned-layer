@@ -2,33 +2,42 @@ package utils
 
 import (
 	"context"
-	"math/big"
-	"time"
-
 	"fmt"
+	"math/big"
+	"strings"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	connection "github.com/yetanotherco/aligned_layer/core"
 )
 
-const maxRetries = 25
-const sleepTime = 5 * time.Second
-
-func WaitForTransactionReceipt(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash) (*types.Receipt, error) {
-	for i := 0; i < maxRetries; i++ {
-		receipt, _ := client.TransactionReceipt(ctx, txHash)
-		if receipt != nil {
-			return receipt, nil
+/*
+Errors:
+- "not found": (Transient) Call successfully returns but the tx receipt was not found.
+- "connect: connection refused": (Transient) Could not connect.
+*/
+func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash) (*types.Receipt, error) {
+	// For if no receipt and no error TransactionReceipt return "not found" as an error catch all ref: https://github.com/ethereum/go-ethereum/blob/master/ethclient/ethclient.go#L313
+	receipt_func := func() (*types.Receipt, error) {
+		tx, err := client.TransactionReceipt(ctx, txHash)
+		if err != nil {
+			// Note return type will be nil
+			if err.Error() == "not found" {
+				return nil, connection.TransientError{Inner: err}
+			}
+			if strings.Contains(err.Error(), "connect: connection refused") {
+				return nil, connection.TransientError{Inner: err}
+			}
+			if strings.Contains(err.Error(), "read: connection reset by peer") {
+				return nil, connection.TransientError{Inner: err}
+			}
+			return nil, connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
 		}
-		// if context has timed out, return
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
-		time.Sleep(sleepTime)
+		return tx, err
 	}
-	return nil, fmt.Errorf("transaction receipt not found for txHash: %s", txHash.String())
+	return connection.RetryWithData(receipt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
 
 func BytesToQuorumNumbers(quorumNumbersBytes []byte) eigentypes.QuorumNums {

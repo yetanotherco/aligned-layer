@@ -10,6 +10,7 @@ import (
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/prometheus/client_golang/prometheus"
+	connection "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
 	sdkclients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -271,18 +272,14 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-	for i := 0; i < MaxSentTxRetries; i++ {
-		_, err = agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
-		if err == nil {
-			agg.logger.Info("Aggregator successfully responded to task",
-				"taskIndex", blsAggServiceResp.TaskIndex,
-				"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+	receipt, err := agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
+	if err == nil {
+		agg.telemetry.TaskSentToEthereum(batchData.BatchMerkleRoot, receipt.TxHash.String())
+		agg.logger.Info("Aggregator successfully responded to task",
+			"taskIndex", blsAggServiceResp.TaskIndex,
+			"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
-			return
-		}
-
-		// Sleep for a bit before retrying
-		time.Sleep(2 * time.Second)
+		return
 	}
 
 	agg.logger.Error("Aggregator failed to respond to task, this batch will be lost",
@@ -368,7 +365,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
-	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, BLS_AGG_SERVICE_TIMEOUT)
+	err := agg.InitializeNewTaskRetryable(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
 	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
 	if err != nil {
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
@@ -378,6 +375,16 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 	agg.taskMutex.Unlock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
 	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+}
+
+// |---RETRYABLE---|
+
+func (agg *Aggregator) InitializeNewTaskRetryable(batchIndex uint32, taskCreatedBlock uint32, quorumNums eigentypes.QuorumNums, quorumThresholdPercentages eigentypes.QuorumThresholdPercentages, timeToExpiry time.Duration) error {
+	initilizeNewTask_func := func() error {
+		// Returns an error if the
+		return agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+	}
+	return connection.Retry(initilizeNewTask_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
 
 // Long-lived goroutine that periodically checks and removes old Tasks from stored Maps

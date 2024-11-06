@@ -3,10 +3,15 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/rpc"
+	"strings"
 	"time"
 
+	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
+	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
+	connection "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
@@ -52,6 +57,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	taskIndex := uint32(0)
 	ok := false
 
+	// NOTE: Since this does not interact with a fallible connection waiting we use a different retry mechanism than the rest of the aggregator.
 	for i := 0; i < waitForEventRetries; i++ {
 		agg.taskMutex.Lock()
 		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
@@ -82,7 +88,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 
 	agg.logger.Info("Starting bls signature process")
 	go func() {
-		err := agg.blsAggregationService.ProcessNewSignature(
+		err := agg.ProcessNewSignatureRetryable(
 			context.Background(), taskIndex, signedTaskResponse.BatchIdentifierHash,
 			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 		)
@@ -120,4 +126,36 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 	*reply = 1
 	return nil
+}
+
+// |---RETRYABLE---|
+
+// Error throw is ______
+func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
+	var err error
+	processNewSignature_func := func() error {
+		err = agg.blsAggregationService.ProcessNewSignature(
+			ctx, taskIndex, taskResponse,
+			blsSignature, operatorId,
+		)
+		if err != nil {
+			// Note return type will be nil
+			if err.Error() == "not found" {
+				err = connection.TransientError{Inner: err}
+				return err
+			}
+			if strings.Contains(err.Error(), "connect: connection refused") {
+				err = connection.TransientError{Inner: err}
+				return err
+			}
+			if strings.Contains(err.Error(), "read: connection reset by peer") {
+				err = connection.TransientError{Inner: err}
+				return err
+			}
+			err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+		}
+		return err
+	}
+
+	return connection.Retry(processNewSignature_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
