@@ -27,7 +27,6 @@ import (
 )
 
 func DummyFunction(x uint64) (uint64, error) {
-	fmt.Println("Starting Anvil on Port ")
 	if x == 42 {
 		return 0, connection.PermanentError{Inner: fmt.Errorf("Permanent error!")}
 	} else if x < 42 {
@@ -41,11 +40,9 @@ func TestRetryWithData(t *testing.T) {
 		x, err := DummyFunction(43)
 		return &x, err
 	}
-	data, err := connection.RetryWithData(function, 1000, 2, 3, connection.MaxInterval)
+	_, err := connection.RetryWithData(function, 1000, 2, 3, connection.MaxInterval)
 	if err != nil {
 		t.Errorf("Retry error!: %s", err)
-	} else {
-		fmt.Printf("DATA: %d\n", data)
 	}
 }
 
