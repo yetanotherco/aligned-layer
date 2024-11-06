@@ -119,7 +119,7 @@ pub async fn receive(
         }
     }
 
-    debug!("All message responses handled succesfully");
+    debug!("All message responses handled successfully");
     Ok(aligned_submitted_data)
 }
 
