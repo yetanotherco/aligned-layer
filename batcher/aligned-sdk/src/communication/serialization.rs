@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 pub fn cbor_serialize<T: Serialize>(value: &T) -> Result<Vec<u8>, SerializationError> {
     let mut buf = Vec::new();
@@ -12,7 +12,7 @@ pub fn cbor_deserialize<R: Read, T: DeserializeOwned>(buf: R) -> Result<T, Seria
     ciborium::from_reader(buf).map_err(|_| SerializationError)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SerializationError;
 
 impl std::fmt::Display for SerializationError {

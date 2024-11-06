@@ -1,5 +1,4 @@
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
-use aligned_sdk::core::errors::GetNonceError;
 use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
@@ -439,7 +438,7 @@ impl Batcher {
                     );
                     send_message(
                         ws_conn_sink.clone(),
-                        GetNonceError::EthRpcError("Eth RPC error".to_string()),
+                        GetNonceResponseMessage::EthRpcError("Eth RPC error".to_string()),
                     )
                     .await;
                     return Ok(());
@@ -449,7 +448,7 @@ impl Batcher {
 
         send_message(
             ws_conn_sink.clone(),
-            GetNonceResponseMessage::Nonce(user_nonce),
+            GetNonceResponseMessage::Nonce(user_nonce.to_string()),
         )
         .await;
 

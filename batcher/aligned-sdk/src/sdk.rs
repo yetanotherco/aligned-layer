@@ -39,7 +39,7 @@ use log::{debug, info};
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt, TryStreamExt,
+    SinkExt, StreamExt, TryFutureExt, TryStreamExt,
 };
 
 use std::fs::File;
@@ -547,38 +547,55 @@ pub async fn get_nonce_from_batcher(
     batcher_ws_url: &str,
     address: Address,
 ) -> Result<U256, GetNonceError> {
-    let (ws_stream, _) = connect_async(batcher_ws_url)
-        .await
-        .map_err(|_| GetNonceError::General("Ws connection to batcher failed".to_string()))?;
+    let (ws_stream, _) = connect_async(batcher_ws_url).await.map_err(|_| {
+        GetNonceError::ConnectionFailed("Ws connection to batcher failed".to_string())
+    })?;
 
     debug!("WebSocket handshake has been successfully completed");
     let (mut ws_write, mut ws_read) = ws_stream.split();
+    check_protocol_version(&mut ws_read)
+        .map_err(|e| match e {
+            errors::SubmitError::ProtocolVersionMismatch { current, expected } => {
+                GetNonceError::ProtocolMismatch { current, expected }
+            }
+            _ => GetNonceError::UnexpectedResponse(
+                "Unexpected response, expected protocol version".to_string(),
+            ),
+        })
+        .await?;
 
     let msg = ClientMessage::GetNonceForAddress(address);
 
     let msg_bin = cbor_serialize(&msg)
-        .map_err(|_| GetNonceError::General("Failed to serialize msg".to_string()))?;
+        .map_err(|_| GetNonceError::SerializationError("Failed to serialize msg".to_string()))?;
     ws_write
         .send(Message::Binary(msg_bin.clone()))
         .await
         .map_err(|_| {
-            GetNonceError::General("Ws connection failed to send message to batcher".to_string())
+            GetNonceError::ConnectionFailed(
+                "Ws connection failed to send message to batcher".to_string(),
+            )
         })?;
 
-    let msg = match ws_read.next().await {
+    let mut response_stream: ResponseStream =
+        ws_read.try_filter(|msg| futures_util::future::ready(msg.is_binary()));
+
+    let msg = match response_stream.next().await {
         Some(Ok(msg)) => msg,
         _ => {
-            return Err(GetNonceError::General(
+            return Err(GetNonceError::ConnectionFailed(
                 "Connection was closed without close message before receiving all messages"
                     .to_string(),
             ));
         }
     };
-    let response_msg: GetNonceResponseMessage = cbor_deserialize(msg.into_data().as_slice())
-        .map_err(|_| errors::GetNonceError::General("Failed to deserialize message".to_string()))?;
 
-    match response_msg {
-        GetNonceResponseMessage::Nonce(nonce) => Ok(nonce),
+    match cbor_deserialize(msg.into_data().as_slice()) {
+        Ok(GetNonceResponseMessage::Nonce(nonce)) => Ok(U256::from_dec_str(&nonce).unwrap()),
+        Ok(GetNonceResponseMessage::EthRpcError(e)) => Err(GetNonceError::EthRpcError(e)),
+        Err(_) => Err(GetNonceError::SerializationError(
+            "Failed to deserialize batcher message".to_string(),
+        )),
     }
 }
 
@@ -607,10 +624,10 @@ pub async fn get_nonce_from_ethereum(
             let result = call
                 .call()
                 .await
-                .map_err(|e| GetNonceError::General(e.to_string()))?;
+                .map_err(|e| GetNonceError::EthRpcError(e.to_string()))?;
             Ok(result)
         }
-        Err(e) => Err(GetNonceError::General(e.to_string())),
+        Err(e) => Err(GetNonceError::EthRpcError(e.to_string())),
     }
 }
 

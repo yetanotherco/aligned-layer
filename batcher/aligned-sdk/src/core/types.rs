@@ -415,7 +415,8 @@ pub enum SubmitProofResponseMessage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GetNonceResponseMessage {
-    Nonce(U256),
+    Nonce(String),
+    EthRpcError(String),
 }
 
 #[derive(Debug, Clone, Copy)]

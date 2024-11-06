@@ -327,8 +327,18 @@ async fn main() -> Result<(), AlignedError> {
                         aligned_sdk::core::errors::GetNonceError::EthRpcError(e) => {
                             SubmitError::GetNonceError(e)
                         }
-                        aligned_sdk::core::errors::GetNonceError::General(e) => {
-                            SubmitError::GetNonceError(e)
+                        aligned_sdk::core::errors::GetNonceError::ConnectionFailed(e) => {
+                            SubmitError::GenericError(e)
+                        }
+                        aligned_sdk::core::errors::GetNonceError::SerializationError(e) => {
+                            SubmitError::GenericError(e)
+                        }
+                        aligned_sdk::core::errors::GetNonceError::ProtocolMismatch {
+                            current,
+                            expected,
+                        } => SubmitError::ProtocolVersionMismatch { current, expected },
+                        aligned_sdk::core::errors::GetNonceError::UnexpectedResponse(e) => {
+                            SubmitError::UnexpectedBatcherResponse(e)
                         }
                     })?,
             };

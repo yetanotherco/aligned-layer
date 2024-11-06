@@ -3,7 +3,7 @@ use ethers::providers::ProviderError;
 use ethers::signers::WalletError;
 use ethers::types::transaction::eip712::Eip712Error;
 use ethers::types::{SignatureError, H160};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::io;
 use std::path::PathBuf;
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;
@@ -232,10 +232,13 @@ impl fmt::Display for VerificationError {
     }
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum GetNonceError {
     EthRpcError(String),
-    General(String),
+    ConnectionFailed(String),
+    SerializationError(String),
+    UnexpectedResponse(String),
+    ProtocolMismatch { current: u16, expected: u16 },
 }
 
 #[derive(Debug)]
