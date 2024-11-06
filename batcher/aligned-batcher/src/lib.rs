@@ -402,7 +402,7 @@ impl Batcher {
                 return Ok(());
             }
         };
-        info!("Received new client message of type: {:?}", client_msg);
+        info!("Received new client message of type: {}", client_msg);
         match client_msg {
             ClientMessage::GetNonceForAddress(address) => {
                 self.clone()
@@ -448,7 +448,7 @@ impl Batcher {
 
         send_message(
             ws_conn_sink.clone(),
-            GetNonceResponseMessage::Nonce(user_nonce.to_string()),
+            GetNonceResponseMessage::Nonce(user_nonce),
         )
         .await;
 

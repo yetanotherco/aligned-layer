@@ -230,6 +230,16 @@ pub enum ClientMessage {
     SubmitProof(Box<SubmitProofMessage>),
 }
 
+impl Display for ClientMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // Use pattern matching to print the variant name
+        match self {
+            ClientMessage::GetNonceForAddress(_) => write!(f, "GetNonceForAddress"),
+            ClientMessage::SubmitProof(_) => write!(f, "SubmitProof"),
+        }
+    }
+}
+
 impl Eip712 for NoncedVerificationData {
     type Error = Eip712Error;
     fn domain(&self) -> Result<EIP712Domain, Self::Error> {
@@ -415,7 +425,7 @@ pub enum SubmitProofResponseMessage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GetNonceResponseMessage {
-    Nonce(String),
+    Nonce(U256),
     EthRpcError(String),
 }
 
