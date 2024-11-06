@@ -838,8 +838,9 @@ func TestBalanceAt(t *testing.T) {
 	}
 	//TODO: Source Aggregator Address
 	aggregator_address := common.HexToAddress("0x0")
+	blockHeight := big.NewInt(13)
 
-	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, big.NewInt(14))
+	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -848,7 +849,7 @@ func TestBalanceAt(t *testing.T) {
 		return
 	}
 
-	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, big.NewInt(14))
+	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(connection.TransientError); !ok {
@@ -866,7 +867,7 @@ func TestBalanceAt(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, big.NewInt(14))
+	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test

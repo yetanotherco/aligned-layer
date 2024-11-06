@@ -38,13 +38,6 @@ func (e TransientError) Is(err error) bool {
 	return ok
 }
 
-func convertToBackOffPermanentError(err error) error {
-	if perm, ok := err.(PermanentError); err != nil && ok {
-		return backoff.Permanent(perm.Inner)
-	}
-	return err
-}
-
 const MinDelay = 1000
 const RetryFactor = 2
 const NumRetries = 3
@@ -68,7 +61,9 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 				}
 			}()
 			val, err = functionToRetry()
-			err = convertToBackOffPermanentError(err)
+			if perm, ok := err.(PermanentError); err != nil && ok {
+				err = backoff.Permanent(perm.Inner)
+			}
 		}()
 		return val, err
 	}
@@ -110,7 +105,9 @@ func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTri
 				}
 			}()
 			err = functionToRetry()
-			err = convertToBackOffPermanentError(err)
+			if perm, ok := err.(PermanentError); err != nil && ok {
+				err = backoff.Permanent(perm.Inner)
+			}
 		}()
 		return err
 	}
