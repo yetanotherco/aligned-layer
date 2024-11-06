@@ -38,6 +38,13 @@ func (e TransientError) Is(err error) bool {
 	return ok
 }
 
+func convertToBackOffPermanentError(err error) error {
+	if perm, ok := err.(PermanentError); err != nil && ok {
+		return backoff.Permanent(perm.Inner)
+	}
+	return err
+}
+
 const MinDelay = 1000
 const RetryFactor = 2
 const NumRetries = 3
@@ -61,9 +68,7 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 				}
 			}()
 			val, err = functionToRetry()
-			if perm, ok := err.(PermanentError); err != nil && ok {
-				err = backoff.Permanent(perm.Inner)
-			}
+			err = convertToBackOffPermanentError(err)
 		}()
 		return val, err
 	}
@@ -93,10 +98,20 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 // is met.
 func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTries uint64, maxInterval uint64) error {
 	f := func() error {
-		err := functionToRetry()
-		if perm, ok := err.(PermanentError); err != nil && ok {
-			return backoff.Permanent(perm.Inner)
-		}
+		var err error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					if panic_err, ok := r.(error); ok {
+						err = TransientError{panic_err}
+					} else {
+						err = TransientError{fmt.Errorf("panicked: %v", panic_err)}
+					}
+				}
+			}()
+			err = functionToRetry()
+			err = convertToBackOffPermanentError(err)
+		}()
 		return err
 	}
 
