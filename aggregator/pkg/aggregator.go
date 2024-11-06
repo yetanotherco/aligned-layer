@@ -272,19 +272,14 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-	for i := 0; i < MaxSentTxRetries; i++ {
-		receipt, err := agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
-		if err == nil {
-			agg.telemetry.TaskSentToEthereum(batchData.BatchMerkleRoot, receipt.TxHash.String())
-			agg.logger.Info("Aggregator successfully responded to task",
-				"taskIndex", blsAggServiceResp.TaskIndex,
-				"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+	receipt, err := agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
+	if err == nil {
+		agg.telemetry.TaskSentToEthereum(batchData.BatchMerkleRoot, receipt.TxHash.String())
+		agg.logger.Info("Aggregator successfully responded to task",
+			"taskIndex", blsAggServiceResp.TaskIndex,
+			"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
-			return
-		}
-
-		// Sleep for a bit before retrying
-		time.Sleep(2 * time.Second)
+		return
 	}
 
 	agg.logger.Error("Aggregator failed to respond to task, this batch will be lost",
