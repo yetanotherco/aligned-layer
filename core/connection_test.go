@@ -637,7 +637,7 @@ func TestSubscribeNewHead(t *testing.T) {
 		return
 	}
 
-	avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
+	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
