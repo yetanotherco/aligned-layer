@@ -94,6 +94,29 @@ anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
 
+pause_all_aligned_service_manager:
+	@echo "Pausing all contracts..."
+	. contracts/scripts/pause_aligned_service_manager.sh all
+
+unpause_all_aligned_service_manager:
+	@echo "Pausing all contracts..."
+	. contracts/scripts/unpause_aligned_service_manager.sh all
+
+get_paused_state_aligned_service_manager:
+	@echo "Getting paused state of Aligned Service Manager contract..."
+	. contracts/scripts/get_paused_state_aligned_service_manager.sh
+
+pause_batcher_payment_service:
+	@echo "Pausing BatcherPayments contract..."
+	. contracts/scripts/pause_batcher_payment_service.sh
+
+unpause_batcher_payment_service:
+	@echo "Unpausing BatcherPayments contract..."
+	. contracts/scripts/unpause_batcher_payment_service.sh
+
+get_paused_state_batcher_payments_service:
+	@echo "Getting paused state of Batcher Payments Service contract..."
+	. contracts/scripts/get_paused_state_batcher_payments_service.sh
 anvil_upgrade_initialize_disable_verifiers:
 	@echo "Initializing disabled verifiers..."
 	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh
@@ -453,9 +476,17 @@ deploy_aligned_contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
 
+deploy_pauser_registry: ## Deploy Pauser Registry
+	@echo "Deploying Pauser Registry..."
+	@. contracts/scripts/.env && . contracts/scripts/deploy_pauser_registry.sh
+
 upgrade_aligned_contracts: ## Upgrade Aligned Contracts
 	@echo "Upgrading Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_aligned_contracts.sh
+
+upgrade_pauser_aligned_contracts: ## Upgrade Aligned Contracts with Pauser initialization
+	@echo "Upgrading Aligned Contracts with Pauser initialization..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_pausable_to_service_manager.sh
 
 upgrade_registry_coordinator: ## Upgrade Registry Coordinator
 	@echo "Upgrading Registry Coordinator..."
@@ -977,11 +1008,11 @@ open_telemetry_prod_start: ## Run open telemetry services with Cassandra using t
 # Elixir API
 telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
-	 	./start.sh	
+	 	./start.sh
 
 telemetry_ecto_migrate: ##
 		@cd telemetry_api && \
-			./ecto_setup_db.sh	
+			./ecto_setup_db.sh
 
 telemetry_build_db:
 	@cd telemetry_api && \
