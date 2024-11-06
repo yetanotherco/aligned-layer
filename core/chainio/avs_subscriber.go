@@ -428,7 +428,7 @@ func (s *AvsSubscriber) BlockNumberRetryable(ctx context.Context) (uint64, error
 		}
 		return latestBlock, err
 	}
-	return connection.RetryWithData(latestBlock_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.RetryWithData(latestBlock_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
 
 func (s *AvsSubscriber) FilterBatchV2Retryable(fromBlock uint64, ctx context.Context) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
@@ -456,7 +456,7 @@ func (s *AvsSubscriber) FilterBatchV2Retryable(fromBlock uint64, ctx context.Con
 		}
 		return logs, err
 	}
-	return connection.RetryWithData(filterNewBatchV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.RetryWithData(filterNewBatchV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
 
 func (s *AvsSubscriber) FilterBatchV3Retryable(fromBlock uint64, ctx context.Context) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
@@ -483,7 +483,7 @@ func (s *AvsSubscriber) FilterBatchV3Retryable(fromBlock uint64, ctx context.Con
 		}
 		return logs, err
 	}
-	return connection.RetryWithData(filterNewBatchV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.RetryWithData(filterNewBatchV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
 
 func (s *AvsSubscriber) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (struct {
@@ -523,7 +523,7 @@ func (s *AvsSubscriber) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte
 		return state, err
 	}
 
-	return connection.RetryWithData(batchState_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.RetryWithData(batchState_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
 
 func (s *AvsSubscriber) SubscribeNewHeadRetryable(ctx context.Context, c chan<- *types.Header) (ethereum.Subscription, error) {
@@ -553,7 +553,7 @@ func (s *AvsSubscriber) SubscribeNewHeadRetryable(ctx context.Context, c chan<- 
 		}
 		return sub, err
 	}
-	return connection.RetryWithData(subscribeNewHead_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.RetryWithData(subscribeNewHead_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
 
 func SubscribeToNewTasksV2Retrayable(
@@ -584,7 +584,7 @@ func SubscribeToNewTasksV2Retrayable(
 		}
 		return sub, err
 	}
-	return connection.RetryWithData(subscribe_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.RetryWithData(subscribe_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
 
 func SubscribeToNewTasksV3Retryable(
@@ -615,5 +615,5 @@ func SubscribeToNewTasksV3Retryable(
 		}
 		return sub, err
 	}
-	return connection.RetryWithData(subscribe_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.RetryWithData(subscribe_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }

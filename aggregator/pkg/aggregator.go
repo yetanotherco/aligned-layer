@@ -390,7 +390,7 @@ func (agg *Aggregator) InitializeNewTaskRetryable(batchIndex uint32, taskCreated
 		// Returns an error if the
 		return agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
 	}
-	return connection.Retry(initilizeNewTask_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.Retry(initilizeNewTask_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
 
 // Long-lived goroutine that periodically checks and removes old Tasks from stored Maps

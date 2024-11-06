@@ -195,7 +195,7 @@ func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkl
 		}
 		return tx, err
 	}
-	return connection.RetryWithData(respondToTaskV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.RetryWithData(respondToTaskV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
 
 func (w *AvsWriter) BatchesStateRetryable(arg0 [32]byte) (struct {
@@ -238,7 +238,7 @@ func (w *AvsWriter) BatchesStateRetryable(arg0 [32]byte) (struct {
 		}
 		return state, err
 	}
-	return connection.RetryWithData(batchesState_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.RetryWithData(batchesState_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
 
 func (w *AvsWriter) BatcherBalancesRetryable(senderAddress common.Address) (*big.Int, error) {
@@ -268,7 +268,7 @@ func (w *AvsWriter) BatcherBalancesRetryable(senderAddress common.Address) (*big
 		}
 		return batcherBalance, err
 	}
-	return connection.RetryWithData(batcherBalances_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.RetryWithData(batcherBalances_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
 
 func (w *AvsWriter) BalanceAtRetryable(ctx context.Context, aggregatorAddress common.Address, blockNumber *big.Int) (*big.Int, error) {
@@ -300,5 +300,5 @@ func (w *AvsWriter) BalanceAtRetryable(ctx context.Context, aggregatorAddress co
 		}
 		return aggregatorBalance, err
 	}
-	return connection.RetryWithData(balanceAt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.RetryWithData(balanceAt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }

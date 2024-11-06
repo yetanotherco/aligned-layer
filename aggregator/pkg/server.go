@@ -157,5 +157,5 @@ func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskInd
 		return err
 	}
 
-	return connection.Retry(processNewSignature_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.Retry(processNewSignature_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }

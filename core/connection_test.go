@@ -41,7 +41,7 @@ func TestRetryWithData(t *testing.T) {
 		x, err := DummyFunction(43)
 		return &x, err
 	}
-	data, err := connection.RetryWithData(function, 1000, 2, 3)
+	data, err := connection.RetryWithData(function, 1000, 2, 3, connection.MaxInterval)
 	if err != nil {
 		t.Errorf("Retry error!: %s", err)
 	} else {
@@ -54,7 +54,7 @@ func TestRetry(t *testing.T) {
 		_, err := DummyFunction(43)
 		return err
 	}
-	err := connection.Retry(function, 1000, 2, 3)
+	err := connection.Retry(function, 1000, 2, 3, connection.MaxInterval)
 	if err != nil {
 		t.Errorf("Retry error!: %s", err)
 	}

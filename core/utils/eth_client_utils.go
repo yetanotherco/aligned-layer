@@ -36,7 +36,7 @@ func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, ctx conte
 		}
 		return tx, err
 	}
-	return connection.RetryWithData(receipt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	return connection.RetryWithData(receipt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
 
 func BytesToQuorumNumbers(quorumNumbersBytes []byte) eigentypes.QuorumNums {

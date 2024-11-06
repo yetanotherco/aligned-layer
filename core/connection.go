@@ -74,7 +74,7 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 
 	initialRetryOption := backoff.WithInitialInterval(time.Millisecond * time.Duration(minDelay))
 	multiplierOption := backoff.WithMultiplier(factor)
-	maxIntervalOption := backoff.WithMaxInterval(time.Millisecond * time.Duration(MaxInterval))
+	maxIntervalOption := backoff.WithMaxInterval(time.Millisecond * time.Duration(maxInterval))
 	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption)
 	var maxRetriesBackoff backoff.BackOff
 
@@ -93,7 +93,7 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 // from the configuration are reached, or until a `PermanentError` is returned.
 // The function to be retried should return `PermanentError` when the condition for stop retrying
 // is met.
-func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTries uint64) error {
+func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTries uint64, maxInterval uint64) error {
 	i := 0
 	f := func() error {
 		err := functionToRetry()
@@ -108,7 +108,8 @@ func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTri
 
 	initialRetryOption := backoff.WithInitialInterval(time.Millisecond * time.Duration(minDelay))
 	multiplierOption := backoff.WithMultiplier(factor)
-	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption)
+	maxIntervalOption := backoff.WithMaxInterval(time.Millisecond * time.Duration(maxInterval))
+	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption)
 	var maxRetriesBackoff backoff.BackOff
 
 	if maxTries > 0 {
