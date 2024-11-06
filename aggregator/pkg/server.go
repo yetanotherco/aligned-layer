@@ -57,7 +57,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	taskIndex := uint32(0)
 	ok := false
 
-	//TODO(pat): This is retried but waits are internal map aka is not a fallable connection
+	// NOTE: Since this does not interact with a fallible connection waiting we use a different retry mechanism than the rest of the aggregator.
 	for i := 0; i < waitForEventRetries; i++ {
 		agg.taskMutex.Lock()
 		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
