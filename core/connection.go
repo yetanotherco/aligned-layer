@@ -41,9 +41,10 @@ func (e TransientError) Is(err error) bool {
 const MinDelay = 1000
 const RetryFactor = 2
 const NumRetries = 3
+const MaxInterval = 60000
 
 // Same as Retry only that the functionToRetry can return a value upon correct execution
-func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, factor float64, maxTries uint64) (T, error) {
+func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, factor float64, maxTries uint64, maxInterval uint64) (T, error) {
 	i := 0
 	f := func() (T, error) {
 		var (
@@ -73,7 +74,8 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 
 	initialRetryOption := backoff.WithInitialInterval(time.Millisecond * time.Duration(minDelay))
 	multiplierOption := backoff.WithMultiplier(factor)
-	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption)
+	maxIntervalOption := backoff.WithMaxInterval(time.Millisecond * time.Duration(MaxInterval))
+	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption)
 	var maxRetriesBackoff backoff.BackOff
 
 	if maxTries > 0 {
