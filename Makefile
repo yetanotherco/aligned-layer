@@ -694,6 +694,13 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "All Linux FFIs built successfully."
 
 __EXPLORER__:
+
+run_explorer_without_docker_db: explorer_ecto_setup_db
+	@cd explorer/ && \
+		pnpm install --prefix assets && \
+		mix setup && \
+		./start.sh
+
 run_explorer: explorer_run_db explorer_ecto_setup_db
 	@cd explorer/ && \
 		pnpm install --prefix assets && \
