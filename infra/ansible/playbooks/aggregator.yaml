@@ -1,0 +1,78 @@
+- name: Run setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: aggregator
+
+- name: Run go playbook
+  ansible.builtin.import_playbook: go.yaml
+  vars:
+    host: aggregator
+
+- name: Run rust playbook
+  ansible.builtin.import_playbook: rust.yaml
+  vars:
+    host: aggregator
+
+- name: Run eigenlayer-cli playbook
+  ansible.builtin.import_playbook: eigenlayer-cli.yaml
+  vars:
+    host: aggregator
+
+- hosts: aggregator
+  vars:
+    service: "aggregator"
+
+  tasks:
+    - name: Update apt and install required system packages
+      become: true
+      apt:
+        pkg:
+          - pkg-config
+          - libssl-dev
+          - gcc
+        state: latest
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Create directories for each service if do not exist
+      file:
+        path: /home/{{ ansible_user }}/repos/{{ service }}
+        state: directory
+        mode: '0755'
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+      loop:
+        - aggregator
+
+    - name: Clone Aligned repository
+      git:
+        repo: https://github.com/yetanotherco/aligned_layer.git
+        dest: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
+        version: v0.10.2
+      loop:
+        - aggregator
+
+    - name: Set permissions for cloned repository
+      file:
+        path: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
+        mode: '0755'
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+        recurse: yes
+
+    - name: Compile all FFIs
+      make:
+        chdir: /home/{{ ansible_user }}/repos/aggregator/aligned_layer
+        target: build_all_ffi_linux
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
+
+    - name: Allow access to tcp port 8090
+      become: true
+      ufw:
+        rule: allow
+        port: 8090
+        proto: tcp
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
