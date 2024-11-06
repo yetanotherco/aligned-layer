@@ -29,7 +29,7 @@ Install [Foundry](https://book.getfoundry.sh/getting-started/installation):
 
 ```bash
 make install_foundry
-foundryup
+foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
 ```
 
 Install the necessary submodules and build all the FFIs for your OS:
