@@ -278,10 +278,8 @@ func (w *AvsWriter) BalanceAtRetryable(ctx context.Context, aggregatorAddress co
 	)
 	balanceAt_func := func() (*big.Int, error) {
 		aggregatorBalance, err = w.Client.BalanceAt(ctx, aggregatorAddress, blockNumber)
-		//aggregatorBalance, err := connection.RetryWithData(balanceAt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 		if err != nil {
 			aggregatorBalance, err = w.ClientFallback.BalanceAt(ctx, aggregatorAddress, blockNumber)
-			//aggregatorBalance, err = connection.RetryWithData(balanceAt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 			if err != nil {
 				// Note return type will be nil
 				if err.Error() == "not found" {
