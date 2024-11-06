@@ -7,6 +7,11 @@ import (
 	"github.com/cenkalti/backoff/v4"
 )
 
+/*
+This retry library was inspired by and uses Cenk Alti (https://github.com/cenkalti) backoff library (https://github.com/cenkalti/backoff).
+We would like to thank him for his great work.
+*/
+
 type PermanentError struct {
 	Inner error
 }
