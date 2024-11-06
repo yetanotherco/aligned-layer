@@ -48,6 +48,44 @@
         version: v0.10.2
         recursive: false
 
+    - name: Copy ECDSA keystore to server
+      ansible.builtin.copy:
+        src: '{{ ecdsa_keystore_path }}'
+        dest: /home/{{ ansible_user }}/.keystores/operator.ecdsa
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+
+    - name: Copy BLS keystore to server
+      ansible.builtin.copy:
+        src: '{{ bls_keystore_path }}'
+        dest: /home/{{ ansible_user }}/.keystores/operator.bls
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+
+    ## Next steps
+    ## Assume that user has already created the metadata.json
+    ## If the operator is not registered, register in eigenlayer
+    ## If not registered, register in eigenlayer and stake WETH
+#    - nane: Check if Operator is registered
+
+    - name: Setup Register Operator config file
+      template:
+        src: operator/config-register-operator.yaml.j2
+        dest: "/home/{{ ansible_user }}/config/config-register-operator.yaml"
+      vars:
+        address: "{{ lookup('ini', 'address', file='ini/config-register-operator.ini') }}"
+        metadata_url: "{{ lookup('ini', 'metadata_url', file='ini/config-register-operator.ini') }}"
+        el_delegation_manager_address: "{{ lookup('ini', 'el_delegation_manager_address', file='ini/config-register-operator.ini') }}"
+        eth_rpc_url: "{{ lookup('ini', 'eth_rpc_url', file='ini/config-register-operator.ini') }}"
+        private_key_store_path: "{{ lookup('ini', 'private_key_store_path', file='ini/config-register-operator.ini') }}"
+        chain_id: "{{ lookup('ini', 'chain_id', file='ini/config-register-operator.ini') }}"
+
+    - name: Register Operator in EigenLayer
+      shell:
+        cmd: echo "{{ lookup('ini', 'private_key_store_password', file='ini/config-register-operator.ini') }}" | eigenlayer operator register /home/{{ ansible_user }}/config/config-register-operator.yaml >> register.log 2>&1
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/home/{{ ansible_user }}/bin"
+
     - name: Build the Operator
       make:
         chdir: /home/{{ ansible_user }}/repos/operator/aligned_layer
@@ -98,20 +136,6 @@
         enable_metrics: "{{ lookup('ini', 'enable_metrics', file='ini/config-operator.ini') }}"
         metrics_ip_port_address: "{{ lookup('ini', 'metrics_ip_port_address', file='ini/config-operator.ini') }}"
         last_processed_batch_filepath: "{{ lookup('ini', 'last_processed_batch_filepath', file='ini/config-operator.ini') }}"
-
-    - name: Copy ECDSA keystore to server
-      ansible.builtin.copy:
-        src: '{{ ecdsa_keystore_path }}'
-        dest: /home/{{ ansible_user }}/.keystores/operator.ecdsa
-        owner: '{{ ansible_user }}'
-        group: '{{ ansible_user }}'
-
-    - name: Copy BLS keystore to server
-      ansible.builtin.copy:
-        src: '{{ bls_keystore_path }}'
-        dest: /home/{{ ansible_user }}/.keystores/operator.bls
-        owner: '{{ ansible_user }}'
-        group: '{{ ansible_user }}'
 
     - name: Start Operator service
       ansible.builtin.systemd_service:
