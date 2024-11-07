@@ -47,7 +47,7 @@ When the conditions to build a batch are met, a batch finalization algorithm run
 This algorithm starts by calculating the **batch size** in bytes by adding the verification data bytes of each proof of the queue. This is needed in order to compute the **fee per proof** of the batch later. The next step is to build a new **resulting priority queue**, which will replace the current priority queue when this algorithm ends. On this new queue, all proofs which are not suited for the current batch will be stored.
 
 In order for the batch to be considered valid, two conditions have to be met:
-* The **batch size** in bytes must be less or equal to a certain established limit.
+* The **batch size** in bytes must be less than or equal to a defined limit.
 * All proofs found in the batch must have a **max fee** equal or higher to the calculated **fee per proof** of the batch.
 
 The **fee per proof** is calculated with a formula, which depends on the **batch length**, calculated as the amount of proofs that the batch contains:
@@ -63,13 +63,13 @@ Since the priority queue is sorted in ascending order by proof **max fee**, we c
 priority_queue = [(proof_a, 87), (proof_b, 90), (proof_c, 99)]
 ```
 
-The algorithm will try to build a new batch by iterating on each proof, starting with the one with the smallest **max fee** in the queue. On each iteration, the **batch size** and **fee per proof** will be recalculated and both conditions reevaluated. When both conditions are met, all proofs contained in the queue will be used to build the new batch. The remaining proofs, stored in the **resulting priority queue**, will be candidates to the next batch finalization algorithm execution.
+The algorithm attempts to build new batch by iterating on each proof, starting with the one with the smallest **max fee** in the queue. On each iteration, the **batch size** and **fee per proof** will be recalculated and both conditions reevaluated. When both conditions are met, all proofs remaining in the queue will be used to build the new batch. The remaining proofs, stored in the **resulting priority queue**, will be candidates to the next batch finalization algorithm execution.
 
-There is an edge case for this algorithm: If the fee per proof is too high even for the first entry, the algorithm will iterate over every entry until the **priority queue** empties. If this happens, the finalization of the batch is suspended and all the process will start again when a new block is received.
+There is an edge case for this algorithm: If the fee per proof is too high even for the last proof, the algorithm will iterate over each proof until the **priority queue** is empty. If this happens, the finalization of the batch is suspended and all the process will start again when a new block is received.
 
 Let's see a very simple example:
 
-The algorithm starts with the following elements:
+The algorithm starts with the following state:
 
 ```
 priority_queue = [(E, 74), (D, 75), (C, 90), (B, 95), (A, 100)]
