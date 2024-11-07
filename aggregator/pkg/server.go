@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/rpc"
-	"strings"
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
@@ -139,15 +138,7 @@ func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskInd
 			blsSignature, operatorId,
 		)
 		if err != nil {
-			if strings.Contains(err.Error(), "connect: connection refused") {
-				err = retry.TransientError{Inner: err}
-				return err
-			}
-			if strings.Contains(err.Error(), "read: connection reset by peer") {
-				err = retry.TransientError{Inner: err}
-				return err
-			}
-			err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+			err = fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)
 		}
 		return err
 	}

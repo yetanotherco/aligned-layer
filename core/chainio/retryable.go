@@ -131,7 +131,7 @@ func (s *AvsSubscriber) FilterBatchV2Retryable(fromBlock uint64, ctx context.Con
 	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
 		logs, err = s.AvsContractBindings.ServiceManager.FilterNewBatchV2(&bind.FilterOpts{Start: fromBlock, End: nil, Context: ctx}, nil)
 		if err != nil {
-			fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
+			err = fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 		}
 		return logs, err
 	}
@@ -212,6 +212,7 @@ func SubscribeToNewTasksV2Retrayable(
 		sub, err = serviceManager.WatchNewBatchV2(&bind.WatchOpts{}, newTaskCreatedChan, nil)
 		if err != nil {
 			err = fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
+			return sub, err
 		}
 		return sub, err
 	}
