@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -16,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
-	connection "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
@@ -164,123 +162,4 @@ func (w *AvsWriter) compareBatcherBalance(amount *big.Int, senderAddress [20]byt
 		return fmt.Errorf("cost is higher than Batcher balance")
 	}
 	return nil
-}
-
-// |---RETRYABLE---|
-
-func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkleRoot [32]byte, senderAddress common.Address, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Transaction, error) {
-	var (
-		tx  *types.Transaction
-		err error
-	)
-	respondToTaskV2_func := func() (*types.Transaction, error) {
-		tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-		if err != nil {
-			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-			if err != nil {
-				// Note return type will be nil
-				if strings.Contains(err.Error(), "connect: connection refused") {
-					err = connection.TransientError{Inner: err}
-					return tx, err
-				}
-				if strings.Contains(err.Error(), "read: connection reset by peer") {
-					return tx, connection.TransientError{Inner: err}
-				}
-				err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-			}
-		}
-		return tx, err
-	}
-	return connection.RetryWithData(respondToTaskV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
-}
-
-func (w *AvsWriter) BatchesStateRetryable(arg0 [32]byte) (struct {
-	TaskCreatedBlock      uint32
-	Responded             bool
-	RespondToTaskFeeLimit *big.Int
-}, error) {
-	var (
-		state struct {
-			TaskCreatedBlock      uint32
-			Responded             bool
-			RespondToTaskFeeLimit *big.Int
-		}
-		err error
-	)
-	batchesState_func := func() (struct {
-		TaskCreatedBlock      uint32
-		Responded             bool
-		RespondToTaskFeeLimit *big.Int
-	}, error) {
-		state, err = w.AvsContractBindings.ServiceManager.BatchesState(&bind.CallOpts{}, arg0)
-		if err != nil {
-			state, err = w.AvsContractBindings.ServiceManagerFallback.BatchesState(&bind.CallOpts{}, arg0)
-			// If error is not nil throw out result in state!
-			if err != nil {
-				// Note return type will be nil
-				if strings.Contains(err.Error(), "connect: connection refused") {
-					err = connection.TransientError{Inner: err}
-					return state, err
-				}
-				if strings.Contains(err.Error(), "read: connection reset by peer") {
-					return state, connection.TransientError{Inner: err}
-				}
-				err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-			}
-		}
-		return state, err
-	}
-	return connection.RetryWithData(batchesState_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
-}
-
-func (w *AvsWriter) BatcherBalancesRetryable(senderAddress common.Address) (*big.Int, error) {
-	var (
-		batcherBalance *big.Int
-		err            error
-	)
-	batcherBalances_func := func() (*big.Int, error) {
-		batcherBalance, err = w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
-		if err != nil {
-			batcherBalance, err = w.AvsContractBindings.ServiceManagerFallback.BatchersBalances(&bind.CallOpts{}, senderAddress)
-			if err != nil {
-				// Note return type will be nil
-				if strings.Contains(err.Error(), "connect: connection refused") {
-					err = connection.TransientError{Inner: err}
-					return batcherBalance, err
-				}
-				if strings.Contains(err.Error(), "read: connection reset by peer") {
-					return batcherBalance, connection.TransientError{Inner: err}
-				}
-				err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-			}
-		}
-		return batcherBalance, err
-	}
-	return connection.RetryWithData(batcherBalances_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
-}
-
-func (w *AvsWriter) BalanceAtRetryable(ctx context.Context, aggregatorAddress common.Address, blockNumber *big.Int) (*big.Int, error) {
-	var (
-		aggregatorBalance *big.Int
-		err               error
-	)
-	balanceAt_func := func() (*big.Int, error) {
-		aggregatorBalance, err = w.Client.BalanceAt(ctx, aggregatorAddress, blockNumber)
-		if err != nil {
-			aggregatorBalance, err = w.ClientFallback.BalanceAt(ctx, aggregatorAddress, blockNumber)
-			if err != nil {
-				// Note return type will be nil
-				if strings.Contains(err.Error(), "connect: connection refused") {
-					err = connection.TransientError{Inner: err}
-					return aggregatorBalance, err
-				}
-				if strings.Contains(err.Error(), "read: connection reset by peer") {
-					return aggregatorBalance, connection.TransientError{Inner: err}
-				}
-				err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-			}
-		}
-		return aggregatorBalance, err
-	}
-	return connection.RetryWithData(balanceAt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }
