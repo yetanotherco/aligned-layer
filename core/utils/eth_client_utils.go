@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"math/big"
+	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
@@ -11,11 +12,14 @@ import (
 	retry "github.com/yetanotherco/aligned_layer/core"
 )
 
-func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash) (*types.Receipt, error) {
+// WaitForTransactionReceiptRetryable repeatedly attempts to fetch the transaction receipt for a given transaction hash.
+// If the receipt is not found, the function will retry with exponential backoff until the specified `waitTimeout` duration is reached.
+// If the receipt is still unavailable after `waitTimeout`, it will return an error.
+func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash, waitTimeout time.Duration) (*types.Receipt, error) {
 	receipt_func := func() (*types.Receipt, error) {
 		return client.TransactionReceipt(ctx, txHash)
 	}
-	return retry.RetryWithData(receipt_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(receipt_func, retry.MinDelay, retry.RetryFactor, 0, retry.MaxInterval, uint64(waitTimeout))
 }
 
 func BytesToQuorumNumbers(quorumNumbersBytes []byte) eigentypes.QuorumNums {

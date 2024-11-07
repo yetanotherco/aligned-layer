@@ -157,7 +157,7 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 	}
 
 	// Assert Call succeeds when Anvil running
-	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
+	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash, time.Second*45)
 	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
 	if !strings.Contains(err.Error(), "not found") {
 		fmt.Printf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
@@ -170,7 +170,7 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 		return
 	}
 
-	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
+	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash, time.Second*45)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
@@ -187,7 +187,7 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
+	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash, time.Second*45)
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "not found") {
 		fmt.Printf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)

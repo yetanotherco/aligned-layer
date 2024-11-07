@@ -113,9 +113,8 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txNonce := big.NewInt(int64(tx.Nonce()))
 	txOpts.Nonce = txNonce
 	txOpts.NoSend = false
-	i := 0
-
 	shouldBump := false
+	i := 0
 
 	respondToTaskV2Func := func() (*types.Receipt, error) {
 		// We bump only when the timeout for waiting for the receipt has passed
@@ -152,7 +151,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			}
 		}
 
-		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, context.Background(), tx.Hash())
+		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, context.Background(), tx.Hash(), BlocksToWaitBeforeBump)
 		if receipt != nil {
 			return receipt, nil
 		}
