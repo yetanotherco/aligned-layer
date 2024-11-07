@@ -3,7 +3,6 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"net/http"
 	"net/rpc"
 	"time"
@@ -131,16 +130,11 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 // |---RETRYABLE---|
 
 func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
-	var err error
 	processNewSignature_func := func() error {
-		err = agg.blsAggregationService.ProcessNewSignature(
+		return agg.blsAggregationService.ProcessNewSignature(
 			ctx, taskIndex, taskResponse,
 			blsSignature, operatorId,
 		)
-		if err != nil {
-			err = fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)
-		}
-		return err
 	}
 
 	return retry.Retry(processNewSignature_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
