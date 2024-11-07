@@ -55,6 +55,11 @@
         group: '{{ ansible_user }}'
         recurse: yes
 
+    - name: Build aggregator
+      shell: 
+        chdir: /home/{{ ansible_user }}/repos/aggregator/aligned_layer/
+        cmd: /usr/local/go/bin/go build -o /home/{{ ansible_user }}/repos/aggregator/aligned_layer/build/aligned-aggregator /home/{{ ansible_user }}/repos/aggregator/aligned_layer/aggregator/cmd/main.go
+
     - name: Create systemd services directory
       file:
         path: "/home/{{ ansible_user }}/.config/systemd/user/"
@@ -69,7 +74,7 @@
     - name: Upload config file for aggregator
       template:
         src: config-files/config-aggregator.yaml.j2
-        dest: "/home/{{ ansible_user }}/config/config-aggregator-holesky.yaml"
+        dest: "/home/{{ ansible_user }}/config/config-aggregator.yaml"
       vars:
         aligned_layer_deployment_config_file_path: "{{ lookup('ini', 'aligned_layer_deployment_config_file_path', file='ini/config-aggregator.ini') }}"
         eigen_layer_deployment_config_file_path: "{{ lookup('ini', 'eigen_layer_deployment_config_file_path', file='ini/config-aggregator.ini') }}"
@@ -79,20 +84,11 @@
         eth_ws_url_fallback: "{{ lookup('ini', 'eth_ws_url_fallback', file='ini/config-aggregator.ini') }}"
         ecdsa_private_key_store_path: "{{ lookup('ini', 'ecdsa_private_key_store_path', file='ini/config-aggregator.ini') }}"
         ecdsa_private_key_store_password: "{{ lookup('ini', 'ecdsa_private_key_store_password', file='ini/config-aggregator.ini') }}"
-        aggregator_replacement_private_key: "{{ lookup('ini', 'aggregator_replacement_private_key', file='ini/config-aggregator.ini') }}"
-
-    - name: Upload env file for aggregator
-      template:
-        src: config-files/env-aggregator.j2
-        dest: "/home/{{ ansible_user }}/config/.env.aggregator"
-      vars:
-        secret_access_key: "{{ lookup('ini', 'secret_access_key', file='ini/env-aggregator.ini') }}"
-        region: "{{ lookup('ini', 'region', file='ini/env-aggregator.ini') }}"
-        access_key_id: "{{ lookup('ini', 'access_key_id', file='ini/env-aggregator.ini') }}"
-        bucket_name: "{{ lookup('ini', 'bucket_name', file='ini/env-aggregator.ini') }}"
-        download_endpoint: "{{ lookup('ini', 'download_endpoint', file='ini/env-aggregator.ini') }}"
-        log_level: "{{ lookup('ini', 'log_level', file='ini/env-aggregator.ini') }}"
-
+        bls_private_key_store_path: "{{ lookup('ini', 'bls_private_key_store_path', file='ini/config-aggregator.ini') }}"
+        bls_private_key_store_password: "{{ lookup('ini', 'bls_private_key_store_password', file='ini/config-aggregator.ini') }}"
+        bls_public_key_compendium_address: "{{ lookup('ini', 'bls_public_key_compendium_address', file='ini/config-aggregator.ini') }}"
+        avs_service_manager_address: "{{ lookup('ini', 'avs_service_manager_address', file='ini/config-aggregator.ini') }}"
+        enable_metrics: "{{ lookup('ini', 'enable_metrics', file='ini/config-aggregator.ini') }}"
 
     - name: Allow access to tcp port 8090
       become: true

@@ -24,7 +24,7 @@ aggregator:
   server_ip_port_address: localhost:8090
   bls_public_key_compendium_address: "{{ bls_public_key_compendium_address }}"
   avs_service_manager_address: "{{ avs_service_manager_address }}"
-  enable_metrics: "{{ enable_metrics }}"
+  enable_metrics: {{ enable_metrics }}
   metrics_ip_port_address: localhost:9091
   telemetry_ip_port_address: localhost:4001
   garbage_collector_period: 2m #The period of the GC process. Suggested value for Prod: '168h' (7 days)
