@@ -151,7 +151,7 @@ func (w *AvsWriter) compareAggregatorBalance(amount *big.Int, aggregatorAddress 
 
 func (w *AvsWriter) compareBatcherBalance(amount *big.Int, senderAddress [20]byte) error {
 	// Get batcher balance
-	batcherBalance, err := w.BatcherBalancesRetryable(senderAddress)
+	batcherBalance, err := w.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
 	if err != nil {
 		// Ignore and continue.
 		w.logger.Error("Failed to get batcherBalance", "error", err)

@@ -328,7 +328,7 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 		fmt.Printf("Error setting up Avs Service Bindings: %s\n", err)
 	}
 
-	_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
+	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -337,7 +337,7 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 		return
 	}
 
-	_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
+	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
@@ -354,7 +354,7 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
+	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -382,7 +382,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		fmt.Printf("Error setting up Avs Service Bindings: %s\n", err)
 	}
 
-	_, err = chainio.SubscribeToNewTasksV2Retrayable(s.ServiceManager, channel, baseConfig.Logger)
+	_, err = chainio.SubscribeToNewTasksV2Retrayable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -391,7 +391,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		return
 	}
 
-	_, err = chainio.SubscribeToNewTasksV2Retrayable(s.ServiceManager, channel, baseConfig.Logger)
+	_, err = chainio.SubscribeToNewTasksV2Retrayable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.NotNil(t, err)
 	// If it retruend a permanent error we exit
 	if _, ok := err.(retry.PermanentError); ok {
@@ -409,7 +409,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = chainio.SubscribeToNewTasksV2Retrayable(s.ServiceManager, channel, baseConfig.Logger)
+	_, err = chainio.SubscribeToNewTasksV2Retrayable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -481,7 +481,7 @@ func TestFilterBatchV2(t *testing.T) {
 	if err != nil {
 		return
 	}
-	_, err = avsSubscriber.FilterBatchV2Retryable(0, context.Background())
+	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -490,7 +490,7 @@ func TestFilterBatchV2(t *testing.T) {
 		return
 	}
 
-	_, err = avsSubscriber.FilterBatchV2Retryable(0, context.Background())
+	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.NotNil(t, err)
 	//
 	if _, ok := err.(retry.PermanentError); ok {
@@ -508,7 +508,7 @@ func TestFilterBatchV2(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsSubscriber.FilterBatchV2Retryable(0, context.Background())
+	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -530,7 +530,7 @@ func TestFilterBatchV3(t *testing.T) {
 	if err != nil {
 		return
 	}
-	_, err = avsSubscriber.FilterBatchV3Retryable(0, context.Background())
+	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -539,7 +539,7 @@ func TestFilterBatchV3(t *testing.T) {
 		return
 	}
 
-	_, err = avsSubscriber.FilterBatchV3Retryable(0, context.Background())
+	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
@@ -557,7 +557,7 @@ func TestFilterBatchV3(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsSubscriber.FilterBatchV3Retryable(0, context.Background())
+	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -885,9 +885,9 @@ func TestBatchersBalances(t *testing.T) {
 	if err != nil {
 		return
 	}
-	sender_address := common.HexToAddress("0x0")
+	senderAddress := common.HexToAddress("0x0")
 
-	_, err = avsWriter.BatcherBalancesRetryable(sender_address)
+	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -896,7 +896,7 @@ func TestBatchersBalances(t *testing.T) {
 		return
 	}
 
-	_, err = avsWriter.BatcherBalancesRetryable(sender_address)
+	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
@@ -914,7 +914,7 @@ func TestBatchersBalances(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsWriter.BatcherBalancesRetryable(sender_address)
+	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
