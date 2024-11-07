@@ -18,15 +18,16 @@ import (
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	connection "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 const (
 	// How much to bump every retry (constant)
 	GasBaseBumpPercentage int = 20
 	// An extra percentage to bump every retry i*5 (linear)
-	GasBumpIncrementalBumpPercentage int = 5
+	GasBumpIncrementalPercentage int = 5
 	// Wait as much as 3 blocks time for the receipt
-	SendAggregateResponseReceiptTimeout time.Duration = time.Second * 36
+	BlocksToWaitBeforeBump time.Duration = time.Second * 36
 )
 
 type AvsWriter struct {
@@ -84,33 +85,94 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 // Sends AggregatedResponse and waits for the receipt for three blocks, if not received
 // it will try again bumping the last tx gas price based on `CalculateGasPriceBump`
 // This process happens indefinitely until the transaction is included.
-//
-// Note: If the rpc endpoints fail, the retry mechanism stops, returning a permanent error.
-// This is because retries are infinite and we want to prevent increasing the time between them too much as it is exponential.
-// And, if the rpc is down for a good period of time, we might fall into an infinite waiting.
 func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, onRetry func()) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
-	tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+
+	respondToTaskV2SimulationFunc := func() (*types.Transaction, error) {
+		tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		if err != nil {
+			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+			if err != nil {
+				// check if reverted only else transient error
+				err = connection.PermanentError{Inner: fmt.Errorf("transaction reverted")}
+			}
+		}
+		return tx, err
+	}
+	tx, err := connection.RetryWithData(respondToTaskV2SimulationFunc, connection.MinDelay, connection.RetryFactor, 0, connection.MaxInterval)
 	if err != nil {
 		return nil, err
 	}
 
 	err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
 	if err != nil {
-		return nil, err
+		return nil, connection.PermanentError{Inner: err}
 	}
 
-	// Set the nonce, as we might have to replace the transaction with a higher fee
-	txNonce := new(big.Int).SetUint64(tx.Nonce())
+	// Set the nonce, as we might have to replace the transaction with a higher gas price
+	txNonce := big.NewInt(int64(tx.Nonce()))
+	txOpts.Nonce = txNonce
 	txOpts.NoSend = false
-	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
-	tx, err = w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-	if err != nil {
-		return nil, err
+	i := 0
+
+	shouldBump := false
+
+	respondToTaskV2Func := func() (*types.Receipt, error) {
+		// We bump only when the timeout for waiting for the receipt has passed
+		// not when an rpc failed
+		if shouldBump {
+			gasPrice, err := w.ClientFallback.SuggestGasPrice(context.Background())
+			if err != nil {
+				shouldBump = false
+				return nil, connection.TransientError{Inner: err}
+			}
+			bumpedGasPrice := utils.CalculateGasPriceBumpBasedOnRetry(gasPrice, GasBaseBumpPercentage, GasBumpIncrementalPercentage, i)
+
+			if gasPrice.Cmp(txOpts.GasPrice) > 0 {
+				txOpts.GasPrice = bumpedGasPrice
+			} else {
+				txOpts.GasPrice = new(big.Int).Mul(txOpts.GasPrice, big.NewInt(1))
+			}
+		}
+
+		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
+		if err != nil {
+			shouldBump = false
+			// We bump the fee so much that the transaction cost is more expensive than the batcher fee limit
+			return nil, connection.PermanentError{Inner: err}
+		}
+
+		tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		if err != nil {
+			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+			if err != nil {
+				// check if reverted only to be permanent
+				err = connection.TransientError{Inner: err}
+				shouldBump = false
+			}
+		}
+
+		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, context.Background(), tx.Hash())
+		if receipt != nil {
+			return receipt, nil
+		}
+
+		// if we are here, it means we have reached the receipt waiting timeout
+		// so in the next iteration we try again by bumping the fee to make sure its included
+		if i > 0 {
+			onRetry()
+		}
+		i++
+
+		shouldBump = true
+		if err != nil {
+			return nil, connection.TransientError{Inner: err}
+		}
+		return nil, connection.TransientError{Inner: fmt.Errorf("transaction failed")}
 	}
 
-	return connection.RetryWithData(sendTransaction, 1000, 2, 0)
+	return connection.RetryWithData(respondToTaskV2Func, 1000, 2, 0, 60)
 }
 
 func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
