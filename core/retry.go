@@ -1,4 +1,4 @@
-package connection
+package retry
 
 import (
 	"fmt"

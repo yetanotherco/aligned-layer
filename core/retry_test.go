@@ -1,4 +1,4 @@
-package connection_test
+package retry_test
 
 import (
 	"context"
