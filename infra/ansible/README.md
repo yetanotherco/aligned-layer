@@ -4,6 +4,7 @@
 
 > [!IMPORTANT]
 > You need to have previously created an ECDSA keystore with at least 1ETH.
+> You can create keystore following this [guide](#How-to-Create-Keystores)
 
 To deploy the Batcher you need to set some variables and then run the Batcher playbook
 
@@ -32,6 +33,9 @@ make ansible_batcher_deploy INVENTORY=</path/to/inventory> KEYSTORE=<path/to/key
 > [!IMPORTANT]
 > You need to have previously created an ECDSA keystore with at least 1ETH and a BLS keystore.
 > You can create keystore following this [guide](#How-to-Create-Keystores)
+
+> [!CAUTION]
+> To register the Operator in Aligned successfully, you need to have been whitelisted by the Aligned team previously.
 
 
 To deploy the Operator you need to set some variables and the run the Operator playbook
