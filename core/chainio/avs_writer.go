@@ -117,7 +117,9 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		if gasPrice.Cmp(txOpts.GasPrice) > 0 {
 			txOpts.GasPrice = bumpedGasPrice
 		} else {
-			txOpts.GasPrice = new(big.Int).Mul(txOpts.GasPrice, big.NewInt(1))
+			bumpAmount := new(big.Int).Mul(txOpts.GasPrice, big.NewInt(10))
+			bumpAmount = new(big.Int).Div(bumpAmount, big.NewInt(100))
+			txOpts.GasPrice = new(big.Int).Mul(txOpts.GasPrice, bumpAmount)
 		}
 
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
