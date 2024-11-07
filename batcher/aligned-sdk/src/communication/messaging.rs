@@ -70,7 +70,7 @@ pub async fn send_messages(
         sent_verification_data.push(verification_data); 
     }
 
-    info!("All messages sent");
+    info!("All proofs sent");
     // This vector is reversed so that while responses are received, removing from the end is cheaper.
     let sent_verification_data_rev: Vec<NoncedVerificationData> =
         sent_verification_data
@@ -120,14 +120,14 @@ pub async fn receive(
             process_batcher_response(&batch_inclusion_data_message, &related_verification_data)?;
 
         aligned_submitted_data.push(aligned_verification_data);
-        info!("Message response handled succesfully");
+        debug!("Message response handled successfully");
 
         if batch_inclusion_data_message.user_nonce == last_proof_nonce {
             break;
         }
     }
 
-    debug!("All message responses handled successfully");
+    debug!("All proof responses handled successfully");
     Ok(aligned_submitted_data)
 }
 

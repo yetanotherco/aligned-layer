@@ -663,6 +663,7 @@ pub fn save_response(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
 ) -> Result<(), errors::FileError> {
+    info!("Saving batch inclusion data files in folder {}", batch_inclusion_data_directory_path.display());
     save_response_cbor(
         batch_inclusion_data_directory_path.clone(),
         &aligned_verification_data.clone(),
@@ -689,10 +690,6 @@ fn save_response_cbor(
 
     let mut file = File::create(&batch_inclusion_data_path)?;
     file.write_all(data.as_slice())?;
-    info!(
-        "Batch inclusion data written into {}",
-        batch_inclusion_data_path.display()
-    );
 
     Ok(())
 }
@@ -727,11 +724,6 @@ fn save_response_json(
     });
     let mut file = File::create(&batch_inclusion_data_path)?;
     file.write_all(serde_json::to_string_pretty(&data).unwrap().as_bytes())?;
-
-    info!(
-        "Batch inclusion data written into {}",
-        batch_inclusion_data_path.display()
-    );
 
     Ok(())
 }
