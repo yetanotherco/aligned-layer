@@ -101,7 +101,9 @@ pub async fn submit_multiple_and_wait_verification(
     let mut error_awaiting_batch_verification: Option<errors::SubmitError> = None;
     for aligned_verification_data_item in aligned_verification_data.iter() {
         if let Ok(aligned_verification_data_item) = aligned_verification_data_item {
-            if let Err(e) = await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await {
+            if let Err(e) =
+                await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await
+            {
                 error_awaiting_batch_verification = Some(e);
                 break;
             }
@@ -250,9 +252,7 @@ pub async fn submit_multiple(
 ) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
     let (ws_stream, _) = match connect_async(batcher_url).await {
         Ok((ws_stream, response)) => (ws_stream, response),
-        Err(e) => {
-            return vec![Err(errors::SubmitError::WebSocketConnectionError(e))]
-        }
+        Err(e) => return vec![Err(errors::SubmitError::WebSocketConnectionError(e))],
     };
 
     debug!("WebSocket handshake has been successfully completed");
@@ -407,7 +407,9 @@ pub async fn submit_and_wait_verification(
     match aligned_verification_data.get(0) {
         Some(Ok(aligned_verification_data)) => Ok(aligned_verification_data.clone()),
         Some(Err(e)) => Err(errors::SubmitError::GenericError(e.to_string())),
-        None => Err(errors::SubmitError::GenericError("No response from the batcher".to_string())),
+        None => Err(errors::SubmitError::GenericError(
+            "No response from the batcher".to_string(),
+        )),
     }
 }
 
@@ -460,7 +462,9 @@ pub async fn submit(
     match aligned_verification_data.get(0) {
         Some(Ok(aligned_verification_data)) => Ok(aligned_verification_data.clone()),
         Some(Err(e)) => Err(errors::SubmitError::GenericError(e.to_string())),
-        None => Err(errors::SubmitError::GenericError("No response from the batcher".to_string())),
+        None => Err(errors::SubmitError::GenericError(
+            "No response from the batcher".to_string(),
+        )),
     }
 }
 
@@ -687,7 +691,10 @@ pub fn save_response(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
 ) -> Result<(), errors::FileError> {
-    info!("Saving batch inclusion data files in folder {}", batch_inclusion_data_directory_path.display());
+    info!(
+        "Saving batch inclusion data files in folder {}",
+        batch_inclusion_data_directory_path.display()
+    );
     save_response_cbor(
         batch_inclusion_data_directory_path.clone(),
         &aligned_verification_data.clone(),

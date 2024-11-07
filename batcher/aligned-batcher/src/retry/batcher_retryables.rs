@@ -129,7 +129,9 @@ pub async fn create_new_task_retryable(
         Err(ContractError::Revert(err)) => {
             // Since transaction was reverted, we don't want to retry with fallback.
             warn!("Transaction reverted {:?}", err);
-            return Err(RetryError::Permanent(BatcherError::TransactionSendError(err.to_string())));
+            return Err(RetryError::Permanent(BatcherError::TransactionSendError(
+                err.to_string(),
+            )));
         }
         _ => {
             call_fallback = payment_service_fallback
@@ -146,9 +148,15 @@ pub async fn create_new_task_retryable(
                 Ok(pending_tx) => pending_tx,
                 Err(ContractError::Revert(err)) => {
                     warn!("Transaction reverted {:?}", err);
-                    return Err(RetryError::Permanent(BatcherError::TransactionSendError(err.to_string())));
+                    return Err(RetryError::Permanent(BatcherError::TransactionSendError(
+                        err.to_string(),
+                    )));
                 }
-                Err(err) => return Err(RetryError::Transient(BatcherError::TransactionSendError(err.to_string()))),
+                Err(err) => {
+                    return Err(RetryError::Transient(BatcherError::TransactionSendError(
+                        err.to_string(),
+                    )))
+                }
             }
         }
     };

@@ -336,13 +336,17 @@ async fn main() -> Result<(), AlignedError> {
             for aligned_verification_data in aligned_verification_data_vec {
                 match aligned_verification_data {
                     Ok(aligned_verification_data) => {
-                        info!("Proof submitted to aligned. Batch merkle root: 0x{}", hex::encode(aligned_verification_data.batch_merkle_root));
+                        info!(
+                            "Proof submitted to aligned. Batch merkle root: 0x{}",
+                            hex::encode(aligned_verification_data.batch_merkle_root)
+                        );
                         save_response(
                             batch_inclusion_data_directory_path.clone(),
                             &aligned_verification_data,
                         )?;
-                        unique_batch_merkle_roots.insert(aligned_verification_data.batch_merkle_root);
-                    },
+                        unique_batch_merkle_roots
+                            .insert(aligned_verification_data.batch_merkle_root);
+                    }
                     Err(e) => {
                         warn!("Error while submitting proof: {:?}", e);
                         let nonce_file = format!("nonce_{:?}.bin", wallet.address());

@@ -56,15 +56,15 @@ pub async fn send_messages(
 
         nonce += U256::one();
         let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
-        let msg_bin = match cbor_serialize(&msg).map_err(SubmitError::SerializationError) {
+        let msg_bin = match cbor_serialize(&msg) {
             Ok(bin) => bin,
             Err(e) => {
                 error!("Error while serializing message: {:?}", e);
-                sent_verification_data.push(Err(e));
+                sent_verification_data.push(Err(SubmitError::SerializationError(e)));
                 return sent_verification_data;
             }
         };
-        
+
         // Send the message
         if let Err(e) = ws_write.send(Message::Binary(msg_bin.clone())).await {
             error!("Error while sending message: {:?}", e);
@@ -75,7 +75,7 @@ pub async fn send_messages(
         debug!("{:?} Message sent", idx);
 
         // Save the verification data commitment to read its response later
-        sent_verification_data.push(Ok(verification_data)); 
+        sent_verification_data.push(Ok(verification_data));
     }
 
     info!("All proofs sent");
@@ -108,10 +108,14 @@ pub async fn receive(
         if let Message::Close(close_frame) = msg {
             warn!("Unexpected WS close");
             if let Some(close_msg) = close_frame {
-                aligned_submitted_data.push(Err(SubmitError::WebSocketClosedUnexpectedlyError(close_msg.to_owned())));
+                aligned_submitted_data.push(Err(SubmitError::WebSocketClosedUnexpectedlyError(
+                    close_msg.to_owned(),
+                )));
                 break;
             }
-            aligned_submitted_data.push(Err(SubmitError::GenericError("Connection was closed before receive() processed all sent messages ".to_string())));
+            aligned_submitted_data.push(Err(SubmitError::GenericError(
+                "Connection was closed before receive() processed all sent messages ".to_string(),
+            )));
             break;
         }
 
@@ -126,16 +130,25 @@ pub async fn receive(
             }
         };
 
-        let related_verification_data = match match_batcher_response_with_stored_verification_data(&batch_inclusion_data_message, &mut sent_verification_data_rev) {
+        let related_verification_data = match match_batcher_response_with_stored_verification_data(
+            &batch_inclusion_data_message,
+            &mut sent_verification_data_rev,
+        ) {
             Ok(data) => data,
             Err(e) => {
-                warn!("Error while matching batcher response with sent data: {:?}", e);
+                warn!(
+                    "Error while matching batcher response with sent data: {:?}",
+                    e
+                );
                 aligned_submitted_data.push(Err(e));
                 break;
             }
         };
 
-        let aligned_verification_data = match process_batcher_response(&batch_inclusion_data_message, &related_verification_data) {
+        let aligned_verification_data = match process_batcher_response(
+            &batch_inclusion_data_message,
+            &related_verification_data,
+        ) {
             Ok(data) => data,
             Err(e) => {
                 warn!("Error while processing batcher response: {:?}", e);
@@ -254,7 +267,10 @@ fn match_batcher_response_with_stored_verification_data(
 ) -> Result<VerificationDataCommitment, SubmitError> {
     debug!("Matching verification data with batcher response ...");
     let mut index = None;
-    for (i, sent_nonced_verification_data) in sent_verification_data_rev.iter_mut().enumerate().rev() { // iterate in reverse since the last element is the most probable to match
+    for (i, sent_nonced_verification_data) in
+        sent_verification_data_rev.iter_mut().enumerate().rev()
+    {
+        // iterate in reverse since the last element is the most probable to match
         if let Ok(sent_nonced_verification_data) = sent_nonced_verification_data {
             if sent_nonced_verification_data.nonce == batch_inclusion_data.user_nonce {
                 debug!("local nonced verification data matched with batcher response");
@@ -276,7 +292,9 @@ fn match_batcher_response_with_stored_verification_data(
 // Returns the biggest nonce from the sent verification data
 // Used to know which is the last proof sent to the Batcher,
 // to know when to stop reading the WS for responses
-fn get_biggest_nonce(sent_verification_data: &[Result<NoncedVerificationData, SubmitError>]) -> U256 {
+fn get_biggest_nonce(
+    sent_verification_data: &[Result<NoncedVerificationData, SubmitError>],
+) -> U256 {
     let mut biggest_nonce = U256::zero();
     for verification_data in sent_verification_data.iter() {
         if let Ok(verification_data) = verification_data {

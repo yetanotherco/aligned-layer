@@ -1273,7 +1273,7 @@ impl Batcher {
                 self.cancel_create_new_task_tx(fee_params.gas_price).await;
                 Err(BatcherError::ReceiptNotFoundError)
             }
-            Err(RetryError::Permanent(e))|Err(RetryError::Transient(e)) => Err(e),
+            Err(RetryError::Permanent(e)) | Err(RetryError::Transient(e)) => Err(e),
         }
     }
 
