@@ -1377,19 +1377,10 @@ impl Batcher {
         }
 
         let batch_state_lock = self.batch_state.lock().await;
-        let Some(non_paying_nonce) = batch_state_lock.get_user_nonce(&replacement_addr).await
-        else {
-            std::mem::drop(batch_state_lock);
-            error!("Nonce for non-paying address {replacement_addr:?} not found in cache.");
-            send_message(ws_sink.clone(), ResponseMessage::EthRpcError).await;
-            return Ok(());
-        };
-
-        debug!("Non-paying nonce: {:?}", non_paying_nonce);
 
         let nonced_verification_data = NoncedVerificationData::new(
             client_msg.verification_data.verification_data.clone(),
-            non_paying_nonce,
+            client_msg.verification_data.nonce,
             DEFAULT_MAX_FEE_PER_PROOF.into(), // 13_000 gas per proof * 100 gwei gas price (upper bound)
             self.chain_id,
             self.payment_service.address(),
