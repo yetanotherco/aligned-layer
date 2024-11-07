@@ -29,7 +29,7 @@ Install [Foundry](https://book.getfoundry.sh/getting-started/installation):
 
 ```bash
 make install_foundry
-foundryup
+foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
 ```
 
 Install the necessary submodules and build all the FFIs for your OS:
@@ -50,11 +50,11 @@ Before starting, you need to set up an S3 bucket. More data storage will be test
 
 You need to fill the data in:
 
-```batcher/aligned-batcher/.env```
+`batcher/aligned-batcher/.env`
 
 And you can use this file as an example of how to fill it:
 
-```batcher/aligned-batcher/.env.example```
+`batcher/aligned-batcher/.env.example`
 
 After having the env setup, run in different terminals the following commands to boot Aligned locally:
 
@@ -108,15 +108,15 @@ Note that when upgrading the contracts, you must also:
 
 1. Re-generate the Go smart contract bindings:
 
-    ```bash
-    make bindings
-    ```
+   ```bash
+   make bindings
+   ```
 
 2. Rebuild Aggregator and Operator Go binaries:
 
-    ```bash
-    make build_binaries
-    ```
+   ```bash
+   make build_binaries
+   ```
 
 </details>
 
@@ -124,7 +124,7 @@ Note that when upgrading the contracts, you must also:
 
 ## Aggregator
 
-To start the [Aggregator](../architecture/components/5_aggregator.md):
+To start the [Aggregator](../2_architecture/components/5_aggregator.md):
 
 ```bash
 make aggregator_start
@@ -143,7 +143,7 @@ make aggregator_start CONFIG_FILE=<path_to_config_file>
 
 ## Operator
 
-To start an [Operator](../architecture/components/4_operator.md)
+To start an [Operator](../2_architecture/components/4_operator.md)
 (note it also registers it):
 
 ```bash
@@ -284,6 +284,10 @@ Changing operator keys:
 
 Operator keys can be changed if needed.
 
+{% hint style="warning" %}
+When creating a new wallet keystore and private key please use strong passwords for your own protection.
+{% endhint %}
+
 To create a keystore, run:
 
 ```bash
@@ -309,10 +313,15 @@ eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
 
 ## Batcher
 
-To start the [Batcher](../architecture/components/1_batcher.md):
+To start the [Batcher](../2_architecture/components/1_batcher.md):
 
 ```bash
 make batcher_start
+```
+
+If you are testing locally, you can run this instead:
+```bash
+make batcher_start_local
 ```
 
 <details>
@@ -324,7 +333,7 @@ batcher (`batcher/aligned-batcher/`).
 The necessary environment variables are:
 
 | Variable Name         | Description                                                                                                                    |
-|-----------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | AWS_SECRET_ACCESS_KEY | Secret key to authenticate and authorize API requests to the AWS S3 Bucket.                                                    |
 | AWS_REGION            | Geographical region where the AWS S3 Bucket will be accessed.                                                                  |
 | AWS_ACCESS_KEY_ID     | Access key used in combination with the AWS_SECRET_ACCESS_KEY to authenticate and authorize API requests to the AWS S3 Bucket. |
@@ -347,7 +356,6 @@ batcher:
   batch_size_interval: <batch_size_interval>
   max_proof_size: <max_proof_size_in_bytes>
   max_batch_size: <max_batch_size_in_bytes>
-  eth_ws_reconnects: <eth_ws_reconnects_amount>
   pre_verification_is_enabled: <true|false>
 
 ## ECDSA Configurations
@@ -361,6 +369,15 @@ ecdsa:
 ```bash
 make batcher_start
 ```
+
+or
+
+```bash
+make batcher_start_local
+```
+
+The latter version sets up a [localstack](https://www.localstack.cloud/) to act as a replacement for S3,
+so you don't need to interact with (and give money to) AWS for your tests.
 
 </details>
 
@@ -415,25 +432,25 @@ make batcher_send_risc0_burst
 <details>
 <summary>Plonk</summary>
 
-Send an individual bn254 proof:
+Send an individual BN254 proof:
 
 ```bash
 make batcher_send_plonk_bn254_task
 ```
 
-Send a burst of 15 bn254 proofs:
+Send a burst of 15 BN254 proofs:
 
 ```bash
 make batcher_send_plonk_bn254_burst
 ```
 
-Send an individual bl12 proof:
+Send an individual BLS12-381 proof:
 
 ```bash
 make batcher_send_plonk_bls12_381_task
 ```
 
-Send a burst of 15 bl12 proofs:
+Send a burst of 15 BLS12-381 proofs:
 
 ```bash
 make batcher_send_plonk_bls12_381_burst
@@ -444,51 +461,22 @@ make batcher_send_plonk_bls12_381_burst
 <details>
 <summary>Groth16</summary>
 
-Send an individual bn254 proof:
+Send an individual BN254 proof:
 
 ```bash
 make batcher_send_groth16_bn254_task
 ```
 
-Send bn254 proofs indefinitely:
+Send BN254 proofs indefinitely:
 
 ```bash
 make batcher_send_infinite_groth16
 ```
 
-Send bn254 proof bursts indefinitely:
+Send BN254 proof bursts indefinitely:
 
 ```bash
 make batcher_send_burst_groth16
-```
-
-</details>
-
-<details>
-<summary>Halo2</summary>
-
-Send an individual IPA proof:
-
-```bash
-make batcher_send_halo2_ipa_task
-```
-
-Send a burst of five IPA proofs:
-
-```bash
-make batcher_send_halo2_ipa_task_burst_5
-```
-
-Send an individual KZG proof:
-
-```bash
-make batcher_send_halo2_kzg_task
-```
-
-Send a burst of 5 KZG proofs:
-
-```bash
-make batcher_send_halo2_kzg_task_burst_5
 ```
 
 </details>
@@ -518,8 +506,7 @@ aligned submit \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path [path_to_ecdsa_keystore] \
 --batcher_url wss://batcher.alignedlayer.com \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
 </details>
@@ -534,6 +521,9 @@ to run it using the following documentation:
 - [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
 - [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
 - [Docker](https://docs.docker.com/get-docker/)
+- [NodeJS](https://nodejs.org/en/download/package-manager)
+  - Tested with node 20 and 22
+- [pnpm](https://pnpm.io/installation)
 
 ### DB Setup
 
@@ -657,7 +647,7 @@ Create a `.env` file in the `/explorer` directory of the project.
 The `.env` file needs to contain the following variables:
 
 | Variable              | Description                                                                                     |
-|-----------------------|-------------------------------------------------------------------------------------------------|
+| --------------------- | ----------------------------------------------------------------------------------------------- |
 | `RPC_URL`             | The RPC URL of the network you want to connect to.                                              |
 | `ENVIRONMENT`         | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
 | `ALIGNED_CONFIG_FILE` | The config file containing Aligned contracts' deployment information                            |
@@ -668,6 +658,7 @@ The `.env` file needs to contain the following variables:
 | `DB_HOST`             | The host URL where the postgres database will be running.                                       |
 | `ELIXIR_HOSTNAME`     | The hostname of your running elixir.                                                            |
 | `DEBUG_ERRORS`        | If you want to enable phoenix errors on your browser instead of a 500 page, set this to `true`. |
+| `TRACKER_API_URL`     | The URL of the aligned version each operator is running.                                        |
 
 Then you can run the explorer with this env file config by entering the following command:
 
@@ -715,18 +706,34 @@ forge install Layr-Labs/eigenlayer-middleware@mainnet
 
 Then, to solve the issue<https://github.com/Layr-Labs/eigenlayer-middleware/issues/229>, we changed it to:
 
-```forge install yetanotherco/eigenlayer-middleware@yac-mainnet --no-commit```
+`forge install yetanotherco/eigenlayer-middleware@yac-mainnet --no-commit`
 
 As soon as it gets fixed in mainnet, we can revert it.
 
-Base version of middleware used is ```7229f2b```.
+Base version of middleware used is `7229f2b`.
 
-The script to initialize the devnet can be found on  ```contracts/scripts/anvil```.
+The script to initialize the devnet can be found on `contracts/scripts/anvil`.
 
 The addresses of the relevant contracts after running the anvil script are dumped
-on ```contracts/script/output/devnet```.
+on `contracts/script/output/devnet`.
 
-The state is backed up on ```contracts/scripts/anvil/state```.
+The state is backed up on `contracts/scripts/anvil/state`.
 
 EigenLayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet.
 Changes are described in the file.
+
+## Running Fuzzers:
+
+Fuzzing for the operator can be done by executing the following make commands from the root directory of the project.
+
+macOS:
+
+```
+make operator_verification_data_fuzz_macos
+```
+
+Linux:
+
+```
+operator_verification_data_fuzz_linux
+```

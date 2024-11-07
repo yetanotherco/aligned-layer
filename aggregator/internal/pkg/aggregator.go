@@ -12,7 +12,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
-	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	sdkclients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/services/avsregistry"
@@ -42,7 +41,7 @@ type BatchData struct {
 
 type Aggregator struct {
 	AggregatorConfig      *config.AggregatorConfig
-	NewBatchChan          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
+	NewBatchChan          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
 	avsReader             *chainio.AvsReader
 	avsSubscriber         *chainio.AvsSubscriber
 	avsWriter             *chainio.AvsWriter
@@ -61,17 +60,11 @@ type Aggregator struct {
 	// and can start from zero
 	batchesIdxByIdentifierHash map[[32]byte]uint32
 
-	// Stores the taskCreatedBlock for each batch bt batch index
+	// Stores the taskCreatedBlock for each batch by batch index
 	batchCreatedBlockByIdx map[uint32]uint64
 
 	// Stores the TaskResponse for each batch by batchIdentifierHash
 	batchDataByIdentifierHash map[[32]byte]BatchData
-
-	// Stores if an operator already submitted a response for a batch
-	// This is to avoid double submissions
-	// struct{} is used as a placeholder because it is the smallest type
-	// go does not have a set type
-	operatorRespondedBatch map[uint32]map[eigentypes.Bytes32]struct{}
 
 	// This task index is to communicate with the local BLS
 	// Service.
@@ -86,12 +79,16 @@ type Aggregator struct {
 
 	logger logging.Logger
 
+	// Metrics
 	metricsReg *prometheus.Registry
 	metrics    *metrics.Metrics
+
+	// Telemetry
+	telemetry *Telemetry
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
-	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
+	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
 	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
@@ -125,7 +122,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	aggregatorPrivateKey := aggregatorConfig.EcdsaConfig.PrivateKey
 
 	logger := aggregatorConfig.BaseConfig.Logger
-	clients, err := clients.BuildAll(chainioConfig, aggregatorPrivateKey, logger)
+	clients, err := sdkclients.BuildAll(chainioConfig, aggregatorPrivateKey, logger)
 	if err != nil {
 		logger.Errorf("Cannot create sdk clients", "err", err)
 		return nil, err
@@ -146,13 +143,16 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return taskResponseDigest, nil
 	}
 
-	operatorPubkeysService := oppubkeysserv.NewOperatorsInfoServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, nil, logger)
+	operatorPubkeysService := oppubkeysserv.NewOperatorsInfoServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, nil, oppubkeysserv.Opts{}, logger)
 	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.ChainReader, operatorPubkeysService, logger)
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, hashFunction, logger)
 
 	// Metrics
 	reg := prometheus.NewRegistry()
 	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
+
+	// Telemetry
+	aggregatorTelemetry := NewTelemetry(aggregatorConfig.Aggregator.TelemetryIpPortAddress, logger)
 
 	nextBatchIndex := uint32(0)
 
@@ -167,7 +167,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		batchesIdxByIdentifierHash: batchesIdxByIdentifierHash,
 		batchDataByIdentifierHash:  batchDataByIdentifierHash,
 		batchCreatedBlockByIdx:     batchCreatedBlockByIdx,
-		operatorRespondedBatch:     make(map[uint32]map[eigentypes.Bytes32]struct{}),
 		nextBatchIndex:             nextBatchIndex,
 		taskMutex:                  &sync.Mutex{},
 		walletMutex:                &sync.Mutex{},
@@ -176,6 +175,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		logger:                logger,
 		metricsReg:            reg,
 		metrics:               aggregatorMetrics,
+		telemetry:             aggregatorTelemetry,
 	}
 
 	return &aggregator, nil
@@ -215,18 +215,23 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 
 const MaxSentTxRetries = 5
 
+const BLS_AGG_SERVICE_TIMEOUT = 100 * time.Second
+
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
+	agg.taskMutex.Lock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching task data")
+	batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
+	batchData := agg.batchDataByIdentifierHash[batchIdentifierHash]
+	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
+	agg.taskMutex.Unlock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching task data")
+
+	// Finish task trace once the task is processed (either successfully or not)
+	defer agg.telemetry.FinishTrace(batchData.BatchMerkleRoot)
+
 	if blsAggServiceResp.Err != nil {
-		agg.taskMutex.Lock()
-		batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
+		agg.telemetry.LogTaskError(batchData.BatchMerkleRoot, blsAggServiceResp.Err)
 		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
-		agg.logger.Info("- Locking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
-
-		// Remove task from the list of tasks
-		delete(agg.operatorRespondedBatch, blsAggServiceResp.TaskIndex)
-
-		agg.logger.Info("- Unlocking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
-		agg.taskMutex.Unlock()
 		return
 	}
 	nonSignerPubkeys := []servicemanager.BN254G1Point{}
@@ -249,17 +254,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		NonSignerStakeIndices:        blsAggServiceResp.NonSignerStakeIndices,
 	}
 
-	agg.taskMutex.Lock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
-	batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
-	batchData := agg.batchDataByIdentifierHash[batchIdentifierHash]
-	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
-
-	// Delete the task from the map
-	delete(agg.operatorRespondedBatch, blsAggServiceResp.TaskIndex)
-
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
-	agg.taskMutex.Unlock()
+	agg.telemetry.LogQuorumReached(batchData.BatchMerkleRoot)
 
 	agg.logger.Info("Threshold reached", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
@@ -276,10 +271,10 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-
 	for i := 0; i < MaxSentTxRetries; i++ {
-		_, err = agg.sendAggregatedResponse(batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
+		receipt, err := agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
 		if err == nil {
+			agg.telemetry.TaskSentToEthereum(batchData.BatchMerkleRoot, receipt.TxHash.String())
 			agg.logger.Info("Aggregator successfully responded to task",
 				"taskIndex", blsAggServiceResp.TaskIndex,
 				"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
@@ -297,13 +292,12 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"merkleRoot", "0x"+hex.EncodeToString(batchData.BatchMerkleRoot[:]),
 		"senderAddress", "0x"+hex.EncodeToString(batchData.SenderAddress[:]),
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+	agg.telemetry.LogTaskError(batchData.BatchMerkleRoot, err)
 }
 
 // / Sends response to contract and waits for transaction receipt
 // / Returns error if it fails to send tx or receipt is not found
-func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
-	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
-	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 
 	agg.walletMutex.Lock()
 	agg.logger.Infof("- Locked Wallet Resources: Sending aggregated response for batch",
@@ -311,10 +305,11 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, senderAd
 		"senderAddress", hex.EncodeToString(senderAddress[:]),
 		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
-	txHash, err := agg.avsWriter.SendAggregatedResponse(batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	txHash, err := agg.avsWriter.SendAggregatedResponse(batchIdentifierHash, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.walletMutex.Unlock()
 		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
+		agg.telemetry.LogTaskError(batchMerkleRoot, err)
 		return nil, err
 	}
 
@@ -324,6 +319,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, senderAd
 	receipt, err := utils.WaitForTransactionReceipt(
 		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
 	if err != nil {
+		agg.telemetry.LogTaskError(batchMerkleRoot, err)
 		return nil, err
 	}
 
@@ -333,7 +329,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, senderAd
 }
 
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]byte, taskCreatedBlock uint32) {
-
+	agg.telemetry.InitNewTrace(batchMerkleRoot)
 	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
 	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 
@@ -369,18 +365,72 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 		BatchMerkleRoot: batchMerkleRoot,
 		SenderAddress:   senderAddress,
 	}
+	agg.logger.Info(
+		"Task Info added in aggregator:",
+		"Task", batchIndex,
+		"batchIdentifierHash", batchIdentifierHash,
+	)
 	agg.nextBatchIndex += 1
 
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
-	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, BLS_AGG_SERVICE_TIMEOUT)
 	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
 	if err != nil {
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
 	}
 
+	agg.metrics.IncAggregatorReceivedTasks()
 	agg.taskMutex.Unlock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
 	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+}
+
+// Long-lived goroutine that periodically checks and removes old Tasks from stored Maps
+// It runs every GarbageCollectorPeriod and removes all tasks older than GarbageCollectorTasksAge
+// This was added because each task occupies memory in the maps, and we need to free it to avoid a memory leak
+func (agg *Aggregator) ClearTasksFromMaps() {
+	defer func() {
+		err := recover() //stops panics
+		if err != nil {
+			agg.logger.Error("Recovered from panic", "err", err)
+		}
+	}()
+
+	agg.AggregatorConfig.BaseConfig.Logger.Info(fmt.Sprintf("- Removing finalized Task Infos from Maps every %v", agg.AggregatorConfig.Aggregator.GarbageCollectorPeriod))
+	lastIdxDeleted := uint32(0)
+
+	for {
+		time.Sleep(agg.AggregatorConfig.Aggregator.GarbageCollectorPeriod)
+
+		agg.AggregatorConfig.BaseConfig.Logger.Info("Cleaning finalized tasks from maps")
+		oldTaskIdHash, err := agg.avsReader.GetOldTaskHash(agg.AggregatorConfig.Aggregator.GarbageCollectorTasksAge, agg.AggregatorConfig.Aggregator.GarbageCollectorTasksInterval)
+		if err != nil {
+			agg.logger.Error("Error getting old task hash, skipping this garbage collect", "err", err)
+			continue // Retry in the next iteration
+		}
+		if oldTaskIdHash == nil {
+			agg.logger.Warn("No old tasks found")
+			continue // Retry in the next iteration
+		}
+
+		taskIdxToDelete := agg.batchesIdxByIdentifierHash[*oldTaskIdHash]
+		agg.logger.Info("Old task found", "taskIndex", taskIdxToDelete)
+		// delete from lastIdxDeleted to taskIdxToDelete
+		for i := lastIdxDeleted + 1; i <= taskIdxToDelete; i++ {
+			batchIdentifierHash, exists := agg.batchesIdentifierHashByIdx[i]
+			if exists {
+				agg.logger.Info("Cleaning up finalized task", "taskIndex", i)
+				delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
+				delete(agg.batchCreatedBlockByIdx, i)
+				delete(agg.batchesIdentifierHashByIdx, i)
+				delete(agg.batchDataByIdentifierHash, batchIdentifierHash)
+			} else {
+				agg.logger.Warn("Task not found in maps", "taskIndex", i)
+			}
+		}
+		lastIdxDeleted = taskIdxToDelete
+		agg.AggregatorConfig.BaseConfig.Logger.Info("Done cleaning finalized tasks from maps")
+	}
 }

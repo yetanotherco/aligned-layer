@@ -1,4 +1,5 @@
 use ethers::signers::Signer;
+use ethers::types::Address;
 use futures_util::{stream::SplitStream, SinkExt, StreamExt};
 use log::{debug, error, info};
 use std::sync::Arc;
@@ -30,7 +31,9 @@ pub type ResponseStream = TryFilter<
 pub async fn send_messages(
     response_stream: Arc<Mutex<ResponseStream>>,
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    payment_service_addr: Address,
     verification_data: &[VerificationData],
+    max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     mut nonce: U256,
 ) -> Result<Vec<NoncedVerificationData>, SubmitError> {
@@ -38,21 +41,22 @@ pub async fn send_messages(
 
     let mut ws_write = ws_write.lock().await;
 
-    let mut nonce_bytes = [0u8; 32];
-
     let mut response_stream = response_stream.lock().await;
 
     let chain_id = U256::from(wallet.chain_id());
 
-    for verification_data in verification_data.iter() {
-        nonce.to_big_endian(&mut nonce_bytes);
-
-        let verification_data =
-            NoncedVerificationData::new(verification_data.clone(), nonce_bytes, chain_id);
+    for (idx, verification_data) in verification_data.iter().enumerate() {
+        let verification_data = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce,
+            max_fees[idx],
+            chain_id,
+            payment_service_addr,
+        );
 
         nonce += U256::one();
 
-        let msg = ClientMessage::new(verification_data.clone(), wallet.clone());
+        let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
         let msg_bin = cbor_serialize(&msg).map_err(SubmitError::SerializationError)?;
         ws_write
             .send(Message::Binary(msg_bin.clone()))
@@ -90,9 +94,13 @@ pub async fn send_messages(
                 error!("Proof too large!");
                 return Err(SubmitError::ProofTooLarge);
             }
-            ValidityResponseMessage::InvalidProof => {
-                error!("Invalid Proof!");
-                return Err(SubmitError::InvalidProof);
+            ValidityResponseMessage::InvalidProof(reason) => {
+                error!("Invalid Proof!: {}", reason);
+                return Err(SubmitError::InvalidProof(reason));
+            }
+            ValidityResponseMessage::InvalidMaxFee => {
+                error!("Invalid Max Fee!");
+                return Err(SubmitError::InvalidMaxFee);
             }
             ValidityResponseMessage::InsufficientBalance(addr) => {
                 error!("Insufficient balance for address: {}", addr);
@@ -101,6 +109,29 @@ pub async fn send_messages(
             ValidityResponseMessage::InvalidChainId => {
                 error!("Invalid chain id!");
                 return Err(SubmitError::InvalidChainId);
+            }
+            ValidityResponseMessage::InvalidReplacementMessage => {
+                error!("Invalid replacement message!");
+                return Err(SubmitError::InvalidReplacementMessage);
+            }
+            ValidityResponseMessage::AddToBatchError => {
+                error!("Error while pushing the entry to queue");
+                return Err(SubmitError::AddToBatchError);
+            }
+            ValidityResponseMessage::EthRpcError => {
+                return Err(SubmitError::EthereumProviderError(
+                    "Batcher experienced Eth RPC connection error".to_string(),
+                ));
+            }
+            ValidityResponseMessage::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
+                error!(
+                    "Invalid payment service address, received: {}, expected: {}",
+                    received_addr, expected_addr
+                );
+                return Err(SubmitError::InvalidPaymentServiceAddress(
+                    received_addr,
+                    expected_addr,
+                ));
             }
         };
 
@@ -188,6 +219,9 @@ async fn process_batch_inclusion_data(
             return Err(SubmitError::BatchSubmissionFailed(
                 "Could not create task with merkle root ".to_owned() + &merkle_root,
             ));
+        }
+        Ok(ResponseMessage::InvalidProof(reason)) => {
+            return Err(SubmitError::InvalidProof(reason));
         }
         Err(e) => {
             return Err(SubmitError::SerializationError(e));

@@ -7,14 +7,14 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use aligned_sdk::communication::serialization::cbor_deserialize;
-use aligned_sdk::communication::serialization::cbor_serialize;
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
-    types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData},
+    types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
-use aligned_sdk::sdk::{get_commitment, is_proof_verified, submit_multiple};
+use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
+use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -28,8 +28,8 @@ use log::{error, info};
 use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
-use crate::AlignedCommands::GetCommitment;
 use crate::AlignedCommands::GetUserBalance;
+use crate::AlignedCommands::GetVkCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
 
@@ -40,16 +40,15 @@ pub struct AlignedArgs {
     pub command: AlignedCommands,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Subcommand, Debug)]
 pub enum AlignedCommands {
     #[clap(about = "Submit proof to the batcher")]
     Submit(SubmitArgs),
     #[clap(about = "Verify the proof was included in a verified batch on Ethereum")]
     VerifyProofOnchain(VerifyProofOnchainArgs),
-
-    // Get commitment for file, command name is get-commitment
-    #[clap(about = "Get commitment for file", name = "get-commitment")]
-    GetCommitment(GetCommitmentArgs),
+    #[clap(about = "Get commitment for file", name = "get-vk-commitment")]
+    GetVkCommitment(GetVkCommitmentArgs),
     #[clap(
         about = "Deposits Ethereum in the batcher to pay for proofs",
         name = "deposit-to-batcher"
@@ -68,12 +67,6 @@ pub struct SubmitArgs {
         default_value = "ws://localhost:8080"
     )]
     batcher_url: String,
-    #[arg(
-        name = "Batcher Payment Service Eth Address",
-        long = "payment_service_addr",
-        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
-    )]
-    payment_service_addr: String,
     #[arg(
         name = "Ethereum RPC provider connection address",
         long = "rpc_url",
@@ -112,17 +105,25 @@ pub struct SubmitArgs {
     keystore_path: Option<PathBuf>,
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
+    #[arg(
+        name = "Max Fee",
+        long = "max_fee",
+        default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
+    )]
+    max_fee: String, // String because U256 expects hex
+    #[arg(name = "Nonce", long = "nonce")]
+    nonce: Option<String>, // String because U256 expects hex
+    #[arg(
+        name = "The working network's name",
+        long = "network",
+        default_value = "devnet"
+    )]
+    network: NetworkArg,
 }
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct DepositToBatcherArgs {
-    #[arg(
-        name = "Batcher Payment Service Eth Address",
-        long = "payment_service_addr",
-        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
-    )]
-    payment_service_addr: String,
     #[arg(
         name = "Path to local keystore",
         long = "keystore_path",
@@ -136,11 +137,11 @@ pub struct DepositToBatcherArgs {
     )]
     eth_rpc_url: String,
     #[arg(
-        name = "The Ethereum network's name",
-        long = "chain",
+        name = "The working network's name",
+        long = "network",
         default_value = "devnet"
     )]
-    chain: ChainArg,
+    network: NetworkArg,
     #[arg(name = "Amount to deposit", long = "amount", required = true)]
     amount: String,
 }
@@ -157,18 +158,20 @@ pub struct VerifyProofOnchainArgs {
     )]
     eth_rpc_url: String,
     #[arg(
-        name = "The Ethereum network's name",
-        long = "chain",
+        name = "The working network's name",
+        long = "network",
         default_value = "devnet"
     )]
-    chain: ChainArg,
+    network: NetworkArg,
 }
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-pub struct GetCommitmentArgs {
-    #[arg(name = "File name", long = "input")]
-    input_file: PathBuf,
+pub struct GetVkCommitmentArgs {
+    #[arg(name = "Verification key file path", long = "verification_key_file")]
+    verification_key_file: PathBuf,
+    #[arg(name = "Proving system", long = "proving_system")]
+    proving_system: ProvingSystemArg,
     #[arg(name = "Output file", long = "output")]
     output_file: Option<PathBuf>,
 }
@@ -177,11 +180,11 @@ pub struct GetCommitmentArgs {
 #[command(version, about, long_about = None)]
 pub struct GetUserBalanceArgs {
     #[arg(
-        name = "Batcher Payment Service Eth Address",
-        long = "payment_service_addr",
-        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
+        name = "The working network's name",
+        long = "network",
+        default_value = "devnet"
     )]
-    payment_service_addr: String,
+    network: NetworkArg,
     #[arg(
         name = "Ethereum RPC provider address",
         long = "rpc_url",
@@ -196,19 +199,19 @@ pub struct GetUserBalanceArgs {
     user_address: String,
 }
 
-#[derive(Debug, Clone, ValueEnum)]
-enum ChainArg {
+#[derive(Debug, Clone, ValueEnum, Copy)]
+enum NetworkArg {
     Devnet,
     Holesky,
     HoleskyStage,
 }
 
-impl From<ChainArg> for Chain {
-    fn from(chain_arg: ChainArg) -> Self {
-        match chain_arg {
-            ChainArg::Devnet => Chain::Devnet,
-            ChainArg::Holesky => Chain::Holesky,
-            ChainArg::HoleskyStage => Chain::HoleskyStage,
+impl From<NetworkArg> for Network {
+    fn from(env_arg: NetworkArg) -> Self {
+        match env_arg {
+            NetworkArg::Devnet => Network::Devnet,
+            NetworkArg::Holesky => Network::Holesky,
+            NetworkArg::HoleskyStage => Network::HoleskyStage,
         }
     }
 }
@@ -223,10 +226,6 @@ pub enum ProvingSystemArg {
     Groth16Bn254,
     #[clap(name = "SP1")]
     SP1,
-    #[clap(name = "Halo2KZG")]
-    Halo2KZG,
-    #[clap(name = "Halo2IPA")]
-    Halo2IPA,
     #[clap(name = "Risc0")]
     Risc0,
 }
@@ -240,8 +239,6 @@ impl From<ProvingSystemArg> for ProvingSystemId {
             ProvingSystemArg::GnarkPlonkBn254 => ProvingSystemId::GnarkPlonkBn254,
             ProvingSystemArg::Groth16Bn254 => ProvingSystemId::Groth16Bn254,
             ProvingSystemArg::SP1 => ProvingSystemId::SP1,
-            ProvingSystemArg::Halo2KZG => ProvingSystemId::Halo2KZG,
-            ProvingSystemArg::Halo2IPA => ProvingSystemId::Halo2IPA,
             ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
         }
     }
@@ -260,6 +257,9 @@ async fn main() -> Result<(), AlignedError> {
             std::fs::create_dir_all(&batch_inclusion_data_directory_path).map_err(|e| {
                 SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
             })?;
+
+            let max_fee =
+                U256::from_dec_str(&submit_args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
 
             let repetitions = submit_args.repetitions;
             let connect_addr = submit_args.batcher_url.clone();
@@ -283,7 +283,16 @@ async fn main() -> Result<(), AlignedError> {
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
                 warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
-                LocalWallet::from_str(ANVIL_PRIVATE_KEY).expect("Failed to create wallet")
+                match LocalWallet::from_str(ANVIL_PRIVATE_KEY) {
+                    Ok(wallet) => wallet,
+                    Err(e) => {
+                        warn!(
+                            "Failed to create wallet from anvil private key: {}",
+                            e.to_string()
+                        );
+                        return Ok(());
+                    }
+                }
             };
 
             let eth_rpc_url = submit_args.eth_rpc_url.clone();
@@ -291,34 +300,45 @@ async fn main() -> Result<(), AlignedError> {
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
             wallet = wallet.with_chain_id(chain_id);
 
-            let batcher_eth_address = submit_args.payment_service_addr.clone();
+            let nonce = match &submit_args.nonce {
+                Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
+                None => {
+                    get_nonce(
+                        &eth_rpc_url,
+                        wallet.address(),
+                        submit_args.network.into(),
+                        repetitions,
+                    )
+                    .await?
+                }
+            };
 
-            let verification_data = verification_data_from_args(submit_args)?;
+            let verification_data = verification_data_from_args(&submit_args)?;
 
             let verification_data_arr = vec![verification_data; repetitions];
 
             info!("Submitting proofs to the Aligned batcher...");
 
-            let nonce = get_nonce(
-                &eth_rpc_url,
-                wallet.address(),
-                &batcher_eth_address,
-                repetitions,
+            let max_fees = vec![max_fee; repetitions];
+
+            let aligned_verification_data_vec = match submit_multiple(
+                &connect_addr,
+                submit_args.network.into(),
+                &verification_data_arr,
+                &max_fees,
+                wallet.clone(),
+                nonce,
             )
-            .await?;
+            .await
+            {
+                Ok(aligned_verification_data_vec) => aligned_verification_data_vec,
+                Err(e) => {
+                    let nonce_file = format!("nonce_{:?}.bin", wallet.address());
 
-            let aligned_verification_data_vec =
-                match submit_multiple(&connect_addr, &verification_data_arr, wallet.clone(), nonce)
-                    .await
-                {
-                    Ok(aligned_verification_data_vec) => aligned_verification_data_vec,
-                    Err(e) => {
-                        let nonce_file = format!("nonce_{:?}.bin", wallet.address());
-
-                        handle_submit_err(e, nonce_file.as_str()).await;
-                        return Ok(());
-                    }
-                };
+                    handle_submit_err(e, nonce_file.as_str()).await;
+                    return Ok(());
+                }
+            };
 
             let mut unique_batch_merkle_roots = HashSet::new();
 
@@ -344,7 +364,6 @@ async fn main() -> Result<(), AlignedError> {
         }
 
         VerifyProofOnchain(verify_inclusion_args) => {
-            let chain = verify_inclusion_args.chain.into();
             let batch_inclusion_file =
                 File::open(verify_inclusion_args.batch_inclusion_data.clone()).map_err(|e| {
                     SubmitError::IoError(verify_inclusion_args.batch_inclusion_data.clone(), e)
@@ -358,7 +377,7 @@ async fn main() -> Result<(), AlignedError> {
             info!("Verifying response data matches sent proof data...");
             let response = is_proof_verified(
                 &aligned_verification_data,
-                chain,
+                verify_inclusion_args.network.into(),
                 &verify_inclusion_args.eth_rpc_url,
             )
             .await?;
@@ -369,17 +388,18 @@ async fn main() -> Result<(), AlignedError> {
                 info!("Your proof was not included in the batch.");
             }
         }
-        GetCommitment(args) => {
-            let content = read_file(args.input_file)?;
+        GetVkCommitment(args) => {
+            let verification_key_bytes = read_file(args.verification_key_file)?;
+            let proving_system = args.proving_system.into();
 
-            let hash = get_commitment(&content);
+            let vk_commitment = get_vk_commitment(&verification_key_bytes, proving_system);
 
-            info!("Commitment: {}", hex::encode(hash));
+            info!("Commitment: {}", hex::encode(vk_commitment));
             if let Some(output_file) = args.output_file {
                 let mut file = File::create(output_file.clone())
                     .map_err(|e| SubmitError::IoError(output_file.clone(), e))?;
 
-                file.write_all(hex::encode(hash).as_bytes())
+                file.write_all(hex::encode(vk_commitment).as_bytes())
                     .map_err(|e| SubmitError::IoError(output_file.clone(), e))?;
             }
         }
@@ -389,18 +409,21 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let chain: Chain = deposit_to_batcher_args.chain.into();
-
             let amount = deposit_to_batcher_args.amount.replace("ether", "");
+
+            let amount_ether = parse_ether(&amount).map_err(|e| {
+                SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
+            })?;
 
             let eth_rpc_url = deposit_to_batcher_args.eth_rpc_url;
 
-            let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).map_err(|e| {
-                SubmitError::EthereumProviderError(format!(
-                    "Error while connecting to Ethereum: {}",
-                    e
-                ))
-            })?;
+            let eth_rpc_provider =
+                Provider::<Http>::try_from(eth_rpc_url.clone()).map_err(|e| {
+                    SubmitError::EthereumProviderError(format!(
+                        "Error while connecting to Ethereum: {}",
+                        e
+                    ))
+                })?;
 
             let keystore_path = &deposit_to_batcher_args.keystore_path;
 
@@ -414,130 +437,57 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             };
 
-            match chain {
-                Chain::Devnet => wallet = wallet.with_chain_id(31337u64),
-                Chain::Holesky => wallet = wallet.with_chain_id(17000u64),
-                Chain::HoleskyStage => wallet = wallet.with_chain_id(17000u64),
-            }
+            let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
+            wallet = wallet.with_chain_id(chain_id);
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            let balance = client
-                .get_balance(wallet.address(), None)
+            match deposit_to_aligned(amount_ether, client, deposit_to_batcher_args.network.into())
                 .await
-                .map_err(|e| {
-                    SubmitError::EthereumProviderError(format!(
-                        "Error while getting balance: {}",
-                        e
-                    ))
-                })?;
-
-            let amount_ether = parse_ether(&amount).map_err(|e| {
-                SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
-            })?;
-
-            if amount_ether <= U256::from(0) {
-                error!("Amount should be greater than 0");
-                return Ok(());
-            }
-
-            if balance < amount_ether {
-                error!("Insufficient funds to pay to the batcher. Please deposit some Ether in your wallet.");
-                return Ok(());
-            }
-
-            let batcher_addr = Address::from_str(&deposit_to_batcher_args.payment_service_addr)
-                .map_err(|e| {
-                    SubmitError::HexDecodingError(format!(
-                        "Error while parsing batcher address: {}",
-                        e
-                    ))
-                })?;
-
-            let tx = TransactionRequest::new()
-                .to(batcher_addr)
-                .value(amount_ether)
-                .from(wallet.address());
-
-            info!("Sending {} ether to the batcher", amount);
-
-            let tx = client
-                .send_transaction(tx, None)
-                .await
-                .map_err(|e| {
-                    SubmitError::EthereumProviderError(format!(
-                        "Error while sending transaction: {}",
-                        e
-                    ))
-                })?
-                .await
-                .map_err(|e| {
-                    SubmitError::EthereumProviderError(format!(
-                        "Error while sending transaction: {}",
-                        e
-                    ))
-                })?;
-
-            if let Some(tx) = tx {
-                info!(
-                    "Payment sent to the batcher successfully. Tx: 0x{:x}",
-                    tx.transaction_hash
-                );
-            } else {
-                error!("Transaction failed");
+            {
+                Ok(receipt) => {
+                    info!(
+                        "Payment sent to the batcher successfully. Tx: 0x{:x}",
+                        receipt.transaction_hash
+                    );
+                }
+                Err(e) => {
+                    error!("Transaction failed: {:?}", e);
+                }
             }
         }
         GetUserBalance(get_user_balance_args) => {
-            let eth_rpc_url = get_user_balance_args.eth_rpc_url;
-
-            let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).map_err(|e| {
-                SubmitError::EthereumProviderError(format!(
-                    "Error while connecting to Ethereum: {}",
-                    e
-                ))
-            })?;
-
-            let user_address =
-                Address::from_str(&get_user_balance_args.user_address).map_err(|e| {
-                    SubmitError::HexDecodingError(format!(
-                        "Error while parsing user address: {}",
-                        e
-                    ))
-                })?;
-
-            let batcher_addr = Address::from_str(&get_user_balance_args.payment_service_addr)
-                .map_err(|e| {
-                    SubmitError::HexDecodingError(format!(
-                        "Error while parsing batcher address: {}",
-                        e
-                    ))
-                })?;
-
-            let balance = get_user_balance(eth_rpc_provider, batcher_addr, user_address)
-                .await
-                .map_err(|e| {
-                    SubmitError::EthereumProviderError(format!(
-                        "Error while getting user balance: {}",
-                        e
-                    ))
-                })?;
-
-            info!(
-                "User {} has {} ether in the batcher",
+            let user_address = H160::from_str(&get_user_balance_args.user_address).unwrap();
+            match get_balance_in_aligned(
                 user_address,
-                format_ether(balance)
-            );
+                &get_user_balance_args.eth_rpc_url,
+                get_user_balance_args.network.into(),
+            )
+            .await
+            {
+                Ok(balance) => {
+                    info!(
+                        "User {} has {} ether in the batcher",
+                        user_address,
+                        format_ether(balance)
+                    );
+                }
+                Err(e) => {
+                    error!("Error while getting user balance: {:?}", e);
+                    return Ok(());
+                }
+            }
         }
     }
 
     Ok(())
 }
 
-fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, SubmitError> {
-    let proving_system = args.proving_system_flag.into();
+fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, SubmitError> {
+    let proving_system = args.proving_system_flag.clone().into();
 
     // Read proof file
-    let proof = read_file(args.proof_file_name)?;
+    let proof = read_file(args.proof_file_name.clone())?;
 
     let mut pub_input: Option<Vec<u8>> = None;
     let mut verification_key: Option<Vec<u8>> = None;
@@ -547,28 +497,32 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Sub
         ProvingSystemId::SP1 => {
             vm_program_code = Some(read_file_option(
                 "--vm_program",
-                args.vm_program_code_file_name,
+                args.vm_program_code_file_name.clone(),
             )?);
         }
         ProvingSystemId::Risc0 => {
             vm_program_code = Some(read_file_option(
                 "--vm_program",
-                args.vm_program_code_file_name,
+                args.vm_program_code_file_name.clone(),
             )?);
-            pub_input = Some(read_file_option(
-                "--public_input",
-                args.pub_input_file_name,
-            )?);
+
+            // Risc0 and have zero or none public inputs
+            pub_input = args
+                .pub_input_file_name
+                .clone()
+                .map(read_file)
+                .transpose()?;
         }
-        ProvingSystemId::Halo2KZG
-        | ProvingSystemId::Halo2IPA
-        | ProvingSystemId::GnarkPlonkBls12_381
+        ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
         | ProvingSystemId::Groth16Bn254 => {
-            verification_key = Some(read_file_option("--vk", args.verification_key_file_name)?);
+            verification_key = Some(read_file_option(
+                "--vk",
+                args.verification_key_file_name.clone(),
+            )?);
             pub_input = Some(read_file_option(
                 "--public_input",
-                args.pub_input_file_name,
+                args.pub_input_file_name.clone(),
             )?);
         }
     }
@@ -595,7 +549,7 @@ async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
         SubmitError::ProofQueueFlushed => {
             error!("Batch was reset. try resubmitting the proof");
         }
-        SubmitError::InvalidProof => error!("Submitted proof is invalid"),
+        SubmitError::InvalidProof(reason) => error!("Submitted proof is invalid: {}", reason),
         SubmitError::InsufficientBalance => {
             error!("Insufficient balance to pay for the transaction")
         }
@@ -630,10 +584,10 @@ fn delete_file(file_name: &str) -> Result<(), io::Error> {
 async fn get_nonce(
     eth_rpc_url: &str,
     address: Address,
-    batcher_contract_addr: &str,
+    network: Network,
     proof_count: usize,
 ) -> Result<U256, AlignedError> {
-    let nonce = get_next_nonce(eth_rpc_url, address, batcher_contract_addr).await?;
+    let nonce = get_next_nonce(eth_rpc_url, address, network).await?;
 
     let nonce_file = format!("nonce_{:?}.bin", address);
 
@@ -653,33 +607,6 @@ async fn get_nonce(
     write_file(nonce_file.as_str(), &nonce_bytes)?;
 
     Ok(nonce)
-}
-
-fn save_response(
-    batch_inclusion_data_directory_path: PathBuf,
-    aligned_verification_data: &AlignedVerificationData,
-) -> Result<(), SubmitError> {
-    let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
-    let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
-        + "_"
-        + &aligned_verification_data.index_in_batch.to_string()
-        + ".json";
-
-    let batch_inclusion_data_path =
-        batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
-
-    let data = cbor_serialize(&aligned_verification_data)?;
-
-    let mut file = File::create(&batch_inclusion_data_path)
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
-    file.write_all(data.as_slice())
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
-    info!(
-        "Batch inclusion data written into {}",
-        batch_inclusion_data_path.display()
-    );
-
-    Ok(())
 }
 
 pub async fn get_user_balance(

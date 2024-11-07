@@ -26,7 +26,7 @@ defmodule AlignedLayerServiceManager do
 
     :error ->
       raise(
-        "Config file not read successfully, did you run make create-env? If you did,\n make sure Alignedlayer config file is correctly stored"
+        "Config file not read successfully, did you run make explorer_create_env? If you did,\n make sure AlignedLayer config file is correctly stored"
       )
   end
 
@@ -56,13 +56,18 @@ defmodule AlignedLayerServiceManager do
 
   def get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock}) do
     events =
-      AlignedLayerServiceManager.EventFilters.new_batch(nil)
-      |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
+      AlignedLayerServiceManager.EventFilters.new_batch_v3(nil)
+        |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
 
     case events do
-      {:ok, []} -> []
-      {:ok, list} -> Enum.map(list, &extract_new_batch_event_info/1)
-      {:error, reason} -> raise("Error fetching events: #{Map.get(reason, "message")}")
+      {:ok, []} ->
+        []
+
+      {:ok, list} ->
+        Enum.map(list, &extract_new_batch_event_info/1)
+
+      {:error, reason} ->
+        raise("Error fetching events: #{Map.get(reason, "message")}")
     end
   end
 
@@ -87,14 +92,16 @@ defmodule AlignedLayerServiceManager do
       batchMerkleRoot: topics_raw |> Enum.at(1),
       senderAddress: data |> Enum.at(0),
       taskCreatedBlock: data |> Enum.at(1),
-      batchDataPointer: data |> Enum.at(2)
+      batchDataPointer: data |> Enum.at(2),
+      maxAggregatorFee: data |> Enum.at(3),
     }
   end
 
   def is_batch_responded(merkle_root) do
     event =
-      AlignedLayerServiceManager.EventFilters.batch_verified(Utils.string_to_bytes32(merkle_root))
-        |> Ethers.get_logs(fromBlock: @first_block)
+      Utils.string_to_bytes32(merkle_root)
+      |> AlignedLayerServiceManager.EventFilters.batch_verified()
+      |> Ethers.get_logs(fromBlock: @first_block)
 
     case event do
       {:error, reason} -> {:error, reason}
@@ -128,7 +135,9 @@ defmodule AlignedLayerServiceManager do
       amount_of_proofs: nil,
       proof_hashes: nil,
       fee_per_proof: BatcherPaymentServiceManager.get_fee_per_proof(%{merkle_root: created_batch.batchMerkleRoot}),
-      sender_address: Utils.string_to_bytes32(created_batch.senderAddress)
+      sender_address: Utils.string_to_bytes32(created_batch.senderAddress),
+      max_aggregator_fee: created_batch.maxAggregatorFee,
+      is_valid: true # set to false later if a process determines it is invalid
     }
   end
 
@@ -157,7 +166,9 @@ defmodule AlignedLayerServiceManager do
           amount_of_proofs: unverified_batch.amount_of_proofs,
           fee_per_proof: unverified_batch.fee_per_proof,
           proof_hashes: nil,
-          sender_address: unverified_batch.sender_address
+          sender_address: unverified_batch.sender_address,
+          max_aggregator_fee: unverified_batch.max_aggregator_fee,
+          is_valid: true # set to false later if a process determines it is invalid
         }
     end
   end
@@ -185,7 +196,6 @@ defmodule AlignedLayerServiceManager do
   defp extract_batch_verified_event_info(event) do
     batch_merkle_root = event |> Map.get(:topics_raw) |> Enum.at(1)
     sender_address = event |> Map.get(:data) |> Enum.at(0)
-
 
     {:ok,
      %BatchVerifiedInfo{
@@ -225,5 +235,4 @@ defmodule AlignedLayerServiceManager do
         raise("Error fetching restakeable strategies: #{error}")
     end
   end
-
 end

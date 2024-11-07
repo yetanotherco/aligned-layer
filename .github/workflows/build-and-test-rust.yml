@@ -1,0 +1,69 @@
+name: build-and-test-rust-projects
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["*"]
+    paths:
+      - "batcher/**"
+      - ".github/workflows/build-rust.yml"
+
+jobs:
+  build:
+    runs-on: aligned-runner
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            batcher/target
+          key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-
+      - name: Check formatting of Rust projects
+        run: |
+          cd batcher
+          cargo fmt --all -- --check
+      - name: Run Clippy
+        run: |
+          cd batcher
+          cargo clippy --all -- -D warnings
+      - name: Build Rust projects
+        run: |
+          cd batcher
+          cargo build --all
+
+  test:
+    runs-on: aligned-runner
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: foundry-toolchain
+        uses: foundry-rs/foundry-toolchain@v1.2.0
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            batcher/target
+          key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-
+      - name: Run tests
+        run: |
+          cd batcher
+          cargo test --all

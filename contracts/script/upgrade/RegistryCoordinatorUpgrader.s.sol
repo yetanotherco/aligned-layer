@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity =0.8.12;
+pragma solidity ^0.8.12;
 
 import {Script} from "forge-std/Script.sol";
 import "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
@@ -82,12 +82,8 @@ contract RegistryCoordinatorUpgrader is Script {
             );
         vm.stopBroadcast();
 
-        vm.startBroadcast();
-        alignedLayerProxyAdmin.upgrade(
-            registryCoordinator,
-            address(registryCoordinatorImplementation)
-        );
-        vm.stopBroadcast();
+        // Not link the new implementation to the proxy
+        // Because this must be executed in the multisig
 
         return (
             address(registryCoordinator),

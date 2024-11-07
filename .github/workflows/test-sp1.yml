@@ -1,7 +1,6 @@
 name: test-sp1
 
 on:
-  merge_group:
   push:
     branches: [main]
   pull_request:

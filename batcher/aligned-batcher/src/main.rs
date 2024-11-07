@@ -1,4 +1,4 @@
-extern crate dotenv;
+extern crate dotenvy;
 
 use std::sync::Arc;
 
@@ -32,12 +32,11 @@ async fn main() -> Result<(), BatcherError> {
     let port = cli.port.unwrap_or(8080);
 
     match cli.env_file {
-        Some(env_file) => dotenv::from_filename(env_file).ok(),
-        None => dotenv::dotenv().ok(),
+        Some(env_file) => dotenvy::from_filename(env_file).ok(),
+        None => dotenvy::dotenv().ok(),
     };
 
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-
     let batcher = Batcher::new(cli.config).await;
     let batcher = Arc::new(batcher);
 
@@ -46,8 +45,14 @@ async fn main() -> Result<(), BatcherError> {
     // spawn task to listening for incoming blocks
     tokio::spawn({
         let app = batcher.clone();
-        async move { app.listen_new_blocks().await.unwrap() }
+        async move {
+            app.listen_new_blocks()
+                .await
+                .expect("Error listening for new blocks exiting")
+        }
     });
+
+    batcher.metrics.inc_batcher_restart();
 
     batcher.listen_connections(&addr).await?;
 

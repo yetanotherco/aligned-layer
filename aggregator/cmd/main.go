@@ -49,7 +49,16 @@ func aggregatorMain(ctx *cli.Context) error {
 		return err
 	}
 
-	// Listen for new task created in the ServiceManager contract in a separate goroutine
+	// Supervisor revives garbage collector
+	go func() {
+		for {
+			log.Println("Starting Garbage collector")
+			aggregator.ClearTasksFromMaps()
+			log.Println("Garbage collector panicked, Supervisor restarting")
+		}
+	}()
+
+	// Listen for new task created in the ServiceManager contract in a separate goroutine, both V1 and V2 subscriptions:
 	go func() {
 		listenErr := aggregator.SubscribeToNewTasks()
 		if listenErr != nil {
@@ -58,9 +67,6 @@ func aggregatorMain(ctx *cli.Context) error {
 	}()
 
 	err = aggregator.Start(context.Background())
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }

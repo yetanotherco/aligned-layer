@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag = "v0.5.2" }
+aligned-sdk = { path = "../../../batcher/aligned-sdk" }
 tokio = { version = "1.37.0", features = [
     "io-std",
     "time",
@@ -13,11 +13,10 @@ tokio = { version = "1.37.0", features = [
     "rt-multi-thread",
     "sync",
 ] }
-ethers = { tag = "v2.0.15-fix-reconnections", features = [
-    "ws",
-    "rustls",
-], git = "https://github.com/yetanotherco/ethers-rs.git" }
+ethers = { version = "2.0", features = ["ws", "rustls"] }
 serde = { version = "1.0.201", features = ["derive"] }
 serde_json = "1.0.117"
 log = "0.4.21"
 env_logger = "0.11.3"
+clap = { version = "4.5.8", features = ["derive"] }
+rpassword = "7.3.1"

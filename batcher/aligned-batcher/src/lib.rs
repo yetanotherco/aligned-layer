@@ -1,109 +1,94 @@
-extern crate core;
-
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
-use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
-use dotenv::dotenv;
+use connection::{send_message, WsMessageSink};
+use dotenvy::dotenv;
+use eth::service_manager::ServiceManager;
+use eth::utils::{calculate_bumped_gas_price, get_batcher_signer, get_gas_price};
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
-use serde::Serialize;
+use retry::batcher_retryables::{
+    cancel_create_new_task_retryable, create_new_task_retryable, get_user_balance_retryable,
+    get_user_nonce_from_ethereum_retryable, user_balance_is_unlocked_retryable,
+};
+use retry::{retry_function, RetryError};
+use types::batch_state::BatchState;
+use types::user_state::UserState;
 
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::env;
-use std::iter::repeat;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use aligned_sdk::core::constants::{
+    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CANCEL_TRANSACTION_MAX_RETRIES,
+    CONSTANT_GAS_COST, DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_BACKOFF_FACTOR,
+    DEFAULT_MAX_FEE_PER_PROOF, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
+    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
+    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+};
 use aligned_sdk::core::types::{
-    BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
+    ClientMessage, NoncedVerificationData, ProofInvalidReason, ProvingSystemId, ResponseMessage,
     ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
     VerificationDataCommitment,
 };
+
 use aws_sdk_s3::client::Client as S3Client;
-use eth::{try_create_new_task, BatcherPaymentService, SignerMiddlewareT};
+use eth::payment_service::{BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
 use ethers::prelude::{Middleware, Provider};
-use ethers::providers::Ws;
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
-use futures_util::stream::SplitSink;
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{Mutex, MutexGuard, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
-use tokio_tungstenite::WebSocketStream;
-use types::batch_queue::BatchQueue;
-use types::errors::{BatcherError, BatcherSendError};
+use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
+use types::errors::BatcherError;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
+use crate::telemetry::sender::TelemetrySender;
 
 mod config;
+mod connection;
 mod eth;
 pub mod gnark;
-pub mod halo2;
+pub mod metrics;
+pub mod retry;
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
+pub mod telemetry;
 pub mod types;
 mod zk_utils;
 
-const AGGREGATOR_COST: u128 = 400000;
-const BATCHER_SUBMISSION_BASE_COST: u128 = 100000;
-const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 13_000;
-const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
-const MIN_BALANCE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
-
-struct BatchState {
-    batch_queue: BatchQueue,
-    user_nonces: HashMap<Address, U256>,
-    user_proof_count_in_batch: HashMap<Address, u64>,
-}
-
-impl BatchState {
-    fn new() -> Self {
-        Self {
-            batch_queue: BatchQueue::new(),
-            user_nonces: HashMap::new(),
-            user_proof_count_in_batch: HashMap::new(),
-        }
-    }
-
-    fn get_user_proof_count(&self, addr: &Address) -> u64 {
-        *self.user_proof_count_in_batch.get(addr).unwrap_or(&0)
-    }
-
-    /*
-       Increments the user proof count in the batch, if the user is already in the hashmap.
-       If the user is not in the hashmap, it adds the user to the hashmap with a count of 1 to represent the first proof.
-    */
-    fn increment_user_proof_count(&mut self, addr: &Address) {
-        self.user_proof_count_in_batch
-            .entry(*addr)
-            .and_modify(|count| *count += 1)
-            .or_insert(1);
-    }
-}
+pub const LISTEN_NEW_BLOCKS_MAX_TIMES: usize = usize::MAX;
 
 pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
     download_endpoint: String,
-    eth_ws_provider: Provider<Ws>,
-    eth_ws_provider_fallback: Provider<Ws>,
+    eth_ws_url: String,
+    eth_ws_url_fallback: String,
+    batcher_signer: Arc<SignerMiddlewareT>,
+    batcher_signer_fallback: Arc<SignerMiddlewareT>,
     chain_id: U256,
     payment_service: BatcherPaymentService,
     payment_service_fallback: BatcherPaymentService,
+    service_manager: ServiceManager,
+    service_manager_fallback: ServiceManager,
     batch_state: Mutex<BatchState>,
     max_block_interval: u64,
-    min_batch_len: usize,
+    transaction_wait_timeout: u64,
     max_proof_size: usize,
     max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
     posting_batch: Mutex<bool>,
+    disabled_verifiers: Mutex<U256>,
+    pub metrics: metrics::BatcherMetrics,
+    pub telemetry: TelemetrySender,
 }
 
 impl Batcher {
@@ -125,34 +110,29 @@ impl Batcher {
         let deployment_output =
             ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
-        let eth_ws_provider =
-            Provider::connect_with_reconnects(&config.eth_ws_url, config.batcher.eth_ws_reconnects)
-                .await
-                .expect("Failed to get ethereum websocket provider");
+        log::info!(
+            "Starting metrics server on port {}",
+            config.batcher.metrics_port
+        );
+        let metrics = metrics::BatcherMetrics::start(config.batcher.metrics_port)
+            .expect("Failed to start metrics server");
 
-        let eth_ws_provider_fallback = Provider::connect_with_reconnects(
-            &config.eth_ws_url_fallback,
-            config.batcher.eth_ws_reconnects,
-        )
-        .await
-        .expect("Failed to get fallback ethereum websocket provider");
-
-        let eth_rpc_provider =
+        let eth_http_provider =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
 
-        let eth_rpc_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
+        let eth_http_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
             .expect("Failed to get fallback provider");
 
         // FIXME(marian): We are getting just the last block number right now, but we should really
         // have the last submitted batch block registered and query it when the batcher is initialized.
-        let last_uploaded_batch_block = match eth_rpc_provider.get_block_number().await {
+        let last_uploaded_batch_block = match eth_http_provider.get_block_number().await {
             Ok(block_num) => block_num,
             Err(e) => {
                 warn!(
                     "Failed to get block number with main rpc, trying with fallback rpc. Err: {:?}",
                     e
                 );
-                eth_rpc_provider_fallback
+                eth_http_provider_fallback
                     .get_block_number()
                     .await
                     .expect("Failed to get block number with fallback rpc")
@@ -161,69 +141,130 @@ impl Batcher {
 
         let last_uploaded_batch_block = last_uploaded_batch_block.as_u64();
 
-        let chain_id = match eth_rpc_provider.get_chainid().await {
+        let chain_id = match eth_http_provider.get_chainid().await {
             Ok(chain_id) => chain_id,
             Err(e) => {
                 warn!("Failed to get chain id with main rpc: {}", e);
-                eth_rpc_provider_fallback
+                eth_http_provider_fallback
                     .get_chainid()
                     .await
                     .expect("Failed to get chain id with fallback rpc")
             }
         };
 
-        let payment_service = eth::get_batcher_payment_service(
-            eth_rpc_provider,
-            config.ecdsa.clone(),
+        let batcher_signer = get_batcher_signer(eth_http_provider.clone(), config.ecdsa.clone())
+            .await
+            .expect("Failed to get Batcher signer");
+
+        let batcher_signer_fallback =
+            get_batcher_signer(eth_http_provider_fallback.clone(), config.ecdsa.clone())
+                .await
+                .expect("Failed to get Batcher signer fallback");
+
+        let payment_service = eth::payment_service::get_batcher_payment_service(
+            batcher_signer.clone(),
             deployment_output.addresses.batcher_payment_service.clone(),
         )
         .await
         .expect("Failed to get Batcher Payment Service contract");
 
-        let payment_service_fallback = eth::get_batcher_payment_service(
-            eth_rpc_provider_fallback,
-            config.ecdsa,
+        let payment_service_fallback = eth::payment_service::get_batcher_payment_service(
+            batcher_signer_fallback.clone(),
             deployment_output.addresses.batcher_payment_service,
         )
         .await
         .expect("Failed to get fallback Batcher Payment Service contract");
 
+        let service_manager = eth::service_manager::get_service_manager(
+            eth_http_provider.clone(),
+            config.ecdsa.clone(),
+            deployment_output.addresses.service_manager.clone(),
+        )
+        .await
+        .expect("Failed to get Service Manager contract");
+
+        let service_manager_fallback = eth::service_manager::get_service_manager(
+            eth_http_provider_fallback.clone(),
+            config.ecdsa,
+            deployment_output.addresses.service_manager,
+        )
+        .await
+        .expect("Failed to get fallback Service Manager contract");
+
+        let mut user_states = HashMap::new();
+        let mut batch_state = BatchState::new();
         let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
             warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
                 non_paying_config.address);
-            Some(NonPayingConfig::from_yaml_config(non_paying_config).await)
+
+            let non_paying_config = NonPayingConfig::from_yaml_config(non_paying_config).await;
+            let nonpaying_nonce = payment_service
+                .user_nonces(non_paying_config.replacement.address())
+                .call()
+                .await
+                .expect("Could not get non-paying nonce from Ethereum");
+
+            let non_paying_user_state = UserState::new(nonpaying_nonce);
+            user_states.insert(
+                non_paying_config.replacement.address(),
+                non_paying_user_state,
+            );
+
+            batch_state = BatchState::new_with_user_states(user_states);
+            Some(non_paying_config)
         } else {
             None
         };
+
+        let disabled_verifiers = match service_manager.disabled_verifiers().call().await {
+            Ok(disabled_verifiers) => Ok(disabled_verifiers),
+            Err(_) => service_manager_fallback.disabled_verifiers().call().await,
+        }
+        .expect("Failed to get disabled verifiers");
+
+        let telemetry = TelemetrySender::new(format!(
+            "http://{}",
+            config.batcher.telemetry_ip_port_address
+        ));
 
         Self {
             s3_client,
             s3_bucket_name,
             download_endpoint,
-            eth_ws_provider,
-            eth_ws_provider_fallback,
+            eth_ws_url: config.eth_ws_url,
+            eth_ws_url_fallback: config.eth_ws_url_fallback,
+            batcher_signer,
+            batcher_signer_fallback,
             chain_id,
             payment_service,
             payment_service_fallback,
-            batch_state: Mutex::new(BatchState::new()),
+            service_manager,
+            service_manager_fallback,
             max_block_interval: config.batcher.block_interval,
-            min_batch_len: config.batcher.batch_size_interval,
+            transaction_wait_timeout: config.batcher.transaction_wait_timeout,
             max_proof_size: config.batcher.max_proof_size,
             max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
             posting_batch: Mutex::new(false),
+            batch_state: Mutex::new(batch_state),
+            disabled_verifiers: Mutex::new(disabled_verifiers),
+            metrics,
+            telemetry,
         }
     }
 
     pub async fn listen_connections(self: Arc<Self>, address: &str) -> Result<(), BatcherError> {
         // Create the event loop and TCP listener we'll accept connections on.
-        let listener = TcpListener::bind(address).await.expect("Failed to build");
+        let listener = TcpListener::bind(address)
+            .await
+            .map_err(|e| BatcherError::TcpListenerError(e.to_string()))?;
         info!("Listening on: {}", address);
 
         // Let's spawn the handling of each connection in a separate task.
         while let Ok((stream, addr)) = listener.accept().await {
+            self.metrics.open_connections.inc();
             let batcher = self.clone();
             tokio::spawn(batcher.handle_connection(stream, addr));
         }
@@ -231,17 +272,48 @@ impl Batcher {
     }
 
     pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), BatcherError> {
-        let mut stream = self
-            .eth_ws_provider
-            .subscribe_blocks()
-            .await
-            .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
+        retry_function(
+            || {
+                let app = self.clone();
+                async move { app.listen_new_blocks_retryable().await }
+            },
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            LISTEN_NEW_BLOCKS_MAX_TIMES,
+        )
+        .await
+        .map_err(|e| e.inner())
+    }
 
-        let mut stream_fallback = self
-            .eth_ws_provider_fallback
-            .subscribe_blocks()
-            .await
-            .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
+    pub async fn listen_new_blocks_retryable(
+        self: Arc<Self>,
+    ) -> Result<(), RetryError<BatcherError>> {
+        let eth_ws_provider = Provider::connect(&self.eth_ws_url).await.map_err(|e| {
+            warn!("Failed to instantiate Ethereum websocket provider");
+            RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
+        })?;
+
+        let eth_ws_provider_fallback =
+            Provider::connect(&self.eth_ws_url_fallback)
+                .await
+                .map_err(|e| {
+                    warn!("Failed to instantiate fallback Ethereum websocket provider");
+                    RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
+                })?;
+
+        let mut stream = eth_ws_provider.subscribe_blocks().await.map_err(|e| {
+            warn!("Error subscribing to blocks.");
+            RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
+        })?;
+
+        let mut stream_fallback =
+            eth_ws_provider_fallback
+                .subscribe_blocks()
+                .await
+                .map_err(|e| {
+                    warn!("Error subscribing to blocks.");
+                    RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
+                })?;
 
         let last_seen_block = Mutex::<u64>::new(0);
 
@@ -268,8 +340,11 @@ impl Batcher {
                 };
             });
         }
+        error!("Failed to fetch blocks");
 
-        Ok(())
+        Err(RetryError::Transient(
+            BatcherError::EthereumSubscriptionError("Could not get new blocks".to_string()),
+        ))
     }
 
     async fn handle_connection(
@@ -302,10 +377,14 @@ impl Batcher {
             .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
             .await
         {
-            Err(e) => error!("Unexpected error: {}", e),
+            Err(e) => {
+                self.metrics.broken_ws_connections.inc();
+                error!("Unexpected error: {}", e)
+            }
             Ok(_) => info!("{} disconnected", &addr),
         }
 
+        self.metrics.open_connections.dec();
         Ok(())
     }
 
@@ -313,7 +392,7 @@ impl Batcher {
     async fn handle_message(
         self: Arc<Self>,
         message: Message,
-        ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
+        ws_conn_sink: WsMessageSink,
     ) -> Result<(), Error> {
         // Deserialize verification data from message
         let client_msg: ClientMessage = match cbor_deserialize(message.into_data().as_slice()) {
@@ -323,18 +402,18 @@ impl Batcher {
                 return Ok(());
             }
         };
+        let msg_nonce = client_msg.verification_data.nonce;
+        debug!("Received message with nonce: {msg_nonce:?}",);
+        self.metrics.received_proofs.inc();
 
-        info!(
-            "Received message with nonce: {}",
-            U256::from_big_endian(client_msg.verification_data.nonce.as_slice())
-        );
+        // * ---------------------------------------------------*
+        // *        Perform validations over the message        *
+        // * ---------------------------------------------------*
 
-        if client_msg.verification_data.chain_id != self.chain_id {
-            warn!(
-                "Received message with incorrect chain id: {}",
-                client_msg.verification_data.chain_id
-            );
-
+        // This check does not save against "Holesky" and "HoleskyStage", since both are chain_id 17000
+        let msg_chain_id = client_msg.verification_data.chain_id;
+        if msg_chain_id != self.chain_id {
+            warn!("Received message with incorrect chain id: {msg_chain_id}");
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InvalidChainId,
@@ -344,196 +423,477 @@ impl Batcher {
             return Ok(());
         }
 
+        // This checks saves against "Holesky" and "HoleskyStage", since each one has a different payment service address
+        let msg_payment_service_addr = client_msg.verification_data.payment_service_addr;
+        if msg_payment_service_addr != self.payment_service.address() {
+            warn!("Received message with incorrect payment service address: {msg_payment_service_addr}");
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InvalidPaymentServiceAddress(
+                    msg_payment_service_addr,
+                    self.payment_service.address(),
+                ),
+            )
+            .await;
+
+            return Ok(());
+        }
+
         info!("Verifying message signature...");
-        if let Ok(addr) = client_msg.verify_signature() {
-            info!("Message signature verified");
-            if self.is_nonpaying(&addr) {
-                self.handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
-                    .await
-            } else {
-                if !self
-                    .check_user_balance_and_increment_proof_count(&addr)
-                    .await
-                {
-                    send_message(
-                        ws_conn_sink.clone(),
-                        ValidityResponseMessage::InsufficientBalance(addr),
-                    )
-                    .await;
-
-                    return Ok(());
-                }
-
-                let nonce = U256::from_big_endian(client_msg.verification_data.nonce.as_slice());
-                let nonced_verification_data = client_msg.verification_data;
-                if nonced_verification_data.verification_data.proof.len() > self.max_proof_size {
-                    error!("Proof size exceeds the maximum allowed size.");
-                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge)
-                        .await;
-                    return Ok(());
-                }
-
-                // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-                if self.pre_verification_is_enabled
-                    && !zk_utils::verify(&nonced_verification_data.verification_data).await
-                {
-                    error!("Invalid proof detected. Verification failed.");
-                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
-                    return Ok(()); // Send error message to the client and return
-                }
-
-                // Doing nonce verification after proof verification to avoid unnecessary nonce increment
-                if !self.check_nonce_and_increment(addr, nonce).await {
-                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
-                    return Ok(()); // Send error message to the client and return
-                }
-
-                self.add_to_batch(
-                    nonced_verification_data,
-                    ws_conn_sink.clone(),
-                    client_msg.signature,
-                )
-                .await;
-
-                info!("Verification data message handled");
-
-                send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
-                Ok(())
-            }
-        } else {
+        let Ok(addr) = client_msg.verify_signature() else {
             error!("Signature verification error");
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InvalidSignature,
             )
             .await;
-            Ok(()) // Send error message to the client and return
-        }
-    }
+            return Ok(());
+        };
+        info!("Message signature verified");
 
-    // Checks user has sufficient balance
-    // If user has sufficient balance, increments the user's proof count in the batch
-    async fn check_user_balance_and_increment_proof_count(&self, addr: &Address) -> bool {
-        if self.user_balance_is_unlocked(addr).await {
-            return false;
-        }
-        let mut batch_state = self.batch_state.lock().await;
-
-        let user_proofs_in_batch = batch_state.get_user_proof_count(addr) + 1;
-
-        let user_balance = self.get_user_balance(addr).await;
-
-        let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_BALANCE_PER_PROOF);
-        if user_balance < min_balance {
-            return false;
+        let proof_size = client_msg.verification_data.verification_data.proof.len();
+        if proof_size > self.max_proof_size {
+            error!("Proof size exceeds the maximum allowed size.");
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge).await;
+            return Ok(());
         }
 
-        batch_state.increment_user_proof_count(addr);
-        true
-    }
+        let nonced_verification_data = client_msg.verification_data.clone();
 
-    async fn check_nonce_and_increment(&self, addr: Address, nonce: U256) -> bool {
-        let mut batch_state = self.batch_state.lock().await;
-
-        let expected_user_nonce = match batch_state.user_nonces.get(&addr) {
-            Some(nonce) => *nonce,
-            None => {
-                let user_nonce = match self.get_user_nonce(addr).await {
-                    Ok(nonce) => nonce,
-                    Err(e) => {
-                        error!("Failed to get user nonce for address {:?}: {:?}", addr, e);
-                        return false;
-                    }
-                };
-
-                batch_state.user_nonces.insert(addr, user_nonce);
-                user_nonce
+        // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
+        if self.pre_verification_is_enabled {
+            let verification_data = &nonced_verification_data.verification_data;
+            if self
+                .is_verifier_disabled(verification_data.proving_system)
+                .await
+            {
+                warn!(
+                    "Verifier for proving system {} is disabled, skipping verification",
+                    verification_data.proving_system
+                );
+                send_message(
+                    ws_conn_sink.clone(),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
+                        verification_data.proving_system,
+                    )),
+                )
+                .await;
+                return Ok(());
             }
+
+            if !zk_utils::verify(verification_data).await {
+                error!("Invalid proof detected. Verification failed");
+                send_message(
+                    ws_conn_sink.clone(),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::RejectedProof),
+                )
+                .await;
+                return Ok(());
+            }
+        }
+
+        if self.is_nonpaying(&addr) {
+            return self
+                .handle_nonpaying_msg(ws_conn_sink.clone(), &client_msg)
+                .await;
+        }
+
+        info!("Handling paying message");
+
+        // We don't need a batch state lock here, since if the user locks its funds
+        // after the check, some blocks should pass until he can withdraw.
+        // It is safe to do just do this here.
+        if self.user_balance_is_unlocked(&addr).await {
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InsufficientBalance(addr),
+            )
+            .await;
+            return Ok(());
+        }
+
+        // We aquire the lock first only to query if the user is already present and the lock is dropped.
+        // If it was not present, then the user nonce is queried to the Aligned contract.
+        // Lastly, we get a lock of the batch state again and insert the user state if it was still missing.
+
+        let is_user_in_state: bool;
+        {
+            let batch_state_lock = self.batch_state.lock().await;
+            is_user_in_state = batch_state_lock.user_states.contains_key(&addr);
+        }
+
+        if !is_user_in_state {
+            let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
+                Ok(ethereum_user_nonce) => ethereum_user_nonce,
+                Err(e) => {
+                    error!(
+                        "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
+                    );
+                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+                    return Ok(());
+                }
+            };
+            let user_state = UserState::new(ethereum_user_nonce);
+            let mut batch_state_lock = self.batch_state.lock().await;
+            batch_state_lock
+                .user_states
+                .entry(addr)
+                .or_insert(user_state);
+        }
+
+        // * ---------------------------------------------------*
+        // *        Perform validations over user state         *
+        // * ---------------------------------------------------*
+
+        let Some(user_balance) = self.get_user_balance(&addr).await else {
+            error!("Could not get balance for address {addr:?}");
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
+            return Ok(());
         };
 
-        if nonce != expected_user_nonce {
-            error!(
-                "Invalid nonce for address {addr} Expected: {:?}, got: {:?}",
-                expected_user_nonce, nonce
-            );
-            return false;
+        // For now on until the message is fully processed, the batch state is locked
+        // This is needed because we need to query the user state to make validations and
+        // finally add the proof to the batch queue.
+
+        let batch_state_lock = self.batch_state.lock().await;
+        let Some(proofs_in_batch) = batch_state_lock.get_user_proof_count(&addr).await else {
+            error!("Failed to get user proof count: User not found in user states, but it should have been already inserted");
+            std::mem::drop(batch_state_lock);
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            return Ok(());
+        };
+
+        if !self.check_min_balance(proofs_in_batch + 1, user_balance) {
+            std::mem::drop(batch_state_lock);
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InsufficientBalance(addr),
+            )
+            .await;
+            return Ok(());
         }
 
-        batch_state.user_nonces.insert(addr, nonce + U256::one());
-        true
+        let cached_user_nonce = batch_state_lock.get_user_nonce(&addr).await;
+        let Some(expected_nonce) = cached_user_nonce else {
+            error!("Failed to get cached user nonce: User not found in user states, but it should have been already inserted");
+            std::mem::drop(batch_state_lock);
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            return Ok(());
+        };
+
+        if expected_nonce < msg_nonce {
+            std::mem::drop(batch_state_lock);
+            warn!("Invalid nonce for address {addr}, had nonce {expected_nonce:?} < {msg_nonce:?}");
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            return Ok(());
+        }
+
+        // In this case, the message might be a replacement one. If it is valid,
+        // we replace the old entry with the new from the replacement message.
+        if expected_nonce > msg_nonce {
+            info!("Possible replacement message received: Expected nonce {expected_nonce:?} - message nonce: {msg_nonce:?}");
+            self.handle_replacement_message(
+                batch_state_lock,
+                nonced_verification_data,
+                ws_conn_sink.clone(),
+                client_msg.signature,
+                addr,
+            )
+            .await;
+
+            return Ok(());
+        }
+
+        let msg_max_fee = nonced_verification_data.max_fee;
+        let Some(user_min_fee) = batch_state_lock.get_user_min_fee(&addr).await else {
+            std::mem::drop(batch_state_lock);
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            return Ok(());
+        };
+
+        if msg_max_fee > user_min_fee {
+            std::mem::drop(batch_state_lock);
+            warn!("Invalid max fee for address {addr}, had fee {user_min_fee:?} < {msg_max_fee:?}");
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
+            return Ok(());
+        }
+
+        // * ---------------------------------------------------------------------*
+        // *        Add message data into the queue and update user state         *
+        // * ---------------------------------------------------------------------*
+
+        if let Err(e) = self
+            .add_to_batch(
+                batch_state_lock,
+                nonced_verification_data,
+                ws_conn_sink.clone(),
+                client_msg.signature,
+                addr,
+            )
+            .await
+        {
+            error!("Error while adding entry to batch: {e:?}");
+            send_message(ws_conn_sink, ValidityResponseMessage::AddToBatchError).await;
+            return Ok(());
+        };
+
+        info!("Verification data message handled");
+        send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
+        Ok(())
     }
 
-    async fn get_user_nonce(
+    async fn is_verifier_disabled(&self, verifier: ProvingSystemId) -> bool {
+        let disabled_verifiers = self.disabled_verifiers.lock().await;
+        zk_utils::is_verifier_disabled(*disabled_verifiers, verifier)
+    }
+
+    // Checks user has sufficient balance for paying all its the proofs in the current batch.
+    fn check_min_balance(&self, user_proofs_in_batch: usize, user_balance: U256) -> bool {
+        let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_FEE_PER_PROOF);
+        user_balance >= min_balance
+    }
+
+    /// Handles a replacement message
+    /// First checks if the message is already in the batch
+    /// If the message is in the batch, checks if the max fee is higher
+    /// If the max fee is higher, replaces the message in the batch
+    /// If the max fee is lower, sends an error message to the client
+    /// If the message is not in the batch, sends an error message to the client
+    /// Returns true if the message was replaced in the batch, false otherwise
+    async fn handle_replacement_message(
+        &self,
+        mut batch_state_lock: MutexGuard<'_, BatchState>,
+        nonced_verification_data: NoncedVerificationData,
+        ws_conn_sink: WsMessageSink,
+        signature: Signature,
+        addr: Address,
+    ) {
+        let replacement_max_fee = nonced_verification_data.max_fee;
+        let nonce = nonced_verification_data.nonce;
+        let Some(entry) = batch_state_lock.get_entry(addr, nonce) else {
+            std::mem::drop(batch_state_lock);
+            warn!("Invalid nonce for address {addr}. Queue entry with nonce {nonce} not found");
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            return;
+        };
+
+        let original_max_fee = entry.nonced_verification_data.max_fee;
+        if original_max_fee > replacement_max_fee {
+            std::mem::drop(batch_state_lock);
+            warn!("Invalid replacement message for address {addr}, had fee {original_max_fee:?} < {replacement_max_fee:?}");
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InvalidReplacementMessage,
+            )
+            .await;
+
+            return;
+        }
+
+        info!("Replacing message for address {addr} with nonce {nonce} and max fee {replacement_max_fee}");
+
+        // The replacement entry is built from the old entry and validated for then to be replaced
+        let mut replacement_entry = entry.clone();
+        replacement_entry.signature = signature;
+        replacement_entry.verification_data_commitment =
+            nonced_verification_data.verification_data.clone().into();
+        replacement_entry.nonced_verification_data = nonced_verification_data;
+
+        // Close old sink in old entry and replace it with the new one
+        {
+            if let Some(messaging_sink) = replacement_entry.messaging_sink {
+                let mut old_sink = messaging_sink.write().await;
+                if let Err(e) = old_sink.close().await {
+                    // we dont want to exit here, just log the error
+                    warn!("Error closing sink: {e:?}");
+                }
+            } else {
+                warn!(
+                    "Old websocket sink was empty. This should only happen in testing environments"
+                )
+            };
+        }
+
+        replacement_entry.messaging_sink = Some(ws_conn_sink.clone());
+        if !batch_state_lock.replacement_entry_is_valid(&replacement_entry) {
+            std::mem::drop(batch_state_lock);
+            warn!("Invalid replacement message");
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InvalidReplacementMessage,
+            )
+            .await;
+            return;
+        }
+
+        info!(
+            "Replacement entry is valid, incrementing fee for sender: {:?}, nonce: {:?}, max_fee: {:?}",
+            replacement_entry.sender, replacement_entry.nonced_verification_data.nonce, replacement_max_fee
+        );
+
+        // remove the old entry and insert the new one
+        // note that the entries are considered equal for the priority queue
+        // if they have the same nonce and sender, so we can remove the old entry
+        // by calling remove with the new entry
+        batch_state_lock.batch_queue.remove(&replacement_entry);
+        batch_state_lock.batch_queue.push(
+            replacement_entry.clone(),
+            BatchQueueEntryPriority::new(replacement_max_fee, nonce),
+        );
+
+        let updated_min_fee_in_batch = batch_state_lock.get_user_min_fee_in_batch(&addr);
+        if batch_state_lock
+            .update_user_min_fee(&addr, updated_min_fee_in_batch)
+            .is_none()
+        {
+            std::mem::drop(batch_state_lock);
+            warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
+        };
+    }
+
+    async fn disabled_verifiers(&self) -> Result<U256, ContractError<SignerMiddlewareT>> {
+        match self.service_manager.disabled_verifiers().call().await {
+            Ok(disabled_verifiers) => Ok(disabled_verifiers),
+            Err(_) => {
+                self.service_manager_fallback
+                    .disabled_verifiers()
+                    .call()
+                    .await
+            }
+        }
+    }
+
+    /// Gets the user nonce from Ethereum using exponential backoff.
+    async fn get_user_nonce_from_ethereum(
         &self,
         addr: Address,
-    ) -> Result<U256, ContractError<SignerMiddlewareT>> {
-        match self.payment_service.user_nonces(addr).call().await {
-            Ok(nonce) => Ok(nonce),
-            Err(_) => self.payment_service_fallback.user_nonces(addr).call().await,
-        }
+    ) -> Result<U256, RetryError<String>> {
+        retry_function(
+            || {
+                get_user_nonce_from_ethereum_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    addr,
+                )
+            },
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
+        )
+        .await
     }
 
     /// Adds verification data to the current batch queue.
     async fn add_to_batch(
-        self: Arc<Self>,
+        &self,
+        mut batch_state_lock: MutexGuard<'_, BatchState>,
         verification_data: NoncedVerificationData,
-        ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
+        ws_conn_sink: WsMessageSink,
         proof_submitter_sig: Signature,
-    ) {
-        let mut batch_state = self.batch_state.lock().await;
+        proof_submitter_addr: Address,
+    ) -> Result<(), BatcherError> {
         info!("Calculating verification data commitments...");
         let verification_data_comm = verification_data.clone().into();
         info!("Adding verification data to batch...");
-        batch_state.batch_queue.push((
-            verification_data,
-            verification_data_comm,
-            ws_conn_sink,
-            proof_submitter_sig,
-        ));
+
+        let max_fee = verification_data.max_fee;
+        let nonce = verification_data.nonce;
+        batch_state_lock.batch_queue.push(
+            BatchQueueEntry::new(
+                verification_data,
+                verification_data_comm,
+                ws_conn_sink,
+                proof_submitter_sig,
+                proof_submitter_addr,
+            ),
+            BatchQueueEntryPriority::new(max_fee, nonce),
+        );
+
         info!(
             "Current batch queue length: {}",
-            batch_state.batch_queue.len()
+            batch_state_lock.batch_queue.len()
         );
+
+        let mut proof_submitter_addr = proof_submitter_addr;
+
+        // If the proof submitter is the nonpaying one, we should update the state
+        // of the replacement address.
+        proof_submitter_addr = if self.is_nonpaying(&proof_submitter_addr) {
+            self.get_nonpaying_replacement_addr()
+                .unwrap_or(proof_submitter_addr)
+        } else {
+            proof_submitter_addr
+        };
+
+        let Some(user_proof_count) = batch_state_lock
+            .get_user_proof_count(&proof_submitter_addr)
+            .await
+        else {
+            error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
+            std::mem::drop(batch_state_lock);
+            return Err(BatcherError::AddressNotFoundInUserStates(
+                proof_submitter_addr,
+            ));
+        };
+
+        // User state is updated
+        if batch_state_lock
+            .update_user_state(
+                &proof_submitter_addr,
+                nonce + U256::one(),
+                max_fee,
+                user_proof_count + 1,
+            )
+            .is_none()
+        {
+            error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
+            std::mem::drop(batch_state_lock);
+            return Err(BatcherError::AddressNotFoundInUserStates(
+                proof_submitter_addr,
+            ));
+        };
+
+        Ok(())
     }
 
     /// Given a new block number listened from the blockchain, checks if the current batch is ready to be posted.
     /// There are essentially two conditions to be checked:
-    ///     * Has the current batch reached the minimum size to be posted?
-    ///     * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
+    ///   * Has the current batch reached the minimum size to be posted?
+    ///   * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
+    ///
+    /// Then the batch will be made as big as possible given this two conditions:
+    ///   * The serialized batch size needs to be smaller than the maximum batch size
+    ///   * The batch submission fee is less than the lowest `max fee` included the batch,
+    ///   * And the batch submission fee is more than the highest `max fee` not included the batch.
+    ///
     /// An extra sanity check is made to check if the batch size is 0, since it does not make sense to post
     /// an empty batch, even if the block interval has been reached.
-    /// Once the batch meets the conditions for submission, it check if it needs to be splitted into smaller batches,
-    /// depending on the configured maximum batch size. The batch is splitted at the index where the max size is surpassed,
-    /// and all the elements up to that index are copied and cleared from the batch queue. The copy is then passed to the
+    /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
     /// `finalize_batch` function.
-    async fn is_batch_ready(&self, block_number: u64) -> Option<BatchQueue> {
-        let mut batch_state = self.batch_state.lock().await;
-        let current_batch_len = batch_state.batch_queue.len();
-
+    async fn is_batch_ready(
+        &self,
+        block_number: u64,
+        gas_price: U256,
+    ) -> Option<Vec<BatchQueueEntry>> {
+        let mut batch_state_lock = self.batch_state.lock().await;
+        let current_batch_len = batch_state_lock.batch_queue.len();
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
-        // FIXME(marian): This condition should be changed to current_batch_size == 0
-        // once the bug in Lambdaworks merkle tree is fixed.
         if current_batch_len < 2 {
-            info!("Current batch is empty or length 1. Waiting for more proofs...");
-            return None;
-        }
-
-        if current_batch_len < self.min_batch_len
-            && block_number < *last_uploaded_batch_block_lock + self.max_block_interval
-        {
             info!(
-                "Current batch not ready to be posted. Current block: {} - Last uploaded block: {}. Current batch length: {} - Minimum batch length: {}",
-                block_number, *last_uploaded_batch_block_lock, current_batch_len, self.min_batch_len
+                "Current batch has {} proof. Waiting for more proofs...",
+                current_batch_len
             );
             return None;
         }
 
-        let batch_verification_data: Vec<NoncedVerificationData> = batch_state
-            .batch_queue
-            .iter()
-            .map(|(vd, _, _, _)| vd.clone())
-            .collect();
+        if block_number < *last_uploaded_batch_block_lock + self.max_block_interval {
+            info!(
+                "Current batch not ready to be posted. Minimium amount of {} blocks have not passed. Block passed: {}", self.max_block_interval,
+                block_number - *last_uploaded_batch_block_lock,
+            );
+            return None;
+        }
 
         // Check if a batch is currently being posted
         let mut batch_posting = self.posting_batch.lock().await;
@@ -546,54 +906,42 @@ impl Batcher {
 
         // Set the batch posting flag to true
         *batch_posting = true;
-
-        let current_batch_size = match cbor_serialize(&batch_verification_data) {
-            Ok(serialized) => serialized.len(),
-            Err(e) => {
-                error!(
-                    "Failed to serialize verification data: {:?}, resetting batch state",
-                    e
-                );
-                self.flush_queue_and_clear_nonce_cache().await;
-                return None;
-            }
-        };
-
-        // check if the current batch needs to be splitted into smaller batches
-        if current_batch_size > self.max_batch_size {
-            info!("Batch max size exceded. Splitting current batch...");
-            let mut acc_batch_size = 0;
-            let mut finalized_batch_idx = 0;
-            for (idx, (verification_data, _, _, _)) in batch_state.batch_queue.iter().enumerate() {
-                acc_batch_size += match cbor_serialize(verification_data) {
-                    Ok(serialized) => serialized.len(),
-                    Err(e) => {
-                        error!(
-                            "Failed to serialize verification data: {:?}, resetting batch",
-                            e
-                        );
-                        self.flush_queue_and_clear_nonce_cache().await;
-                        return None;
+        let batch_queue_copy = batch_state_lock.batch_queue.clone();
+        let (resulting_batch_queue, finalized_batch) =
+            batch_queue::try_build_batch(batch_queue_copy, gas_price, self.max_batch_size)
+                .inspect_err(|e| {
+                    *batch_posting = false;
+                    match e {
+                        // We can't post a batch since users are not willing to pay the needed fee, wait for more proofs
+                        BatcherError::BatchCostTooHigh => {
+                            info!("No working batch found. Waiting for more proofs")
+                        }
+                        // FIXME: We should refactor this code and instead of returning None, return an error.
+                        // See issue https://github.com/yetanotherco/aligned_layer/issues/1046.
+                        e => error!("Unexpected error: {:?}", e),
                     }
-                };
-                if acc_batch_size > self.max_batch_size {
-                    finalized_batch_idx = idx;
-                    break;
-                }
-            }
-            let finalized_batch = batch_state
-                .batch_queue
-                .drain(..finalized_batch_idx)
-                .collect();
-            return Some(finalized_batch);
+                })
+                .ok()?;
+
+        batch_state_lock.batch_queue = resulting_batch_queue;
+        let updated_user_proof_count_and_min_fee =
+            batch_state_lock.get_user_proofs_in_batch_and_min_fee();
+
+        let user_addresses: Vec<Address> = batch_state_lock.user_states.keys().cloned().collect();
+        for addr in user_addresses.iter() {
+            let (proof_count, min_fee) = updated_user_proof_count_and_min_fee
+                .get(addr)
+                .unwrap_or(&(0, U256::MAX));
+
+            // FIXME: The case where a the update functions return `None` can only happen when the user was not found
+            // in the `user_states` map should not really happen here, but doing this check so that we don't unwrap.
+            // Once https://github.com/yetanotherco/aligned_layer/issues/1046 is done we could return a more
+            // informative error.
+
+            // Now we update the user states related to the batch (proof count in batch and min fee in batch)
+            batch_state_lock.update_user_proof_count(addr, *proof_count)?;
+            batch_state_lock.update_user_min_fee(addr, *min_fee)?;
         }
-
-        // A copy of the batch is made to be returned and the current batch is cleared
-        let finalized_batch = batch_state.batch_queue.clone();
-        batch_state.batch_queue.clear();
-
-        // Clear the user proofs in batch as well
-        batch_state.user_proof_count_in_batch.clear();
 
         Some(finalized_batch)
     }
@@ -604,12 +952,13 @@ impl Batcher {
     async fn finalize_batch(
         &self,
         block_number: u64,
-        finalized_batch: BatchQueue,
+        finalized_batch: Vec<BatchQueueEntry>,
+        gas_price: U256,
     ) -> Result<(), BatcherError> {
         let nonced_batch_verifcation_data: Vec<NoncedVerificationData> = finalized_batch
             .clone()
             .into_iter()
-            .map(|(data, _, _, _)| data)
+            .map(|entry| entry.nonced_verification_data)
             .collect();
 
         let batch_verification_data: Vec<VerificationData> = nonced_batch_verifcation_data
@@ -624,11 +973,15 @@ impl Batcher {
         let batch_data_comm: Vec<VerificationDataCommitment> = finalized_batch
             .clone()
             .into_iter()
-            .map(|(_, data_comm, _, _)| data_comm)
+            .map(|entry| entry.verification_data_commitment)
             .collect();
 
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
-            MerkleTree::build(&batch_data_comm);
+            MerkleTree::build(&batch_data_comm).ok_or_else(|| {
+                BatcherError::TaskCreationError(
+                    "Failed to Build Merkle Tree: Empty Batch".to_string(),
+                )
+            })?;
 
         {
             let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
@@ -645,34 +998,43 @@ impl Batcher {
             .map(VerificationCommitmentBatch::hash_data)
             .collect();
 
-        let signatures = finalized_batch
-            .iter()
-            .map(|(_, _, _, sig)| sig)
-            .cloned()
-            .collect();
-
-        let nonces = finalized_batch
-            .iter()
-            .map(|(nonced_vd, _, _, _)| nonced_vd.nonce)
-            .collect();
+        if let Err(e) = self
+            .telemetry
+            .init_task_trace(&hex::encode(batch_merkle_tree.root))
+            .await
+        {
+            error!("Failed to initialize task trace on telemetry: {:?}", e);
+        }
 
         if let Err(e) = self
             .submit_batch(
                 &batch_bytes,
                 &batch_merkle_tree.root,
                 leaves,
-                signatures,
-                nonces,
+                &finalized_batch,
+                gas_price,
             )
             .await
         {
-            for (_, _, ws_sink, _) in finalized_batch.iter() {
-                let merkle_root = hex::encode(batch_merkle_tree.root);
-                send_message(
-                    ws_sink.clone(),
-                    ResponseMessage::CreateNewTaskError(merkle_root),
-                )
+            let reason = format!("{:?}", e);
+            if let Err(e) = self
+                .telemetry
+                .task_creation_failed(&hex::encode(batch_merkle_tree.root), &reason)
                 .await
+            {
+                error!("Failed to send task status to telemetry: {:?}", e);
+            }
+            for entry in finalized_batch.into_iter() {
+                if let Some(ws_sink) = entry.messaging_sink {
+                    let merkle_root = hex::encode(batch_merkle_tree.root);
+                    send_message(
+                        ws_sink.clone(),
+                        ResponseMessage::CreateNewTaskError(merkle_root),
+                    )
+                    .await
+                } else {
+                    warn!("Websocket sink was found empty. This should only happen in tests");
+                }
             }
 
             self.flush_queue_and_clear_nonce_cache().await;
@@ -680,28 +1042,75 @@ impl Batcher {
             return Err(e);
         };
 
-        send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
+        connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
         warn!("Resetting state... Flushing queue and nonces");
-        let mut batch_state = self.batch_state.lock().await;
-
-        for (_, _, ws_sink, _) in batch_state.batch_queue.iter() {
-            send_message(ws_sink.clone(), ResponseMessage::BatchReset).await;
+        let mut batch_state_lock = self.batch_state.lock().await;
+        for (entry, _) in batch_state_lock.batch_queue.iter() {
+            if let Some(ws_sink) = entry.messaging_sink.as_ref() {
+                send_message(ws_sink.clone(), ResponseMessage::BatchReset).await;
+            } else {
+                warn!("Websocket sink was found empty. This should only happen in tests");
+            }
         }
 
-        batch_state.batch_queue.clear();
-        batch_state.user_nonces.clear();
-        batch_state.user_proof_count_in_batch.clear();
+        let Some(nonpaying_replacement_addr) = self.get_nonpaying_replacement_addr() else {
+            batch_state_lock.batch_queue.clear();
+            batch_state_lock.user_states.clear();
+            return;
+        };
+
+        // If there is a nonpaying address configured, then fetch the correct nonce from Ethereum
+        // so that it is already loaded
+
+        let Ok(nonpaying_replacement_addr_nonce) = self
+            .get_user_nonce_from_ethereum(nonpaying_replacement_addr)
+            .await
+        else {
+            batch_state_lock.batch_queue.clear();
+            batch_state_lock.user_states.clear();
+            return;
+        };
+        batch_state_lock.batch_queue.clear();
+        batch_state_lock.user_states.clear();
+        let nonpaying_user_state = UserState::new(nonpaying_replacement_addr_nonce);
+        batch_state_lock
+            .user_states
+            .insert(nonpaying_replacement_addr, nonpaying_user_state);
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
-        while let Some(finalized_batch) = self.is_batch_ready(block_number).await {
-            let batch_finalization_result =
-                self.finalize_batch(block_number, finalized_batch).await;
+        let gas_price_future = get_gas_price(
+            self.batcher_signer.provider(),
+            self.batcher_signer_fallback.provider(),
+        );
+        let disabled_verifiers_future = self.disabled_verifiers();
+
+        let (gas_price, disable_verifiers) =
+            tokio::join!(gas_price_future, disabled_verifiers_future);
+        let gas_price = gas_price.map_err(|_| BatcherError::GasPriceError)?;
+
+        {
+            let new_disable_verifiers = disable_verifiers
+                .map_err(|e| BatcherError::DisabledVerifiersError(e.to_string()))?;
+            let mut disabled_verifiers_lock = self.disabled_verifiers.lock().await;
+            if new_disable_verifiers != *disabled_verifiers_lock {
+                *disabled_verifiers_lock = new_disable_verifiers;
+                self.flush_queue_and_clear_nonce_cache().await;
+            }
+        }
+
+        let modified_gas_price = gas_price * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER)
+            / U256::from(PERCENTAGE_DIVIDER);
+
+        if let Some(finalized_batch) = self.is_batch_ready(block_number, modified_gas_price).await {
+            let batch_finalization_result = self
+                .finalize_batch(block_number, finalized_batch, modified_gas_price)
+                .await;
 
             // Resetting this here to avoid doing it on every return path of `finalize_batch` function
             let mut batch_posting = self.posting_batch.lock().await;
@@ -709,6 +1118,7 @@ impl Batcher {
 
             batch_finalization_result?;
         }
+
         Ok(())
     }
 
@@ -718,24 +1128,23 @@ impl Batcher {
         batch_bytes: &[u8],
         batch_merkle_root: &[u8; 32],
         leaves: Vec<[u8; 32]>,
-        signatures: Vec<Signature>,
-        nonces: Vec<[u8; 32]>,
+        finalized_batch: &[BatchQueueEntry],
+        gas_price: U256,
     ) -> Result<(), BatcherError> {
-        let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
         let file_name = batch_merkle_root_hex.clone() + ".json";
 
         info!("Uploading batch to S3...");
-        s3::upload_object(
-            &s3_client,
-            &self.s3_bucket_name,
-            batch_bytes.to_vec(),
-            &file_name,
-        )
-        .await
-        .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
+        self.upload_batch_to_s3(batch_bytes, &file_name).await?;
 
+        if let Err(e) = self
+            .telemetry
+            .task_uploaded_to_s3(&batch_merkle_root_hex)
+            .await
+        {
+            error!("Failed to send task status to telemetry: {:?}", e);
+        };
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
@@ -743,29 +1152,55 @@ impl Batcher {
 
         let num_proofs_in_batch = leaves.len();
 
-        let gas_per_proof = (CONSTANT_COST
-            + ADDITIONAL_SUBMISSION_COST_PER_PROOF * num_proofs_in_batch as u128)
+        let gas_per_proof = (CONSTANT_GAS_COST
+            + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
             / num_proofs_in_batch as u128;
 
-        let signatures = signatures
-            .iter()
-            .enumerate()
-            .map(|(i, signature)| SignatureData::new(signature, nonces[i]))
-            .collect();
+        let fee_per_proof = U256::from(gas_per_proof) * gas_price;
+        let fee_for_aggregator = (U256::from(AGGREGATOR_GAS_COST)
+            * gas_price
+            * U256::from(DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER))
+            / U256::from(PERCENTAGE_DIVIDER);
+        let respond_to_task_fee_limit = (fee_for_aggregator
+            * U256::from(RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER))
+            / U256::from(PERCENTAGE_DIVIDER);
+        let fee_params = CreateNewTaskFeeParams::new(
+            fee_for_aggregator,
+            fee_per_proof,
+            gas_price,
+            respond_to_task_fee_limit,
+        );
+
+        let proof_submitters = finalized_batch.iter().map(|entry| entry.sender).collect();
+
+        self.metrics
+            .gas_price_used_on_latest_batch
+            .set(gas_price.as_u64() as i64);
+
+        if let Err(e) = self
+            .telemetry
+            .task_created(
+                &hex::encode(batch_merkle_root),
+                ethers::utils::format_ether(fee_per_proof),
+                num_proofs_in_batch,
+            )
+            .await
+        {
+            error!("Failed to send task status to telemetry: {:?}", e);
+        };
 
         match self
             .create_new_task(
                 *batch_merkle_root,
                 batch_data_pointer,
-                leaves,
-                signatures,
-                AGGREGATOR_COST.into(),
-                gas_per_proof.into(),
+                proof_submitters,
+                fee_params,
             )
             .await
         {
             Ok(_) => {
                 info!("Batch verification task created on Aligned contract");
+                self.metrics.sent_batches.inc();
                 Ok(())
             }
             Err(e) => {
@@ -774,6 +1209,7 @@ impl Batcher {
                     e
                 );
 
+                self.metrics.reverted_batches.inc();
                 Err(e)
             }
         }
@@ -783,59 +1219,97 @@ impl Batcher {
         &self,
         batch_merkle_root: [u8; 32],
         batch_data_pointer: String,
-        leaves: Vec<[u8; 32]>,
-        signatures: Vec<SignatureData>,
-        gas_for_aggregator: U256,
-        gas_per_proof: U256,
+        proof_submitters: Vec<Address>,
+        fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
-        // pad leaves to next power of 2
-        let padded_leaves = Self::pad_leaves(leaves);
-
-        info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
-
-        match try_create_new_task(
-            batch_merkle_root,
-            batch_data_pointer.clone(),
-            padded_leaves.clone(),
-            signatures.clone(),
-            gas_for_aggregator,
-            gas_per_proof,
-            &self.payment_service,
-        )
-        .await
-        {
-            Ok(receipt) => Ok(receipt),
-            Err(BatcherSendError::TransactionReverted(err)) => {
-                // dont retry with fallback
-                // just return the error
-                warn!("Transaction reverted {:?}", err);
-
-                Err(BatcherError::TransactionSendError)
-            }
-            Err(_) => {
-                let receipt = try_create_new_task(
+        let result = retry_function(
+            || {
+                create_new_task_retryable(
                     batch_merkle_root,
-                    batch_data_pointer,
-                    padded_leaves,
-                    signatures,
-                    gas_for_aggregator,
-                    gas_per_proof,
+                    batch_data_pointer.clone(),
+                    proof_submitters.clone(),
+                    fee_params.clone(),
+                    self.transaction_wait_timeout,
+                    &self.payment_service,
                     &self.payment_service_fallback,
                 )
-                .await?;
-
+            },
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
+        )
+        .await;
+        match result {
+            Ok(receipt) => {
+                if let Err(e) = self
+                    .telemetry
+                    .task_sent(&hex::encode(batch_merkle_root), receipt.transaction_hash)
+                    .await
+                {
+                    error!("Failed to send task status to telemetry: {:?}", e);
+                }
                 Ok(receipt)
             }
+            Err(RetryError::Permanent(BatcherError::ReceiptNotFoundError)) => {
+                self.metrics.canceled_batches.inc();
+                self.cancel_create_new_task_tx(fee_params.gas_price).await;
+                Err(BatcherError::ReceiptNotFoundError)
+            }
+            Err(_) => Err(BatcherError::TransactionSendError),
         }
     }
 
-    fn pad_leaves(leaves: Vec<[u8; 32]>) -> Vec<[u8; 32]> {
-        let leaves_len = leaves.len();
-        let last_leaf = leaves[leaves_len - 1];
-        leaves
-            .into_iter()
-            .chain(repeat(last_leaf).take(leaves_len.next_power_of_two() - leaves_len))
-            .collect()
+    /// Sends a transaction to Ethereum with the same nonce as the previous one to override it.
+    /// In case of a recoverable error, it will retry with an exponential backoff up to CANCEL_TRANSACTION_MAX_RETRIES times.
+    /// A tx not included in 3 blocks will be considered an error, and will trigger a bump of the fee, with the rules on ```calculate_bumped_gas_price```
+    /// This will do 5 bumps every 3 blocks, and then the exponential backoff will dominate, doing bumps at 8,13,24,45,89 and so on.
+    /// Errors on ```get_gas_price``` calls inside this function are considered transient,
+    /// so they won't stop the retries.
+    pub async fn cancel_create_new_task_tx(&self, old_tx_gas_price: U256) {
+        info!("Cancelling createNewTask transaction...");
+        let iteration = Arc::new(Mutex::new(0));
+        let previous_gas_price = Arc::new(Mutex::new(old_tx_gas_price));
+
+        if let Err(e) = retry_function(
+            || async {
+                let mut iteration = iteration.lock().await;
+                let mut previous_gas_price = previous_gas_price.lock().await;
+
+                let current_gas_price = match get_gas_price(
+                    self.batcher_signer.provider(),
+                    self.batcher_signer_fallback.provider(),
+                )
+                .await
+                {
+                    Ok(gas_price) => gas_price,
+                    Err(e) => return Err(RetryError::Transient(e)),
+                };
+
+                let bumped_gas_price =
+                    calculate_bumped_gas_price(*previous_gas_price, current_gas_price, *iteration);
+
+                *iteration += 1;
+                *previous_gas_price = bumped_gas_price;
+
+                cancel_create_new_task_retryable(
+                    &self.batcher_signer,
+                    &self.batcher_signer_fallback,
+                    bumped_gas_price,
+                    self.transaction_wait_timeout,
+                )
+                .await
+            },
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            CANCEL_TRANSACTION_MAX_RETRIES,
+        )
+        .await
+        {
+            error!("Could not cancel createNewTask transaction: {e}");
+            return;
+        };
+
+        info!("createNewTask transaction successfully canceled");
     }
 
     /// Only relevant for testing and for users to easily use Aligned
@@ -845,181 +1319,169 @@ impl Batcher {
             .is_some_and(|non_paying_config| non_paying_config.address == *addr)
     }
 
-    /// Only relevant for testing and for users to easily use Aligned
+    fn get_nonpaying_replacement_addr(&self) -> Option<Address> {
+        let non_paying_conf = self.non_paying_config.as_ref()?;
+        Some(non_paying_conf.replacement.address())
+    }
+
+    /// Only relevant for testing and for users to easily use Aligned in testnet.
     async fn handle_nonpaying_msg(
-        self: Arc<Self>,
-        ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
-        client_msg: ClientMessage,
+        &self,
+        ws_sink: WsMessageSink,
+        client_msg: &ClientMessage,
     ) -> Result<(), Error> {
-        let non_paying_config = self.non_paying_config.as_ref().unwrap();
-        let addr = non_paying_config.replacement.address();
-
-        let user_balance = self.get_user_balance(&addr).await;
-
-        if user_balance == U256::from(0) {
-            error!("Insufficient funds for address {:?}", addr);
-            send_message(
-                ws_conn_sink.clone(),
-                ValidityResponseMessage::InsufficientBalance(addr),
-            )
-            .await;
-            return Ok(()); // Send error message to the client and return
-        }
-
-        if client_msg.verification_data.verification_data.proof.len() <= self.max_proof_size {
-            // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-            if self.pre_verification_is_enabled
-                && !zk_utils::verify(&client_msg.verification_data.verification_data).await
-            {
-                error!("Invalid proof detected. Verification failed.");
-                send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
-                return Ok(()); // Send error message to the client and return
-            }
-
-            let nonced_verification_data = {
-                let mut batch_state = self.batch_state.lock().await;
-
-                let nonpaying_nonce = match batch_state.user_nonces.entry(addr) {
-                    Entry::Occupied(o) => o.into_mut(),
-                    Entry::Vacant(vacant) => {
-                        let nonce = match self.payment_service.user_nonces(addr).call().await {
-                            Ok(nonce) => nonce,
-                            Err(e) => {
-                                error!("Failed to get nonce for address {:?}: {:?}", addr, e);
-                                send_message(
-                                    ws_conn_sink.clone(),
-                                    ValidityResponseMessage::InvalidNonce,
-                                )
-                                .await;
-
-                                return Ok(());
-                            }
-                        };
-
-                        vacant.insert(nonce)
-                    }
-                };
-
-                debug!("non paying nonce: {:?}", nonpaying_nonce);
-
-                let mut nonce_bytes = [0u8; 32];
-                nonpaying_nonce.to_big_endian(&mut nonce_bytes);
-                *nonpaying_nonce += U256::one();
-
-                NoncedVerificationData::new(
-                    client_msg.verification_data.verification_data.clone(),
-                    nonce_bytes,
-                    self.chain_id,
-                )
-            };
-
-            let client_msg = ClientMessage::new(
-                nonced_verification_data.clone(),
-                non_paying_config.replacement.clone(),
-            );
-
-            self.clone()
-                .add_to_batch(
-                    nonced_verification_data,
-                    ws_conn_sink.clone(),
-                    client_msg.signature,
-                )
-                .await;
-        } else {
-            error!("Proof is too large");
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge).await;
-            return Ok(()); // Send error message to the client and return
+        info!("Handling nonpaying message");
+        let Some(non_paying_config) = self.non_paying_config.as_ref() else {
+            warn!("There isn't a non-paying configuration loaded. This message will be ignored");
+            send_message(ws_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            return Ok(());
         };
 
-        info!("Verification data message handled");
+        let replacement_addr = non_paying_config.replacement.address();
+        let Some(replacement_user_balance) = self.get_user_balance(&replacement_addr).await else {
+            error!("Could not get balance for non-paying address {replacement_addr:?}");
+            send_message(
+                ws_sink.clone(),
+                ValidityResponseMessage::InsufficientBalance(replacement_addr),
+            )
+            .await;
+            return Ok(());
+        };
 
-        send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
+        if replacement_user_balance == U256::from(0) {
+            error!("Insufficient funds for non-paying address {replacement_addr:?}");
+            send_message(
+                ws_sink.clone(),
+                ValidityResponseMessage::InsufficientBalance(replacement_addr),
+            )
+            .await;
+            return Ok(());
+        }
+
+        let batch_state_lock = self.batch_state.lock().await;
+        let Some(non_paying_nonce) = batch_state_lock.get_user_nonce(&replacement_addr).await
+        else {
+            std::mem::drop(batch_state_lock);
+            error!("Nonce for non-paying address {replacement_addr:?} not found in cache.");
+            send_message(ws_sink.clone(), ValidityResponseMessage::EthRpcError).await;
+            return Ok(());
+        };
+
+        debug!("Non-paying nonce: {:?}", non_paying_nonce);
+
+        let nonced_verification_data = NoncedVerificationData::new(
+            client_msg.verification_data.verification_data.clone(),
+            non_paying_nonce,
+            DEFAULT_MAX_FEE_PER_PROOF.into(), // 13_000 gas per proof * 100 gwei gas price (upper bound)
+            self.chain_id,
+            self.payment_service.address(),
+        );
+
+        let client_msg = ClientMessage::new(
+            nonced_verification_data.clone(),
+            non_paying_config.replacement.clone(),
+        )
+        .await;
+
+        let signature = client_msg.signature;
+        if let Err(e) = self
+            .add_to_batch(
+                batch_state_lock,
+                nonced_verification_data,
+                ws_sink.clone(),
+                signature,
+                replacement_addr,
+            )
+            .await
+        {
+            info!("Error while adding nonpaying address entry to batch: {e:?}");
+            send_message(ws_sink, ValidityResponseMessage::AddToBatchError).await;
+            return Ok(());
+        };
+
+        info!("Non-paying verification data message handled");
+        send_message(ws_sink, ValidityResponseMessage::Valid).await;
         Ok(())
     }
 
-    async fn get_user_balance(&self, addr: &Address) -> U256 {
-        match self.payment_service.user_balances(*addr).call().await {
-            Ok(val) => val,
-            Err(_) => match self
-                .payment_service_fallback
-                .user_balances(*addr)
-                .call()
-                .await
-            {
-                Ok(balance) => balance,
-                Err(_) => {
-                    warn!("Failed to get balance for address {:?}", addr);
-                    U256::zero()
-                }
+    /// Gets the balance of user with address `addr` from Ethereum using exponential backoff.
+    /// Returns `None` if the balance couldn't be returned
+    /// FIXME: This should return a `Result` instead.
+    async fn get_user_balance(&self, addr: &Address) -> Option<U256> {
+        retry_function(
+            || {
+                get_user_balance_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    addr,
+                )
             },
-        }
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
+        )
+        .await
+        .ok()
     }
 
+    /// Checks if the user's balance is unlocked for a given address using exponential backoff.
+    /// Returns `false` if an error occurs during the retries.
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
-        let unlock_block = match self.payment_service.user_unlock_block(*addr).call().await {
-            Ok(val) => val,
-            Err(_) => match self
-                .payment_service_fallback
-                .user_unlock_block(*addr)
-                .call()
-                .await
-            {
-                Ok(unlock_block) => unlock_block,
-                Err(_) => {
-                    warn!("Failed to get unlock block for address {:?}", addr);
-                    U256::zero()
-                }
+        let Ok(unlocked) = retry_function(
+            || {
+                user_balance_is_unlocked_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    addr,
+                )
             },
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
+        )
+        .await
+        else {
+            warn!("Could not get user locking state.");
+            return false;
         };
-
-        unlock_block != U256::zero()
+        unlocked
     }
-}
 
-async fn send_batch_inclusion_data_responses(
-    finalized_batch: BatchQueue,
-    batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
-) -> Result<(), BatcherError> {
-    for (vd_batch_idx, (_, _, ws_sink, _)) in finalized_batch.iter().enumerate() {
-        let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
-        let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
+    /// Uploads the batch to s3 using exponential backoff.
+    async fn upload_batch_to_s3(
+        &self,
+        batch_bytes: &[u8],
+        file_name: &str,
+    ) -> Result<(), BatcherError> {
+        retry_function(
+            || {
+                Self::upload_batch_to_s3_retryable(
+                    batch_bytes,
+                    file_name,
+                    self.s3_client.clone(),
+                    &self.s3_bucket_name,
+                )
+            },
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
+        )
+        .await
+        .map_err(|e| BatcherError::BatchUploadError(e.to_string()))
+    }
 
-        let serialized_response = cbor_serialize(&response)
-            .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
-
-        let sending_result = ws_sink
-            .write()
+    async fn upload_batch_to_s3_retryable(
+        batch_bytes: &[u8],
+        file_name: &str,
+        s3_client: S3Client,
+        s3_bucket_name: &str,
+    ) -> Result<(), RetryError<String>> {
+        s3::upload_object(&s3_client, s3_bucket_name, batch_bytes.to_vec(), file_name)
             .await
-            .send(Message::binary(serialized_response))
-            .await;
-
-        match sending_result {
-            Err(Error::AlreadyClosed) => (),
-            Err(e) => error!("Error while sending batch inclusion data response: {}", e),
-            Ok(_) => (),
-        }
-
-        info!("Response sent");
-    }
-
-    Ok(())
-}
-
-async fn send_message<T: Serialize>(
-    ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
-    message: T,
-) {
-    match cbor_serialize(&message) {
-        Ok(serialized_response) => {
-            if let Err(err) = ws_conn_sink
-                .write()
-                .await
-                .send(Message::binary(serialized_response))
-                .await
-            {
-                error!("Error while sending message: {}", err)
-            }
-        }
-        Err(e) => error!("Error while serializing message: {}", e),
+            .map_err(|e| {
+                warn!("Error uploading batch to s3 {e}");
+                RetryError::Transient(e.to_string())
+            })?;
+        Ok(())
     }
 }

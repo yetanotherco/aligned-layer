@@ -12,7 +12,7 @@ To use this SDK in your Rust project, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.4.0" }
+aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.10.2" }
 ```
 
 To find the latest release tag go to [releases](https://github.com/yetanotherco/aligned_layer/releases) and copy the
@@ -23,13 +23,13 @@ version of the release that has the `latest` badge.
 To get the SDK up and running in your project, you must first import it
 
 ```rust
-use aligned_sdk::core::types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{submit_and_wait, get_next_nonce};
+use aligned_sdk::core::types::{PriceEstimate, AlignedVerificationData, Network, ProvingSystemId, VerificationData};
+use aligned_sdk::sdk::{estimate_fee, submit_and_wait, get_next_nonce};
 ```
 
 And then you can do a simple call of, for example, `get_next_nonce`
 ```rust
-const BATCHER_PAYMENTS_ADDRESS: &str = "0x815aeCA64a974297942D2Bbf034ABEe22a38A003";
+const NETWORK: Network = Network::Holesky;
 
 fn main() {
     let rpc_url = args.rpc_url.clone();
@@ -40,14 +40,14 @@ fn main() {
         .with_chain_id(17000u64);
 
     // Call to SDK:
-    let nonce = get_next_nonce(&rpc_url, wallet.address(), BATCHER_PAYMENTS_ADDRESS).await
+    let nonce = get_next_nonce(&rpc_url, wallet.address(), NETWORK).await
     .expect("Failed to get next nonce");
 }
 ```
 
-Or you can make a more complex call to submit a proof: 
+Or you can make a more complex call to submit a proof:
 
-(code extract from [ZKQuiz](../1_introduction/2_zkquiz.md))
+(code extract from [ZKQuiz example](../3_guides/2_build_your_first_aligned_application.md#app))
 
 ```rust
 const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
@@ -67,13 +67,17 @@ fn main() {
     let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
         .expect("Failed to decrypt keystore")
         .with_chain_id(17000u64);
-    
+    let max_fee = estimate_fee(&rpc_url, PriceEstimate::Instant)
+        .await
+        .expect("failed to fetch gas price from the blockchain");
+
     // Call to SDK:
-    match submit_and_wait(
+    match submit_and_wait_verification(
         BATCHER_URL,
         &rpc_url,
-        Chain::Holesky,
+        Network::Holesky,
         &verification_data,
+        max_fee,
         wallet.clone(),
         nonce
     )

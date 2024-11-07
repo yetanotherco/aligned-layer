@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity =0.8.12;
+pragma solidity ^0.8.12;
 import {BatcherPaymentService} from "../../src/core/BatcherPaymentService.sol";
 
 import "forge-std/Script.sol";
@@ -24,8 +24,10 @@ contract BatcherPaymentServiceUpgrader is Script {
         );
 
         BatcherPaymentService newBatcherPaymentServiceImplementation = new BatcherPaymentService();
-        BatcherPaymentServiceProxy.upgradeToAndCall(address(newBatcherPaymentServiceImplementation), ""); 
 
+        // Not link the new implementation to the proxy
+        // Because this must be executed in the multisig
+        
         vm.stopBroadcast();
 
         return (address(BatcherPaymentServiceProxy), address(newBatcherPaymentServiceImplementation));

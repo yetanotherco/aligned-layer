@@ -1,8 +1,7 @@
-use risc0_zkvm::{InnerReceipt, Receipt};
 use log::error;
+use risc0_zkvm::{InnerReceipt, Receipt};
 
-#[no_mangle]
-pub extern "C" fn verify_risc_zero_receipt_ffi(
+fn inner_verify_risc_zero_receipt_ffi(
     inner_receipt_bytes: *const u8,
     inner_receipt_len: u32,
     image_id: *const u8,
@@ -20,13 +19,11 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
         return false;
     }
 
-    let mut public_input: *const u8 = public_input;
-    let mut public_input_len: u32 = public_input_len;
-    if public_input.is_null() || public_input_len == 0 {
-        // set public input to pointer to empty slice
-        let empty_slice: &[u8] = &[];
-        public_input = empty_slice.as_ptr();
-        public_input_len = 0;
+    //NOTE: We allow the public input for risc0 to be empty.
+    let mut public_input_slice: &[u8] = &[];
+    if !public_input.is_null() && public_input_len > 0 {
+        public_input_slice =
+            unsafe { std::slice::from_raw_parts(public_input, public_input_len as usize) };
     }
 
     let inner_receipt_bytes =
@@ -34,30 +31,53 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
 
     let image_id = unsafe { std::slice::from_raw_parts(image_id, image_id_len as usize) };
 
-    let public_input =
-        unsafe { std::slice::from_raw_parts(public_input, public_input_len as usize) };
-
     let mut image_id_array = [0u8; 32];
     image_id_array.copy_from_slice(image_id);
 
     if let Ok(inner_receipt) = bincode::deserialize::<InnerReceipt>(inner_receipt_bytes) {
-        let receipt = Receipt::new(inner_receipt, public_input.to_vec());
+        let receipt = Receipt::new(inner_receipt, public_input_slice.to_vec());
 
         return receipt.verify(image_id_array).is_ok();
     }
     false
 }
 
+#[no_mangle]
+pub extern "C" fn verify_risc_zero_receipt_ffi(
+    inner_receipt_bytes: *const u8,
+    inner_receipt_len: u32,
+    image_id: *const u8,
+    image_id_len: u32,
+    public_input: *const u8,
+    public_input_len: u32,
+) -> i32 {
+    let result = std::panic::catch_unwind(|| {
+        inner_verify_risc_zero_receipt_ffi(
+            inner_receipt_bytes,
+            inner_receipt_len,
+            image_id,
+            image_id_len,
+            public_input,
+            public_input_len,
+        )
+    });
+
+    match result {
+        Ok(v) => v as i32,
+        Err(_) => -1,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const RECEIPT: &[u8] = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof");
+    const RECEIPT: &[u8] = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_new.proof");
     const IMAGE_ID: &[u8] = include_bytes!(
-        "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin"
+        "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_new.bin"
     );
     const PUBLIC_INPUT: &[u8] = include_bytes!(
-        "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub"
+        "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_new.pub"
     );
 
     #[test]
@@ -74,7 +94,7 @@ mod tests {
             public_input,
             PUBLIC_INPUT.len() as u32,
         );
-        assert!(result)
+        assert_eq!(result, 1)
     }
 
     #[test]
@@ -91,6 +111,23 @@ mod tests {
             public_input,
             PUBLIC_INPUT.len() as u32,
         );
-        assert!(!result)
+        assert_eq!(result, 0)
+    }
+
+    #[test]
+    fn verify_risc_zero_input_valid() {
+        let receipt_bytes = RECEIPT.as_ptr();
+        let image_id = IMAGE_ID.as_ptr();
+        let public_input = [].as_ptr();
+
+        let result = verify_risc_zero_receipt_ffi(
+            receipt_bytes,
+            (RECEIPT.len() - 1) as u32,
+            image_id,
+            IMAGE_ID.len() as u32,
+            public_input,
+            0,
+        );
+        assert_eq!(result, 0)
     }
 }
