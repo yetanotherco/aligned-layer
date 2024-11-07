@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -16,7 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
-	connection "github.com/yetanotherco/aligned_layer/core"
+	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
 )
@@ -95,19 +94,19 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 			if err != nil {
 				// check if reverted only else transient error
-				err = connection.PermanentError{Inner: fmt.Errorf("transaction reverted")}
+				err = retry.PermanentError{Inner: fmt.Errorf("transaction reverted")}
 			}
 		}
 		return tx, err
 	}
-	tx, err := connection.RetryWithData(respondToTaskV2SimulationFunc, connection.MinDelay, connection.RetryFactor, 0, connection.MaxInterval)
+	tx, err := retry.RetryWithData(respondToTaskV2SimulationFunc, retry.MinDelay, retry.RetryFactor, 0, retry.MaxInterval, retry.MaxElapsedTime)
 	if err != nil {
 		return nil, err
 	}
 
 	err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
 	if err != nil {
-		return nil, connection.PermanentError{Inner: err}
+		return nil, retry.PermanentError{Inner: err}
 	}
 
 	// Set the nonce, as we might have to replace the transaction with a higher gas price
@@ -125,7 +124,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			gasPrice, err := w.ClientFallback.SuggestGasPrice(context.Background())
 			if err != nil {
 				shouldBump = false
-				return nil, connection.TransientError{Inner: err}
+				return nil, err
 			}
 			bumpedGasPrice := utils.CalculateGasPriceBumpBasedOnRetry(gasPrice, GasBaseBumpPercentage, GasBumpIncrementalPercentage, i)
 
@@ -140,7 +139,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		if err != nil {
 			shouldBump = false
 			// We bump the fee so much that the transaction cost is more expensive than the batcher fee limit
-			return nil, connection.PermanentError{Inner: err}
+			return nil, retry.PermanentError{Inner: err}
 		}
 
 		tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
@@ -148,8 +147,8 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 			if err != nil {
 				// check if reverted only to be permanent
-				err = connection.TransientError{Inner: err}
 				shouldBump = false
+				return nil, err
 			}
 		}
 
@@ -167,12 +166,12 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 		shouldBump = true
 		if err != nil {
-			return nil, connection.TransientError{Inner: err}
+			return nil, err
 		}
-		return nil, connection.TransientError{Inner: fmt.Errorf("transaction failed")}
+		return nil, fmt.Errorf("transaction failed")
 	}
 
-	return connection.RetryWithData(respondToTaskV2Func, 1000, 2, 0, 60)
+	return retry.RetryWithData(respondToTaskV2Func, 1000, 2, 0, 60, retry.MaxElapsedTime)
 }
 
 func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
@@ -181,7 +180,7 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bin
 	w.logger.Info("Simulated cost", "cost", simulatedCost)
 
 	// Get RespondToTaskFeeLimit
-	batchState, err := w.BatchesStateRetryable(batchIdentifierHash)
+	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
 	if err != nil {
 		// Fallback also failed
 		// Proceed to check values against simulated costs
@@ -241,123 +240,4 @@ func (w *AvsWriter) compareBatcherBalance(amount *big.Int, senderAddress [20]byt
 		return fmt.Errorf("cost is higher than Batcher balance")
 	}
 	return nil
-}
-
-// |---RETRYABLE---|
-
-func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkleRoot [32]byte, senderAddress common.Address, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Transaction, error) {
-	var (
-		tx  *types.Transaction
-		err error
-	)
-	respondToTaskV2_func := func() (*types.Transaction, error) {
-		tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-		if err != nil {
-			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-			if err != nil {
-				// Note return type will be nil
-				if strings.Contains(err.Error(), "connect: connection refused") {
-					err = connection.TransientError{Inner: err}
-					return tx, err
-				}
-				if strings.Contains(err.Error(), "read: connection reset by peer") {
-					return tx, connection.TransientError{Inner: err}
-				}
-				err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-			}
-		}
-		return tx, err
-	}
-	return connection.RetryWithData(respondToTaskV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
-}
-
-func (w *AvsWriter) BatchesStateRetryable(arg0 [32]byte) (struct {
-	TaskCreatedBlock      uint32
-	Responded             bool
-	RespondToTaskFeeLimit *big.Int
-}, error) {
-	var (
-		state struct {
-			TaskCreatedBlock      uint32
-			Responded             bool
-			RespondToTaskFeeLimit *big.Int
-		}
-		err error
-	)
-	batchesState_func := func() (struct {
-		TaskCreatedBlock      uint32
-		Responded             bool
-		RespondToTaskFeeLimit *big.Int
-	}, error) {
-		state, err = w.AvsContractBindings.ServiceManager.BatchesState(&bind.CallOpts{}, arg0)
-		if err != nil {
-			state, err = w.AvsContractBindings.ServiceManagerFallback.BatchesState(&bind.CallOpts{}, arg0)
-			// If error is not nil throw out result in state!
-			if err != nil {
-				// Note return type will be nil
-				if strings.Contains(err.Error(), "connect: connection refused") {
-					err = connection.TransientError{Inner: err}
-					return state, err
-				}
-				if strings.Contains(err.Error(), "read: connection reset by peer") {
-					return state, connection.TransientError{Inner: err}
-				}
-				err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-			}
-		}
-		return state, err
-	}
-	return connection.RetryWithData(batchesState_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
-}
-
-func (w *AvsWriter) BatcherBalancesRetryable(senderAddress common.Address) (*big.Int, error) {
-	var (
-		batcherBalance *big.Int
-		err            error
-	)
-	batcherBalances_func := func() (*big.Int, error) {
-		batcherBalance, err = w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
-		if err != nil {
-			batcherBalance, err = w.AvsContractBindings.ServiceManagerFallback.BatchersBalances(&bind.CallOpts{}, senderAddress)
-			if err != nil {
-				// Note return type will be nil
-				if strings.Contains(err.Error(), "connect: connection refused") {
-					err = connection.TransientError{Inner: err}
-					return batcherBalance, err
-				}
-				if strings.Contains(err.Error(), "read: connection reset by peer") {
-					return batcherBalance, connection.TransientError{Inner: err}
-				}
-				err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-			}
-		}
-		return batcherBalance, err
-	}
-	return connection.RetryWithData(batcherBalances_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
-}
-
-func (w *AvsWriter) BalanceAtRetryable(ctx context.Context, aggregatorAddress common.Address, blockNumber *big.Int) (*big.Int, error) {
-	var (
-		aggregatorBalance *big.Int
-		err               error
-	)
-	balanceAt_func := func() (*big.Int, error) {
-		aggregatorBalance, err = w.Client.BalanceAt(ctx, aggregatorAddress, blockNumber)
-		if err != nil {
-			aggregatorBalance, err = w.ClientFallback.BalanceAt(ctx, aggregatorAddress, blockNumber)
-			if err != nil {
-				// Note return type will be nil
-				if strings.Contains(err.Error(), "connect: connection refused") {
-					err = connection.TransientError{Inner: err}
-					return aggregatorBalance, err
-				}
-				if strings.Contains(err.Error(), "read: connection reset by peer") {
-					return aggregatorBalance, connection.TransientError{Inner: err}
-				}
-				err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-			}
-		}
-		return aggregatorBalance, err
-	}
-	return connection.RetryWithData(balanceAt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
 }

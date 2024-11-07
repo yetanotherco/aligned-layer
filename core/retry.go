@@ -1,4 +1,4 @@
-package connection
+package retry
 
 import (
 	"fmt"
@@ -12,6 +12,10 @@ This retry library was inspired by and uses Cenk Alti (https://github.com/cenkal
 We would like to thank him for his great work.
 */
 
+/*
+Note we use a custom Permanent error type for asserting Permanent Erros within the retry library.
+We do not implement an explicit Transient error type and operate under the assumption that all errors that are not Permanent are Transient.
+*/
 type PermanentError struct {
 	Inner error
 }
@@ -25,26 +29,14 @@ func (e PermanentError) Is(err error) bool {
 	return ok
 }
 
-type TransientError struct {
-	Inner error
-}
-
-func (e TransientError) Error() string { return e.Inner.Error() }
-func (e TransientError) Unwrap() error {
-	return e.Inner
-}
-func (e TransientError) Is(err error) bool {
-	_, ok := err.(TransientError)
-	return ok
-}
-
 const MinDelay = 1000
 const RetryFactor = 2
 const NumRetries = 3
 const MaxInterval = 60000
+const MaxElapsedTime = 0
 
 // Same as Retry only that the functionToRetry can return a value upon correct execution
-func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, factor float64, maxTries uint64, maxInterval uint64) (T, error) {
+func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, factor float64, maxTries uint64, maxInterval uint64, maxElapsedTime uint64) (T, error) {
 	f := func() (T, error) {
 		var (
 			val T
@@ -54,9 +46,9 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 			defer func() {
 				if r := recover(); r != nil {
 					if panic_err, ok := r.(error); ok {
-						err = TransientError{panic_err}
+						err = panic_err
 					} else {
-						err = TransientError{fmt.Errorf("panicked: %v", panic_err)}
+						err = fmt.Errorf("panicked: %v", panic_err)
 					}
 				}
 			}()
@@ -75,7 +67,8 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 	initialRetryOption := backoff.WithInitialInterval(time.Millisecond * time.Duration(minDelay))
 	multiplierOption := backoff.WithMultiplier(factor)
 	maxIntervalOption := backoff.WithMaxInterval(time.Millisecond * time.Duration(maxInterval))
-	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption)
+	maxElapsedTimeOption := backoff.WithMaxElapsedTime(time.Millisecond * time.Duration(maxElapsedTime))
+	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption, maxElapsedTimeOption)
 	var maxRetriesBackoff backoff.BackOff
 
 	if maxTries > 0 {
@@ -93,16 +86,16 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 // from the configuration are reached, or until a `PermanentError` is returned.
 // The function to be retried should return `PermanentError` when the condition for stop retrying
 // is met.
-func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTries uint64, maxInterval uint64) error {
+func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTries uint64, maxInterval uint64, maxElapsedTime uint64) error {
 	f := func() error {
 		var err error
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
 					if panic_err, ok := r.(error); ok {
-						err = TransientError{panic_err}
+						err = panic_err
 					} else {
-						err = TransientError{fmt.Errorf("panicked: %v", panic_err)}
+						err = fmt.Errorf("panicked: %v", panic_err)
 					}
 				}
 			}()
@@ -121,7 +114,8 @@ func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTri
 	initialRetryOption := backoff.WithInitialInterval(time.Millisecond * time.Duration(minDelay))
 	multiplierOption := backoff.WithMultiplier(factor)
 	maxIntervalOption := backoff.WithMaxInterval(time.Millisecond * time.Duration(maxInterval))
-	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption)
+	maxElapsedTimeOption := backoff.WithMaxElapsedTime(time.Millisecond * time.Duration(maxElapsedTime))
+	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption, maxElapsedTimeOption)
 	var maxRetriesBackoff backoff.BackOff
 
 	if maxTries > 0 {

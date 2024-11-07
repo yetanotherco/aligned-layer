@@ -2,30 +2,20 @@ package utils
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	connection "github.com/yetanotherco/aligned_layer/core"
+	retry "github.com/yetanotherco/aligned_layer/core"
 )
 
 func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash) (*types.Receipt, error) {
 	receipt_func := func() (*types.Receipt, error) {
-		receipt, err := client.TransactionReceipt(ctx, txHash)
-		if err != nil || ctx.Err() != nil {
-			return nil, connection.TransientError{Inner: err}
-		}
-		if receipt != nil {
-			return receipt, nil
-		}
-
-		return nil, connection.TransientError{Inner: fmt.Errorf("receipt not found")}
+		return client.TransactionReceipt(ctx, txHash)
 	}
-
-	return connection.RetryWithData(receipt_func, connection.MinDelay, connection.RetryFactor, 0, connection.MaxInterval)
+	return retry.RetryWithData(receipt_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
 func BytesToQuorumNumbers(quorumNumbersBytes []byte) eigentypes.QuorumNums {

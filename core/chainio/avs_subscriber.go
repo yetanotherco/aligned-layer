@@ -3,24 +3,18 @@ package chainio
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
-	"math/big"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
+	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/config"
 
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/ethereum/go-ethereum/crypto"
-	connection "github.com/yetanotherco/aligned_layer/core"
 )
 
 const (
@@ -71,17 +65,15 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
 
 	// Subscribe to new tasks
-	// NOTE: Should we consolidate these subscribers behind two interfaces
 	sub, err := SubscribeToNewTasksV2Retrayable(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
 	if err != nil {
-		s.logger.Error("Failed to subscribe to new AlignedLayer tasks after %d retries", connection.NumRetries, "err", err)
+		s.logger.Error("Primary failed to subscribe to new AlignedLayer V2 tasks after %d retries", retry.NumRetries, "err", err)
 		return nil, err
 	}
-	s.logger.Info("Subscribed to new AlignedLayer V2 tasks")
 
 	subFallback, err := SubscribeToNewTasksV2Retrayable(s.AvsContractBindings.ServiceManagerFallback, internalChannel, s.logger)
 	if err != nil {
-		s.logger.Error("Failed to subscribe to new AlignedLayer tasks %d retries", connection.NumRetries, "err", err)
+		s.logger.Error("Fallback failed to subscribe to new AlignedLayer V2 tasks after %d retries", retry.NumRetries, "err", err)
 		return nil, err
 	}
 	s.logger.Info("Subscribed to new AlignedLayer V2 tasks")
@@ -146,15 +138,13 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 	// Subscribe to new tasks
 	sub, err := SubscribeToNewTasksV3Retryable(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
 	if err != nil {
-		s.logger.Error("Failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries, "err", err)
+		s.logger.Error("Primary failed to subscribe to new AlignedLayer V3 tasks after %d retries", MaxRetries, "err", err)
 		return nil, err
 	}
-	s.logger.Info("Subscribed to new AlignedLayer V3 tasks")
 
-	//TODO: collapse this
 	subFallback, err := SubscribeToNewTasksV3Retryable(s.AvsContractBindings.ServiceManagerFallback, internalChannel, s.logger)
 	if err != nil {
-		s.logger.Error("Failed to subscribe to new AlignedLayer %d tasks", MaxRetries, "err", err)
+		s.logger.Error("Fallback failed to subscribe to new AlignedLayer V3 tasks after %d retries", MaxRetries, "err", err)
 		return nil, err
 	}
 	s.logger.Info("Subscribed to new AlignedLayer V3 tasks")
@@ -399,192 +389,3 @@ func (s *AvsSubscriber) WaitForOneBlock(startBlock uint64) error {
 // func (s *AvsSubscriber) ParseTaskResponded(rawLog types.Log) (*cstaskmanager.ContractAlignedLayerTaskManagerTaskResponded, error) {
 // 	return s.AvsContractBindings.TaskManager.ContractAlignedLayerTaskManagerFilterer.ParseTaskResponded(rawLog)
 // }
-
-// |---RETRYABLE---|
-
-func (s *AvsSubscriber) BlockNumberRetryable(ctx context.Context) (uint64, error) {
-	var (
-		latestBlock uint64
-		err         error
-	)
-	latestBlock_func := func() (uint64, error) {
-		latestBlock, err = s.AvsContractBindings.ethClient.BlockNumber(ctx)
-		if err != nil {
-			latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(ctx)
-			if err != nil {
-				if strings.Contains(err.Error(), "connect: connection refused") {
-					err = connection.TransientError{Inner: err}
-					return latestBlock, err
-				}
-				if strings.Contains(err.Error(), "read: connection reset by peer") {
-					return latestBlock, connection.TransientError{Inner: err}
-				}
-				err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-			}
-		}
-		return latestBlock, err
-	}
-	return connection.RetryWithData(latestBlock_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
-}
-
-func (s *AvsSubscriber) FilterBatchV2Retryable(fromBlock uint64, ctx context.Context) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
-	var (
-		logs *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator
-		err  error
-	)
-
-	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
-		logs, err = s.AvsContractBindings.ServiceManager.FilterNewBatchV2(&bind.FilterOpts{Start: fromBlock, End: nil, Context: ctx}, nil)
-		if err != nil {
-			// Note return type will be nil
-			if strings.Contains(err.Error(), "connect: connection refused") {
-				err = connection.TransientError{Inner: err}
-				return logs, err
-			}
-			if strings.Contains(err.Error(), "read: connection reset by peer") {
-				return logs, connection.TransientError{Inner: err}
-			}
-			err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-		}
-		return logs, err
-	}
-	return connection.RetryWithData(filterNewBatchV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
-}
-
-func (s *AvsSubscriber) FilterBatchV3Retryable(fromBlock uint64, ctx context.Context) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
-	var (
-		logs *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator
-		err  error
-	)
-	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
-		logs, err = s.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: nil, Context: ctx}, nil)
-		if err != nil {
-			// Note return type will be nil
-			if strings.Contains(err.Error(), "connect: connection refused") {
-				err = connection.TransientError{Inner: err}
-				return logs, err
-			}
-			if strings.Contains(err.Error(), "read: connection reset by peer") {
-				return logs, connection.TransientError{Inner: err}
-			}
-			err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-		}
-		return logs, err
-	}
-	return connection.RetryWithData(filterNewBatchV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
-}
-
-func (s *AvsSubscriber) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (struct {
-	TaskCreatedBlock      uint32
-	Responded             bool
-	RespondToTaskFeeLimit *big.Int
-}, error) {
-	var (
-		state struct {
-			TaskCreatedBlock      uint32
-			Responded             bool
-			RespondToTaskFeeLimit *big.Int
-		}
-		err error
-	)
-	batchState_func := func() (struct {
-		TaskCreatedBlock      uint32
-		Responded             bool
-		RespondToTaskFeeLimit *big.Int
-	}, error) {
-		state, err = s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
-		if err != nil {
-			// Note return type will be nil
-			if strings.Contains(err.Error(), "connect: connection refused") {
-				err = connection.TransientError{Inner: err}
-				return state, err
-			}
-			if strings.Contains(err.Error(), "read: connection reset by peer") {
-				return state, connection.TransientError{Inner: err}
-			}
-			err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-		}
-		return state, err
-	}
-
-	return connection.RetryWithData(batchState_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
-}
-
-func (s *AvsSubscriber) SubscribeNewHeadRetryable(ctx context.Context, c chan<- *types.Header) (ethereum.Subscription, error) {
-	var (
-		sub ethereum.Subscription
-		err error
-	)
-	subscribeNewHead_func := func() (ethereum.Subscription, error) {
-		sub, err = s.AvsContractBindings.ethClient.SubscribeNewHead(ctx, c)
-		if err != nil {
-			sub, err = s.AvsContractBindings.ethClientFallback.SubscribeNewHead(ctx, c)
-			if err != nil {
-				// Note return type will be nil
-				if strings.Contains(err.Error(), "connect: connection refused") {
-					err = connection.TransientError{Inner: err}
-					return sub, err
-				}
-				if strings.Contains(err.Error(), "read: connection reset by peer") {
-					return sub, connection.TransientError{Inner: err}
-				}
-				err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-			}
-		}
-		return sub, err
-	}
-	return connection.RetryWithData(subscribeNewHead_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
-}
-
-func SubscribeToNewTasksV2Retrayable(
-	serviceManager *servicemanager.ContractAlignedLayerServiceManager,
-	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2,
-	logger sdklogging.Logger,
-) (event.Subscription, error) {
-	var (
-		sub event.Subscription
-		err error
-	)
-	subscribe_func := func() (event.Subscription, error) {
-		sub, err = serviceManager.WatchNewBatchV2(&bind.WatchOpts{}, newTaskCreatedChan, nil)
-		if err != nil {
-			// Note return type will be nil
-			if strings.Contains(err.Error(), "connect: connection refused") {
-				err = connection.TransientError{Inner: err}
-				return sub, err
-			}
-			if strings.Contains(err.Error(), "read: connection reset by peer") {
-				return sub, connection.TransientError{Inner: err}
-			}
-			err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-		}
-		return sub, err
-	}
-	return connection.RetryWithData(subscribe_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
-}
-
-func SubscribeToNewTasksV3Retryable(
-	serviceManager *servicemanager.ContractAlignedLayerServiceManager,
-	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3,
-	logger sdklogging.Logger,
-) (event.Subscription, error) {
-	var (
-		sub event.Subscription
-		err error
-	)
-	subscribe_func := func() (event.Subscription, error) {
-		sub, err = serviceManager.WatchNewBatchV3(&bind.WatchOpts{}, newTaskCreatedChan, nil)
-		if err != nil {
-			if strings.Contains(err.Error(), "connect: connection refused") {
-				err = connection.TransientError{Inner: err}
-				return sub, err
-			}
-			if strings.Contains(err.Error(), "read: connection reset by peer") {
-				return sub, connection.TransientError{Inner: err}
-			}
-			err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
-		}
-		return sub, err
-	}
-	return connection.RetryWithData(subscribe_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
-}
