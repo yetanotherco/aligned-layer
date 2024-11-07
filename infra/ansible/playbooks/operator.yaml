@@ -18,10 +18,16 @@
   vars:
     host: operator
 
+- name: Run foundry playbook
+  ansible.builtin.import_playbook: foundry.yaml
+  vars:
+    host: operator
+
 
 - hosts: operator
 
   tasks:
+
     - name: Update apt and install required system packages
       become: true
       apt:
