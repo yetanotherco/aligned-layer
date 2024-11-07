@@ -314,7 +314,7 @@ async fn _submit_multiple(
     let payment_service_addr = get_payment_service_address(network);
 
     let result = async {
-        let sent_verification_data = send_messages(
+        let sent_verification_data_rev = send_messages(
             ws_write,
             payment_service_addr,
             verification_data,
@@ -323,7 +323,7 @@ async fn _submit_multiple(
             nonce,
         )
         .await?;
-        receive(response_stream, sent_verification_data).await
+        receive(response_stream, sent_verification_data_rev).await
     }
     .await;
 

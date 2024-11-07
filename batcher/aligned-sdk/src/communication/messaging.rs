@@ -1,7 +1,7 @@
 use ethers::signers::Signer;
 use ethers::types::Address;
 use futures_util::{stream::SplitStream, SinkExt, StreamExt};
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use std::sync::Arc;
 use tokio::{net::TcpStream, sync::Mutex};
 
@@ -67,11 +67,18 @@ pub async fn send_messages(
         debug!("{:?} Message sent", idx);
 
         // Save the verification data commitment to read its response later
-        sent_verification_data.push(verification_data);
+        sent_verification_data.push(verification_data); 
     }
 
     info!("All messages sent");
-    Ok(sent_verification_data)
+    // This vector is reversed so that while responses are received, removing from the end is cheaper.
+    let sent_verification_data_rev: Vec<NoncedVerificationData> =
+        sent_verification_data
+            .into_iter()
+            .map(|vd| vd.into())
+            .rev()
+            .collect();
+    Ok(sent_verification_data_rev)
 }
 
 // Receives the array of proofs sent
@@ -80,17 +87,18 @@ pub async fn send_messages(
 // finishes when the last proof sent receives its response
 pub async fn receive(
     response_stream: Arc<Mutex<ResponseStream>>,
-    mut sent_verification_data: Vec<NoncedVerificationData>,
+    mut sent_verification_data_rev: Vec<NoncedVerificationData>,
 ) -> Result<Vec<AlignedVerificationData>, SubmitError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream = response_stream.lock().await;
     let mut aligned_submitted_data: Vec<AlignedVerificationData> = Vec::new();
-    let last_proof_nonce = get_biggest_nonce(&sent_verification_data);
+    let last_proof_nonce = get_biggest_nonce(&sent_verification_data_rev);
 
     // read from WS
     while let Some(Ok(msg)) = response_stream.next().await {
         // unexpected WS close:
         if let Message::Close(close_frame) = msg {
+            warn!("Unexpected WS close");
             if let Some(close_msg) = close_frame {
                 return Err(SubmitError::WebSocketClosedUnexpectedlyError(
                     close_msg.to_owned(),
@@ -105,7 +113,7 @@ pub async fn receive(
 
         let related_verification_data = match_batcher_response_with_stored_verification_data(
             &batch_inclusion_data_message,
-            &mut sent_verification_data,
+            &mut sent_verification_data_rev,
         )?;
 
         let aligned_verification_data =
@@ -218,11 +226,11 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
 // This is used to verify the proof you sent was indeed included in the batch
 fn match_batcher_response_with_stored_verification_data(
     batch_inclusion_data: &BatchInclusionData,
-    sent_verification_data: &mut Vec<NoncedVerificationData>,
+    sent_verification_data_rev: &mut Vec<NoncedVerificationData>,
 ) -> Result<VerificationDataCommitment, SubmitError> {
     debug!("Matching verification data with batcher response ...");
     let mut index = None;
-    for (i, sent_nonced_verification_data) in sent_verification_data.iter_mut().enumerate() {
+    for (i, sent_nonced_verification_data) in sent_verification_data_rev.iter_mut().enumerate().rev() { // iterate in reverse since the last element is the most probable to match
         if sent_nonced_verification_data.nonce == batch_inclusion_data.user_nonce {
             debug!("local nonced verification data matched with batcher response");
             index = Some(i);
@@ -231,7 +239,7 @@ fn match_batcher_response_with_stored_verification_data(
     }
 
     if let Some(i) = index {
-        let verification_data = sent_verification_data.swap_remove(i); //TODO maybe only remove?
+        let verification_data = sent_verification_data_rev.remove(i);
         return Ok(verification_data.verification_data.clone().into());
     }
 
