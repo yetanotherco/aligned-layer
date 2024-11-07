@@ -130,7 +130,6 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 
 // |---RETRYABLE---|
 
-// Error throw is ______
 func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
 	var err error
 	processNewSignature_func := func() error {
@@ -139,11 +138,6 @@ func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskInd
 			blsSignature, operatorId,
 		)
 		if err != nil {
-			// Note return type will be nil
-			if err.Error() == "not found" {
-				err = connection.TransientError{Inner: err}
-				return err
-			}
 			if strings.Contains(err.Error(), "connect: connection refused") {
 				err = connection.TransientError{Inner: err}
 				return err
@@ -152,7 +146,7 @@ func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskInd
 				err = connection.TransientError{Inner: err}
 				return err
 			}
-			err = connection.PermanentError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+			err = connection.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
 		}
 		return err
 	}
