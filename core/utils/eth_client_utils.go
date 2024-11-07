@@ -41,7 +41,7 @@ func BytesToQuorumThresholdPercentages(quorumThresholdPercentagesBytes []byte) e
 // Simple algorithm to calculate the gasPrice bump based on:
 // the currentGasPrice, a base bump percentage, a retry percentage, and the retry count.
 // Formula: currentGasPrice + (currentGasPrice * (baseBumpPercentage + retryCount * incrementalRetryPercentage) / 100)
-func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercentage int, retryAttemptPercentage int, retryCount int) *big.Int {
+func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercentage uint, retryAttemptPercentage uint, retryCount int) *big.Int {
 	// Incremental percentage increase for each retry attempt (i*5%)
 	incrementalRetryPercentage := new(big.Int).Mul(big.NewInt(int64(retryAttemptPercentage)), big.NewInt(int64(retryCount)))
 

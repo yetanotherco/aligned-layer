@@ -24,6 +24,9 @@ type AggregatorConfig struct {
 		GarbageCollectorPeriod        time.Duration
 		GarbageCollectorTasksAge      uint64
 		GarbageCollectorTasksInterval uint64
+		GasBaseBumpPercentage         uint
+		GasBumpIncrementalPercentage  uint
+		TimeToWaitBeforeBump          time.Duration
 	}
 }
 
@@ -38,6 +41,9 @@ type AggregatorConfigFromYaml struct {
 		GarbageCollectorPeriod        time.Duration  `yaml:"garbage_collector_period"`
 		GarbageCollectorTasksAge      uint64         `yaml:"garbage_collector_tasks_age"`
 		GarbageCollectorTasksInterval uint64         `yaml:"garbage_collector_tasks_interval"`
+		GasBaseBumpPercentage         uint           `yaml:"gas_base_bump_percentage"`
+		GasBumpIncrementalPercentage  uint           `yaml:"gas_bump_incremental_percentage"`
+		TimeToWaitBeforeBump          time.Duration  `yaml:"time_to_wait_before_bump"`
 	} `yaml:"aggregator"`
 }
 
@@ -82,6 +88,9 @@ func NewAggregatorConfig(configFilePath string) *AggregatorConfig {
 			GarbageCollectorPeriod        time.Duration
 			GarbageCollectorTasksAge      uint64
 			GarbageCollectorTasksInterval uint64
+			GasBaseBumpPercentage         uint
+			GasBumpIncrementalPercentage  uint
+			TimeToWaitBeforeBump          time.Duration
 		}(aggregatorConfigFromYaml.Aggregator),
 	}
 }

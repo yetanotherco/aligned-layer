@@ -20,15 +20,6 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
-const (
-	// How much to bump every retry (constant)
-	GasBaseBumpPercentage int = 20
-	// An extra percentage to bump every retry i*5 (linear)
-	GasBumpIncrementalPercentage int = 5
-	// Wait as much as 3 blocks time for the receipt
-	BlocksToWaitBeforeBump time.Duration = time.Second * 36
-)
-
 type AvsWriter struct {
 	*avsregistry.ChainWriter
 	AvsContractBindings *AvsServiceBindings
@@ -84,7 +75,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 // Sends AggregatedResponse and waits for the receipt for three blocks, if not received
 // it will try again bumping the last tx gas price based on `CalculateGasPriceBump`
 // This process happens indefinitely until the transaction is included.
-func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, onRetry func()) (*types.Receipt, error) {
+func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, timeToWaitBeforeBump time.Duration, onRetry func()) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 
@@ -113,30 +104,24 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txNonce := big.NewInt(int64(tx.Nonce()))
 	txOpts.Nonce = txNonce
 	txOpts.NoSend = false
-	shouldBump := false
 	i := 0
 
 	respondToTaskV2Func := func() (*types.Receipt, error) {
 		// We bump only when the timeout for waiting for the receipt has passed
 		// not when an rpc failed
-		if shouldBump {
-			gasPrice, err := w.ClientFallback.SuggestGasPrice(context.Background())
-			if err != nil {
-				shouldBump = false
-				return nil, err
-			}
-			bumpedGasPrice := utils.CalculateGasPriceBumpBasedOnRetry(gasPrice, GasBaseBumpPercentage, GasBumpIncrementalPercentage, i)
-
-			if gasPrice.Cmp(txOpts.GasPrice) > 0 {
-				txOpts.GasPrice = bumpedGasPrice
-			} else {
-				txOpts.GasPrice = new(big.Int).Mul(txOpts.GasPrice, big.NewInt(1))
-			}
+		gasPrice, err := w.ClientFallback.SuggestGasPrice(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		bumpedGasPrice := utils.CalculateGasPriceBumpBasedOnRetry(gasPrice, gasBumpPercentage, gasBumpIncrementalPercentage, i)
+		if gasPrice.Cmp(txOpts.GasPrice) > 0 {
+			txOpts.GasPrice = bumpedGasPrice
+		} else {
+			txOpts.GasPrice = new(big.Int).Mul(txOpts.GasPrice, big.NewInt(1))
 		}
 
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
-			shouldBump = false
 			// We bump the fee so much that the transaction cost is more expensive than the batcher fee limit
 			return nil, retry.PermanentError{Inner: err}
 		}
@@ -146,12 +131,11 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 			if err != nil {
 				// check if reverted only to be permanent
-				shouldBump = false
 				return nil, err
 			}
 		}
 
-		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, context.Background(), tx.Hash(), BlocksToWaitBeforeBump)
+		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, context.Background(), tx.Hash(), timeToWaitBeforeBump)
 		if receipt != nil {
 			return receipt, nil
 		}
@@ -163,7 +147,6 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		}
 		i++
 
-		shouldBump = true
 		if err != nil {
 			return nil, err
 		}
