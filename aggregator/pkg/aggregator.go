@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/prometheus/client_golang/prometheus"
-	connection "github.com/yetanotherco/aligned_layer/core"
+	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
 	sdkclients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -386,11 +387,22 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 // |---RETRYABLE---|
 
 func (agg *Aggregator) InitializeNewTaskRetryable(batchIndex uint32, taskCreatedBlock uint32, quorumNums eigentypes.QuorumNums, quorumThresholdPercentages eigentypes.QuorumThresholdPercentages, timeToExpiry time.Duration) error {
+	var err error
 	initilizeNewTask_func := func() error {
-		// Returns an error if the
-		return agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+		err = agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+		if err != nil {
+			if strings.Contains(err.Error(), "connect: connection refused") {
+				err = retry.TransientError{Inner: err}
+				return err
+			}
+			if strings.Contains(err.Error(), "read: connection reset by peer") {
+				return retry.TransientError{Inner: err}
+			}
+			err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+		}
+		return err
 	}
-	return connection.Retry(initilizeNewTask_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
+	return retry.Retry(initilizeNewTask_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
 // Long-lived goroutine that periodically checks and removes old Tasks from stored Maps

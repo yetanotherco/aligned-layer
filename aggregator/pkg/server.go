@@ -11,7 +11,7 @@ import (
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
-	connection "github.com/yetanotherco/aligned_layer/core"
+	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
@@ -57,6 +57,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	taskIndex := uint32(0)
 	ok := false
 
+	// Increase to wait half a second longer
 	// NOTE: Since this does not interact with a fallible connection waiting we use a different retry mechanism than the rest of the aggregator.
 	for i := 0; i < waitForEventRetries; i++ {
 		agg.taskMutex.Lock()
@@ -139,17 +140,17 @@ func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskInd
 		)
 		if err != nil {
 			if strings.Contains(err.Error(), "connect: connection refused") {
-				err = connection.TransientError{Inner: err}
+				err = retry.TransientError{Inner: err}
 				return err
 			}
 			if strings.Contains(err.Error(), "read: connection reset by peer") {
-				err = connection.TransientError{Inner: err}
+				err = retry.TransientError{Inner: err}
 				return err
 			}
-			err = connection.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+			err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
 		}
 		return err
 	}
 
-	return connection.Retry(processNewSignature_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries, connection.MaxInterval)
+	return retry.Retry(processNewSignature_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }

@@ -20,7 +20,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
-	connection "github.com/yetanotherco/aligned_layer/core"
+	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
@@ -28,7 +28,7 @@ import (
 
 func DummyFunction(x uint64) (uint64, error) {
 	if x == 42 {
-		return 0, connection.PermanentError{Inner: fmt.Errorf("Permanent error!")}
+		return 0, retry.PermanentError{Inner: fmt.Errorf("Permanent error!")}
 	} else if x < 42 {
 		return 0, fmt.Errorf("Transient error!")
 	}
@@ -40,7 +40,7 @@ func TestRetryWithData(t *testing.T) {
 		x, err := DummyFunction(43)
 		return &x, err
 	}
-	_, err := connection.RetryWithData(function, 1000, 2, 3, connection.MaxInterval)
+	_, err := retry.RetryWithData(function, 1000, 2, 3, retry.MaxInterval, retry.MaxElapsedTime)
 	if err != nil {
 		t.Errorf("Retry error!: %s", err)
 	}
@@ -51,7 +51,7 @@ func TestRetry(t *testing.T) {
 		_, err := DummyFunction(43)
 		return err
 	}
-	err := connection.Retry(function, 1000, 2, 3, connection.MaxInterval)
+	err := retry.Retry(function, 1000, 2, 3, retry.MaxInterval, retry.MaxElapsedTime)
 	if err != nil {
 		t.Errorf("Retry error!: %s", err)
 	}
@@ -172,7 +172,7 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(connection.TransientError); !ok {
+	if _, ok := err.(retry.TransientError); !ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -340,7 +340,7 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 	_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(connection.TransientError); !ok {
+	if _, ok := err.(retry.TransientError); !ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -395,7 +395,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(s.ServiceManager, channel, baseConfig.Logger)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(connection.TransientError); !ok {
+	if _, ok := err.(retry.TransientError); !ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -445,7 +445,7 @@ func TestBlockNumber(t *testing.T) {
 	_, err = sub.BlockNumberRetryable(context.Background())
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(connection.TransientError); !ok {
+	if _, ok := err.(retry.TransientError); !ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -494,7 +494,7 @@ func TestFilterBatchV2(t *testing.T) {
 	_, err = avsSubscriber.FilterBatchV2Retryable(0, context.Background())
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(connection.TransientError); !ok {
+	if _, ok := err.(retry.TransientError); !ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -543,7 +543,7 @@ func TestFilterBatchV3(t *testing.T) {
 	_, err = avsSubscriber.FilterBatchV3Retryable(0, context.Background())
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(connection.TransientError); !ok {
+	if _, ok := err.(retry.TransientError); !ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -595,7 +595,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(connection.TransientError); !ok {
+	if _, ok := err.(retry.TransientError); !ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -646,7 +646,7 @@ func TestSubscribeNewHead(t *testing.T) {
 	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(connection.TransientError); !ok {
+	if _, ok := err.(retry.TransientError); !ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -735,7 +735,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(connection.TransientError); !ok {
+	if _, ok := err.(retry.TransientError); !ok {
 		fmt.Printf("RespondToTaksV2 Emitted non-Transient error: %s\n", err)
 		return
 	}
@@ -796,7 +796,7 @@ func TestBatchesStateWriter(t *testing.T) {
 	_, err = avsWriter.BatchesStateRetryable(bytes)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(connection.TransientError); !ok {
+	if _, ok := err.(retry.TransientError); !ok {
 		fmt.Printf("BatchesStateWriter Emitted non-Transient error: %s\n", err)
 		return
 	}
@@ -849,7 +849,7 @@ func TestBalanceAt(t *testing.T) {
 	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(connection.TransientError); !ok {
+	if _, ok := err.(retry.TransientError); !ok {
 		fmt.Printf("BalanceAt Emitted non-Transient error: %s\n", err)
 		return
 	}
@@ -900,7 +900,7 @@ func TestBatchersBalances(t *testing.T) {
 	_, err = avsWriter.BatcherBalancesRetryable(sender_address)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(connection.TransientError); !ok {
+	if _, ok := err.(retry.TransientError); !ok {
 		fmt.Printf("BatchersBalances Emitted non-Transient error: %s\n", err)
 		return
 	}
