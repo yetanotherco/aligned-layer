@@ -38,7 +38,7 @@ make ansible_batcher_deploy INVENTORY=</path/to/inventory> KEYSTORE=<path/to/key
 > To register the Operator in Aligned successfully, you need to have been whitelisted by the Aligned team previously.
 
 
-To deploy the Operator you need to set some variables and the run the Operator playbook
+To deploy the Operator you need to set some variables and then run the Operator playbook.
 
 Create the variables files:
 
@@ -49,6 +49,7 @@ make ansible_operator_create_env
 This will create the following files in `infra/ansible/playbooks/ini`:
 
 - `config-operator.ini`
+- `config-register-operator.ini`
 
 Deploy the Operator:
 
