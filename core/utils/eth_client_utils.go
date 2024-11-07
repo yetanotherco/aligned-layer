@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
@@ -16,18 +15,10 @@ func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, ctx conte
 	// For if no receipt and no error TransactionReceipt return "not found" as an error catch all ref: https://github.com/ethereum/go-ethereum/blob/master/ethclient/ethclient.go#L313
 	receipt_func := func() (*types.Receipt, error) {
 		tx, err := client.TransactionReceipt(ctx, txHash)
+		// Note catch for all Permanent error. Defaults to returning
 		if err != nil {
 			// Note return type will be nil
-			if err.Error() == "not found" {
-				return nil, retry.TransientError{Inner: err}
-			}
-			if strings.Contains(err.Error(), "connect: connection refused") {
-				return nil, retry.TransientError{Inner: err}
-			}
-			if strings.Contains(err.Error(), "read: connection reset by peer") {
-				return nil, retry.TransientError{Inner: err}
-			}
-			return nil, retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+			return nil, fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 		}
 		return tx, err
 	}

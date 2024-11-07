@@ -29,19 +29,6 @@ func (e PermanentError) Is(err error) bool {
 	return ok
 }
 
-type TransientError struct {
-	Inner error
-}
-
-func (e TransientError) Error() string { return e.Inner.Error() }
-func (e TransientError) Unwrap() error {
-	return e.Inner
-}
-func (e TransientError) Is(err error) bool {
-	_, ok := err.(TransientError)
-	return ok
-}
-
 const MinDelay = 1000
 const RetryFactor = 2
 const NumRetries = 3
@@ -59,9 +46,9 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 			defer func() {
 				if r := recover(); r != nil {
 					if panic_err, ok := r.(error); ok {
-						err = TransientError{panic_err}
+						err = panic_err
 					} else {
-						err = TransientError{fmt.Errorf("panicked: %v", panic_err)}
+						err = fmt.Errorf("panicked: %v", panic_err)
 					}
 				}
 			}()
@@ -106,9 +93,9 @@ func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTri
 			defer func() {
 				if r := recover(); r != nil {
 					if panic_err, ok := r.(error); ok {
-						err = TransientError{panic_err}
+						err = panic_err
 					} else {
-						err = TransientError{fmt.Errorf("panicked: %v", panic_err)}
+						err = fmt.Errorf("panicked: %v", panic_err)
 					}
 				}
 			}()

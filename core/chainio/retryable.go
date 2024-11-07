@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"strings"
 
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/ethereum/go-ethereum"
@@ -28,15 +27,7 @@ func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkl
 		if err != nil {
 			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 			if err != nil {
-				// Note return type will be nil
-				if strings.Contains(err.Error(), "connect: retry refused") {
-					err = retry.TransientError{Inner: err}
-					return tx, err
-				}
-				if strings.Contains(err.Error(), "read: retry reset by peer") {
-					return tx, retry.TransientError{Inner: err}
-				}
-				err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+				err = fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 			}
 		}
 		return tx, err
@@ -44,7 +35,7 @@ func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkl
 	return retry.RetryWithData(respondToTaskV2_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
-func (w *AvsWriter) BatchesStateRetryable(arg0 [32]byte) (struct {
+func (w *AvsWriter) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (struct {
 	TaskCreatedBlock      uint32
 	Responded             bool
 	RespondToTaskFeeLimit *big.Int
@@ -57,6 +48,7 @@ func (w *AvsWriter) BatchesStateRetryable(arg0 [32]byte) (struct {
 		}
 		err error
 	)
+
 	batchesState_func := func() (struct {
 		TaskCreatedBlock      uint32
 		Responded             bool
@@ -66,14 +58,7 @@ func (w *AvsWriter) BatchesStateRetryable(arg0 [32]byte) (struct {
 		if err != nil {
 			state, err = w.AvsContractBindings.ServiceManagerFallback.BatchesState(&bind.CallOpts{}, arg0)
 			if err != nil {
-				if strings.Contains(err.Error(), "connect: retry refused") {
-					err = retry.TransientError{Inner: err}
-					return state, err
-				}
-				if strings.Contains(err.Error(), "read: retry reset by peer") {
-					return state, retry.TransientError{Inner: err}
-				}
-				err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+				err = fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 			}
 		}
 		return state, err
@@ -91,14 +76,7 @@ func (w *AvsWriter) BatcherBalancesRetryable(senderAddress common.Address) (*big
 		if err != nil {
 			batcherBalance, err = w.AvsContractBindings.ServiceManagerFallback.BatchersBalances(&bind.CallOpts{}, senderAddress)
 			if err != nil {
-				if strings.Contains(err.Error(), "connect: retry refused") {
-					err = retry.TransientError{Inner: err}
-					return batcherBalance, err
-				}
-				if strings.Contains(err.Error(), "read: retry reset by peer") {
-					return batcherBalance, retry.TransientError{Inner: err}
-				}
-				err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+				err = fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 			}
 		}
 		return batcherBalance, err
@@ -116,14 +94,7 @@ func (w *AvsWriter) BalanceAtRetryable(ctx context.Context, aggregatorAddress co
 		if err != nil {
 			aggregatorBalance, err = w.ClientFallback.BalanceAt(ctx, aggregatorAddress, blockNumber)
 			if err != nil {
-				if strings.Contains(err.Error(), "connect: retry refused") {
-					err = retry.TransientError{Inner: err}
-					return aggregatorBalance, err
-				}
-				if strings.Contains(err.Error(), "read: retry reset by peer") {
-					return aggregatorBalance, retry.TransientError{Inner: err}
-				}
-				err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+				err = fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 			}
 		}
 		return aggregatorBalance, err
@@ -143,14 +114,7 @@ func (s *AvsSubscriber) BlockNumberRetryable(ctx context.Context) (uint64, error
 		if err != nil {
 			latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(ctx)
 			if err != nil {
-				if strings.Contains(err.Error(), "connect: retry refused") {
-					err = retry.TransientError{Inner: err}
-					return latestBlock, err
-				}
-				if strings.Contains(err.Error(), "read: retry reset by peer") {
-					return latestBlock, retry.TransientError{Inner: err}
-				}
-				err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+				err = fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 			}
 		}
 		return latestBlock, err
@@ -167,14 +131,7 @@ func (s *AvsSubscriber) FilterBatchV2Retryable(fromBlock uint64, ctx context.Con
 	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
 		logs, err = s.AvsContractBindings.ServiceManager.FilterNewBatchV2(&bind.FilterOpts{Start: fromBlock, End: nil, Context: ctx}, nil)
 		if err != nil {
-			if strings.Contains(err.Error(), "connect: retry refused") {
-				err = retry.TransientError{Inner: err}
-				return logs, err
-			}
-			if strings.Contains(err.Error(), "read: retry reset by peer") {
-				return logs, retry.TransientError{Inner: err}
-			}
-			err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+			fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 		}
 		return logs, err
 	}
@@ -189,14 +146,7 @@ func (s *AvsSubscriber) FilterBatchV3Retryable(fromBlock uint64, ctx context.Con
 	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
 		logs, err = s.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: nil, Context: ctx}, nil)
 		if err != nil {
-			if strings.Contains(err.Error(), "connect: retry refused") {
-				err = retry.TransientError{Inner: err}
-				return logs, err
-			}
-			if strings.Contains(err.Error(), "read: retry reset by peer") {
-				return logs, retry.TransientError{Inner: err}
-			}
-			err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+			err = fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 		}
 		return logs, err
 	}
@@ -223,14 +173,7 @@ func (s *AvsSubscriber) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte
 	}, error) {
 		state, err = s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
 		if err != nil {
-			if strings.Contains(err.Error(), "connect: retry refused") {
-				err = retry.TransientError{Inner: err}
-				return state, err
-			}
-			if strings.Contains(err.Error(), "read: retry reset by peer") {
-				return state, retry.TransientError{Inner: err}
-			}
-			err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+			err = fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 		}
 		return state, err
 	}
@@ -248,14 +191,7 @@ func (s *AvsSubscriber) SubscribeNewHeadRetryable(ctx context.Context, c chan<- 
 		if err != nil {
 			sub, err = s.AvsContractBindings.ethClientFallback.SubscribeNewHead(ctx, c)
 			if err != nil {
-				if strings.Contains(err.Error(), "connect: retry refused") {
-					err = retry.TransientError{Inner: err}
-					return sub, err
-				}
-				if strings.Contains(err.Error(), "read: retry reset by peer") {
-					return sub, retry.TransientError{Inner: err}
-				}
-				err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+				err = fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 			}
 		}
 		return sub, err
@@ -275,14 +211,7 @@ func SubscribeToNewTasksV2Retrayable(
 	subscribe_func := func() (event.Subscription, error) {
 		sub, err = serviceManager.WatchNewBatchV2(&bind.WatchOpts{}, newTaskCreatedChan, nil)
 		if err != nil {
-			if strings.Contains(err.Error(), "connect: retry refused") {
-				err = retry.TransientError{Inner: err}
-				return sub, err
-			}
-			if strings.Contains(err.Error(), "read: retry reset by peer") {
-				return sub, retry.TransientError{Inner: err}
-			}
-			err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+			err = fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 		}
 		return sub, err
 	}
@@ -301,14 +230,7 @@ func SubscribeToNewTasksV3Retryable(
 	subscribe_func := func() (event.Subscription, error) {
 		sub, err = serviceManager.WatchNewBatchV3(&bind.WatchOpts{}, newTaskCreatedChan, nil)
 		if err != nil {
-			if strings.Contains(err.Error(), "connect: retry refused") {
-				err = retry.TransientError{Inner: err}
-				return sub, err
-			}
-			if strings.Contains(err.Error(), "read: retry reset by peer") {
-				return sub, retry.TransientError{Inner: err}
-			}
-			err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+			err = fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 		}
 		return sub, err
 	}

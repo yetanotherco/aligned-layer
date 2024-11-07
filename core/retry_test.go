@@ -15,6 +15,7 @@ import (
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	rpccalls "github.com/Layr-Labs/eigensdk-go/metrics/collectors/rpc_calls"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/prometheus/client_golang/prometheus"
@@ -171,8 +172,7 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
 	assert.NotNil(t, err)
-	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(retry.TransientError); !ok {
+	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -339,8 +339,7 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 
 	_, err = chainio.SubscribeToNewTasksV3Retryable(s.ServiceManager, channel, baseConfig.Logger)
 	assert.NotNil(t, err)
-	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(retry.TransientError); !ok {
+	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -394,8 +393,8 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(s.ServiceManager, channel, baseConfig.Logger)
 	assert.NotNil(t, err)
-	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(retry.TransientError); !ok {
+	// If it retruend a permanent error we exit
+	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -445,7 +444,7 @@ func TestBlockNumber(t *testing.T) {
 	_, err = sub.BlockNumberRetryable(context.Background())
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(retry.TransientError); !ok {
+	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -493,8 +492,8 @@ func TestFilterBatchV2(t *testing.T) {
 
 	_, err = avsSubscriber.FilterBatchV2Retryable(0, context.Background())
 	assert.NotNil(t, err)
-	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(retry.TransientError); !ok {
+	//
+	if _, ok := err.(retry.PermanentError); !ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -543,7 +542,7 @@ func TestFilterBatchV3(t *testing.T) {
 	_, err = avsSubscriber.FilterBatchV3Retryable(0, context.Background())
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(retry.TransientError); !ok {
+	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -595,7 +594,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(retry.TransientError); !ok {
+	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -646,7 +645,7 @@ func TestSubscribeNewHead(t *testing.T) {
 	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(retry.TransientError); !ok {
+	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -735,7 +734,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(retry.TransientError); !ok {
+	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("RespondToTaksV2 Emitted non-Transient error: %s\n", err)
 		return
 	}
@@ -784,7 +783,7 @@ func TestBatchesStateWriter(t *testing.T) {
 	var bytes [32]byte
 	num.FillBytes(bytes[:])
 
-	_, err = avsWriter.BatchesStateRetryable(bytes)
+	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -793,10 +792,10 @@ func TestBatchesStateWriter(t *testing.T) {
 		return
 	}
 
-	_, err = avsWriter.BatchesStateRetryable(bytes)
+	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(retry.TransientError); !ok {
+	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("BatchesStateWriter Emitted non-Transient error: %s\n", err)
 		return
 	}
@@ -811,7 +810,7 @@ func TestBatchesStateWriter(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsWriter.BatchesStateRetryable(bytes)
+	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -849,7 +848,7 @@ func TestBalanceAt(t *testing.T) {
 	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(retry.TransientError); !ok {
+	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("BalanceAt Emitted non-Transient error: %s\n", err)
 		return
 	}
@@ -900,7 +899,7 @@ func TestBatchersBalances(t *testing.T) {
 	_, err = avsWriter.BatcherBalancesRetryable(sender_address)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
-	if _, ok := err.(retry.TransientError); !ok {
+	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("BatchersBalances Emitted non-Transient error: %s\n", err)
 		return
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -391,14 +390,7 @@ func (agg *Aggregator) InitializeNewTaskRetryable(batchIndex uint32, taskCreated
 	initilizeNewTask_func := func() error {
 		err = agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
 		if err != nil {
-			if strings.Contains(err.Error(), "connect: connection refused") {
-				err = retry.TransientError{Inner: err}
-				return err
-			}
-			if strings.Contains(err.Error(), "read: connection reset by peer") {
-				return retry.TransientError{Inner: err}
-			}
-			err = retry.TransientError{Inner: fmt.Errorf("Permanent error: Unexpected Error while retrying: %s\n", err)}
+			err = fmt.Errorf("Transient error: Unexpected Error while retrying: %s\n", err)
 		}
 		return err
 	}
