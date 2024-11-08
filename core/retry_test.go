@@ -15,6 +15,7 @@ import (
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	rpccalls "github.com/Layr-Labs/eigensdk-go/metrics/collectors/rpc_calls"
+	backoff "github.com/cenkalti/backoff/v4"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -113,7 +114,7 @@ func TestAnvilSetupKill(t *testing.T) {
 	assert.Nil(t, err, "Anvil Process Killed")
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 
@@ -148,46 +149,46 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 
 	cmd, client, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
 	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
 	if !strings.Contains(err.Error(), "not found") {
-		fmt.Printf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
+		t.Errorf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
 		return
 	}
 
 	if err = cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		t.Errorf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		t.Errorf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
 
 	cmd, client, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "not found") {
-		fmt.Printf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
+		t.Errorf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
 		return
 	}
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -200,7 +201,7 @@ func TestInitializeNewTaskRetryable(t *testing.T) {
 
 	_, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
@@ -216,25 +217,25 @@ func TestInitializeNewTaskRetryable(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		t.Errorf("error killing process: %v\n", err)
 		return
 	}
 
 	err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
 	assert.NotNil(t, err)
-	fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+	t.Errorf("Error setting Avs Subscriber: %s\n", err)
 
 	_, _, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
 	assert.Nil(t, err)
-	fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+	t.Errorf("Error setting Avs Subscriber: %s\n", err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		t.Errorf("error killing process: %v\n", err)
 		return
 	}
 }
@@ -245,7 +246,7 @@ func TestGetTaskIndexRetryable(t *testing.T) {
 
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
@@ -260,12 +261,12 @@ func TestGetTaskIndexRetryable(t *testing.T) {
 	_, err = agg.GetTaskIndexRetryable(zero_bytes)
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "Task not found in the internal map") {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		t.Errorf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
 	}
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		t.Errorf("error killing process: %v\n", err)
 		return
 	}
 }
@@ -276,7 +277,7 @@ func TestGetTaskIndexRetryable(t *testing.T) {
 func TestProcessNewSignatureRetryable(t *testing.T) {
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
@@ -294,25 +295,25 @@ func TestProcessNewSignatureRetryable(t *testing.T) {
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		t.Errorf("error killing process: %v\n", err)
 		return
 	}
 
 	err = agg.ProcessNewSignatureRetryable(context.Background(), 0, zero_bytes, zero_sig, eigen_bytes)
 	assert.NotNil(t, err)
-	fmt.Printf("Error Processing New Signature: %s\n", err)
+	t.Errorf("Error Processing New Signature: %s\n", err)
 
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	err = agg.ProcessNewSignatureRetryable(context.Background(), 0, zero_bytes, zero_sig, eigen_bytes)
 	assert.Nil(t, err)
-	fmt.Printf("Error Processing New Signature: %s\n", err)
+	t.Errorf("Error Processing New Signature: %s\n", err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		t.Errorf("error killing process: %v\n", err)
 		return
 	}
 }
@@ -323,7 +324,7 @@ func TestProcessNewSignatureRetryable(t *testing.T) {
 func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	channel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
@@ -334,38 +335,38 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr,
 		baseConfig.EthWsClient, baseConfig.EthWsClientFallback, baseConfig.Logger)
 	if err != nil {
-		fmt.Printf("Error setting up Avs Service Bindings: %s\n", err)
+		t.Errorf("Error setting up Avs Service Bindings: %s\n", err)
 	}
 
 	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("SubscribeToNewTasksV3 Emitted non Transient error: %s\n", err)
+		t.Errorf("SubscribeToNewTasksV3 Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("SubscribeToNewTasksV3 Emitted non Transient error: %s\n", err)
+		t.Errorf("SubscribeToNewTasksV3 Emitted non Transient error: %s\n", err)
 		return
 	}
 
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -373,7 +374,7 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 func TestSubscribeToNewTasksV2(t *testing.T) {
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	channel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
@@ -384,38 +385,38 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr,
 		baseConfig.EthWsClient, baseConfig.EthWsClientFallback, baseConfig.Logger)
 	if err != nil {
-		fmt.Printf("Error setting up Avs Service Bindings: %s\n", err)
+		t.Errorf("Error setting up Avs Service Bindings: %s\n", err)
 	}
 
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("SubscribeToNewTasksV2 Emitted non Transient error: %s\n", err)
+		t.Errorf("SubscribeToNewTasksV2 Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("SubscribeToNewTasksV2 Emitted non Transient error: %s\n", err)
+		t.Errorf("SubscribeToNewTasksV2 Emitted non Transient error: %s\n", err)
 		return
 	}
 
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -424,7 +425,7 @@ func TestBlockNumber(t *testing.T) {
 	// Start anvil
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
@@ -436,31 +437,31 @@ func TestBlockNumber(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = sub.BlockNumberRetryable(context.Background())
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("BlockNumber Emitted non Transient error: %s\n", err)
+		t.Errorf("BlockNumber Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("BlockNumber Emitted non Transient error: %s\n", err)
+		t.Errorf("BlockNumber Emitted non Transient error: %s\n", err)
 		return
 	}
 
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	_, err = sub.BlockNumberRetryable(context.Background())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -468,7 +469,7 @@ func TestBlockNumber(t *testing.T) {
 func TestFilterBatchV2(t *testing.T) {
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
@@ -480,31 +481,31 @@ func TestFilterBatchV2(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("FilterBatchV2 Emitted non Transient error: %s\n", err)
+		t.Errorf("FilterBatchV2 Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("FilterBatchV2 Emitted non Transient error: %s\n", err)
+		t.Errorf("FilterBatchV2 Emitted non Transient error: %s\n", err)
 		return
 	}
 
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -512,7 +513,7 @@ func TestFilterBatchV2(t *testing.T) {
 func TestFilterBatchV3(t *testing.T) {
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
@@ -524,31 +525,31 @@ func TestFilterBatchV3(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("FilerBatchV3 Emitted non Transient error: %s\n", err)
+		t.Errorf("FilerBatchV3 Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("FilterBatchV3 Emitted non Transient error: %s\n", err)
+		t.Errorf("FilterBatchV3 Emitted non Transient error: %s\n", err)
 		return
 	}
 
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -556,7 +557,7 @@ func TestFilterBatchV3(t *testing.T) {
 func TestBatchesStateSubscriber(t *testing.T) {
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
@@ -570,31 +571,31 @@ func TestBatchesStateSubscriber(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("BatchesStateSubscriber Emitted non Transient error: %s\n", err)
+		t.Errorf("BatchesStateSubscriber Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("BatchesStateSubscriber Emitted non Transient error: %s\n", err)
+		t.Errorf("BatchesStateSubscriber Emitted non Transient error: %s\n", err)
 		return
 	}
 
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -602,7 +603,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 func TestSubscribeNewHead(t *testing.T) {
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	c := make(chan *types.Header)
@@ -616,32 +617,31 @@ func TestSubscribeNewHead(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("SubscribeNewHead Emitted non Transient error: %s\n", err)
+		t.Errorf("SubscribeNewHead Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("SubscribeNewHead Emitted non Transient error: %s\n", err)
+		t.Errorf("SubscribeNewHead Emitted non Transient error: %s\n", err)
 		return
 	}
 
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
-		return
+		t.Errorf("Error killing process: %v\n", err)
 	}
 }
 
@@ -651,7 +651,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	// Start anvil
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	g2Point := servicemanager.BN254G2Point{
@@ -682,7 +682,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
 	w, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 	txOpts := *w.Signer.GetTxOpts()
@@ -692,58 +692,50 @@ func TestRespondToTaskV2(t *testing.T) {
 	// NOTE: With zero bytes the tx reverts
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
 	assert.NotNil(t, err)
-	// assert error contains "Message:"execution reverted: custom error 0x2396d34e:"
-	if !strings.Contains(err.Error(), "execution reverted: custom error 0x2396d34e:") {
-		t.Errorf("Respond to task V2 Retryable did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
-		return
+	if !strings.Contains(err.Error(), "execution reverted") {
+		t.Errorf("RespondToTaskV2 did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
 	}
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
-		return
+		t.Errorf("Error killing process: %v\n", err)
 	}
 
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
 	assert.NotNil(t, err)
-	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("RespondToTaskV2 Emitted non-Transient error: %s\n", err)
-		return
+	if _, ok := err.(*backoff.PermanentError); ok {
+		t.Errorf("RespondToTaskV2 Emitted non-Transient error: %s\n", err)
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("RespondToTaskV2 did not return expected error: %s\n", err)
-		return
+		t.Errorf("RespondToTaskV2 did not return expected error: %s\n", err)
 	}
 
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	// NOTE: With zero bytes the tx reverts
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
 	assert.NotNil(t, err)
-	// assert error contains "Message:"execution reverted: custom error 0x2396d34e:"
-	if !strings.Contains(err.Error(), "execution reverted: custom error 0x2396d34e:") {
-		t.Errorf("Respond to task V2 Retryable did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
-		return
+	if !strings.Contains(err.Error(), "execution reverted") {
+		t.Errorf("RespondToTaskV2 did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
 	}
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
-		return
+		t.Errorf("Error killing process: %v\n", err)
 	}
 }
 
 func TestBatchesStateWriter(t *testing.T) {
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
 	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 	num := big.NewInt(6)
@@ -755,31 +747,31 @@ func TestBatchesStateWriter(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		t.Errorf("error killing process: %v\n", err)
 		return
 	}
 
 	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("BatchesStateWriter Emitted non-Transient error: %s\n", err)
+		t.Errorf("BatchesStateWriter Emitted non-Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("BatchesStateWriter did not contain expected error: %s\n", err)
+		t.Errorf("BatchesStateWriter did not contain expected error: %s\n", err)
 		return
 	}
 
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -787,7 +779,7 @@ func TestBatchesStateWriter(t *testing.T) {
 func TestBalanceAt(t *testing.T) {
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
@@ -802,31 +794,31 @@ func TestBalanceAt(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("BalanceAt Emitted non-Transient error: %s\n", err)
+		t.Errorf("BalanceAt Emitted non-Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("BalanceAt did not return expected error: %s\n", err)
+		t.Errorf("BalanceAt did not return expected error: %s\n", err)
 		return
 	}
 
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -834,7 +826,7 @@ func TestBalanceAt(t *testing.T) {
 func TestBatchersBalances(t *testing.T) {
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
@@ -848,31 +840,31 @@ func TestBatchersBalances(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("BatchersBalances Emitted non-Transient error: %s\n", err)
+		t.Errorf("BatchersBalances Emitted non-Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("BatchersBalances did not return expected error: %s\n", err)
+		t.Errorf("BatchersBalances did not return expected error: %s\n", err)
 		return
 	}
 
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
+		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
 	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
+		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 }
