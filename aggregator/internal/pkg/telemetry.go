@@ -30,6 +30,11 @@ type TaskErrorMessage struct {
 	TaskError  string `json:"error"`
 }
 
+type TaskSentToEthereumMessage struct {
+	MerkleRoot string `json:"merkle_root"`
+	TxHash     string `json:"tx_hash"`
+}
+
 type Telemetry struct {
 	client  http.Client
 	baseURL url.URL
@@ -88,6 +93,16 @@ func (t *Telemetry) LogTaskError(batchMerkleRoot [32]byte, taskError error) {
 	}
 	if err := t.sendTelemetryMessage("/api/taskError", body); err != nil {
 		t.logger.Error("[Telemetry] Error in LogTaskError", "error", err)
+	}
+}
+
+func (t *Telemetry) TaskSentToEthereum(batchMerkleRoot [32]byte, txHash string) {
+	body := TaskSentToEthereumMessage{
+		MerkleRoot: fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
+		TxHash:     txHash,
+	}
+	if err := t.sendTelemetryMessage("/api/aggregatorTaskSent", body); err != nil {
+		t.logger.Error("[Telemetry] Error in TaskSentToEthereum", "error", err)
 	}
 }
 
