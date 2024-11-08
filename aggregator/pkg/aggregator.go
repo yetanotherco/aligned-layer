@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"sync"
 	"time"
 
@@ -301,7 +302,10 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 		"senderAddress", hex.EncodeToString(senderAddress[:]),
 		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
-	onRetry := func() { agg.metrics.IncBumpedGasPriceForAggregatedResponse() }
+	onRetry := func(bumpedGasPrice *big.Int) {
+		agg.metrics.IncBumpedGasPriceForAggregatedResponse()
+		agg.telemetry.BumpedTaskGasPrice(batchMerkleRoot, bumpedGasPrice.String())
+	}
 	receipt, err := agg.avsWriter.SendAggregatedResponse(batchIdentifierHash, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, agg.AggregatorConfig.Aggregator.GasBaseBumpPercentage, agg.AggregatorConfig.Aggregator.GasBumpIncrementalPercentage, agg.AggregatorConfig.Aggregator.TimeToWaitBeforeBump, onRetry)
 	if err != nil {
 		agg.walletMutex.Unlock()

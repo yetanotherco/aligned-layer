@@ -75,7 +75,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 // Sends AggregatedResponse and waits for the receipt for three blocks, if not received
 // it will try again bumping the last tx gas price based on `CalculateGasPriceBump`
 // This process happens indefinitely until the transaction is included.
-func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, timeToWaitBeforeBump time.Duration, onRetry func()) (*types.Receipt, error) {
+func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, timeToWaitBeforeBump time.Duration, onRetry func(*big.Int)) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 
@@ -114,12 +114,17 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			return nil, err
 		}
 		bumpedGasPrice := utils.CalculateGasPriceBumpBasedOnRetry(gasPrice, gasBumpPercentage, gasBumpIncrementalPercentage, i)
+		// new bumped gas price must be higher than the last one (this should hardly ever happen though)
 		if gasPrice.Cmp(txOpts.GasPrice) > 0 {
 			txOpts.GasPrice = bumpedGasPrice
 		} else {
+			// bump the last price 10% to replace it.
 			bumpAmount := new(big.Int).Mul(txOpts.GasPrice, big.NewInt(10))
 			bumpAmount = new(big.Int).Div(bumpAmount, big.NewInt(100))
 			txOpts.GasPrice = new(big.Int).Mul(txOpts.GasPrice, bumpAmount)
+		}
+		if i > 0 {
+			onRetry(txOpts.GasPrice)
 		}
 
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
@@ -143,10 +148,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		}
 
 		// if we are here, it means we have reached the receipt waiting timeout
-		// so in the next iteration we try again by bumping the fee to make sure its included
-		if i > 0 {
-			onRetry()
-		}
+		// we increment the i here to add an incremental percentage to increase the odds of being included in the next blocks
 		i++
 
 		if err != nil {
