@@ -31,8 +31,21 @@ func RespondToTaskV2(w *AvsWriter, opts *bind.TransactOpts, batchMerkleRoot [32]
 }
 
 func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkleRoot [32]byte, senderAddress common.Address, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Transaction, error) {
+	var (
+		tx  *types.Transaction
+		err error
+	)
 	respondToTaskV2_func := func() (*types.Transaction, error) {
-		return RespondToTaskV2(w, opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		if err != nil {
+			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+			if err != nil {
+				if strings.Contains(err.Error(), "execution reverted:") {
+					err = retry.PermanentError{Inner: err}
+				}
+			}
+		}
+		return tx, err
 	}
 	return retry.RetryWithData(respondToTaskV2_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
