@@ -29,14 +29,16 @@ func (e PermanentError) Is(err error) bool {
 	return ok
 }
 
-const MinDelay = 1000
-const RetryFactor = 2
-const NumRetries = 3
-const MaxInterval = 60000
-const MaxElapsedTime = 0
+const (
+	MinDelay               = 1 * time.Second
+	MaxInterval            = 60 * time.Second
+	MaxElapsedTime         = 0 * time.Second
+	RetryFactor    float64 = 2
+	NumRetries     uint64  = 3
+)
 
 // Same as Retry only that the functionToRetry can return a value upon correct execution
-func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, factor float64, maxTries uint64, maxInterval uint64, maxElapsedTime uint64) (T, error) {
+func RetryWithData[T any](functionToRetry func() (T, error), minDelay time.Duration, factor float64, maxTries uint64, maxInterval time.Duration, maxElapsedTime time.Duration) (T, error) {
 	f := func() (T, error) {
 		var (
 			val T
@@ -64,10 +66,10 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 
 	randomOption := backoff.WithRandomizationFactor(0)
 
-	initialRetryOption := backoff.WithInitialInterval(time.Millisecond * time.Duration(minDelay))
+	initialRetryOption := backoff.WithInitialInterval(minDelay)
 	multiplierOption := backoff.WithMultiplier(factor)
-	maxIntervalOption := backoff.WithMaxInterval(time.Millisecond * time.Duration(maxInterval))
-	maxElapsedTimeOption := backoff.WithMaxElapsedTime(time.Millisecond * time.Duration(maxElapsedTime))
+	maxIntervalOption := backoff.WithMaxInterval(maxInterval)
+	maxElapsedTimeOption := backoff.WithMaxElapsedTime(maxElapsedTime)
 	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption, maxElapsedTimeOption)
 	var maxRetriesBackoff backoff.BackOff
 
@@ -86,7 +88,7 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay uint64, fa
 // from the configuration are reached, or until a `PermanentError` is returned.
 // The function to be retried should return `PermanentError` when the condition for stop retrying
 // is met.
-func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTries uint64, maxInterval uint64, maxElapsedTime uint64) error {
+func Retry(functionToRetry func() error, minDelay time.Duration, factor float64, maxTries uint64, maxInterval time.Duration, maxElapsedTime time.Duration) error {
 	f := func() error {
 		var err error
 		func() {
@@ -111,10 +113,10 @@ func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTri
 
 	randomOption := backoff.WithRandomizationFactor(0)
 
-	initialRetryOption := backoff.WithInitialInterval(time.Millisecond * time.Duration(minDelay))
+	initialRetryOption := backoff.WithInitialInterval(minDelay)
 	multiplierOption := backoff.WithMultiplier(factor)
-	maxIntervalOption := backoff.WithMaxInterval(time.Millisecond * time.Duration(maxInterval))
-	maxElapsedTimeOption := backoff.WithMaxElapsedTime(time.Duration(maxElapsedTime))
+	maxIntervalOption := backoff.WithMaxInterval(maxInterval)
+	maxElapsedTimeOption := backoff.WithMaxElapsedTime(maxElapsedTime)
 	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption, maxElapsedTimeOption)
 	var maxRetriesBackoff backoff.BackOff
 
