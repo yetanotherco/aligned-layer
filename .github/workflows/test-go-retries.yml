@@ -30,5 +30,7 @@ jobs:
         - uses: actions-rs/toolchain@v1
           with:
             toolchain: stable
+        - name: foundry-toolchain
+        uses: foundry-rs/foundry-toolchain@v1.2.0
         - name: Test go Retry Functions
           run: make test_go_retries
