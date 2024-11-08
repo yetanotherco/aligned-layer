@@ -312,7 +312,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 	agg.walletMutex.Unlock()
 	agg.logger.Infof("- Unlocked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchIdentifierHash[:]))
 
-	receipt, err := utils.WaitForTransactionReceiptRetryable(
+	receipt, err := utils.WaitForTransactionReceipt(
 		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
 	if err != nil {
 		agg.telemetry.LogTaskError(batchMerkleRoot, err)

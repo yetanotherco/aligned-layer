@@ -16,7 +16,7 @@ import (
 
 // |---AVS_WRITER---|
 
-func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkleRoot [32]byte, senderAddress common.Address, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Transaction, error) {
+func (w *AvsWriter) RespondToTaskV2(opts *bind.TransactOpts, batchMerkleRoot [32]byte, senderAddress common.Address, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Transaction, error) {
 	var (
 		tx  *types.Transaction
 		err error
@@ -36,7 +36,7 @@ func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkl
 	return retry.RetryWithData(respondToTaskV2_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
-func (w *AvsWriter) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (struct {
+func (w *AvsWriter) BatchesState(opts *bind.CallOpts, arg0 [32]byte) (struct {
 	TaskCreatedBlock      uint32
 	Responded             bool
 	RespondToTaskFeeLimit *big.Int
@@ -56,7 +56,7 @@ func (w *AvsWriter) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (s
 	return retry.RetryWithData(batchesState_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
-func (w *AvsWriter) BatcherBalancesRetryable(opts *bind.CallOpts, senderAddress common.Address) (*big.Int, error) {
+func (w *AvsWriter) BatcherBalances(opts *bind.CallOpts, senderAddress common.Address) (*big.Int, error) {
 	batcherBalances_func := func() (*big.Int, error) {
 		batcherBalance, err := w.AvsContractBindings.ServiceManager.BatchersBalances(opts, senderAddress)
 		if err != nil {
@@ -67,7 +67,7 @@ func (w *AvsWriter) BatcherBalancesRetryable(opts *bind.CallOpts, senderAddress 
 	return retry.RetryWithData(batcherBalances_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
-func (w *AvsWriter) BalanceAtRetryable(ctx context.Context, aggregatorAddress common.Address, blockNumber *big.Int) (*big.Int, error) {
+func (w *AvsWriter) BalanceAt(ctx context.Context, aggregatorAddress common.Address, blockNumber *big.Int) (*big.Int, error) {
 	balanceAt_func := func() (*big.Int, error) {
 		aggregatorBalance, err := w.Client.BalanceAt(ctx, aggregatorAddress, blockNumber)
 		if err != nil {
@@ -80,7 +80,7 @@ func (w *AvsWriter) BalanceAtRetryable(ctx context.Context, aggregatorAddress co
 
 // |---AVS_SUBSCRIBER---|
 
-func (s *AvsSubscriber) BlockNumberRetryable(ctx context.Context) (uint64, error) {
+func (s *AvsSubscriber) BlockNumber(ctx context.Context) (uint64, error) {
 	latestBlock_func := func() (uint64, error) {
 		latestBlock, err := s.AvsContractBindings.ethClient.BlockNumber(ctx)
 		if err != nil {
@@ -91,21 +91,21 @@ func (s *AvsSubscriber) BlockNumberRetryable(ctx context.Context) (uint64, error
 	return retry.RetryWithData(latestBlock_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
-func (s *AvsSubscriber) FilterBatchV2Retryable(opts *bind.FilterOpts, batchMerkleRoot [][32]byte) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
+func (s *AvsSubscriber) FilterBatchV2(opts *bind.FilterOpts, batchMerkleRoot [][32]byte) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
 	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
 		return s.AvsContractBindings.ServiceManager.FilterNewBatchV2(opts, batchMerkleRoot)
 	}
 	return retry.RetryWithData(filterNewBatchV2_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
-func (s *AvsSubscriber) FilterBatchV3Retryable(opts *bind.FilterOpts, batchMerkleRoot [][32]byte) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
+func (s *AvsSubscriber) FilterBatchV3(opts *bind.FilterOpts, batchMerkleRoot [][32]byte) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
 	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
 		return s.AvsContractBindings.ServiceManager.FilterNewBatchV3(opts, batchMerkleRoot)
 	}
 	return retry.RetryWithData(filterNewBatchV2_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
-func (s *AvsSubscriber) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (struct {
+func (s *AvsSubscriber) BatchesState(opts *bind.CallOpts, arg0 [32]byte) (struct {
 	TaskCreatedBlock      uint32
 	Responded             bool
 	RespondToTaskFeeLimit *big.Int
@@ -121,7 +121,7 @@ func (s *AvsSubscriber) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte
 	return retry.RetryWithData(batchState_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
-func (s *AvsSubscriber) SubscribeNewHeadRetryable(ctx context.Context, c chan<- *types.Header) (ethereum.Subscription, error) {
+func (s *AvsSubscriber) SubscribeNewHead(ctx context.Context, c chan<- *types.Header) (ethereum.Subscription, error) {
 	subscribeNewHead_func := func() (ethereum.Subscription, error) {
 		sub, err := s.AvsContractBindings.ethClient.SubscribeNewHead(ctx, c)
 		if err != nil {
@@ -132,7 +132,7 @@ func (s *AvsSubscriber) SubscribeNewHeadRetryable(ctx context.Context, c chan<- 
 	return retry.RetryWithData(subscribeNewHead_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
-func SubscribeToNewTasksV2Retrayable(
+func SubscribeToNewTasksV2(
 	opts *bind.WatchOpts,
 	serviceManager *servicemanager.ContractAlignedLayerServiceManager,
 	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2,
@@ -144,7 +144,7 @@ func SubscribeToNewTasksV2Retrayable(
 	return retry.RetryWithData(subscribe_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
-func SubscribeToNewTasksV3Retryable(
+func SubscribeToNewTasksV3(
 	opts *bind.WatchOpts,
 	serviceManager *servicemanager.ContractAlignedLayerServiceManager,
 	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3,

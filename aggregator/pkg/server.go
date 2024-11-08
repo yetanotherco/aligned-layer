@@ -52,7 +52,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 	taskIndex := uint32(0)
 
-	taskIndex, err := agg.GetTaskIndexRetryable(signedTaskResponse.BatchIdentifierHash)
+	taskIndex, err := agg.GetTaskIndex(signedTaskResponse.BatchIdentifierHash)
 
 	if err != nil {
 		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
@@ -71,7 +71,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 
 	agg.logger.Info("Starting bls signature process")
 	go func() {
-		err := agg.ProcessNewSignatureRetryable(
+		err := agg.ProcessNewSignature(
 			context.Background(), taskIndex, signedTaskResponse.BatchIdentifierHash,
 			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 		)
@@ -113,7 +113,7 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 
 // |---RETRYABLE---|
 
-func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
+func (agg *Aggregator) ProcessNewSignature(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
 	processNewSignature_func := func() error {
 		return agg.blsAggregationService.ProcessNewSignature(
 			ctx, taskIndex, taskResponse,
@@ -124,7 +124,7 @@ func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskInd
 	return retry.Retry(processNewSignature_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
-func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte) (uint32, error) {
+func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error) {
 	getTaskIndex_func := func() (uint32, error) {
 		agg.taskMutex.Lock()
 		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")

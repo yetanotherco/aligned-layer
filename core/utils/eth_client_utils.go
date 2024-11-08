@@ -10,7 +10,7 @@ import (
 	retry "github.com/yetanotherco/aligned_layer/core"
 )
 
-func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash) (*types.Receipt, error) {
+func WaitForTransactionReceipt(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash) (*types.Receipt, error) {
 	receipt_func := func() (*types.Receipt, error) {
 		return client.TransactionReceipt(ctx, txHash)
 	}
