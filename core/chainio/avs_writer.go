@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -84,8 +85,12 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		if err != nil {
 			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 			if err != nil {
-				// check if reverted only else transient error
-				err = retry.PermanentError{Inner: fmt.Errorf("transaction reverted")}
+				if strings.Contains(err.Error(), "reverted") {
+					return nil, retry.PermanentError{Inner: err}
+				} else {
+					return nil, err
+				}
+
 			}
 		}
 		return tx, err
@@ -137,8 +142,11 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		if err != nil {
 			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 			if err != nil {
-				// check if reverted only to be permanent
-				return nil, err
+				if strings.Contains(err.Error(), "reverted") {
+					return nil, retry.PermanentError{Inner: err}
+				} else {
+					return nil, err
+				}
 			}
 		}
 
