@@ -81,10 +81,7 @@ pub async fn send_messages(
     info!("All proofs sent");
     // This vector is reversed so that while responses are received, removing from the end is cheaper.
     let sent_verification_data_rev: Vec<Result<NoncedVerificationData, SubmitError>> =
-        sent_verification_data
-            .into_iter()
-            .rev()
-            .collect();
+        sent_verification_data.into_iter().rev().collect();
     sent_verification_data_rev
 }
 
