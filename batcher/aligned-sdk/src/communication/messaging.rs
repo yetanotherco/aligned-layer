@@ -83,7 +83,6 @@ pub async fn send_messages(
     let sent_verification_data_rev: Vec<Result<NoncedVerificationData, SubmitError>> =
         sent_verification_data
             .into_iter()
-            .map(|vd| vd.into())
             .rev()
             .collect();
     sent_verification_data_rev
@@ -296,11 +295,9 @@ fn get_biggest_nonce(
     sent_verification_data: &[Result<NoncedVerificationData, SubmitError>],
 ) -> U256 {
     let mut biggest_nonce = U256::zero();
-    for verification_data in sent_verification_data.iter() {
-        if let Ok(verification_data) = verification_data {
-            if verification_data.nonce > biggest_nonce {
-                biggest_nonce = verification_data.nonce;
-            }
+    for verification_data in sent_verification_data.iter().flatten() {
+        if verification_data.nonce > biggest_nonce {
+            biggest_nonce = verification_data.nonce;
         }
     }
     biggest_nonce

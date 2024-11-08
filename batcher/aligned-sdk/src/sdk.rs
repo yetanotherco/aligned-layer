@@ -99,14 +99,12 @@ pub async fn submit_multiple_and_wait_verification(
     // TODO: open issue: use a join to .await all at the same time, avoiding the loop
     // And await only once per batch, no need to await multiple proofs if they are in the same batch.
     let mut error_awaiting_batch_verification: Option<errors::SubmitError> = None;
-    for aligned_verification_data_item in aligned_verification_data.iter() {
-        if let Ok(aligned_verification_data_item) = aligned_verification_data_item {
-            if let Err(e) =
-                await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await
-            {
-                error_awaiting_batch_verification = Some(e);
-                break;
-            }
+    for aligned_verification_data_item in aligned_verification_data.iter().flatten() {
+        if let Err(e) =
+            await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await
+        {
+            error_awaiting_batch_verification = Some(e);
+            break;
         }
     }
     if let Some(error_awaiting_batch_verification) = error_awaiting_batch_verification {
@@ -404,7 +402,7 @@ pub async fn submit_and_wait_verification(
     )
     .await;
 
-    match aligned_verification_data.get(0) {
+    match aligned_verification_data.first() {
         Some(Ok(aligned_verification_data)) => Ok(aligned_verification_data.clone()),
         Some(Err(e)) => Err(errors::SubmitError::GenericError(e.to_string())),
         None => Err(errors::SubmitError::GenericError(
@@ -459,7 +457,7 @@ pub async fn submit(
     )
     .await;
 
-    match aligned_verification_data.get(0) {
+    match aligned_verification_data.first() {
         Some(Ok(aligned_verification_data)) => Ok(aligned_verification_data.clone()),
         Some(Err(e)) => Err(errors::SubmitError::GenericError(e.to_string())),
         None => Err(errors::SubmitError::GenericError(
@@ -719,7 +717,7 @@ fn save_response_cbor(
 
     let data = cbor_serialize(&aligned_verification_data)?;
 
-    let mut file = File::create(&batch_inclusion_data_path)?;
+    let mut file = File::create(batch_inclusion_data_path)?;
     file.write_all(data.as_slice())?;
 
     Ok(())
@@ -753,7 +751,7 @@ fn save_response_json(
             "verification_data_batch_index": aligned_verification_data.index_in_batch,
             "merkle_proof": merkle_proof,
     });
-    let mut file = File::create(&batch_inclusion_data_path)?;
+    let mut file = File::create(batch_inclusion_data_path)?;
     file.write_all(serde_json::to_string_pretty(&data).unwrap().as_bytes())?;
 
     Ok(())
