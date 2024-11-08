@@ -98,7 +98,6 @@ func SetupAnvil(port uint16) (*exec.Cmd, *eth.InstrumentedClient, error) {
 }
 
 func TestAnvilSetupKill(t *testing.T) {
-	// Start Anvil
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
 		log.Fatal("Error setting up Anvil: ", err)
@@ -113,7 +112,6 @@ func TestAnvilSetupKill(t *testing.T) {
 	err = p.Signal(syscall.Signal(0))
 	assert.Nil(t, err, "Anvil Process Killed")
 
-	// Kill Anvil
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("Error killing process: %v\n", err)
 		return
@@ -133,10 +131,8 @@ func TestAnvilSetupKill(t *testing.T) {
 
 // |--Aggreagator Retry Tests--|
 
-// Waits for receipt from anvil node -> Will fail to get receipt
 func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 
-	// Retry call Params
 	to := common.BytesToAddress([]byte{0x11})
 	tx := types.NewTx(&types.AccessListTx{
 		ChainID:  big.NewInt(1337),
@@ -150,13 +146,11 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 
 	hash := tx.Hash()
 
-	// Start anvil
 	cmd, client, err := SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	// Assert Call succeeds when Anvil running
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
 	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
 	if !strings.Contains(err.Error(), "not found") {
@@ -164,7 +158,6 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 		return
 	}
 
-	// Kill Anvil
 	if err = cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -181,7 +174,6 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 		return
 	}
 
-	// Start anvil
 	cmd, client, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -194,23 +186,23 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 		return
 	}
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
 }
 
+// NOTE: The following tests involving starting the aggregator panic after the connection to anvil is cut crashing the test runner.
+// The originates within the eigen-sdk and as of 8/11/24 is currently working to be fixed.
+
 /*
 func TestInitializeNewTaskRetryable(t *testing.T) {
 
-	//Start Anvil
 	_, _, err := SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	//Start Aggregator
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
 	agg, err := aggregator.NewAggregator(*aggregatorConfig)
 	if err != nil {
@@ -220,51 +212,73 @@ func TestInitializeNewTaskRetryable(t *testing.T) {
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(byte(0))}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(byte(57))}
 
-	// Should succeed with err msg
 	err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
 	assert.Nil(t, err)
-	// TODO: Find exact error to assert
 
-			// Kill Anvil
-			if err := cmd.Process.Kill(); err != nil {
-				fmt.Printf("error killing process: %v\n", err)
-				return
-			}
-			time.Sleep(2 * time.Second)
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
 
-				err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
-				assert.NotNil(t, err)
-				fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+	err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
+	assert.NotNil(t, err)
+	fmt.Printf("Error setting Avs Subscriber: %s\n", err)
 
-			// Start Anvil
-			_, _, err = SetupAnvil(8545)
-			if err != nil {
-				fmt.Printf("Error setting up Anvil: %s\n", err)
-			}
+	_, _, err = SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
 
-			// Should succeed
-			err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
-			assert.Nil(t, err)
-			fmt.Printf("Error setting Avs Subscriber: %s\n", err)
-		// Kill Anvil
-		if err := cmd.Process.Kill(); err != nil {
-			fmt.Printf("error killing process: %v\n", err)
-			return
-		}
-		time.Sleep(2 * time.Second)
+	err = agg.InitializeNewTaskRetryable(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
+	assert.Nil(t, err)
+	fmt.Printf("Error setting Avs Subscriber: %s\n", err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
+}
+*/
+
+/*
+func TestGetTaskIndexRetryable(t *testing.T) {
+
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	agg, err := aggregator.NewAggregator(*aggregatorConfig)
+	if err != nil {
+		aggregatorConfig.BaseConfig.Logger.Error("Cannot create aggregator", "err", err)
+		return
+	}
+	zero_bytes := [32]byte{}
+
+	// Task is not present in map should return transient error
+	_, err = agg.GetTaskIndexRetryable(zero_bytes)
+	assert.NotNil(t, err)
+	if !strings.Contains(err.Error(), "Task not found in the internal map") {
+		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
+
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Printf("error killing process: %v\n", err)
+		return
+	}
 }
 */
 
 /*
 // |--Server Retry Tests--|
 func TestProcessNewSignatureRetryable(t *testing.T) {
-	// Start anvil
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	//Start Aggregator
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
 	agg, err := aggregator.NewAggregator(*aggregatorConfig)
 	if err != nil {
@@ -277,20 +291,17 @@ func TestProcessNewSignatureRetryable(t *testing.T) {
 
 	err = agg.ProcessNewSignatureRetryable(context.Background(), 0, zero_bytes, zero_sig, eigen_bytes)
 	assert.NotNil(t, err)
-	// TODO: Find exact error to assert
 
 	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
 	}
-	time.Sleep(2 * time.Second)
 
 	err = agg.ProcessNewSignatureRetryable(context.Background(), 0, zero_bytes, zero_sig, eigen_bytes)
 	assert.NotNil(t, err)
 	fmt.Printf("Error Processing New Signature: %s\n", err)
 
-	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -300,7 +311,6 @@ func TestProcessNewSignatureRetryable(t *testing.T) {
 	assert.Nil(t, err)
 	fmt.Printf("Error Processing New Signature: %s\n", err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -311,7 +321,6 @@ func TestProcessNewSignatureRetryable(t *testing.T) {
 // |--AVS-Subscriber Retry Tests--|
 
 func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
-	// Start anvil
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -331,7 +340,6 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -348,7 +356,6 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 		return
 	}
 
-	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -357,7 +364,6 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -365,7 +371,6 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 }
 
 func TestSubscribeToNewTasksV2(t *testing.T) {
-	// Start anvil
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -385,7 +390,6 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -393,7 +397,6 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.NotNil(t, err)
-	// If it retruend a permanent error we exit
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
@@ -403,7 +406,6 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		return
 	}
 
-	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -412,7 +414,6 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -426,7 +427,6 @@ func TestBlockNumber(t *testing.T) {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
-	//channel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
 	sub, err := chainio.NewAvsSubscriberFromConfig(aggregatorConfig.BaseConfig)
 	if err != nil {
@@ -435,7 +435,6 @@ func TestBlockNumber(t *testing.T) {
 	_, err = sub.BlockNumberRetryable(context.Background())
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -443,7 +442,6 @@ func TestBlockNumber(t *testing.T) {
 
 	_, err = sub.BlockNumberRetryable(context.Background())
 	assert.NotNil(t, err)
-	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
@@ -453,7 +451,6 @@ func TestBlockNumber(t *testing.T) {
 		return
 	}
 
-	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -462,7 +459,6 @@ func TestBlockNumber(t *testing.T) {
 	_, err = sub.BlockNumberRetryable(context.Background())
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -470,7 +466,6 @@ func TestBlockNumber(t *testing.T) {
 }
 
 func TestFilterBatchV2(t *testing.T) {
-	// Start anvil
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -484,7 +479,6 @@ func TestFilterBatchV2(t *testing.T) {
 	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -492,7 +486,6 @@ func TestFilterBatchV2(t *testing.T) {
 
 	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.NotNil(t, err)
-	//
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
@@ -502,7 +495,6 @@ func TestFilterBatchV2(t *testing.T) {
 		return
 	}
 
-	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -511,7 +503,6 @@ func TestFilterBatchV2(t *testing.T) {
 	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -519,7 +510,6 @@ func TestFilterBatchV2(t *testing.T) {
 }
 
 func TestFilterBatchV3(t *testing.T) {
-	// Start anvil
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -533,7 +523,6 @@ func TestFilterBatchV3(t *testing.T) {
 	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -541,7 +530,6 @@ func TestFilterBatchV3(t *testing.T) {
 
 	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.NotNil(t, err)
-	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
@@ -551,7 +539,6 @@ func TestFilterBatchV3(t *testing.T) {
 		return
 	}
 
-	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -560,7 +547,6 @@ func TestFilterBatchV3(t *testing.T) {
 	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -568,7 +554,6 @@ func TestFilterBatchV3(t *testing.T) {
 }
 
 func TestBatchesStateSubscriber(t *testing.T) {
-	// Start anvil
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -582,10 +567,8 @@ func TestBatchesStateSubscriber(t *testing.T) {
 
 	zero_bytes := [32]byte{}
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
-	//TODO: Find exact failure error
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -593,7 +576,6 @@ func TestBatchesStateSubscriber(t *testing.T) {
 
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
 	assert.NotNil(t, err)
-	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
@@ -603,7 +585,6 @@ func TestBatchesStateSubscriber(t *testing.T) {
 		return
 	}
 
-	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -612,7 +593,6 @@ func TestBatchesStateSubscriber(t *testing.T) {
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -620,7 +600,6 @@ func TestBatchesStateSubscriber(t *testing.T) {
 }
 
 func TestSubscribeNewHead(t *testing.T) {
-	// Start anvil
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -636,7 +615,6 @@ func TestSubscribeNewHead(t *testing.T) {
 	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -644,7 +622,6 @@ func TestSubscribeNewHead(t *testing.T) {
 
 	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
 	assert.NotNil(t, err)
-	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
 		return
@@ -654,7 +631,6 @@ func TestSubscribeNewHead(t *testing.T) {
 		return
 	}
 
-	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -663,7 +639,6 @@ func TestSubscribeNewHead(t *testing.T) {
 	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -692,8 +667,6 @@ func TestRespondToTaskV2(t *testing.T) {
 	g1Points := []servicemanager.BN254G1Point{
 		g1Point, g1Point, g1Point,
 	}
-
-	// Or if you want to initialize with specific values
 
 	nonSignerStakesAndSignature := servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature{
 		NonSignerPubkeys:             g1Points,
@@ -725,7 +698,6 @@ func TestRespondToTaskV2(t *testing.T) {
 		return
 	}
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -733,7 +705,6 @@ func TestRespondToTaskV2(t *testing.T) {
 
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
 	assert.NotNil(t, err)
-	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("RespondToTaksV2 Emitted non-Transient error: %s\n", err)
 		return
@@ -743,7 +714,6 @@ func TestRespondToTaskV2(t *testing.T) {
 		return
 	}
 
-	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -758,7 +728,6 @@ func TestRespondToTaskV2(t *testing.T) {
 		return
 	}
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -766,7 +735,6 @@ func TestRespondToTaskV2(t *testing.T) {
 }
 
 func TestBatchesStateWriter(t *testing.T) {
-	// Start anvil
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -786,7 +754,6 @@ func TestBatchesStateWriter(t *testing.T) {
 	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -794,7 +761,6 @@ func TestBatchesStateWriter(t *testing.T) {
 
 	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
 	assert.NotNil(t, err)
-	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("BatchesStateWriter Emitted non-Transient error: %s\n", err)
 		return
@@ -804,7 +770,6 @@ func TestBatchesStateWriter(t *testing.T) {
 		return
 	}
 
-	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -813,7 +778,6 @@ func TestBatchesStateWriter(t *testing.T) {
 	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -821,7 +785,6 @@ func TestBatchesStateWriter(t *testing.T) {
 }
 
 func TestBalanceAt(t *testing.T) {
-	// Start anvil
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -832,14 +795,12 @@ func TestBalanceAt(t *testing.T) {
 	if err != nil {
 		return
 	}
-	//TODO: Source Aggregator Address
 	aggregator_address := common.HexToAddress("0x0")
 	blockHeight := big.NewInt(13)
 
 	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -847,7 +808,6 @@ func TestBalanceAt(t *testing.T) {
 
 	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
 	assert.NotNil(t, err)
-	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("BalanceAt Emitted non-Transient error: %s\n", err)
 		return
@@ -857,7 +817,6 @@ func TestBalanceAt(t *testing.T) {
 		return
 	}
 
-	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -866,7 +825,6 @@ func TestBalanceAt(t *testing.T) {
 	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -874,7 +832,6 @@ func TestBalanceAt(t *testing.T) {
 }
 
 func TestBatchersBalances(t *testing.T) {
-	// Start anvil
 	cmd, _, err := SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -890,7 +847,6 @@ func TestBatchersBalances(t *testing.T) {
 	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
@@ -898,7 +854,6 @@ func TestBatchersBalances(t *testing.T) {
 
 	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
 	assert.NotNil(t, err)
-	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("BatchersBalances Emitted non-Transient error: %s\n", err)
 		return
@@ -908,7 +863,6 @@ func TestBatchersBalances(t *testing.T) {
 		return
 	}
 
-	// Start anvil
 	cmd, _, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
@@ -917,7 +871,6 @@ func TestBatchersBalances(t *testing.T) {
 	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
 	assert.Nil(t, err)
 
-	// Kill Anvil at end of test
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("error killing process: %v\n", err)
 		return
