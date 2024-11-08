@@ -1065,4 +1065,4 @@ setup_local_aligned_all:
 	tmux send-keys -t aligned_layer:explorer 'make explorer_create_env && make explorer_build_db && make run_explorer' C-m
 
 	tmux new-window -t aligned_layer -n telemetry
-	tmux send-keys -t aligned_layer:telemetry 'make telemetry_create_env && make telemetry_run_db && make open_telemetry_start && make telemetry_start' C-m
+	tmux send-keys -t aligned_layer:telemetry 'docker compose -f telemetry-docker-compose.yaml down && make telemetry_create_env && make telemetry_run_db && make open_telemetry_start && make telemetry_start' C-m
