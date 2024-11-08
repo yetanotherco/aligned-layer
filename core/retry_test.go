@@ -159,7 +159,7 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 	}
 
 	if err = cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 
@@ -187,7 +187,7 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 	}
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -341,18 +341,18 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("SubscribeToNewTasksV3 Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("SubscribeToNewTasksV3 Emitted non Transient error: %s\n", err)
 		return
 	}
 
@@ -365,7 +365,7 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -391,18 +391,18 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("SubscribeToNewTasksV2 Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("SubscribeToNewTasksV2 Emitted non Transient error: %s\n", err)
 		return
 	}
 
@@ -415,7 +415,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -436,18 +436,18 @@ func TestBlockNumber(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = sub.BlockNumberRetryable(context.Background())
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("BlockNumber Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("BlockNumber Emitted non Transient error: %s\n", err)
 		return
 	}
 
@@ -460,7 +460,7 @@ func TestBlockNumber(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -480,18 +480,18 @@ func TestFilterBatchV2(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("FilterBatchV2 Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("FilterBatchV2 Emitted non Transient error: %s\n", err)
 		return
 	}
 
@@ -504,7 +504,7 @@ func TestFilterBatchV2(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -524,18 +524,18 @@ func TestFilterBatchV3(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("FilerBatchV3 Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("FilterBatchV3 Emitted non Transient error: %s\n", err)
 		return
 	}
 
@@ -548,7 +548,7 @@ func TestFilterBatchV3(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -570,18 +570,18 @@ func TestBatchesStateSubscriber(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("BatchesStateSubscriber Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("BatchesStateSubscriber Emitted non Transient error: %s\n", err)
 		return
 	}
 
@@ -594,7 +594,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -616,18 +616,18 @@ func TestSubscribeNewHead(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("SubscribeNewHead Emitted non Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
-		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		fmt.Printf("SubscribeNewHead Emitted non Transient error: %s\n", err)
 		return
 	}
 
@@ -640,7 +640,7 @@ func TestSubscribeNewHead(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -682,7 +682,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
 	w, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 	txOpts := *w.Signer.GetTxOpts()
@@ -699,14 +699,14 @@ func TestRespondToTaskV2(t *testing.T) {
 	}
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
-		fmt.Printf("RespondToTaksV2 Emitted non-Transient error: %s\n", err)
+		fmt.Printf("RespondToTaskV2 Emitted non-Transient error: %s\n", err)
 		return
 	}
 	if !strings.Contains(err.Error(), "connect: connection refused") {
@@ -729,7 +729,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	}
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -743,7 +743,7 @@ func TestBatchesStateWriter(t *testing.T) {
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
 	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 	num := big.NewInt(6)
@@ -779,7 +779,7 @@ func TestBatchesStateWriter(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -802,7 +802,7 @@ func TestBalanceAt(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 
@@ -826,7 +826,7 @@ func TestBalanceAt(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 }
@@ -848,7 +848,7 @@ func TestBatchersBalances(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 
@@ -872,7 +872,7 @@ func TestBatchersBalances(t *testing.T) {
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("error killing process: %v\n", err)
+		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
 }
