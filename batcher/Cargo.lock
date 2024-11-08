@@ -72,7 +72,7 @@ dependencies = [
 
 [[package]]
 name = "aligned"
-version = "0.10.2"
+version = "0.10.3"
 dependencies = [
  "aligned-sdk",
  "clap",
@@ -1128,7 +1128,6 @@ dependencies = [
  "rustc-hash 1.1.0",
  "shlex",
  "syn 2.0.85",
- "which",
 ]
 
 [[package]]
@@ -1840,8 +1839,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rustversion",
- "strsim",
- "syn 2.0.85",
 ]
 
 [[package]]
@@ -1856,9 +1853,6 @@ dependencies = [
  "num-modular",
  "num-order",
  "rustversion",
- "darling_core",
- "quote",
- "syn 2.0.85",
 ]
 
 [[package]]
@@ -6194,36 +6188,6 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
-]
-
-[[package]]
-name = "serde_with"
-version = "3.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e28bdad6db2b8340e449f7108f020b3b092e8583a9e3fb82713e1d4e71fe817"
-dependencies = [
- "base64 0.22.1",
- "chrono",
- "hex",
- "indexmap 1.9.3",
- "indexmap 2.6.0",
- "serde",
- "serde_derive",
- "serde_json",
- "serde_with_macros",
- "time",
-]
-
-[[package]]
-name = "serde_with_macros"
-version = "3.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d846214a9854ef724f3da161b426242d8de7c1fc7de2f89bb1efcb154dca79d"
-dependencies = [
- "darling",
- "proc-macro2",
- "quote",
- "syn 2.0.85",
 ]
 
 [[package]]
