@@ -3,6 +3,7 @@ package chainio
 import (
 	"context"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -16,10 +17,19 @@ import (
 // |---AVS_WRITER---|
 
 func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkleRoot [32]byte, senderAddress common.Address, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Transaction, error) {
+	var (
+		tx  *types.Transaction
+		err error
+	)
 	respondToTaskV2_func := func() (*types.Transaction, error) {
-		tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
 			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+			if err != nil {
+				if strings.Contains(err.Error(), "execution reverted:") {
+					err = retry.PermanentError{Inner: err}
+				}
+			}
 		}
 		return tx, err
 	}
