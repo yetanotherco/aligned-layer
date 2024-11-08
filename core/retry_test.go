@@ -158,6 +158,7 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 
 	// Assert Call succeeds when Anvil running
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
 	if !strings.Contains(err.Error(), "not found") {
 		fmt.Printf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
@@ -171,6 +172,7 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 	}
 
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
@@ -188,6 +190,7 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 	}
 
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, context.Background(), hash)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "not found") {
 		fmt.Printf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
@@ -329,6 +332,7 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 	}
 
 	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -338,6 +342,7 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 	}
 
 	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		fmt.Printf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
@@ -355,6 +360,7 @@ func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
 	}
 
 	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -383,6 +389,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 	}
 
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -392,6 +399,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 	}
 
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	// If it retruend a permanent error we exit
 	if _, ok := err.(retry.PermanentError); ok {
@@ -410,6 +418,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 	}
 
 	_, err = chainio.SubscribeToNewTasksV2Retrayable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -432,7 +441,9 @@ func TestBlockNumber(t *testing.T) {
 	if err != nil {
 		return
 	}
+
 	_, err = sub.BlockNumberRetryable(context.Background())
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -442,6 +453,7 @@ func TestBlockNumber(t *testing.T) {
 	}
 
 	_, err = sub.BlockNumberRetryable(context.Background())
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
@@ -460,6 +472,7 @@ func TestBlockNumber(t *testing.T) {
 	}
 
 	_, err = sub.BlockNumberRetryable(context.Background())
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -482,6 +495,7 @@ func TestFilterBatchV2(t *testing.T) {
 		return
 	}
 	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -491,6 +505,7 @@ func TestFilterBatchV2(t *testing.T) {
 	}
 
 	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	//
 	if _, ok := err.(retry.PermanentError); ok {
@@ -509,6 +524,7 @@ func TestFilterBatchV2(t *testing.T) {
 	}
 
 	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -531,6 +547,7 @@ func TestFilterBatchV3(t *testing.T) {
 		return
 	}
 	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -540,6 +557,7 @@ func TestFilterBatchV3(t *testing.T) {
 	}
 
 	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
@@ -558,6 +576,7 @@ func TestFilterBatchV3(t *testing.T) {
 	}
 
 	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -582,7 +601,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 
 	zero_bytes := [32]byte{}
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
-	//TODO: Find exact failure error
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -592,6 +611,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 	}
 
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
@@ -610,6 +630,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 	}
 
 	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -634,6 +655,7 @@ func TestSubscribeNewHead(t *testing.T) {
 	}
 
 	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -643,6 +665,7 @@ func TestSubscribeNewHead(t *testing.T) {
 	}
 
 	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
@@ -661,6 +684,7 @@ func TestSubscribeNewHead(t *testing.T) {
 	}
 
 	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -717,7 +741,9 @@ func TestRespondToTaskV2(t *testing.T) {
 	zero_bytes := [32]byte{}
 
 	// NOTE: With zero bytes the tx reverts
+	// Assert Permanent error
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	// assert error contains "Message:"execution reverted: custom error 0x2396d34e:"
 	if !strings.Contains(err.Error(), "execution reverted: custom error 0x2396d34e:") {
@@ -732,6 +758,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	}
 
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
@@ -750,7 +777,9 @@ func TestRespondToTaskV2(t *testing.T) {
 	}
 
 	// NOTE: With zero bytes the tx reverts
+	// Assert Permanent Error
 	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	// assert error contains "Message:"execution reverted: custom error 0x2396d34e:"
 	if !strings.Contains(err.Error(), "execution reverted: custom error 0x2396d34e:") {
@@ -784,6 +813,7 @@ func TestBatchesStateWriter(t *testing.T) {
 	num.FillBytes(bytes[:])
 
 	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -793,6 +823,7 @@ func TestBatchesStateWriter(t *testing.T) {
 	}
 
 	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
@@ -811,6 +842,7 @@ func TestBatchesStateWriter(t *testing.T) {
 	}
 
 	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -829,6 +861,7 @@ func TestBalanceAt(t *testing.T) {
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
 	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	fmt.Printf("Error: %v\n", err)
 	if err != nil {
 		return
 	}
@@ -846,6 +879,7 @@ func TestBalanceAt(t *testing.T) {
 	}
 
 	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
@@ -864,6 +898,7 @@ func TestBalanceAt(t *testing.T) {
 	}
 
 	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
@@ -882,6 +917,7 @@ func TestBatchersBalances(t *testing.T) {
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
 	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	fmt.Printf("Error: %v\n", err)
 	if err != nil {
 		return
 	}
@@ -897,6 +933,7 @@ func TestBatchersBalances(t *testing.T) {
 	}
 
 	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
+	fmt.Printf("Error: %v\n", err)
 	assert.NotNil(t, err)
 	// Assert returned error is both transient error and contains the expected error msg.
 	if _, ok := err.(retry.PermanentError); ok {
@@ -915,6 +952,7 @@ func TestBatchersBalances(t *testing.T) {
 	}
 
 	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
+	fmt.Printf("Error: %v\n", err)
 	assert.Nil(t, err)
 
 	// Kill Anvil at end of test
