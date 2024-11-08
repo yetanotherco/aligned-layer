@@ -27,7 +27,7 @@ do
     random_address=$(openssl rand -hex 20)
     echo "Random address: $random_addr"
 
-    aligned submit \
+    cargo run --release -- submit \
         --proving_system SP1 \
         --proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
         --vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
