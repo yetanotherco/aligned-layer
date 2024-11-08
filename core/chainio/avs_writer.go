@@ -80,22 +80,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 
-	respondToTaskV2SimulationFunc := func() (*types.Transaction, error) {
-		tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-		if err != nil {
-			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-			if err != nil {
-				if strings.Contains(err.Error(), "reverted") {
-					return nil, retry.PermanentError{Inner: err}
-				} else {
-					return nil, err
-				}
-
-			}
-		}
-		return tx, err
-	}
-	tx, err := retry.RetryWithData(respondToTaskV2SimulationFunc, retry.MinDelay, retry.RetryFactor, 0, retry.MaxInterval, retry.MaxElapsedTime)
+	tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
 		return nil, err
 	}
@@ -138,16 +123,9 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			return nil, retry.PermanentError{Inner: err}
 		}
 
-		tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-		if err != nil {
-			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-			if err != nil {
-				if strings.Contains(err.Error(), "reverted") {
-					return nil, retry.PermanentError{Inner: err}
-				} else {
-					return nil, err
-				}
-			}
+		tx, err = w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		if strings.Contains(err.Error(), "reverted") {
+			return nil, err
 		}
 
 		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, context.Background(), tx.Hash(), timeToWaitBeforeBump)
