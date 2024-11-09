@@ -66,13 +66,13 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
 
 	// Subscribe to new tasks
-	sub, err := SubscribeToNewTasksV2(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil)
+	sub, err := SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil)
 	if err != nil {
 		s.logger.Error("Primary failed to subscribe to new AlignedLayer V2 tasks after %d retries", retry.NumRetries, "err", err)
 		return nil, err
 	}
 
-	subFallback, err := SubscribeToNewTasksV2(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil)
+	subFallback, err := SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil)
 	if err != nil {
 		s.logger.Error("Fallback failed to subscribe to new AlignedLayer V2 tasks after %d retries", retry.NumRetries, "err", err)
 		return nil, err
@@ -114,14 +114,14 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 			case err := <-sub.Err():
 				s.logger.Warn("Error in new task subscription", "err", err)
 				sub.Unsubscribe()
-				sub, err = SubscribeToNewTasksV2(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil)
+				sub, err = SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil)
 				if err != nil {
 					errorChannel <- err
 				}
 			case err := <-subFallback.Err():
 				s.logger.Warn("Error in fallback new task subscription", "err", err)
 				subFallback.Unsubscribe()
-				subFallback, err = SubscribeToNewTasksV2(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil)
+				subFallback, err = SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil)
 				if err != nil {
 					errorChannel <- err
 				}
@@ -137,13 +137,13 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
 	// Subscribe to new tasks
-	sub, err := SubscribeToNewTasksV3(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil)
+	sub, err := SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil)
 	if err != nil {
 		s.logger.Error("Primary failed to subscribe to new AlignedLayer V3 tasks after %d retries", MaxRetries, "err", err)
 		return nil, err
 	}
 
-	subFallback, err := SubscribeToNewTasksV3(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil)
+	subFallback, err := SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil)
 	if err != nil {
 		s.logger.Error("Fallback failed to subscribe to new AlignedLayer V3 tasks after %d retries", MaxRetries, "err", err)
 		return nil, err
@@ -185,14 +185,14 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 			case err := <-sub.Err():
 				s.logger.Warn("Error in new task subscription", "err", err)
 				sub.Unsubscribe()
-				sub, err = SubscribeToNewTasksV3(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil)
+				sub, err = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil)
 				if err != nil {
 					errorChannel <- err
 				}
 			case err := <-subFallback.Err():
 				s.logger.Warn("Error in fallback new task subscription", "err", err)
 				subFallback.Unsubscribe()
-				subFallback, err = SubscribeToNewTasksV3(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil)
+				subFallback, err = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil)
 				if err != nil {
 					errorChannel <- err
 				}
@@ -258,7 +258,7 @@ func (s *AvsSubscriber) processNewBatchV3(batch *servicemanager.ContractAlignedL
 // getLatestNotRespondedTaskFromEthereum queries the blockchain for the latest not responded task using the FilterNewBatch method.
 func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, error) {
 
-	latestBlock, err := s.BlockNumber(context.Background())
+	latestBlock, err := s.BlockNumberRetryable(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +271,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanag
 		fromBlock = latestBlock - BlockInterval
 	}
 
-	logs, err := s.FilterBatchV2(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
+	logs, err := s.FilterBatchV2Retryable(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +293,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanag
 
 	batchIdentifier := append(lastLog.BatchMerkleRoot[:], lastLog.SenderAddress[:]...)
 	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
-	state, err := s.BatchesState(nil, batchIdentifierHash)
+	state, err := s.BatchesStateRetryable(nil, batchIdentifierHash)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +307,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanag
 
 // getLatestNotRespondedTaskFromEthereum queries the blockchain for the latest not responded task using the FilterNewBatch method.
 func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
-	latestBlock, err := s.BlockNumber(context.Background())
+	latestBlock, err := s.BlockNumberRetryable(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +320,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanag
 		fromBlock = latestBlock - BlockInterval
 	}
 
-	logs, err := s.FilterBatchV3(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
+	logs, err := s.FilterBatchV3Retryable(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +342,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanag
 
 	batchIdentifier := append(lastLog.BatchMerkleRoot[:], lastLog.SenderAddress[:]...)
 	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
-	state, err := s.BatchesState(nil, batchIdentifierHash)
+	state, err := s.BatchesStateRetryable(nil, batchIdentifierHash)
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +355,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanag
 }
 
 func (s *AvsSubscriber) WaitForOneBlock(startBlock uint64) error {
-	currentBlock, err := s.BlockNumber(context.Background())
+	currentBlock, err := s.BlockNumberRetryable(context.Background())
 	if err != nil {
 		return err
 	}
@@ -363,7 +363,7 @@ func (s *AvsSubscriber) WaitForOneBlock(startBlock uint64) error {
 	if currentBlock <= startBlock { // should really be == but just in case
 		// Subscribe to new head
 		c := make(chan *types.Header)
-		sub, err := s.SubscribeNewHead(context.Background(), c)
+		sub, err := s.SubscribeNewHeadRetryable(context.Background(), c)
 		if err != nil {
 			return err
 		}
