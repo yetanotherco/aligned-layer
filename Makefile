@@ -143,6 +143,9 @@ aggregator_send_dummy_responses:
 	@echo "Sending dummy responses to Aggregator..."
 	@cd aggregator && go run dummy/submit_task_responses.go
 
+test_go_retries:
+	@cd core/ && \
+	go test -v
 
 __OPERATOR__:
 

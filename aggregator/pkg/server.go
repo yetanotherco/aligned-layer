@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/rpc"
 	"time"
@@ -12,9 +13,6 @@ import (
 	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
-
-const waitForEventRetries = 50
-const waitForEventSleepSeconds = 4 * time.Second
 
 func (agg *Aggregator) ServeOperators() error {
 	// Registers a new RPC server
@@ -53,24 +51,10 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"BatchIdentifierHash", "0x"+hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 	taskIndex := uint32(0)
-	ok := false
 
-	// Increase to wait half a second longer
-	// NOTE: Since this does not interact with a fallible connection waiting we use a different retry mechanism than the rest of the aggregator.
-	for i := 0; i < waitForEventRetries; i++ {
-		agg.taskMutex.Lock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
-		taskIndex, ok = agg.batchesIdxByIdentifierHash[signedTaskResponse.BatchIdentifierHash]
-		if !ok {
-			agg.taskMutex.Unlock()
-			agg.logger.Info("- Unlocked Resources: Task not found in the internal map")
-			time.Sleep(waitForEventSleepSeconds)
-		} else {
-			break
-		}
-	}
+	taskIndex, err := agg.GetTaskIndex(signedTaskResponse.BatchIdentifierHash)
 
-	if !ok {
+	if err != nil {
 		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
 		*reply = 1
 		return nil
@@ -87,7 +71,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 
 	agg.logger.Info("Starting bls signature process")
 	go func() {
-		err := agg.ProcessNewSignatureRetryable(
+		err := agg.ProcessNewSignature(
 			context.Background(), taskIndex, signedTaskResponse.BatchIdentifierHash,
 			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 		)
@@ -129,7 +113,7 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 
 // |---RETRYABLE---|
 
-func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
+func (agg *Aggregator) ProcessNewSignature(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
 	processNewSignature_func := func() error {
 		return agg.blsAggregationService.ProcessNewSignature(
 			ctx, taskIndex, taskResponse,
@@ -138,4 +122,21 @@ func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskInd
 	}
 
 	return retry.Retry(processNewSignature_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+}
+
+func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error) {
+	getTaskIndex_func := func() (uint32, error) {
+		agg.taskMutex.Lock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
+		taskIndex, ok := agg.batchesIdxByIdentifierHash[batchIdentifierHash]
+		if !ok {
+			agg.taskMutex.Unlock()
+			agg.logger.Info("- Unlocked Resources: Task not found in the internal map")
+			return taskIndex, fmt.Errorf("Task not found in the internal map")
+		} else {
+			return taskIndex, nil
+		}
+	}
+
+	return retry.RetryWithData(getTaskIndex_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
