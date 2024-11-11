@@ -38,9 +38,9 @@ import (
 	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
-	"github.com/yetanotherco/aligned_layer/core/types"
-
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/supervisor"
+	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
 type Operator struct {
@@ -237,7 +237,9 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
-	go o.ProcessMissedBatchesWhileOffline()
+	supervisor.OneShot(func() {
+		o.ProcessMissedBatchesWhileOffline()
+	}, nil)
 
 	for {
 		select {
@@ -259,9 +261,13 @@ func (o *Operator) Start(ctx context.Context) error {
 				o.Logger.Fatal("Could not subscribe to new tasks V3")
 			}
 		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
-			go o.handleNewBatchLogV2(newBatchLogV2)
+			supervisor.OneShot(func() {
+				o.handleNewBatchLogV2(newBatchLogV2)
+			}, nil)
 		case newBatchLogV3 := <-o.NewTaskCreatedChanV3:
-			go o.handleNewBatchLogV3(newBatchLogV3)
+			supervisor.OneShot(func() {
+				o.handleNewBatchLogV3(newBatchLogV3)
+			}, nil)
 		case blockNumber := <-o.lastProcessedBatch.batchProcessedChan:
 			err = o.UpdateLastProcessBatch(blockNumber)
 			if err != nil {
@@ -305,7 +311,9 @@ func (o *Operator) ProcessMissedBatchesWhileOffline() {
 
 	o.Logger.Infof("Starting to verify missed batches while offline")
 	for _, logEntry := range logs {
-		go o.handleNewBatchLogV3(&logEntry)
+		supervisor.OneShot(func() {
+			o.handleNewBatchLogV3(&logEntry)
+		}, nil)
 	}
 	o.Logger.Info("Finished verifying all batches missed while offline")
 }
@@ -380,22 +388,28 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 	}
 
 	for _, verificationData := range verificationDataBatch {
-		go func(data VerificationData) {
+		data := verificationData
+		supervisor.OneShot(func() {
 			defer wg.Done()
 			o.verify(data, disabledVerifiersBitmap, results)
 			o.metrics.IncOperatorTaskResponses()
-		}(verificationData)
+		}, nil)
 	}
 
-	go func() {
+	supervisor.OneShot(func() {
 		wg.Wait()
 		close(results)
-	}()
+	}, nil)
 
+	i := 0
 	for result := range results {
-		if !result {
-			return fmt.Errorf("invalid proof")
+		if result {
+			i += 1
 		}
+	}
+
+	if i < verificationDataBatchLen {
+		return fmt.Errorf("invalid proof")
 	}
 
 	return nil
@@ -459,23 +473,30 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 		return err
 	}
 	for _, verificationData := range verificationDataBatch {
-		go func(data VerificationData) {
+		data := verificationData
+		supervisor.OneShot(func() {
 			defer wg.Done()
 			o.verify(data, disabledVerifiersBitmap, results)
 			o.metrics.IncOperatorTaskResponses()
-		}(verificationData)
+		}, nil)
 	}
 
-	go func() {
+	supervisor.OneShot(func() {
 		wg.Wait()
 		close(results)
-	}()
+	}, nil)
 
+	i := 0
 	for result := range results {
-		if !result {
-			return fmt.Errorf("invalid proof")
+		if result {
+			i += 1
 		}
 	}
+
+	if i < verificationDataBatchLen {
+		return fmt.Errorf("invalid proof")
+	}
+
 
 	return nil
 }

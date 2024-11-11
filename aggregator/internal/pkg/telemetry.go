@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/logging"
+	"github.com/yetanotherco/aligned_layer/core/sched"
 )
 
 type TraceMessage struct {
@@ -93,15 +94,16 @@ func (t *Telemetry) LogTaskError(batchMerkleRoot [32]byte, taskError error) {
 
 func (t *Telemetry) FinishTrace(batchMerkleRoot [32]byte) {
 	// In order to wait for all operator responses, even if the quorum is reached, this function has a delayed execution
-	go func() {
-		time.Sleep(10 * time.Second)
+	sched.At(time.Now().Add(10 * time.Second), func() error {
 		body := TraceMessage{
 			MerkleRoot: fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
 		}
-		if err := t.sendTelemetryMessage("/api/finishTaskTrace", body); err != nil {
+		err := t.sendTelemetryMessage("/api/finishTaskTrace", body)
+		if err != nil {
 			t.logger.Error("[Telemetry] Error in FinishTrace", "error", err)
 		}
-	}()
+		return err
+	})
 }
 
 func (t *Telemetry) sendTelemetryMessage(endpoint string, message interface{}) error {
