@@ -21,7 +21,7 @@ jobs:
         - uses: actions-rs/toolchain@v1
           with:
             toolchain: stable
-        - name: Test Old SP1 Rust
-          run: make test_sp1_rust_ffi_old
         - name: Test Old SP1 go bindings
           run: make test_sp1_go_bindings_linux_old
+        - name: Test Old SP1 Rust
+          run: make test_sp1_rust_ffi_old
