@@ -97,7 +97,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	i := 0
 
 	respondToTaskV2Func := func() (*types.Receipt, error) {
-		gasPrice, err := w.ClientFallback.SuggestGasPrice(context.Background())
+		gasPrice, err := utils.GetGasPriceRetryable(w.Client, context.Background())
 		if err != nil {
 			return nil, err
 		}

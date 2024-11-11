@@ -57,3 +57,18 @@ func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercent
 
 	return bumpedGasPrice
 }
+
+func GetGasPriceRetryable(client eth.InstrumentedClient, ctx context.Context) (*big.Int, error) {
+	respondToTaskV2_func := func() (*big.Int, error) {
+		gasPrice, err := client.SuggestGasPrice(context.Background())
+		if err != nil {
+			gasPrice, err = client.SuggestGasPrice(context.Background())
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return gasPrice, nil
+	}
+	return retry.RetryWithData(respondToTaskV2_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+}
