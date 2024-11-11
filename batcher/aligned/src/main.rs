@@ -330,6 +330,9 @@ async fn main() -> Result<(), AlignedError> {
                         aligned_sdk::core::errors::GetNonceError::ConnectionFailed(e) => {
                             SubmitError::GenericError(e)
                         }
+                        aligned_sdk::core::errors::GetNonceError::InvalidRequest(e) => {
+                            SubmitError::GenericError(e)
+                        }
                         aligned_sdk::core::errors::GetNonceError::SerializationError(e) => {
                             SubmitError::GenericError(e)
                         }
@@ -342,6 +345,8 @@ async fn main() -> Result<(), AlignedError> {
                         }
                     })?,
             };
+
+            warn!("Nonce: {nonce}");
 
             let verification_data = verification_data_from_args(&submit_args)?;
 

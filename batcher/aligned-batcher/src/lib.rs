@@ -420,9 +420,28 @@ impl Batcher {
 
     async fn handle_get_nonce_for_address_msg(
         self: Arc<Self>,
-        address: Address,
+        mut address: Address,
         ws_conn_sink: WsMessageSink,
     ) -> Result<(), Error> {
+        if self.is_nonpaying(&address) {
+            info!("Handling nonpaying message");
+            let Some(non_paying_config) = self.non_paying_config.as_ref() else {
+                warn!(
+                    "There isn't a non-paying configuration loaded. This message will be ignored"
+                );
+                send_message(
+                    ws_conn_sink.clone(),
+                    GetNonceResponseMessage::InvalidRequest(
+                        "There isn't a non-paying configuration loaded.".to_string(),
+                    ),
+                )
+                .await;
+                return Ok(());
+            };
+            let replacement_addr = non_paying_config.replacement.address();
+            address = replacement_addr;
+        }
+
         let cached_user_nonce = {
             let batch_state_lock = self.batch_state.lock().await;
             batch_state_lock.get_user_nonce(&address).await

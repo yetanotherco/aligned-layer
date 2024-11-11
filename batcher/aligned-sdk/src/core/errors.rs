@@ -244,6 +244,7 @@ pub enum GetNonceError {
     ConnectionFailed(String),
     SerializationError(String),
     UnexpectedResponse(String),
+    InvalidRequest(String),
     ProtocolMismatch { current: u16, expected: u16 },
 }
 

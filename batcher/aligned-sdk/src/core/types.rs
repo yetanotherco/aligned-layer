@@ -393,6 +393,7 @@ pub enum SubmitProofResponseMessage {
 pub enum GetNonceResponseMessage {
     Nonce(U256),
     EthRpcError(String),
+    InvalidRequest(String),
 }
 
 #[derive(Debug, Clone, Copy)]

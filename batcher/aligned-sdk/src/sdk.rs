@@ -614,6 +614,7 @@ pub async fn get_nonce_from_batcher(
     match cbor_deserialize(msg.into_data().as_slice()) {
         Ok(GetNonceResponseMessage::Nonce(nonce)) => Ok(nonce),
         Ok(GetNonceResponseMessage::EthRpcError(e)) => Err(GetNonceError::EthRpcError(e)),
+        Ok(GetNonceResponseMessage::InvalidRequest(e)) => Err(GetNonceError::InvalidRequest(e)),
         Err(_) => Err(GetNonceError::SerializationError(
             "Failed to deserialize batcher message".to_string(),
         )),
