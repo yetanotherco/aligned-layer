@@ -1010,9 +1010,9 @@ telemetry_create_env:
 __ANSIBLE__: ## ____
 
 ansible_batcher_create_env: ## Create empty variables files for the Batcher deploy
-	@cp infra/ansible/playbooks/ini/caddy-batcher.ini.example infra/ansible/playbooks/ini/caddy-batcher.ini
-	@cp infra/ansible/playbooks/ini/config-batcher.ini.example infra/ansible/playbooks/ini/config-batcher.ini
-	@cp infra/ansible/playbooks/ini/env-batcher.ini.example infra/ansible/playbooks/ini/env-batcher.ini
+	@cp -n infra/ansible/playbooks/ini/caddy-batcher.ini.example infra/ansible/playbooks/ini/caddy-batcher.ini
+	@cp -n infra/ansible/playbooks/ini/config-batcher.ini.example infra/ansible/playbooks/ini/config-batcher.ini
+	@cp -n infra/ansible/playbooks/ini/env-batcher.ini.example infra/ansible/playbooks/ini/env-batcher.ini
 	@echo "Config files for the Batcher created in infra/ansible/playbooks/ini"
 	@echo "Please complete the values and run make ansible_batcher_deploy"
 
@@ -1024,3 +1024,18 @@ ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
 	@ansible-playbook infra/ansible/playbooks/batcher.yaml \
 		-i $(INVENTORY) \
 		-e "keystore_path=$(KEYSTORE)"
+
+ansible_aggregator_create_env: ## Create empty variables files for the Aggregator deploy
+	@cp -n infra/ansible/playbooks/ini/config-aggregator.ini.example infra/ansible/playbooks/ini/config-aggregator.ini
+	@echo "Config files for the Aggregator created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_aggregator_deploy"
+
+ansible_aggregator_deploy: ## Deploy the Operator. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ] || [ -z "$(ECDSA_KEYSTORE)" ] || [ -z "$(BLS_KEYSTORE)" ]; then \
+		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/aggregator.yaml \
+		-i $(INVENTORY) \
+		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
+		-e "bls_keystore_path=$(BLS_KEYSTORE)"

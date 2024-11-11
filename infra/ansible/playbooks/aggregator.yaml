@@ -55,21 +55,24 @@
         group: '{{ ansible_user }}'
         recurse: yes
 
+    - name: Copy ECDSA keystore to server
+      copy:
+        src: '{{ ecdsa_keystore_path }}'
+        dest: /home/{{ ansible_user }}/.keystores/aggregator.ecdsa
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+
+    - name: Copy BLS keystore to server
+      copy:
+        src: '{{ bls_keystore_path }}'
+        dest: /home/{{ ansible_user }}/.keystores/aggregator.bls
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+
     - name: Build aggregator
       shell: 
         chdir: /home/{{ ansible_user }}/repos/aggregator/aligned_layer/
         cmd: /usr/local/go/bin/go build -o /home/{{ ansible_user }}/repos/aggregator/aligned_layer/build/aligned-aggregator /home/{{ ansible_user }}/repos/aggregator/aligned_layer/aggregator/cmd/main.go
-
-    - name: Create systemd services directory
-      file:
-        path: "/home/{{ ansible_user }}/.config/systemd/user/"
-        state: directory
-
-    - name: Add service to systemd
-      template:
-        src: services/aggregator.service.j2
-        dest: "/home/{{ ansible_user }}/.config/systemd/user/aggregator.service"
-        force: no
 
     - name: Upload config file for aggregator
       template:
@@ -98,3 +101,21 @@
         proto: tcp
       vars:
         ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Create systemd services directory
+      file:
+        path: "/home/{{ ansible_user }}/.config/systemd/user/"
+        state: directory
+
+    - name: Add service to systemd
+      template:
+        src: services/aggregator.service.j2
+        dest: "/home/{{ ansible_user }}/.config/systemd/user/aggregator.service"
+        force: no
+
+    - name: Start aggregator service
+      ansible.builtin.systemd_service:
+        name: aggregator
+        state: started
+        enabled: true
+        scope: user
