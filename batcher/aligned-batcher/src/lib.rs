@@ -28,8 +28,7 @@ use aligned_sdk::core::constants::{
 };
 use aligned_sdk::core::types::{
     ClientMessage, NoncedVerificationData, ProofInvalidReason, ProvingSystemId, ResponseMessage,
-    ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
-    VerificationDataCommitment,
+    VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
 };
 
 use aws_sdk_s3::client::Client as S3Client;
@@ -415,11 +414,7 @@ impl Batcher {
         let msg_chain_id = client_msg.verification_data.chain_id;
         if msg_chain_id != self.chain_id {
             warn!("Received message with incorrect chain id: {msg_chain_id}");
-            send_message(
-                ws_conn_sink.clone(),
-                ValidityResponseMessage::InvalidChainId,
-            )
-            .await;
+            send_message(ws_conn_sink.clone(), ResponseMessage::InvalidChainId).await;
             self.metrics.user_error(&["invalid_chain_id", ""]);
             return Ok(());
         }
@@ -430,7 +425,7 @@ impl Batcher {
             warn!("Received message with incorrect payment service address: {msg_payment_service_addr}");
             send_message(
                 ws_conn_sink.clone(),
-                ValidityResponseMessage::InvalidPaymentServiceAddress(
+                ResponseMessage::InvalidPaymentServiceAddress(
                     msg_payment_service_addr,
                     self.payment_service.address(),
                 ),
@@ -444,11 +439,7 @@ impl Batcher {
         info!("Verifying message signature...");
         let Ok(addr) = client_msg.verify_signature() else {
             error!("Signature verification error");
-            send_message(
-                ws_conn_sink.clone(),
-                ValidityResponseMessage::InvalidSignature,
-            )
-            .await;
+            send_message(ws_conn_sink.clone(), ResponseMessage::InvalidSignature).await;
             self.metrics.user_error(&["invalid_signature", ""]);
             return Ok(());
         };
@@ -457,7 +448,7 @@ impl Batcher {
         let proof_size = client_msg.verification_data.verification_data.proof.len();
         if proof_size > self.max_proof_size {
             error!("Proof size exceeds the maximum allowed size.");
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge).await;
+            send_message(ws_conn_sink.clone(), ResponseMessage::ProofTooLarge).await;
             self.metrics.user_error(&["proof_too_large", ""]);
             return Ok(());
         }
@@ -477,7 +468,7 @@ impl Batcher {
                 );
                 send_message(
                     ws_conn_sink.clone(),
-                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
+                    ResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
                         verification_data.proving_system,
                     )),
                 )
@@ -493,7 +484,7 @@ impl Batcher {
                 error!("Invalid proof detected. Verification failed");
                 send_message(
                     ws_conn_sink.clone(),
-                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::RejectedProof),
+                    ResponseMessage::InvalidProof(ProofInvalidReason::RejectedProof),
                 )
                 .await;
                 self.metrics.user_error(&[
@@ -518,7 +509,7 @@ impl Batcher {
         if self.user_balance_is_unlocked(&addr).await {
             send_message(
                 ws_conn_sink.clone(),
-                ValidityResponseMessage::InsufficientBalance(addr),
+                ResponseMessage::InsufficientBalance(addr),
             )
             .await;
             self.metrics.user_error(&["insufficient_balance", ""]);
@@ -542,7 +533,7 @@ impl Batcher {
                     error!(
                         "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
                     );
-                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+                    send_message(ws_conn_sink.clone(), ResponseMessage::InvalidNonce).await;
                     self.metrics.user_error(&["invalid_nonce", ""]);
                     return Ok(());
                 }
@@ -561,7 +552,7 @@ impl Batcher {
 
         let Some(user_balance) = self.get_user_balance(&addr).await else {
             error!("Could not get balance for address {addr:?}");
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
+            send_message(ws_conn_sink.clone(), ResponseMessage::EthRpcError).await;
             self.metrics.user_error(&["eth_rpc_error", ""]);
             return Ok(());
         };
@@ -574,7 +565,7 @@ impl Batcher {
         let Some(proofs_in_batch) = batch_state_lock.get_user_proof_count(&addr).await else {
             error!("Failed to get user proof count: User not found in user states, but it should have been already inserted");
             std::mem::drop(batch_state_lock);
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            send_message(ws_conn_sink.clone(), ResponseMessage::InvalidNonce).await;
             self.metrics.user_error(&["invalid_nonce", ""]);
             return Ok(());
         };
@@ -583,7 +574,7 @@ impl Batcher {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
-                ValidityResponseMessage::InsufficientBalance(addr),
+                ResponseMessage::InsufficientBalance(addr),
             )
             .await;
             self.metrics.user_error(&["insufficient_balance", ""]);
@@ -594,15 +585,15 @@ impl Batcher {
         let Some(expected_nonce) = cached_user_nonce else {
             error!("Failed to get cached user nonce: User not found in user states, but it should have been already inserted");
             std::mem::drop(batch_state_lock);
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            send_message(ws_conn_sink.clone(), ResponseMessage::InvalidNonce).await;
             self.metrics.user_error(&["invalid_nonce", ""]);
             return Ok(());
         };
 
         if expected_nonce < msg_nonce {
             std::mem::drop(batch_state_lock);
-            warn!("Invalid nonce for address {addr}, had nonce {expected_nonce:?} < {msg_nonce:?}");
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            warn!("Invalid nonce for address {addr}, expected nonce: {expected_nonce:?}, received nonce: {msg_nonce:?}");
+            send_message(ws_conn_sink.clone(), ResponseMessage::InvalidNonce).await;
             self.metrics.user_error(&["invalid_nonce", ""]);
             return Ok(());
         }
@@ -626,7 +617,7 @@ impl Batcher {
         let msg_max_fee = nonced_verification_data.max_fee;
         let Some(user_min_fee) = batch_state_lock.get_user_min_fee(&addr).await else {
             std::mem::drop(batch_state_lock);
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            send_message(ws_conn_sink.clone(), ResponseMessage::InvalidNonce).await;
             self.metrics.user_error(&["invalid_nonce", ""]);
             return Ok(());
         };
@@ -634,7 +625,7 @@ impl Batcher {
         if msg_max_fee > user_min_fee {
             std::mem::drop(batch_state_lock);
             warn!("Invalid max fee for address {addr}, had fee {user_min_fee:?} < {msg_max_fee:?}");
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
+            send_message(ws_conn_sink.clone(), ResponseMessage::InvalidMaxFee).await;
             self.metrics.user_error(&["invalid_max_fee", ""]);
             return Ok(());
         }
@@ -654,13 +645,12 @@ impl Batcher {
             .await
         {
             error!("Error while adding entry to batch: {e:?}");
-            send_message(ws_conn_sink, ValidityResponseMessage::AddToBatchError).await;
+            send_message(ws_conn_sink, ResponseMessage::AddToBatchError).await;
             self.metrics.user_error(&["add_to_batch_error", ""]);
             return Ok(());
         };
 
         info!("Verification data message handled");
-        send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
         Ok(())
     }
 
@@ -695,7 +685,7 @@ impl Batcher {
         let Some(entry) = batch_state_lock.get_entry(addr, nonce) else {
             std::mem::drop(batch_state_lock);
             warn!("Invalid nonce for address {addr}. Queue entry with nonce {nonce} not found");
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            send_message(ws_conn_sink.clone(), ResponseMessage::InvalidNonce).await;
             self.metrics.user_error(&["invalid_nonce", ""]);
             return;
         };
@@ -706,7 +696,7 @@ impl Batcher {
             warn!("Invalid replacement message for address {addr}, had fee {original_max_fee:?} < {replacement_max_fee:?}");
             send_message(
                 ws_conn_sink.clone(),
-                ValidityResponseMessage::InvalidReplacementMessage,
+                ResponseMessage::InvalidReplacementMessage,
             )
             .await;
             self.metrics
@@ -730,6 +720,8 @@ impl Batcher {
                 if let Err(e) = old_sink.close().await {
                     // we dont want to exit here, just log the error
                     warn!("Error closing sink: {e:?}");
+                } else {
+                    info!("Old websocket sink closed");
                 }
             } else {
                 warn!(
@@ -744,7 +736,7 @@ impl Batcher {
             warn!("Invalid replacement message");
             send_message(
                 ws_conn_sink.clone(),
-                ValidityResponseMessage::InvalidReplacementMessage,
+                ResponseMessage::InvalidReplacementMessage,
             )
             .await;
             self.metrics
@@ -1055,7 +1047,7 @@ impl Batcher {
                     let merkle_root = hex::encode(batch_merkle_tree.root);
                     send_message(
                         ws_sink.clone(),
-                        ResponseMessage::CreateNewTaskError(merkle_root),
+                        ResponseMessage::CreateNewTaskError(merkle_root, format!("{:?}", e)),
                     )
                     .await
                 } else {
@@ -1281,7 +1273,7 @@ impl Batcher {
                 self.cancel_create_new_task_tx(fee_params.gas_price).await;
                 Err(BatcherError::ReceiptNotFoundError)
             }
-            Err(_) => Err(BatcherError::TransactionSendError),
+            Err(RetryError::Permanent(e)) | Err(RetryError::Transient(e)) => Err(e),
         }
     }
 
@@ -1359,7 +1351,7 @@ impl Batcher {
         info!("Handling nonpaying message");
         let Some(non_paying_config) = self.non_paying_config.as_ref() else {
             warn!("There isn't a non-paying configuration loaded. This message will be ignored");
-            send_message(ws_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            send_message(ws_sink.clone(), ResponseMessage::InvalidNonce).await;
             return Ok(());
         };
 
@@ -1368,7 +1360,7 @@ impl Batcher {
             error!("Could not get balance for non-paying address {replacement_addr:?}");
             send_message(
                 ws_sink.clone(),
-                ValidityResponseMessage::InsufficientBalance(replacement_addr),
+                ResponseMessage::InsufficientBalance(replacement_addr),
             )
             .await;
             return Ok(());
@@ -1378,26 +1370,17 @@ impl Batcher {
             error!("Insufficient funds for non-paying address {replacement_addr:?}");
             send_message(
                 ws_sink.clone(),
-                ValidityResponseMessage::InsufficientBalance(replacement_addr),
+                ResponseMessage::InsufficientBalance(replacement_addr),
             )
             .await;
             return Ok(());
         }
 
         let batch_state_lock = self.batch_state.lock().await;
-        let Some(non_paying_nonce) = batch_state_lock.get_user_nonce(&replacement_addr).await
-        else {
-            std::mem::drop(batch_state_lock);
-            error!("Nonce for non-paying address {replacement_addr:?} not found in cache.");
-            send_message(ws_sink.clone(), ValidityResponseMessage::EthRpcError).await;
-            return Ok(());
-        };
-
-        debug!("Non-paying nonce: {:?}", non_paying_nonce);
 
         let nonced_verification_data = NoncedVerificationData::new(
             client_msg.verification_data.verification_data.clone(),
-            non_paying_nonce,
+            client_msg.verification_data.nonce,
             DEFAULT_MAX_FEE_PER_PROOF.into(), // 13_000 gas per proof * 100 gwei gas price (upper bound)
             self.chain_id,
             self.payment_service.address(),
@@ -1421,12 +1404,11 @@ impl Batcher {
             .await
         {
             info!("Error while adding nonpaying address entry to batch: {e:?}");
-            send_message(ws_sink, ValidityResponseMessage::AddToBatchError).await;
+            send_message(ws_sink, ResponseMessage::AddToBatchError).await;
             return Ok(());
         };
 
         info!("Non-paying verification data message handled");
-        send_message(ws_sink, ValidityResponseMessage::Valid).await;
         Ok(())
     }
 
