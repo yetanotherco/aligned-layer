@@ -399,6 +399,7 @@ impl Batcher {
             Ok(msg) => msg,
             Err(e) => {
                 warn!("Failed to deserialize message: {}", e);
+                self.metrics.user_error(&["deserialize_error", ""]);
                 return Ok(());
             }
         };
@@ -477,7 +478,7 @@ impl Batcher {
                 ValidityResponseMessage::InvalidChainId,
             )
             .await;
-
+            self.metrics.user_error(&["invalid_chain_id", ""]);
             return Ok(());
         }
 
@@ -493,7 +494,8 @@ impl Batcher {
                 ),
             )
             .await;
-
+            self.metrics
+                .user_error(&["invalid_paument_service_address", ""]);
             return Ok(());
         }
 
@@ -505,6 +507,7 @@ impl Batcher {
                 ValidityResponseMessage::InvalidSignature,
             )
             .await;
+            self.metrics.user_error(&["invalid_signature", ""]);
             return Ok(());
         };
         info!("Message signature verified");
@@ -513,6 +516,7 @@ impl Batcher {
         if proof_size > self.max_proof_size {
             error!("Proof size exceeds the maximum allowed size.");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge).await;
+            self.metrics.user_error(&["proof_too_large", ""]);
             return Ok(());
         }
 
@@ -536,6 +540,10 @@ impl Batcher {
                     )),
                 )
                 .await;
+                self.metrics.user_error(&[
+                    "disabled_verifier",
+                    &format!("{}", verification_data.proving_system),
+                ]);
                 return Ok(());
             }
 
@@ -546,6 +554,10 @@ impl Batcher {
                     ValidityResponseMessage::InvalidProof(ProofInvalidReason::RejectedProof),
                 )
                 .await;
+                self.metrics.user_error(&[
+                    "rejected_proof",
+                    &format!("{}", verification_data.proving_system),
+                ]);
                 return Ok(());
             }
         }
@@ -565,6 +577,7 @@ impl Batcher {
                 ValidityResponseMessage::InsufficientBalance(addr),
             )
             .await;
+            self.metrics.user_error(&["insufficient_balance", ""]);
             return Ok(());
         }
 
@@ -586,6 +599,7 @@ impl Batcher {
                         "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
                     );
                     send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+                    self.metrics.user_error(&["invalid_nonce", ""]);
                     return Ok(());
                 }
             };
@@ -604,6 +618,7 @@ impl Batcher {
         let Some(user_balance) = self.get_user_balance(&addr).await else {
             error!("Could not get balance for address {addr:?}");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
+            self.metrics.user_error(&["eth_rpc_error", ""]);
             return Ok(());
         };
 
@@ -616,6 +631,7 @@ impl Batcher {
             error!("Failed to get user proof count: User not found in user states, but it should have been already inserted");
             std::mem::drop(batch_state_lock);
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            self.metrics.user_error(&["invalid_nonce", ""]);
             return Ok(());
         };
 
@@ -626,6 +642,7 @@ impl Batcher {
                 ValidityResponseMessage::InsufficientBalance(addr),
             )
             .await;
+            self.metrics.user_error(&["insufficient_balance", ""]);
             return Ok(());
         }
 
@@ -634,6 +651,7 @@ impl Batcher {
             error!("Failed to get cached user nonce: User not found in user states, but it should have been already inserted");
             std::mem::drop(batch_state_lock);
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            self.metrics.user_error(&["invalid_nonce", ""]);
             return Ok(());
         };
 
@@ -641,6 +659,7 @@ impl Batcher {
             std::mem::drop(batch_state_lock);
             warn!("Invalid nonce for address {addr}, had nonce {expected_nonce:?} < {msg_nonce:?}");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            self.metrics.user_error(&["invalid_nonce", ""]);
             return Ok(());
         }
 
@@ -662,13 +681,17 @@ impl Batcher {
 
         let Some(user_min_fee) = batch_state_lock.get_user_min_fee(&addr).await else {
             std::mem::drop(batch_state_lock);
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            self.metrics.user_error(&["invalid_nonce", ""]);
             return Ok(());
         };
 
-        // Force current max fee to be less or equal than previous max fee
-        if nonced_verification_data.max_fee > user_min_fee {
-            nonced_verification_data.max_fee = user_min_fee;
+        if msg_max_fee > user_min_fee {
+            std::mem::drop(batch_state_lock);
+            warn!("Invalid max fee for address {addr}, had fee {user_min_fee:?} < {msg_max_fee:?}");
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
+            self.metrics.user_error(&["invalid_max_fee", ""]);
+            return Ok(());
         }
 
         // * ---------------------------------------------------------------------*
@@ -687,6 +710,7 @@ impl Batcher {
         {
             error!("Error while adding entry to batch: {e:?}");
             send_message(ws_conn_sink, ValidityResponseMessage::AddToBatchError).await;
+            self.metrics.user_error(&["add_to_batch_error", ""]);
             return Ok(());
         };
 
@@ -727,6 +751,7 @@ impl Batcher {
             std::mem::drop(batch_state_lock);
             warn!("Invalid nonce for address {addr}. Queue entry with nonce {nonce} not found");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            self.metrics.user_error(&["invalid_nonce", ""]);
             return;
         };
 
@@ -739,7 +764,8 @@ impl Batcher {
                 ValidityResponseMessage::InvalidReplacementMessage,
             )
             .await;
-
+            self.metrics
+                .user_error(&["invalid_replacement_message", ""]);
             return;
         }
 
@@ -776,6 +802,8 @@ impl Batcher {
                 ValidityResponseMessage::InvalidReplacementMessage,
             )
             .await;
+            self.metrics
+                .user_error(&["invalid_replacement_message", ""]);
             return;
         }
 

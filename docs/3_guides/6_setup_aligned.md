@@ -527,6 +527,13 @@ to run it using the following documentation:
 
 ### DB Setup
 
+> [!NOTE]
+> If you want to run the DB separately, without docker,
+> you can set it up and start the explorer with the following command:
+> ```bash
+> make run_explorer_without_docker_db
+> ```
+
 To set up the explorer, an installation of the DB is necessary.
 
 First, you'll need to install docker if you don't have it already.
@@ -560,6 +567,13 @@ make explorer_ecto_setup_db
 
 ```bash
 make run_explorer
+```
+
+> [!NOTE]
+> If you want to run the DB separately, without docker,
+> you can set it up and start the explorer with the following command:
+```bash
+make run_explorer_without_docker_db
 ```
 
 </details>
