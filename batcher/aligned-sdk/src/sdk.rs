@@ -85,8 +85,8 @@ pub async fn submit_multiple_and_wait_verification(
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
-    let aligned_verification_data = submit_multiple(
+) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
+    let mut aligned_verification_data = submit_multiple(
         batcher_url,
         network,
         verification_data,
@@ -94,15 +94,24 @@ pub async fn submit_multiple_and_wait_verification(
         wallet,
         nonce,
     )
-    .await?;
+    .await;
 
     // TODO: open issue: use a join to .await all at the same time, avoiding the loop
     // And await only once per batch, no need to await multiple proofs if they are in the same batch.
-    for aligned_verification_data_item in aligned_verification_data.iter() {
-        await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await?;
+    let mut error_awaiting_batch_verification: Option<errors::SubmitError> = None;
+    for aligned_verification_data_item in aligned_verification_data.iter().flatten() {
+        if let Err(e) =
+            await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await
+        {
+            error_awaiting_batch_verification = Some(e);
+            break;
+        }
+    }
+    if let Some(error_awaiting_batch_verification) = error_awaiting_batch_verification {
+        aligned_verification_data.push(Err(error_awaiting_batch_verification));
     }
 
-    Ok(aligned_verification_data)
+    aligned_verification_data
 }
 
 /// Returns the estimated `max_fee` depending on the batch inclusion preference of the user, based on the max priority gas price.
@@ -238,10 +247,11 @@ pub async fn submit_multiple(
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
-    let (ws_stream, _) = connect_async(batcher_url)
-        .await
-        .map_err(errors::SubmitError::WebSocketConnectionError)?;
+) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
+    let (ws_stream, _) = match connect_async(batcher_url).await {
+        Ok((ws_stream, response)) => (ws_stream, response),
+        Err(e) => return vec![Err(errors::SubmitError::WebSocketConnectionError(e))],
+    };
 
     debug!("WebSocket handshake has been successfully completed");
     let (ws_write, ws_read) = ws_stream.split();
@@ -262,7 +272,7 @@ pub async fn submit_multiple(
 
 pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {
     match network {
-        Network::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap(),
+        Network::Devnet => H160::from_str("0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650").unwrap(),
         Network::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").unwrap(),
         Network::HoleskyStage => {
             H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").unwrap()
@@ -280,6 +290,8 @@ pub fn get_aligned_service_manager_address(network: Network) -> ethers::types::H
     }
 }
 
+// Will submit the proofs to the batcher and wait for their responses
+// Will return once all proofs are responded, or up to when a proof is responded with an error
 async fn _submit_multiple(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
@@ -288,20 +300,22 @@ async fn _submit_multiple(
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
+) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
     // First message from the batcher is the protocol version
-    check_protocol_version(&mut ws_read).await?;
+    if let Err(e) = check_protocol_version(&mut ws_read).await {
+        return vec![Err(e)];
+    }
 
     if verification_data.is_empty() {
-        return Err(errors::SubmitError::MissingRequiredParameter(
+        return vec![Err(errors::SubmitError::MissingRequiredParameter(
             "verification_data".to_string(),
-        ));
+        ))];
     }
     if verification_data.len() > 10000 {
         //TODO Magic number
-        return Err(errors::SubmitError::GenericError(
+        return vec![Err(errors::SubmitError::GenericError(
             "Trying to submit too many proofs at once".to_string(),
-        ));
+        ))];
     }
 
     let ws_write_clone = ws_write.clone();
@@ -314,7 +328,7 @@ async fn _submit_multiple(
     let payment_service_addr = get_payment_service_address(network);
 
     let result = async {
-        let sent_verification_data = send_messages(
+        let sent_verification_data_rev = send_messages(
             ws_write,
             payment_service_addr,
             verification_data,
@@ -322,14 +336,16 @@ async fn _submit_multiple(
             wallet,
             nonce,
         )
-        .await?;
-        receive(response_stream, sent_verification_data).await
+        .await;
+        receive(response_stream, sent_verification_data_rev).await
     }
     .await;
 
     // Close connection
     info!("Closing WS connection");
-    ws_write_clone.lock().await.close().await?;
+    if let Err(e) = ws_write_clone.lock().await.close().await {
+        return vec![Err(errors::SubmitError::GenericError(e.to_string()))];
+    }
     result
 }
 
@@ -386,9 +402,15 @@ pub async fn submit_and_wait_verification(
         wallet,
         nonce,
     )
-    .await?;
+    .await;
 
-    Ok(aligned_verification_data[0].clone())
+    match aligned_verification_data.first() {
+        Some(Ok(aligned_verification_data)) => Ok(aligned_verification_data.clone()),
+        Some(Err(e)) => Err(errors::SubmitError::GenericError(e.to_string())),
+        None => Err(errors::SubmitError::GenericError(
+            "No response from the batcher".to_string(),
+        )),
+    }
 }
 
 /// Submits a proof to the batcher to be verified in Aligned.
@@ -435,9 +457,15 @@ pub async fn submit(
         wallet,
         nonce,
     )
-    .await?;
+    .await;
 
-    Ok(aligned_verification_data[0].clone())
+    match aligned_verification_data.first() {
+        Some(Ok(aligned_verification_data)) => Ok(aligned_verification_data.clone()),
+        Some(Err(e)) => Err(errors::SubmitError::GenericError(e.to_string())),
+        None => Err(errors::SubmitError::GenericError(
+            "No response from the batcher".to_string(),
+        )),
+    }
 }
 
 /// Checks if the proof has been verified with Aligned and is included in the batch.
@@ -663,6 +691,10 @@ pub fn save_response(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
 ) -> Result<(), errors::FileError> {
+    info!(
+        "Saving batch inclusion data files in folder {}",
+        batch_inclusion_data_directory_path.display()
+    );
     save_response_cbor(
         batch_inclusion_data_directory_path.clone(),
         &aligned_verification_data.clone(),
@@ -687,12 +719,8 @@ fn save_response_cbor(
 
     let data = cbor_serialize(&aligned_verification_data)?;
 
-    let mut file = File::create(&batch_inclusion_data_path)?;
+    let mut file = File::create(batch_inclusion_data_path)?;
     file.write_all(data.as_slice())?;
-    info!(
-        "Batch inclusion data written into {}",
-        batch_inclusion_data_path.display()
-    );
 
     Ok(())
 }
@@ -725,13 +753,8 @@ fn save_response_json(
             "verification_data_batch_index": aligned_verification_data.index_in_batch,
             "merkle_proof": merkle_proof,
     });
-    let mut file = File::create(&batch_inclusion_data_path)?;
+    let mut file = File::create(batch_inclusion_data_path)?;
     file.write_all(serde_json::to_string_pretty(&data).unwrap().as_bytes())?;
-
-    info!(
-        "Batch inclusion data written into {}",
-        batch_inclusion_data_path.display()
-    );
 
     Ok(())
 }
