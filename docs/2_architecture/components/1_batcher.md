@@ -2,7 +2,7 @@
 
 The Batcher receives proofs from different Users, bundles them in a batch of proofs, builds a Merkle Root from these, uploads the batch to a data service (like an S3 bucket), and submits this information to the [Aligned Service Manager](./3_service_manager_contract.md).
 
-To ensure that the User is sure that their proof was included in a batch, the Batcher will send each User their Merkle Proof (or Merkle Path). With this, the User can rebuild the Merkle Root starting from their proof, thus verifying it was actually included in the batch.
+To ensure that the User can be certain that their proof was included in a batch, the Batcher will send each User their Merkle Proof (or Merkle Path). With this, the User can rebuild the Merkle Root starting from their proof, thus verifying it was actually included in the batch.
 
 Also, to avoid unnecessary proof submissions, the Batcher performs preliminary verifications of the submitted proofs in to minimize the submission of false proofs in a batch.
 
@@ -45,13 +45,13 @@ We can consider the Batcher priority queue as a sort of *mempool* in the Ethereu
 
 When the conditions to build a batch are met, the Batcher runs the following batch finalization algorithm to create a batch of proofs from the priority queue.
 
-This algorithm starts by calculating the **batch size**, in bytes, by adding the verification data bytes of each proof of the queue. This is needed in order to compute the **fee per proof** of the batch later. The next step is to build a new **resulting priority queue**, which will store all proofs that where not included in the batch, replacing the current priority queue when this algorithm ends.
+This algorithm starts by calculating the **batch size**, in bytes, by adding the verification data bytes of each proof of the queue. The next step is to build a new **resulting priority queue**, which will store all proofs that where not included in the batch, replacing the current priority queue when this algorithm ends.
 
 In order for the batch to be considered valid, two conditions have to be met:
 * The **batch size** in bytes must be less than or equal to a defined limit.
 * All proofs found in the batch must have a `max_fee` equal or higher to the calculated **fee per proof** of the batch.
 
-The **fee per proof** is calculated with a formula, which depends on the **batch length**, calculated as the amount of proofs that the batch contains:
+The **fee per proof** indicates the cost of verifying each proof within the batch. It is calculated using a formula that depends on the **batch length**, defined as the number of proofs in the batch:
 
 ```
 gas_per_proof = (constant_gas_cost + additional_submission_gas_cost_per_proof * batch_len) / batch_len
@@ -72,9 +72,7 @@ There is an edge case for this algorithm: If the fee per proof is too high even 
 This means no proof allowed enough `max_fee` to be included in a batch.
 If this happens, the finalization of the batch is suspended and all the process will start again when a new block is received. 
 
-Let's see a very simple example:
-
-The algorithm starts with the following state:
+Let's see a very simple example, the algorithm starts with the following state:
 
 ```
 priority_queue = [(E, 74), (D, 75), (C, 90), (B, 95), (A, 100)]
@@ -85,6 +83,8 @@ max_batch_size = 1000 # Defined constant
 On the first iteration, the proof with the smallest `max_fee` is taken and the **fee per proof** is calculated
 
 ```
+priority_queue = [(E, 74), (D, 75), (C, 90), (B, 95), (A, 100)]
+resulting_priority_queue = []
 current_proof = (E, 74)
 fee_per_proof = calculate_fee_per_proof(priority_queue) # Result: 70
 batch_size_bytes = calculate_batch_size(priority_queue) # Result: 1150
