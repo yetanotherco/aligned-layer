@@ -75,7 +75,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 // Sends AggregatedResponse and waits for the receipt for three blocks, if not received
 // it will try again bumping the last tx gas price based on `CalculateGasPriceBump`
 // This process happens indefinitely until the transaction is included.
-func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, timeToWaitBeforeBump time.Duration, onRetry func(*big.Int)) (*types.Receipt, error) {
+func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, timeToWaitBeforeBump time.Duration, onGasPriceBumped func(*big.Int)) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 
@@ -107,12 +107,12 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		if bumpedGasPrice.Cmp(txOpts.GasPrice) > 0 {
 			txOpts.GasPrice = bumpedGasPrice
 		} else {
-			// bump the last price to replace it.
+			// bump the last tx gas price a little by `gasBumpIncrementalPercentage` to replace it.
 			txOpts.GasPrice = utils.CalculateGasPriceBumpBasedOnRetry(txOpts.GasPrice, gasBumpIncrementalPercentage, 0, 0)
 		}
 
 		if i > 0 {
-			onRetry(txOpts.GasPrice)
+			onGasPriceBumped(txOpts.GasPrice)
 		}
 
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)

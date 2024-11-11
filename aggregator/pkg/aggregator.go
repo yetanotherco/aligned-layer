@@ -302,11 +302,11 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 		"senderAddress", hex.EncodeToString(senderAddress[:]),
 		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
-	onRetry := func(bumpedGasPrice *big.Int) {
+	onGasPriceBumped := func(bumpedGasPrice *big.Int) {
 		agg.metrics.IncBumpedGasPriceForAggregatedResponse()
 		agg.telemetry.BumpedTaskGasPrice(batchMerkleRoot, bumpedGasPrice.String())
 	}
-	receipt, err := agg.avsWriter.SendAggregatedResponse(batchIdentifierHash, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, agg.AggregatorConfig.Aggregator.GasBaseBumpPercentage, agg.AggregatorConfig.Aggregator.GasBumpIncrementalPercentage, agg.AggregatorConfig.Aggregator.TimeToWaitBeforeBump, onRetry)
+	receipt, err := agg.avsWriter.SendAggregatedResponse(batchIdentifierHash, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, agg.AggregatorConfig.Aggregator.GasBaseBumpPercentage, agg.AggregatorConfig.Aggregator.GasBumpIncrementalPercentage, agg.AggregatorConfig.Aggregator.TimeToWaitBeforeBump, onGasPriceBumped)
 	if err != nil {
 		agg.walletMutex.Unlock()
 		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
