@@ -218,7 +218,7 @@ async fn fetch_gas_price(
 /// Submits multiple proofs to the batcher to be verified in Aligned.
 /// # Arguments
 /// * `batcher_url` - The url of the batcher to which the proof will be submitted.
-/// * `chain` - The chain on which the verification will be done.
+/// * `network` - The netork on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
 /// * `wallet` - The wallet used to sign the proof.
@@ -291,7 +291,7 @@ pub fn get_aligned_service_manager_address(network: Network) -> ethers::types::H
 }
 
 // Will submit the proofs to the batcher and wait for their responses
-// Will return once all proofs are responded, or up to when a proof is responded with an error
+// Will return once all proofs are responded, or up to a proof that is responded with an error
 async fn _submit_multiple(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
