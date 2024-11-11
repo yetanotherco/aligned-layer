@@ -18,8 +18,7 @@ use crate::{
         errors::SubmitError,
         types::{
             AlignedVerificationData, ClientMessage, NoncedVerificationData,
-            SubmitProofResponseMessage, ValidityResponseMessage, VerificationData,
-            VerificationDataCommitment,
+            SubmitProofResponseMessage, VerificationData, VerificationDataCommitment,
         },
     },
 };
@@ -45,7 +44,7 @@ pub async fn send_messages(
     let mut ws_write = ws_write.lock().await;
     let mut sent_verification_data: Vec<Result<NoncedVerificationData, SubmitError>> = Vec::new();
 
-    for verification_data_i in verification_data {
+    for (idx, verification_data_i) in verification_data.iter().enumerate() {
         let verification_data = NoncedVerificationData::new(
             verification_data_i.clone(),
             nonce,
@@ -251,14 +250,7 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
         }
         Ok(SubmitProofResponseMessage::Error(e)) => {
             error!("Batcher responded with error: {}", e);
-        }
-        Ok(SubmitProofResponseMessage::CreateNewTaskError(merkle_root)) => {
-            return Err(SubmitError::BatchSubmissionFailed(
-                "Could not create task with merkle root ".to_owned() + &merkle_root,
-            ));
-        }
-        Ok(SubmitProofResponseMessage::InvalidProof(reason)) => {
-            return Err(SubmitError::InvalidProof(reason));
+            Err(SubmitError::GenericError(e))
         }
         Err(e) => {
             error!("Error while deserializing batch inclusion data: {}", e);

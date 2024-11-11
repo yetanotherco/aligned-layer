@@ -13,7 +13,7 @@ use crate::{
         errors::{self, GetNonceError},
         types::{
             AlignedVerificationData, ClientMessage, GetNonceResponseMessage, Network,
-            PriceEstimate, ProvingSystemId, VerificationData, VerificationDataCommitment,
+            PriceEstimate, ProvingSystemId, VerificationData,
         },
     },
     eth::{

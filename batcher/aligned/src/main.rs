@@ -349,7 +349,7 @@ async fn main() -> Result<(), AlignedError> {
 
             info!("Submitting proofs to the Aligned batcher...");
 
-            let aligned_verification_data_vec = match submit_multiple(
+            let aligned_verification_data_vec = submit_multiple(
                 &connect_addr,
                 submit_args.network.into(),
                 &verification_data_arr,
@@ -377,9 +377,7 @@ async fn main() -> Result<(), AlignedError> {
                     }
                     Err(e) => {
                         warn!("Error while submitting proof: {:?}", e);
-                        let nonce_file = format!("nonce_{:?}.bin", wallet.address());
-
-                        handle_submit_err(e, nonce_file.as_str()).await;
+                        handle_submit_err(e).await;
                         return Ok(());
                     }
                 };
