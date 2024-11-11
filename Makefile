@@ -6,7 +6,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.10.2
+OPERATOR_VERSION=v0.10.3
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -145,7 +145,7 @@ aggregator_send_dummy_responses:
 
 test_go_retries:
 	@cd core/ && \
-	go test -v
+	go test -v -timeout 15m
 
 __OPERATOR__:
 
@@ -195,7 +195,7 @@ bindings:
 	cd contracts && ./generate-go-bindings.sh
 
 test:
-	go test ./...
+	go test ./... -timeout 15m
 
 
 get_delegation_manager_address:
@@ -363,7 +363,7 @@ batcher_send_risc0_task_no_pub_input:
         --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
@@ -697,6 +697,13 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "All Linux FFIs built successfully."
 
 __EXPLORER__:
+
+run_explorer_without_docker_db: explorer_ecto_setup_db
+	@cd explorer/ && \
+		pnpm install --prefix assets && \
+		mix setup && \
+		./start.sh
+
 run_explorer: explorer_run_db explorer_ecto_setup_db
 	@cd explorer/ && \
 		pnpm install --prefix assets && \
@@ -1040,3 +1047,25 @@ telemetry_dump_db:
 telemetry_create_env:
 	@cd telemetry_api && \
 		cp .env.dev .env
+
+setup_local_aligned_all:
+	tmux kill-session -t aligned_layer || true
+	tmux new-session -d -s aligned_layer
+
+	tmux new-window -t aligned_layer -n anvil
+	tmux send-keys -t aligned_layer 'make anvil_start_with_block_time' C-m
+
+	tmux new-window -t aligned_layer -n aggregator
+	tmux send-keys -t aligned_layer:aggregator 'make aggregator_start' C-m
+
+	tmux new-window -t aligned_layer -n operator
+	tmux send-keys -t aligned_layer:operator 'sleep 5 && make operator_register_and_start' C-m
+
+	tmux new-window -t aligned_layer -n batcher
+	tmux send-keys -t aligned_layer:batcher 'sleep 60 && make batcher_start_local' C-m
+
+	tmux new-window -t aligned_layer -n explorer
+	tmux send-keys -t aligned_layer:explorer 'make explorer_create_env && make explorer_build_db && make run_explorer' C-m
+
+	tmux new-window -t aligned_layer -n telemetry
+	tmux send-keys -t aligned_layer:telemetry 'docker compose -f telemetry-docker-compose.yaml down && make telemetry_create_env && make telemetry_run_db && make open_telemetry_start && make telemetry_start' C-m

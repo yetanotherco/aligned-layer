@@ -14,11 +14,10 @@ use crate::{
 const RETRIES: u64 = 10;
 const TIME_BETWEEN_RETRIES: u64 = 10;
 
-pub fn handle_batch_inclusion_data(
-    batch_inclusion_data: BatchInclusionData,
-    aligned_verification_data: &mut Vec<AlignedVerificationData>,
-    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-) -> Result<(), errors::SubmitError> {
+pub fn process_batcher_response(
+    batch_inclusion_data: &BatchInclusionData,
+    verification_data_commitment: &VerificationDataCommitment,
+) -> Result<AlignedVerificationData, errors::SubmitError> {
     debug!("Received response from batcher");
     debug!(
         "Batch merkle root: {}",
@@ -26,18 +25,14 @@ pub fn handle_batch_inclusion_data(
     );
     debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
 
-    let verification_data_commitment = verification_data_commitments_rev
-        .pop()
-        .ok_or_else(|| errors::SubmitError::EmptyVerificationDataCommitments)?;
-
-    if verify_response(&verification_data_commitment, &batch_inclusion_data) {
-        aligned_verification_data.push(AlignedVerificationData::new(
-            &verification_data_commitment,
-            &batch_inclusion_data,
-        ));
+    if verify_proof_inclusion(verification_data_commitment, batch_inclusion_data) {
+        Ok(AlignedVerificationData::new(
+            verification_data_commitment,
+            batch_inclusion_data,
+        ))
+    } else {
+        Err(errors::SubmitError::InvalidProofInclusionData)
     }
-
-    Ok(())
 }
 
 pub async fn await_batch_verification(
@@ -64,7 +59,7 @@ pub async fn await_batch_verification(
     })
 }
 
-fn verify_response(
+fn verify_proof_inclusion(
     verification_data_commitment: &VerificationDataCommitment,
     batch_inclusion_data: &BatchInclusionData,
 ) -> bool {
