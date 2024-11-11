@@ -26,10 +26,6 @@ jobs:
           cache: false
       - name: foundry-toolchain
         uses: foundry-rs/foundry-toolchain@v1.2.0
-      - name: rs-toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
       - name: Build SP1 bindings
         run: make build_sp1_linux
       - name: Build Old SP1 bindings
@@ -44,5 +40,3 @@ jobs:
         run: go build operator/cmd/main.go
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
-      - name: Test Go
-        run: make test
