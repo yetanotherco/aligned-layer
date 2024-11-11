@@ -357,23 +357,32 @@ async fn main() -> Result<(), AlignedError> {
                 wallet.clone(),
                 nonce,
             )
-            .await
-            {
-                Ok(aligned_verification_data_vec) => aligned_verification_data_vec,
-                Err(e) => {
-                    handle_submit_err(e).await;
-                    return Ok(());
-                }
-            };
+            .await;
 
             let mut unique_batch_merkle_roots = HashSet::new();
 
             for aligned_verification_data in aligned_verification_data_vec {
-                save_response(
-                    batch_inclusion_data_directory_path.clone(),
-                    &aligned_verification_data,
-                )?;
-                unique_batch_merkle_roots.insert(aligned_verification_data.batch_merkle_root);
+                match aligned_verification_data {
+                    Ok(aligned_verification_data) => {
+                        info!(
+                            "Proof submitted to aligned. Batch merkle root: 0x{}",
+                            hex::encode(aligned_verification_data.batch_merkle_root)
+                        );
+                        save_response(
+                            batch_inclusion_data_directory_path.clone(),
+                            &aligned_verification_data,
+                        )?;
+                        unique_batch_merkle_roots
+                            .insert(aligned_verification_data.batch_merkle_root);
+                    }
+                    Err(e) => {
+                        warn!("Error while submitting proof: {:?}", e);
+                        let nonce_file = format!("nonce_{:?}.bin", wallet.address());
+
+                        handle_submit_err(e, nonce_file.as_str()).await;
+                        return Ok(());
+                    }
+                };
             }
 
             match unique_batch_merkle_roots.len() {
@@ -588,8 +597,11 @@ async fn handle_submit_err(err: SubmitError) {
             error!("Batch was reset. try resubmitting the proof");
         }
         SubmitError::InvalidProof(reason) => error!("Submitted proof is invalid: {}", reason),
-        SubmitError::InsufficientBalance => {
-            error!("Insufficient balance to pay for the transaction")
+        SubmitError::InsufficientBalance(sender_address) => {
+            error!(
+                "Insufficient balance to pay for the transaction, address: {}",
+                sender_address
+            )
         }
         _ => {}
     }

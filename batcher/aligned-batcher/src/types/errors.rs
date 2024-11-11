@@ -12,7 +12,7 @@ pub enum BatcherError {
     BatchUploadError(String),
     TaskCreationError(String),
     ReceiptNotFoundError,
-    TransactionSendError,
+    TransactionSendError(String),
     MaxRetriesReachedError,
     SerializationError(String),
     GasPriceError,
@@ -61,8 +61,8 @@ impl fmt::Debug for BatcherError {
             BatcherError::ReceiptNotFoundError => {
                 write!(f, "Receipt not found")
             }
-            BatcherError::TransactionSendError => {
-                write!(f, "Error sending tx")
+            BatcherError::TransactionSendError(e) => {
+                write!(f, "Error sending tx: {}", e)
             }
             BatcherError::MaxRetriesReachedError => {
                 write!(
