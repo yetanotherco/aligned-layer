@@ -290,6 +290,8 @@ pub fn get_aligned_service_manager_address(network: Network) -> ethers::types::H
     }
 }
 
+// Will submit the proofs to the batcher and wait for their responses
+// Will return once all proofs are responded, or up to when a proof is responded with an error
 async fn _submit_multiple(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,

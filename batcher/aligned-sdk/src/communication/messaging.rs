@@ -89,6 +89,7 @@ pub async fn send_messages(
 // Reads the WS responses
 // Matches each response with the corresponding proof sent
 // finishes when the last proof sent receives its response
+// finishes early if the batcher replies with a SubmitError
 pub async fn receive(
     response_stream: Arc<Mutex<ResponseStream>>,
     mut sent_verification_data_rev: Vec<Result<NoncedVerificationData, SubmitError>>,
