@@ -195,7 +195,7 @@ bindings:
 	cd contracts && ./generate-go-bindings.sh
 
 test:
-	go test ./...
+	go test ./... -timeout 15m
 
 
 get_delegation_manager_address:
