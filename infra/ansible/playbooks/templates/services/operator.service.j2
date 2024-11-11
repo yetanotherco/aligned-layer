@@ -1,0 +1,14 @@
+[Unit]
+Description=Operator
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/{{ ansible_user }}/repos/operator/aligned_layer
+ExecStart=/home/{{ ansible_user }}/repos/operator/aligned_layer/operator/build/aligned-operator start --config /home/{{ ansible_user }}/config/config-operator.yaml
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+
+[Install]
+WantedBy=multi-user.target
