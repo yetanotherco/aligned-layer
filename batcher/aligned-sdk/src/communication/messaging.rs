@@ -45,6 +45,7 @@ pub async fn send_messages(
     let mut sent_verification_data: Vec<Result<NoncedVerificationData, SubmitError>> = Vec::new();
 
     for (idx, verification_data_i) in verification_data.iter().enumerate() {
+        // Build each message to send
         let verification_data = NoncedVerificationData::new(
             verification_data_i.clone(),
             nonce,
