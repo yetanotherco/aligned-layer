@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -87,44 +86,44 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 	err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
 	if err != nil {
-		return nil, retry.PermanentError{Inner: err}
+		return nil, err
 	}
 
 	// Set the nonce, as we might have to replace the transaction with a higher gas price
 	txNonce := big.NewInt(int64(tx.Nonce()))
 	txOpts.Nonce = txNonce
+	txOpts.GasPrice = tx.GasPrice()
 	txOpts.NoSend = false
 	i := 0
 
 	respondToTaskV2Func := func() (*types.Receipt, error) {
-		// We bump only when the timeout for waiting for the receipt has passed
-		// not when an rpc failed
 		gasPrice, err := w.ClientFallback.SuggestGasPrice(context.Background())
 		if err != nil {
 			return nil, err
 		}
+
 		bumpedGasPrice := utils.CalculateGasPriceBumpBasedOnRetry(gasPrice, gasBumpPercentage, gasBumpIncrementalPercentage, i)
 		// new bumped gas price must be higher than the last one (this should hardly ever happen though)
-		if gasPrice.Cmp(txOpts.GasPrice) > 0 {
+		if bumpedGasPrice.Cmp(txOpts.GasPrice) > 0 {
 			txOpts.GasPrice = bumpedGasPrice
 		} else {
-			// bump the last price 10% to replace it.
-			bumpAmount := new(big.Int).Mul(txOpts.GasPrice, big.NewInt(10))
-			bumpAmount = new(big.Int).Div(bumpAmount, big.NewInt(100))
-			txOpts.GasPrice = new(big.Int).Mul(txOpts.GasPrice, bumpAmount)
+			// bump the last price to replace it.
+			txOpts.GasPrice = utils.CalculateGasPriceBumpBasedOnRetry(txOpts.GasPrice, gasBumpIncrementalPercentage, 0, 0)
 		}
+
 		if i > 0 {
 			onRetry(txOpts.GasPrice)
 		}
 
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
-			// We bump the fee so much that the transaction cost is more expensive than the batcher fee limit
 			return nil, retry.PermanentError{Inner: err}
 		}
 
+		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice)
+
 		tx, err = w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-		if strings.Contains(err.Error(), "reverted") {
+		if err != nil {
 			return nil, err
 		}
 
@@ -137,13 +136,14 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		// we increment the i here to add an incremental percentage to increase the odds of being included in the next blocks
 		i++
 
+		w.logger.Infof("RespondToTask receipt waiting timeout has passed, will try again...")
 		if err != nil {
 			return nil, err
 		}
 		return nil, fmt.Errorf("transaction failed")
 	}
 
-	return retry.RetryWithData(respondToTaskV2Func, 1000, 2, 0, 60, retry.MaxElapsedTime)
+	return retry.RetryWithData(respondToTaskV2Func, 1000, 2, 0, 60000, retry.MaxElapsedTime)
 }
 
 func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
