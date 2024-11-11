@@ -54,6 +54,13 @@
         version: v0.10.2
         recursive: false
 
+    - name: Build the Operator
+      make:
+        chdir: /home/{{ ansible_user }}/repos/operator/aligned_layer
+        target: build_operator
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
+
     - name: Copy ECDSA keystore to server
       ansible.builtin.copy:
         src: '{{ ecdsa_keystore_path }}'
@@ -154,13 +161,6 @@
         src: 100.0.0.0/24
       vars:
         ansible_ssh_user: "{{ admin_user }}"
-
-    - name: Build the Operator
-      make:
-        chdir: /home/{{ ansible_user }}/repos/operator/aligned_layer
-        target: build_operator
-      environment:
-        PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
 
     - name: Create systemd services directory
       file:
