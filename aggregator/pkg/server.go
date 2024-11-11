@@ -117,7 +117,7 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 /*
   - Errors:
     Permanent:
-  - SignatureVerificationError: Verification of the sigature failed within the BLS Aggregation Service failed. (https://github.com/Layr-Labs/eigensdk-go/blob/dev/services/bls_aggregation/blsagg.go#L42).
+  - SignatureVerificationError: Verification of the sigature within the BLS Aggregation Service failed. (https://github.com/Layr-Labs/eigensdk-go/blob/dev/services/bls_aggregation/blsagg.go#L42).
     Transient:
   - All others.
   - Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)

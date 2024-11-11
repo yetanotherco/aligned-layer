@@ -42,9 +42,9 @@ The `Retry` and `RetryWithData` retry a supplied function at maximum `NumRetries
 If the call is successful and no error is returned the library returns the result. `Permanent` errors are explicitly typed while `Transient` errors are implied by go's builtin error type.
 For completeness:
 
-Transient: The error is recoverable and the function is retried after failing. `Transient` errors are do not have a defined error type and are implicitly defined by go's builtin `error` type.
+Transient: The error is recoverable and the function is retried after failing. `Transient` errors do not have a defined error type and are implicitly defined by go's builtin `error` type.
 
-Permanenet: The error is not recoverable and the function is not retried exit to a larger context to handle the error. Permanent errors are explicitly typed and defined by wrapping the err within with `PermanentError`.
+Permanent: The error is not recoverable by retrying and the error to the calling context. Permanent errors are explicitly typed and defined by wrapping the err within with `PermanentError` type.
 
 Usage of `RetryWithData` is shown in the following example:
 ```
