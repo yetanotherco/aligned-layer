@@ -110,10 +110,10 @@ Now you have to set those variables.
 Deploy the Aggregator:
 
 ```shell
-make ansible_aggregator_deploy INVENTORY=</path/to/inventory> KEYSTORE=<path/to/keystore> BLS_KEYSTORE=</path/to/bls/keystore>
+make ansible_aggregator_deploy INVENTORY=</path/to/inventory> ECDSA_KEYSTORE=<path/to/keystore> BLS_KEYSTORE=</path/to/bls/keystore>
 ```
 > [!Note]
-> ECDSA_KEYSTORE and ECDSA_KEYSTORE are the paths of the keystores in your machine.
+> ECDSA_KEYSTORE and BLS_KEYSTORE are the paths of the keystores in your machine.
 
 # How to Create Keystores
 
