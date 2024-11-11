@@ -37,7 +37,6 @@ make ansible_batcher_deploy INVENTORY=</path/to/inventory> KEYSTORE=<path/to/key
 > [!CAUTION]
 > To register the Operator in Aligned successfully, you need to have been whitelisted by the Aligned team previously.
 
-
 To deploy the Operator you need to set some variables and then run the Operator playbook.
 
 Create the variables files:
@@ -55,6 +54,26 @@ Deploy the Operator:
 
 ```shell
 make ansible_operator_deploy INVENTORY=</path/to/inventory> ECDSA_KEYSTORE=</path/to/ecdsa/keystore> BLS_KEYSTORE=</path/to/bls/keystore>
+```
+
+## Aggregator
+
+> [!IMPORTANT]
+> You need to have previously created an ECDSA keystore with at least 1ETH and a BLS keystore.
+> You can create keystore following this [guide](#How-to-Create-Keystores)
+
+To deploy the Aggregator you need to set some variables and then run the Aggregator playbook
+
+This will create the following file in `infra/ansible/playbooks/ini`:
+
+- `config-aggregator.ini`
+
+Now you have to set those variables.
+
+Deploy the Aggregator:
+
+```shell
+make ansible_aggregator_deploy INVENTORY=</path/to/inventory> KEYSTORE=<path/to/keystore> BLS_KEYSTORE=</path/to/bls/keystore>
 ```
 
 # How to Create Keystores

@@ -114,7 +114,7 @@
         force: no
 
     - name: Start aggregator service
-      ansible.builtin.systemd_service:
+      systemd_service:
         name: aggregator
         state: started
         enabled: true
