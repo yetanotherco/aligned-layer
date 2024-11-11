@@ -10,8 +10,8 @@ The following is the list of the verifiers currently supported by Aligned:
 
 - :white_check_mark: gnark - Groth16 (with BN254)
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
-- :white_check_mark: SP1 [(v1.0.1)](https://github.com/succinctlabs/sp1/releases/tag/v1.0.1)
-- :white_check_mark: Risc0 [(v1.0.1)](https://github.com/risc0/risc0/releases/tag/v1.0.1)
+- :white_check_mark: SP1 [(v3.0.0)](https://github.com/succinctlabs/sp1/releases/tag/v3.0.0)
+- :white_check_mark: Risc0 [(v1.1.2)](https://github.com/risc0/risc0/releases/tag/v1.1.2)
 
 Learn more about future verifiers [here](../2_architecture/0_supported_verifiers.md).
 
@@ -115,7 +115,7 @@ Proof submission is done via the `submit` command of the Aligned CLI. The argume
 
 ### SP1 proof
 
-The current SP1 version used in Aligned is v1.0.1.
+The current SP1 version used in Aligned is `v3.0.0`.
 
 The SP1 proof needs the proof file and the vm program file.
 
@@ -149,7 +149,7 @@ aligned submit \
 
 ### Risc0 proof
 
-The current Risc0 version used in Aligned is v1.0.1.
+The current Risc0 version used in Aligned is `v1.1.2`.
 
 The Risc0 proof needs the proof file and the vm program file (vm program file is the image id).
 
@@ -168,12 +168,12 @@ aligned submit \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
-**NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v1.0.1`. For generating proofs using `cargo risc-zero` please ensure you are using `v1.0.1` or your proof will not be verified. 
+**NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v1.1.2`. For generating proofs using `cargo risc-zero` please ensure you are using `v1.1.2` or your proof will not be verified. 
 
-If you can't install `cargo-risczero` `v1.0.1`, you can manually modify your `cargo.toml` on the host project to point to `v1.0.1`:
+If you can't install `cargo-risczero` `v1.1.2`, you can manually modify your `cargo.toml` on the host project to point to `v1.1.2`:
 
 ```toml
-risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v1.0.1", default-features = false, features = [
+risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v1.1.2", default-features = false, features = [
     "prove",
 ] }
 ```
