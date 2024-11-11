@@ -352,7 +352,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                 );
                 let batcher_url = batcher_url.clone();
 
-                match submit_multiple(
+                let aligned_verification_data = submit_multiple(
                     &batcher_url.clone(),
                     args.network.into(),
                     &verification_data_to_send.clone(),
@@ -360,22 +360,22 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                     wallet.clone(),
                     nonce,
                 )
-                .await
-                {
-                    Ok(_aligned_verification_data) => {
-                        info!(
-                            "{:?} Proofs to the Aligned Batcher on {:?} correctly sent from sender {}",
-                            args.burst_size, args.network, i
-                        );
-                        nonce += U256::from(args.burst_size);
+                .await;
+
+                for aligned_verification_data in aligned_verification_data {
+                    match aligned_verification_data {
+                        Ok(_) => {
+                            info!("Responses received for sender {}", i);
+                            nonce += U256::from(1);
+                        }
+                        Err(e) => {
+                            error!(
+                                "Error submitting proofs to aligned: {:?} from sender {}",
+                                e, i
+                            );
+                        }
                     }
-                    Err(e) => {
-                        error!(
-                            "Error submitting proofs to aligned: {:?} from sender {}",
-                            e, i
-                        );
-                    }
-                };
+                }
 
                 tokio::time::sleep(Duration::from_secs(args.burst_time_secs)).await;
             }
