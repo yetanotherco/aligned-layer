@@ -33,6 +33,7 @@ make ansible_batcher_deploy INVENTORY=</path/to/inventory> KEYSTORE=<path/to/key
 > [!IMPORTANT]
 > You need to have previously created an ECDSA keystore with at least 1ETH and a BLS keystore.
 > You can create keystore following this [guide](#How-to-Create-Keystores)
+> The ECDSA keystore for the Operator must be created with the Eigenlayer CLI
 
 > [!CAUTION]
 > To register the Operator in Aligned successfully, you need to have been whitelisted by the Aligned team previously.
@@ -124,6 +125,46 @@ Address: 0x...
 
 Refer to this link for more details about keystore creation https://book.getfoundry.sh/reference/cast/cast-wallet-new
 
+## Create ECDSA for Operator
+
+Make sure you have installed:
+
+- [Eigenlayer CLI](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation)
+
+Now you can create the ECDSA keystore using the following command:
+
+```shell
+eigenlayer operator keys create --key-type ecdsa <keyname>
+```
+It will prompt for a password and will save the keystore in `$HOME/.eigenlayer/operator_keys/`.
+
+If everything is okay, you will get the following output:
+
+```
+ECDSA Private Key (Hex):
+
+////////////////////////////////////////////////////////////////////////////
+//                                                                        //
+//    ...                                                                 //
+//                                                                        //
+////////////////////////////////////////////////////////////////////////////
+
+🔐 Please backup the above private key hex in a safe place 🔒
+```
+
+And then,
+
+```
+
+Key location: $HOME/.eigenlayer/operator_keys/<keyname>.ecdsa.key.json
+Public Key hex: ...
+Ethereum Address: 0x...
+
+```
+
+Refer to this link for more details about keystore creation https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#create-keys
+
+
 ## Create BLS Keystore
 
 Make sure you have installed:
@@ -144,7 +185,7 @@ BLS Private Key (Hex):
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                     //
-//    19041818914970832833001653774136468328626805499863326892013784940157648962638    //
+//    ...                                                                              //
 //                                                                                     //
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -157,6 +198,7 @@ And then,
 
 Key location: $HOME/.eigenlayer/operator_keys/<keyname>.bls.key.json
 Public Key: E([...,...])
+
 ```
 
 Refer to this link for more details about keystore creation https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#create-keys
