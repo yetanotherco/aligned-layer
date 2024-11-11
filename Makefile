@@ -145,7 +145,7 @@ aggregator_send_dummy_responses:
 
 test_go_retries:
 	@cd core/ && \
-	go test -v
+	go test -v -timeout 15m
 
 __OPERATOR__:
 
