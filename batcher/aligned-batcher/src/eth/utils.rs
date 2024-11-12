@@ -9,7 +9,7 @@ use crate::{
     },
 };
 use aligned_sdk::core::constants::{
-    DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_DELAY, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
+    DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRY_DELAY, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
     GAS_PRICE_INCREMENT_PERCENTAGE_PER_ITERATION, OVERRIDE_GAS_PRICE_PERCENTAGE_MULTIPLIER,
     PERCENTAGE_DIVIDER,
 };
@@ -74,7 +74,7 @@ pub async fn get_current_nonce(
         DEFAULT_MIN_RETRY_DELAY,
         DEFAULT_BACKOFF_FACTOR,
         DEFAULT_MAX_RETRIES,
-        DEFAULT_MAX_DELAY,
+        DEFAULT_MAX_RETRY_DELAY,
     )
     .await
     .map_err(|e| {
@@ -95,7 +95,7 @@ pub async fn get_gas_price(
         DEFAULT_MIN_RETRY_DELAY,
         DEFAULT_BACKOFF_FACTOR,
         DEFAULT_MAX_RETRIES,
-        DEFAULT_MAX_DELAY,
+        DEFAULT_MAX_RETRY_DELAY,
     )
     .await
     .map_err(|e| {

@@ -22,9 +22,9 @@ use std::sync::Arc;
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CANCEL_TRANSACTION_MAX_RETRIES,
     CONSTANT_GAS_COST, DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_BACKOFF_FACTOR,
-    DEFAULT_MAX_DELAY, DEFAULT_MAX_FEE_PER_PROOF, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
-    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
-    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+    DEFAULT_MAX_FEE_PER_PROOF, DEFAULT_MAX_RETRIES, DEFAULT_MAX_RETRY_DELAY,
+    DEFAULT_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF,
+    PERCENTAGE_DIVIDER, RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
     ClientMessage, GetNonceResponseMessage, NoncedVerificationData, ProofInvalidReason,
@@ -283,7 +283,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             LISTEN_NEW_BLOCKS_MAX_TIMES,
-            DEFAULT_MAX_DELAY,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await
         .map_err(|e| e.inner())
@@ -925,7 +925,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             DEFAULT_MAX_RETRIES,
-            DEFAULT_MAX_DELAY,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await
     }
@@ -1391,7 +1391,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             DEFAULT_MAX_RETRIES,
-            DEFAULT_MAX_DELAY,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await;
         match result {
@@ -1456,7 +1456,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             CANCEL_TRANSACTION_MAX_RETRIES,
-            DEFAULT_MAX_DELAY,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await
         {
@@ -1566,7 +1566,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             DEFAULT_MAX_RETRIES,
-            DEFAULT_MAX_DELAY,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await
         .ok()
@@ -1588,7 +1588,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             DEFAULT_MAX_RETRIES,
-            DEFAULT_MAX_DELAY,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await
         else {
@@ -1618,7 +1618,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             DEFAULT_MAX_RETRIES,
-            DEFAULT_MAX_DELAY,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await
         .map_err(|e| BatcherError::BatchUploadError(e.to_string()))

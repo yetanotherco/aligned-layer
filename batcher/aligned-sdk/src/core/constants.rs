@@ -31,4 +31,4 @@ pub const MAX_FEE_DEFAULT_PROOF_NUMBER: usize = 10;
 pub const DEFAULT_MIN_RETRY_DELAY: u64 = 500; // milliseconds
 pub const DEFAULT_MAX_RETRIES: usize = 5;
 pub const DEFAULT_BACKOFF_FACTOR: f32 = 2.0;
-pub const DEFAULT_MAX_DELAY: u64 = 3600; // seconds
+pub const DEFAULT_MAX_RETRY_DELAY: u64 = 3600; // seconds
