@@ -20,10 +20,11 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aligned_sdk::core::constants::{
-    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CANCEL_TRANSACTION_MAX_RETRIES,
-    CONSTANT_GAS_COST, DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_BACKOFF_FACTOR,
-    DEFAULT_MAX_FEE_PER_PROOF, DEFAULT_MAX_RETRIES, DEFAULT_MAX_RETRY_DELAY,
-    DEFAULT_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF,
+    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, BUMP_BACKOFF_FACTOR,
+    BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONSTANT_GAS_COST,
+    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
+    ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
+    ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF,
     PERCENTAGE_DIVIDER, RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
@@ -280,10 +281,10 @@ impl Batcher {
                 let app = self.clone();
                 async move { app.listen_new_blocks_retryable().await }
             },
-            DEFAULT_MIN_RETRY_DELAY,
-            DEFAULT_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
             LISTEN_NEW_BLOCKS_MAX_TIMES,
-            DEFAULT_MAX_RETRY_DELAY,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
         .await
         .map_err(|e| e.inner())
@@ -908,7 +909,7 @@ impl Batcher {
     }
 
     /// Gets the user nonce from Ethereum.
-    /// Retries on recoverable errors using exponential backoff up to `DEFAULT_MAX_RETRIES` times:
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
     /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
     async fn get_user_nonce_from_ethereum(
         &self,
@@ -922,10 +923,10 @@ impl Batcher {
                     addr,
                 )
             },
-            DEFAULT_MIN_RETRY_DELAY,
-            DEFAULT_BACKOFF_FACTOR,
-            DEFAULT_MAX_RETRIES,
-            DEFAULT_MAX_RETRY_DELAY,
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
         .await
     }
@@ -1366,7 +1367,7 @@ impl Batcher {
     }
 
     /// Sends a `create_new_task` transaction to Ethereum and waits for a maximum of 3 blocks for the receipt.
-    /// Retries up to `DEFAULT_MAX_RETRIES` times using exponential backoff on recoverable errors while trying to send the transaction:
+    /// Retries up to `ETHEREUM_CALL_MAX_RETRIES` times using exponential backoff on recoverable errors while trying to send the transaction:
     /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
     /// `ReceiptNotFoundError` is treated as non-recoverable, and the transaction will be canceled using `cancel_create_new_task_tx` in that case.
     async fn create_new_task(
@@ -1388,10 +1389,10 @@ impl Batcher {
                     &self.payment_service_fallback,
                 )
             },
-            DEFAULT_MIN_RETRY_DELAY,
-            DEFAULT_BACKOFF_FACTOR,
-            DEFAULT_MAX_RETRIES,
-            DEFAULT_MAX_RETRY_DELAY,
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
         .await;
         match result {
@@ -1453,10 +1454,10 @@ impl Batcher {
                 )
                 .await
             },
-            DEFAULT_MIN_RETRY_DELAY,
-            DEFAULT_BACKOFF_FACTOR,
-            CANCEL_TRANSACTION_MAX_RETRIES,
-            DEFAULT_MAX_RETRY_DELAY,
+            BUMP_MIN_RETRY_DELAY,
+            BUMP_BACKOFF_FACTOR,
+            BUMP_MAX_RETRIES,
+            BUMP_MAX_RETRY_DELAY,
         )
         .await
         {
@@ -1550,7 +1551,7 @@ impl Batcher {
     }
 
     /// Gets the balance of user with address `addr` from Ethereum.
-    /// Retries on recoverable errors using exponential backoff up to `DEFAULT_MAX_RETRIES` times:
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
     /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs)
     /// Returns `None` if the balance couldn't be returned
     /// FIXME: This should return a `Result` instead.
@@ -1563,17 +1564,17 @@ impl Batcher {
                     addr,
                 )
             },
-            DEFAULT_MIN_RETRY_DELAY,
-            DEFAULT_BACKOFF_FACTOR,
-            DEFAULT_MAX_RETRIES,
-            DEFAULT_MAX_RETRY_DELAY,
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
         .await
         .ok()
     }
 
     /// Checks if the user's balance is unlocked for a given address.
-    /// Retries on recoverable errors using exponential backoff up to `DEFAULT_MAX_RETRIES` times:
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
     /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
     /// Returns `false` if an error occurs during the retries.
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
@@ -1585,10 +1586,10 @@ impl Batcher {
                     addr,
                 )
             },
-            DEFAULT_MIN_RETRY_DELAY,
-            DEFAULT_BACKOFF_FACTOR,
-            DEFAULT_MAX_RETRIES,
-            DEFAULT_MAX_RETRY_DELAY,
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
         .await
         else {
@@ -1599,7 +1600,7 @@ impl Batcher {
     }
 
     /// Uploads the batch to s3.
-    /// Retries on recoverable errors using exponential backoff up to `DEFAULT_MAX_RETRIES` times:
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
     /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
     async fn upload_batch_to_s3(
         &self,
@@ -1615,10 +1616,10 @@ impl Batcher {
                     &self.s3_bucket_name,
                 )
             },
-            DEFAULT_MIN_RETRY_DELAY,
-            DEFAULT_BACKOFF_FACTOR,
-            DEFAULT_MAX_RETRIES,
-            DEFAULT_MAX_RETRY_DELAY,
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
         .await
         .map_err(|e| BatcherError::BatchUploadError(e.to_string()))
