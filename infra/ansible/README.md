@@ -18,6 +18,8 @@ This will create the following files in `infra/ansible/playbooks/ini`
 
 Now you have to set those variables.
 
+<!-- TODO: Add info how to complete configuration files -->
+
 Deploy the Batcher:
 
 ```shell
