@@ -3,16 +3,17 @@ use crate::{
         batch::await_batch_verification,
         messaging::{receive, send_messages, ResponseStream},
         protocol::check_protocol_version,
-        serialization::cbor_serialize,
+        serialization::{cbor_deserialize, cbor_serialize},
     },
     core::{
         constants::{
             ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
             MAX_FEE_BATCH_PROOF_NUMBER, MAX_FEE_DEFAULT_PROOF_NUMBER,
         },
-        errors,
+        errors::{self, GetNonceError},
         types::{
-            AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
+            AlignedVerificationData, ClientMessage, GetNonceResponseMessage, Network,
+            PriceEstimate, ProvingSystemId, VerificationData,
         },
     },
     eth::{
@@ -38,7 +39,7 @@ use log::{debug, info};
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt, TryStreamExt,
+    SinkExt, StreamExt, TryFutureExt, TryStreamExt,
 };
 
 use serde_json::json;
@@ -54,7 +55,7 @@ use std::path::PathBuf;
 /// * `verification_data` - An array of verification data of each proof.
 /// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
+/// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
 /// * `payment_service_addr` - The address of the payment service contract.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
@@ -82,7 +83,7 @@ pub async fn submit_multiple_and_wait_verification(
     eth_rpc_url: &str,
     network: Network,
     verification_data: &[VerificationData],
-    max_fees: &[U256],
+    max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
@@ -90,7 +91,7 @@ pub async fn submit_multiple_and_wait_verification(
         batcher_url,
         network,
         verification_data,
-        max_fees,
+        max_fee,
         wallet,
         nonce,
     )
@@ -222,7 +223,7 @@ async fn fetch_gas_price(
 /// * `verification_data` - An array of verification data of each proof.
 /// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
+/// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -244,7 +245,7 @@ pub async fn submit_multiple(
     batcher_url: &str,
     network: Network,
     verification_data: &[VerificationData],
-    max_fees: &[U256],
+    max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
@@ -263,7 +264,7 @@ pub async fn submit_multiple(
         ws_read,
         network,
         verification_data,
-        max_fees,
+        max_fee,
         wallet,
         nonce,
     )
@@ -297,7 +298,7 @@ async fn _submit_multiple(
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     network: Network,
     verification_data: &[VerificationData],
-    max_fees: &[U256],
+    max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
@@ -332,7 +333,7 @@ async fn _submit_multiple(
             ws_write,
             payment_service_addr,
             verification_data,
-            max_fees,
+            max_fee,
             wallet,
             nonce,
         )
@@ -357,7 +358,7 @@ async fn _submit_multiple(
 /// * `verification_data` - The verification data of the proof.
 /// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
+/// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
 /// * `payment_service_addr` - The address of the payment service contract.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
@@ -391,14 +392,12 @@ pub async fn submit_and_wait_verification(
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
-    let max_fees = vec![max_fee];
-
     let aligned_verification_data = submit_multiple_and_wait_verification(
         batcher_url,
         eth_rpc_url,
         network,
         &verification_data,
-        &max_fees,
+        max_fee,
         wallet,
         nonce,
     )
@@ -420,7 +419,7 @@ pub async fn submit_and_wait_verification(
 /// * `verification_data` - The verification data of the proof.
 /// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
+/// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -447,13 +446,12 @@ pub async fn submit(
     nonce: U256,
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
-    let max_fees = vec![max_fee];
 
     let aligned_verification_data = submit_multiple(
         batcher_url,
         network,
         &verification_data,
-        &max_fees,
+        max_fee,
         wallet,
         nonce,
     )
@@ -553,38 +551,105 @@ pub fn get_vk_commitment(
     hasher.finalize().into()
 }
 
-/// Returns the next nonce for a given address.
+/// Returns the next nonce for a given address from the batcher.
+/// You should prefer this method instead of [`get_nonce_from_ethereum`] if you have recently sent proofs,
+/// as the batcher proofs might not yet be on ethereum,
+/// producing an out-of-sync nonce with the payment service contract on ethereum
 /// # Arguments
-/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
-/// * `submitter_addr` - The address of the proof submitter for which the nonce will be retrieved.
-/// * `payment_service_addr` - The address of the batcher payment service contract.
+/// * `batcher_url` - The batcher websocket url.
+/// * `address` - The user address for which the nonce will be retrieved.
 /// # Returns
 /// * The next nonce of the proof submitter account.
 /// # Errors
-/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
-/// * `EthereumCallError` if there is an error in the Ethereum call.
-pub async fn get_next_nonce(
+/// * `EthRpcError` if the batcher has an error in the Ethereum call when retrieving the nonce if not already cached.
+pub async fn get_nonce_from_batcher(
+    batcher_ws_url: &str,
+    address: Address,
+) -> Result<U256, GetNonceError> {
+    let (ws_stream, _) = connect_async(batcher_ws_url).await.map_err(|_| {
+        GetNonceError::ConnectionFailed("Ws connection to batcher failed".to_string())
+    })?;
+
+    debug!("WebSocket handshake has been successfully completed");
+    let (mut ws_write, mut ws_read) = ws_stream.split();
+    check_protocol_version(&mut ws_read)
+        .map_err(|e| match e {
+            errors::SubmitError::ProtocolVersionMismatch { current, expected } => {
+                GetNonceError::ProtocolMismatch { current, expected }
+            }
+            _ => GetNonceError::UnexpectedResponse(
+                "Unexpected response, expected protocol version".to_string(),
+            ),
+        })
+        .await?;
+
+    let msg = ClientMessage::GetNonceForAddress(address);
+
+    let msg_bin = cbor_serialize(&msg)
+        .map_err(|_| GetNonceError::SerializationError("Failed to serialize msg".to_string()))?;
+    ws_write
+        .send(Message::Binary(msg_bin.clone()))
+        .await
+        .map_err(|_| {
+            GetNonceError::ConnectionFailed(
+                "Ws connection failed to send message to batcher".to_string(),
+            )
+        })?;
+
+    let mut response_stream: ResponseStream =
+        ws_read.try_filter(|msg| futures_util::future::ready(msg.is_binary()));
+
+    let msg = match response_stream.next().await {
+        Some(Ok(msg)) => msg,
+        _ => {
+            return Err(GetNonceError::ConnectionFailed(
+                "Connection was closed without close message before receiving all messages"
+                    .to_string(),
+            ));
+        }
+    };
+
+    let _ = ws_write.close().await;
+
+    match cbor_deserialize(msg.into_data().as_slice()) {
+        Ok(GetNonceResponseMessage::Nonce(nonce)) => Ok(nonce),
+        Ok(GetNonceResponseMessage::EthRpcError(e)) => Err(GetNonceError::EthRpcError(e)),
+        Ok(GetNonceResponseMessage::InvalidRequest(e)) => Err(GetNonceError::InvalidRequest(e)),
+        Err(_) => Err(GetNonceError::SerializationError(
+            "Failed to deserialize batcher message".to_string(),
+        )),
+    }
+}
+
+/// Returns the next nonce for a given address in Ethereum from aligned payment service contract.
+/// Note that it might be out of sync if you recently sent proofs. For that see [`get_nonce_from_batcher`]
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// * `address` - The user address for which the nonce will be retrieved.
+/// # Returns
+/// * The next nonce of the proof submitter account from ethereum.
+/// # Errors
+/// * `EthRpcError` if the batcher has an error in the Ethereum call when retrieving the nonce if not already cached.
+pub async fn get_nonce_from_ethereum(
     eth_rpc_url: &str,
     submitter_addr: Address,
     network: Network,
-) -> Result<U256, errors::NonceError> {
+) -> Result<U256, GetNonceError> {
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
-        .map_err(|e| errors::NonceError::EthereumProviderError(e.to_string()))?;
+        .map_err(|e| GetNonceError::EthRpcError(e.to_string()))?;
 
     let payment_service_address = get_payment_service_address(network);
 
     match batcher_payment_service(eth_rpc_provider, payment_service_address).await {
         Ok(contract) => {
             let call = contract.user_nonces(submitter_addr);
-
             let result = call
                 .call()
                 .await
-                .map_err(|e| errors::NonceError::EthereumCallError(e.to_string()))?;
-
+                .map_err(|e| GetNonceError::EthRpcError(e.to_string()))?;
             Ok(result)
         }
-        Err(e) => Err(errors::NonceError::EthereumCallError(e.to_string())),
+        Err(e) => Err(GetNonceError::EthRpcError(e.to_string())),
     }
 }
 

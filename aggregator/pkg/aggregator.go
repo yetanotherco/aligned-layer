@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/prometheus/client_golang/prometheus"
+	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
 	sdkclients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -269,19 +271,14 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-	for i := 0; i < MaxSentTxRetries; i++ {
-		receipt, err := agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
-		if err == nil {
-			agg.telemetry.TaskSentToEthereum(batchData.BatchMerkleRoot, receipt.TxHash.String())
-			agg.logger.Info("Aggregator successfully responded to task",
-				"taskIndex", blsAggServiceResp.TaskIndex,
-				"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+	receipt, err := agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
+	if err == nil {
+		agg.telemetry.TaskSentToEthereum(batchData.BatchMerkleRoot, receipt.TxHash.String())
+		agg.logger.Info("Aggregator successfully responded to task",
+			"taskIndex", blsAggServiceResp.TaskIndex,
+			"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
-			return
-		}
-
-		// Sleep for a bit before retrying
-		time.Sleep(2 * time.Second)
+		return
 	}
 
 	agg.logger.Error("Aggregator failed to respond to task, this batch will be lost",
@@ -383,6 +380,30 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 	agg.taskMutex.Unlock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
 	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+}
+
+// |---RETRYABLE---|
+
+/*
+  - Errors:
+    Permanent:
+  - TaskAlreadyInitializedError (Permanent): Task is already intialized in the BLS Aggregation service (https://github.com/Layr-Labs/eigensdk-go/blob/dev/services/bls_aggregation/blsagg.go#L27).
+    Transient:
+  - All others.
+  - Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
+*/
+func (agg *Aggregator) InitializeNewTask(batchIndex uint32, taskCreatedBlock uint32, quorumNums eigentypes.QuorumNums, quorumThresholdPercentages eigentypes.QuorumThresholdPercentages, timeToExpiry time.Duration) error {
+	initilizeNewTask_func := func() error {
+		err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, timeToExpiry)
+		if err != nil {
+			// Task is already initialized
+			if strings.Contains(err.Error(), "already initialized") {
+				err = retry.PermanentError{Inner: err}
+			}
+		}
+		return err
+	}
+	return retry.Retry(initilizeNewTask_func, retry.MinDelayChain, retry.RetryFactor, retry.NumRetries, retry.MaxIntervalChain, retry.MaxElapsedTime)
 }
 
 // Long-lived goroutine that periodically checks and removes old Tasks from stored Maps

@@ -11,14 +11,14 @@ use futures_util::stream::{SplitSink, TryFilter};
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
 use crate::communication::serialization::{cbor_deserialize, cbor_serialize};
-use crate::core::types::BatchInclusionData;
+use crate::core::types::{BatchInclusionData, SubmitProofMessage};
 use crate::{
     communication::batch::process_batcher_response,
     core::{
         errors::SubmitError,
         types::{
-            AlignedVerificationData, ClientMessage, NoncedVerificationData, ResponseMessage,
-            VerificationData, VerificationDataCommitment,
+            AlignedVerificationData, ClientMessage, NoncedVerificationData,
+            SubmitProofResponseMessage, VerificationData, VerificationDataCommitment,
         },
     },
 };
@@ -36,7 +36,7 @@ pub async fn send_messages(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     payment_service_addr: Address,
     verification_data: &[VerificationData],
-    max_fees: &[U256],
+    max_fee: U256,
     wallet: Wallet<SigningKey>,
     mut nonce: U256,
 ) -> Vec<Result<NoncedVerificationData, SubmitError>> {
@@ -44,18 +44,20 @@ pub async fn send_messages(
     let mut ws_write = ws_write.lock().await;
     let mut sent_verification_data: Vec<Result<NoncedVerificationData, SubmitError>> = Vec::new();
 
-    for (idx, verification_data) in verification_data.iter().enumerate() {
+    for (idx, verification_data_i) in verification_data.iter().enumerate() {
         // Build each message to send
         let verification_data = NoncedVerificationData::new(
-            verification_data.clone(),
+            verification_data_i.clone(),
             nonce,
-            max_fees[idx],
+            max_fee,
             chain_id,
             payment_service_addr,
         );
 
         nonce += U256::one();
-        let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
+        let data = SubmitProofMessage::new(verification_data.clone(), wallet.clone()).await;
+        let msg = ClientMessage::SubmitProof(Box::new(data));
+
         let msg_bin = match cbor_serialize(&msg) {
             Ok(bin) => bin,
             Err(e) => {
@@ -168,49 +170,52 @@ pub async fn receive(
 async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, SubmitError> {
     let data = msg.into_data();
     match cbor_deserialize(data.as_slice()) {
-        Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
+        Ok(SubmitProofResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
             //OK case. Proofs was valid and it was included in this batch.
             Ok(batch_inclusion_data)
         }
-        Ok(ResponseMessage::InvalidNonce) => {
+        Ok(SubmitProofResponseMessage::InvalidNonce) => {
             error!("Batcher responded with invalid nonce");
             Err(SubmitError::InvalidNonce)
         }
-        Ok(ResponseMessage::InvalidSignature) => {
+        Ok(SubmitProofResponseMessage::InvalidSignature) => {
             error!("Batcher responded with invalid signature");
             Err(SubmitError::InvalidSignature)
         }
-        Ok(ResponseMessage::ProofTooLarge) => {
+        Ok(SubmitProofResponseMessage::ProofTooLarge) => {
             error!("Batcher responded with proof too large");
             Err(SubmitError::ProofTooLarge)
         }
-        Ok(ResponseMessage::InvalidMaxFee) => {
+        Ok(SubmitProofResponseMessage::InvalidMaxFee) => {
             error!("Batcher responded with invalid max fee");
             Err(SubmitError::InvalidMaxFee)
         }
-        Ok(ResponseMessage::InsufficientBalance(addr)) => {
+        Ok(SubmitProofResponseMessage::InsufficientBalance(addr)) => {
             error!("Batcher responded with insufficient balance");
             Err(SubmitError::InsufficientBalance(addr))
         }
-        Ok(ResponseMessage::InvalidChainId) => {
+        Ok(SubmitProofResponseMessage::InvalidChainId) => {
             error!("Batcher responded with invalid chain id");
             Err(SubmitError::InvalidChainId)
         }
-        Ok(ResponseMessage::InvalidReplacementMessage) => {
+        Ok(SubmitProofResponseMessage::InvalidReplacementMessage) => {
             error!("Batcher responded with invalid replacement message");
             Err(SubmitError::InvalidReplacementMessage)
         }
-        Ok(ResponseMessage::AddToBatchError) => {
+        Ok(SubmitProofResponseMessage::AddToBatchError) => {
             error!("Batcher responded with add to batch error");
             Err(SubmitError::AddToBatchError)
         }
-        Ok(ResponseMessage::EthRpcError) => {
+        Ok(SubmitProofResponseMessage::EthRpcError) => {
             error!("Batcher experienced Eth RPC connection error");
             Err(SubmitError::EthereumProviderError(
                 "Batcher experienced Eth RPC connection error".to_string(),
             ))
         }
-        Ok(ResponseMessage::InvalidPaymentServiceAddress(received_addr, expected_addr)) => {
+        Ok(SubmitProofResponseMessage::InvalidPaymentServiceAddress(
+            received_addr,
+            expected_addr,
+        )) => {
             error!(
                 "Batcher responded with invalid payment service address: {:?}, expected: {:?}",
                 received_addr, expected_addr
@@ -220,11 +225,11 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
                 expected_addr,
             ))
         }
-        Ok(ResponseMessage::InvalidProof(reason)) => {
+        Ok(SubmitProofResponseMessage::InvalidProof(reason)) => {
             error!("Batcher responded with invalid proof: {}", reason);
             Err(SubmitError::InvalidProof(reason))
         }
-        Ok(ResponseMessage::CreateNewTaskError(merkle_root, error)) => {
+        Ok(SubmitProofResponseMessage::CreateNewTaskError(merkle_root, error)) => {
             error!("Batcher responded with create new task error: {}", error);
             Err(SubmitError::BatchSubmissionFailed(
                 "Could not create task with merkle root ".to_owned()
@@ -233,18 +238,18 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
                     + &error,
             ))
         }
-        Ok(ResponseMessage::ProtocolVersion(_)) => {
+        Ok(SubmitProofResponseMessage::ProtocolVersion(_)) => {
             error!("Batcher responded with protocol version instead of batch inclusion data");
             Err(SubmitError::UnexpectedBatcherResponse(
                 "Batcher responded with protocol version instead of batch inclusion data"
                     .to_string(),
             ))
         }
-        Ok(ResponseMessage::BatchReset) => {
+        Ok(SubmitProofResponseMessage::BatchReset) => {
             error!("Batcher responded with batch reset");
             Err(SubmitError::ProofQueueFlushed)
         }
-        Ok(ResponseMessage::Error(e)) => {
+        Ok(SubmitProofResponseMessage::Error(e)) => {
             error!("Batcher responded with error: {}", e);
             Err(SubmitError::GenericError(e))
         }

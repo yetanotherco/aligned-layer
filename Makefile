@@ -147,6 +147,9 @@ aggregator_send_dummy_responses:
 	@echo "Sending dummy responses to Aggregator..."
 	@cd aggregator && go run dummy/submit_task_responses.go
 
+test_go_retries:
+	@cd core/ && \
+	go test -v -timeout 15m
 
 __OPERATOR__:
 
@@ -196,7 +199,7 @@ bindings:
 	cd contracts && ./generate-go-bindings.sh
 
 test:
-	go test ./...
+	go test ./... -timeout 15m
 
 
 get_delegation_manager_address:

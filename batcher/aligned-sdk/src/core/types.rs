@@ -220,9 +220,27 @@ impl BatchInclusionData {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClientMessage {
+pub struct SubmitProofMessage {
     pub verification_data: NoncedVerificationData,
     pub signature: Signature,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ClientMessage {
+    GetNonceForAddress(Address),
+    // Needs to be wrapped in box as the message is 3x bigger than the others
+    // see https://rust-lang.github.io/rust-clippy/master/index.html#large_enum_variant
+    SubmitProof(Box<SubmitProofMessage>),
+}
+
+impl Display for ClientMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // Use pattern matching to print the variant name
+        match self {
+            ClientMessage::GetNonceForAddress(_) => write!(f, "GetNonceForAddress"),
+            ClientMessage::SubmitProof(_) => write!(f, "SubmitProof"),
+        }
+    }
 }
 
 impl Eip712 for NoncedVerificationData {
@@ -275,7 +293,7 @@ impl Eip712 for NoncedVerificationData {
     }
 }
 
-impl ClientMessage {
+impl SubmitProofMessage {
     /// Client message is a wrap around verification data and its signature.
     /// The signature is obtained by calculating the commitments and then hashing them.
     pub async fn new(
@@ -287,7 +305,7 @@ impl ClientMessage {
             .await
             .expect("Failed to sign the verification data");
 
-        ClientMessage {
+        Self {
             verification_data,
             signature,
         }
@@ -352,7 +370,7 @@ impl Display for ProofInvalidReason {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ResponseMessage {
+pub enum SubmitProofResponseMessage {
     BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
     CreateNewTaskError(String, String), //merkle-root, error
@@ -369,6 +387,13 @@ pub enum ResponseMessage {
     AddToBatchError,
     EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GetNonceResponseMessage {
+    Nonce(U256),
+    EthRpcError(String),
+    InvalidRequest(String),
 }
 
 #[derive(Debug, Clone, Copy)]

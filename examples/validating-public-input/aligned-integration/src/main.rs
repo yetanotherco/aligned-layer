@@ -7,17 +7,17 @@ use std::str::FromStr;
 use aligned_sdk::core::errors::SubmitError;
 use aligned_sdk::core::types::Network;
 use aligned_sdk::core::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
+use aligned_sdk::sdk::{get_nonce_from_ethereum, submit_and_wait_verification};
 use clap::Parser;
 use clap::ValueEnum;
 use env_logger::Env;
+use ethers::prelude::*;
+use ethers::providers::{Http, Provider};
 use ethers::signers::{LocalWallet, Signer};
 use ethers::types::U256;
-use ethers::providers::{Http, Provider};
 use ethers::utils::hex;
 use log::info;
 use serde_json::json;
-use ethers::prelude::*;
 
 const PROOF_FILE_RISC0_PATH: &str =
     "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof";
@@ -66,7 +66,7 @@ async fn main() -> Result<(), SubmitError> {
     let args = Args::parse();
 
     let provider =
-    Provider::<Http>::try_from(args.rpc_url.as_str()).expect("Failed to connect to provider");
+        Provider::<Http>::try_from(args.rpc_url.as_str()).expect("Failed to connect to provider");
 
     let chain_id = provider
         .get_chainid()
@@ -128,7 +128,7 @@ async fn main() -> Result<(), SubmitError> {
     // Set a fee of 0.1 Eth
     let max_fee = U256::from(5) * U256::from(100_000_000_000_000_000u128);
 
-    let nonce = get_next_nonce(&args.rpc_url, wallet.address(), network)
+    let nonce = get_nonce_from_ethereum(&args.rpc_url, wallet.address(), network)
         .await
         .expect("Failed to get next nonce");
 
