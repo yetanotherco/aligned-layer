@@ -30,12 +30,14 @@ impl<E> RetryError<E> {
 
 impl<E: std::fmt::Display> std::error::Error for RetryError<E> where E: std::fmt::Debug {}
 
-// Supports retries only on async functions. See: https://docs.rs/backon/latest/backon/#retry-an-async-function
+/// Supports retries only on async functions. See: https://docs.rs/backon/latest/backon/#retry-an-async-function
+/// Runs with `jitter: false`.
 pub async fn retry_function<FutureFn, Fut, T, E>(
     function: FutureFn,
     min_delay: u64,
     factor: f32,
     max_times: usize,
+    max_delay: u64,
 ) -> Result<T, RetryError<E>>
 where
     Fut: Future<Output = Result<T, RetryError<E>>>,
@@ -44,7 +46,8 @@ where
     let backoff = ExponentialBuilder::default()
         .with_min_delay(Duration::from_millis(min_delay))
         .with_max_times(max_times)
-        .with_factor(factor);
+        .with_factor(factor)
+        .with_max_delay(Duration::from_secs(max_delay));
 
     function
         .retry(backoff)
