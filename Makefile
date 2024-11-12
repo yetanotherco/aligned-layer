@@ -470,7 +470,7 @@ task_sender_fund_wallets_devnet:
 	--amount-to-deposit-to-aligned 0.9999 \
 	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
 
-task_sender_infinite_proofs_devnet:
+task_sender_send_infinite_proofs_devnet:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
@@ -498,7 +498,7 @@ task_sender_generate_and_fund_wallets_holesky_stage:
 	--amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
 	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
 
-task_sender_infinite_proofs_holesky_stage:
+task_sender_send_infinite_proofs_holesky_stage:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \

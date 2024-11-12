@@ -69,10 +69,10 @@ cargo run --release -- send-infinite-proofs \
 
 We also have the following related make targets
 ```bash
-BURST_SIZE=<N> BURST_TIME_SECS=<N> make task_sender_infinite_proofs_devnet
+BURST_SIZE=<N> BURST_TIME_SECS=<N> make task_sender_send_infinite_proofs_devnet
 ```
 ```bash
-BURST_SIZE=<N> BURST_TIME_SECS=<N> make task_sender_infinite_proofs_holesky_stage
+BURST_SIZE=<N> BURST_TIME_SECS=<N> make task_sender_send_infinite_proofs_holesky_stage
 ```
 
 ## TestConnections
