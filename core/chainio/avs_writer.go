@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/metrics"
 )
 
 type AvsWriter struct {
@@ -25,6 +26,7 @@ type AvsWriter struct {
 	Signer              signer.Signer
 	Client              eth.InstrumentedClient
 	ClientFallback      eth.InstrumentedClient
+	metrics             *metrics.Metrics
 }
 
 func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig) (*AvsWriter, error) {
@@ -75,6 +77,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts.NoSend = true // simulate the transaction
 	tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
+		w.metrics.IncAggregatedResponses()
 		// Retry with fallback
 		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
@@ -128,7 +131,10 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bin
 	w.logger.Info("Batch RespondToTaskFeeLimit", "RespondToTaskFeeLimit", respondToTaskFeeLimit)
 
 	if respondToTaskFeeLimit.Cmp(simulatedCost) < 0 {
-		return fmt.Errorf("cost of transaction is higher than Batch.RespondToTaskFeeLimit")
+		a, _ := respondToTaskFeeLimit.Sub(big.NewInt(0), simulatedCost).Float64()
+		w.metrics.AddAccumulatedGasPayedAggregator(a)
+		w.metrics.IncAggregatorAccumResponse()
+		w.logger.Warn("cost of transaction is higher than Batch.RespondToTaskFeeLimit, aggregator will pay the for the difference")
 	}
 
 	return w.compareBalances(respondToTaskFeeLimit, aggregatorAddress, senderAddress)
