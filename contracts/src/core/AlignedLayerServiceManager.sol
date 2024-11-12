@@ -192,14 +192,12 @@ contract AlignedLayerServiceManager is
         uint256 txCost = (initialGasLeft - gasleft() + 70_000) * tx.gasprice;
 
         if (txCost > currentBatch.respondToTaskFeeLimit) {
-            revert ExceededMaxRespondFee(
-                currentBatch.respondToTaskFeeLimit,
-                txCost
-            );
+            // Subtract the txCost from the batcher's balance
+            batchersBalances[senderAddress] -= currentBatch.respondToTaskFeeLimit;
+        } else {
+            batchersBalances[senderAddress] -= txCost;
         }
 
-        // Subtract the txCost from the batcher's balance
-        batchersBalances[senderAddress] -= txCost;
         emit BatcherBalanceUpdated(
             senderAddress,
             batchersBalances[senderAddress]
