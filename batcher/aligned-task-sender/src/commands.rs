@@ -1,5 +1,5 @@
 use aligned_sdk::core::types::{Network, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{deposit_to_aligned, get_next_nonce, submit_multiple};
+use aligned_sdk::sdk::{deposit_to_aligned, get_nonce_from_ethereum, submit_multiple};
 use ethers::prelude::*;
 use ethers::utils::parse_ether;
 use futures_util::StreamExt;
@@ -324,7 +324,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
 
         // a thread to send tasks from each loaded wallet:
         let handle = tokio::spawn(async move {
-            let mut nonce = get_next_nonce(&eth_rpc_url, wallet.address(), args.network.into())
+            let mut nonce = get_nonce_from_ethereum(&eth_rpc_url, wallet.address(), args.network.into())
                 .await
                 .inspect_err(|e| {
                     error!(
@@ -336,7 +336,6 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                 .unwrap();
 
             loop {
-                let max_fees = vec![max_fee; args.burst_size];
 
                 let mut result = Vec::with_capacity(args.burst_size);
                 while result.len() < args.burst_size {
@@ -356,7 +355,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                     &batcher_url.clone(),
                     args.network.into(),
                     &verification_data_to_send.clone(),
-                    &max_fees,
+                    max_fee,
                     wallet.clone(),
                     nonce,
                 )
@@ -365,7 +364,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                 for aligned_verification_data in aligned_verification_data {
                     match aligned_verification_data {
                         Ok(_) => {
-                            info!("Responses received for sender {}", i);
+                            debug!("Response received for sender {}", i);
                             nonce += U256::from(1);
                         }
                         Err(e) => {
@@ -376,6 +375,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                         }
                     }
                 }
+                info!("All responses received for sender {}", i);
 
                 tokio::time::sleep(Duration::from_secs(args.burst_time_secs)).await;
             }
