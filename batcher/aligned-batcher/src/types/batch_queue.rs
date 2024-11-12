@@ -622,6 +622,7 @@ mod test {
 
         let gas_price = U256::from(1);
 
+        // The max batch len is 2, so the algorithm should stop at the second entry.
         let max_batch_len = 2;
 
         let (resulting_batch_queue, finalized_batch) =
