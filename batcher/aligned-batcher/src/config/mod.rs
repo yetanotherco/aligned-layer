@@ -41,6 +41,7 @@ pub struct BatcherConfigFromYaml {
     pub transaction_wait_timeout: u64,
     pub max_proof_size: usize,
     pub max_batch_size: usize,
+    pub max_batch_len: usize,
     pub pre_verification_is_enabled: bool,
     pub metrics_port: u16,
     pub telemetry_ip_port_address: String,
