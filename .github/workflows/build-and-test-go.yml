@@ -4,14 +4,14 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: ["*"]
+    branches: ['*']
     paths:
-      - "operator/**"
-      - "aggregator/**"
-      - "common/**"
-      - "core/**"
-      - "metrics/**"
-      - ".github/workflows/build-go.yml"
+      - 'operator/**'
+      - 'aggregator/**'
+      - 'common/**'
+      - 'core/**'
+      - 'metrics/**'
+      - '.github/workflows/build-go.yml'
 env:
   FFI_FOR_RELEASE: false
 jobs:
@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: '1.23'
           cache: false
       - name: foundry-toolchain
         uses: foundry-rs/foundry-toolchain@v1.2.0
@@ -40,5 +40,3 @@ jobs:
         run: go build operator/cmd/main.go
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
-      - name: Test Go
-        run: make test

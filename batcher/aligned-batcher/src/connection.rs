@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::types::{batch_queue::BatchQueueEntry, errors::BatcherError};
 use aligned_sdk::{
     communication::serialization::cbor_serialize,
-    core::types::{BatchInclusionData, ResponseMessage, VerificationCommitmentBatch},
+    core::types::{BatchInclusionData, SubmitProofResponseMessage, VerificationCommitmentBatch},
 };
 use futures_util::{stream::SplitSink, SinkExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
@@ -27,7 +27,7 @@ pub(crate) async fn send_batch_inclusion_data_responses(
             batch_merkle_tree,
             entry.nonced_verification_data.nonce,
         );
-        let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
+        let response = SubmitProofResponseMessage::BatchInclusionData(batch_inclusion_data);
 
         let serialized_response = cbor_serialize(&response)
             .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
