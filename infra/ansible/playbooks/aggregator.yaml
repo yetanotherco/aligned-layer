@@ -89,9 +89,8 @@
         ecdsa_private_key_store_password: "{{ lookup('ini', 'ecdsa_private_key_store_password', file='ini/config-aggregator.ini') }}"
         bls_private_key_store_path: "{{ lookup('ini', 'bls_private_key_store_path', file='ini/config-aggregator.ini') }}"
         bls_private_key_store_password: "{{ lookup('ini', 'bls_private_key_store_password', file='ini/config-aggregator.ini') }}"
-        bls_public_key_compendium_address: "{{ lookup('ini', 'bls_public_key_compendium_address', file='ini/config-aggregator.ini') }}"
-        avs_service_manager_address: "{{ lookup('ini', 'avs_service_manager_address', file='ini/config-aggregator.ini') }}"
         enable_metrics: "{{ lookup('ini', 'enable_metrics', file='ini/config-aggregator.ini') }}"
+        metrics_ip_port_address: "{{ lookup('ini', 'metrics_ip_port_address', file='ini/config-aggregator.ini') }}"
 
     - name: Allow access to tcp port 8090
       become: true

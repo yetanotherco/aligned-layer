@@ -9,6 +9,5 @@ ecdsa_private_key_store_path=
 ecdsa_private_key_store_password=
 bls_private_key_store_path=
 bls_private_key_store_password=
-bls_public_key_compendium_address=
-avs_service_manager_address=
 enable_metrics=
+metrics_ip_port_address=
