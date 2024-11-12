@@ -23,7 +23,7 @@ use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CANCEL_TRANSACTION_MAX_RETRIES,
     CONSTANT_GAS_COST, DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_FEE_PER_PROOF, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
-    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
+    GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
@@ -672,7 +672,20 @@ impl Batcher {
             return Ok(());
         };
 
-        if !self.check_min_balance(proofs_in_batch + 1, user_balance) {
+        let msg_max_fee = nonced_verification_data.max_fee;
+        let Some(user_min_fee) = batch_state_lock.get_user_min_fee(&addr).await else {
+            std::mem::drop(batch_state_lock);
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidNonce,
+            )
+            .await;
+            self.metrics.user_error(&["invalid_nonce", ""]);
+            return Ok(());
+        };
+
+        // We estimate the min balance to be the minimum balance needed to pay for the 
+        if !self.check_min_balance( user_min_fee, proofs_in_batch + 1, user_balance, msg_max_fee) {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
@@ -724,18 +737,6 @@ impl Batcher {
             return Ok(());
         }
 
-        let msg_max_fee = nonced_verification_data.max_fee;
-        let Some(user_min_fee) = batch_state_lock.get_user_min_fee(&addr).await else {
-            std::mem::drop(batch_state_lock);
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidNonce,
-            )
-            .await;
-            self.metrics.user_error(&["invalid_nonce", ""]);
-            return Ok(());
-        };
-
         if msg_max_fee > user_min_fee {
             std::mem::drop(batch_state_lock);
             warn!("Invalid max fee for address {addr}, had fee {user_min_fee:?} < {msg_max_fee:?}");
@@ -778,8 +779,14 @@ impl Batcher {
     }
 
     // Checks user has sufficient balance for paying all its the proofs in the current batch.
-    fn check_min_balance(&self, user_proofs_in_batch: usize, user_balance: U256) -> bool {
-        let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_FEE_PER_PROOF);
+    fn check_min_balance(&self, user_min_fee: U256, user_proofs_in_batch: usize, user_balance: U256, user_max_fee: U256) -> bool {
+        // If user proof has not been submitted yet its default is U256::max_value().
+        // In this case we check the user can pay for its proof.
+        let mut min_fee = user_min_fee;
+        if user_min_fee == U256::max_value() {
+            min_fee = user_max_fee
+        }
+        let min_balance: U256 = U256::from(user_proofs_in_batch) * min_fee;
         user_balance >= min_balance
     }
 
