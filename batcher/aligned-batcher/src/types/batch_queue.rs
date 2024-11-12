@@ -157,7 +157,10 @@ pub(crate) fn try_build_batch(
         let batch_len = batch_queue.len();
         let fee_per_proof = calculate_fee_per_proof(batch_len, gas_price);
 
-        if batch_size > max_batch_size || fee_per_proof > entry.nonced_verification_data.max_fee || batch_len > max_batch_len {
+        if batch_size > max_batch_size
+            || fee_per_proof > entry.nonced_verification_data.max_fee
+            || batch_len > max_batch_len
+        {
             // Update the state for the next iteration:
             // * Subtract this entry size to the size of the batch size.
             // * Push the current entry to the resulting batch queue.
@@ -639,5 +642,4 @@ mod test {
             max_fee_1
         );
     }
-
 }

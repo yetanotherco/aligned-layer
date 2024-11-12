@@ -1049,21 +1049,25 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
         let batch_queue_copy = batch_state_lock.batch_queue.clone();
-        let (resulting_batch_queue, finalized_batch) =
-            batch_queue::try_build_batch(batch_queue_copy, gas_price, self.max_batch_size, self.max_batch_len)
-                .inspect_err(|e| {
-                    *batch_posting = false;
-                    match e {
-                        // We can't post a batch since users are not willing to pay the needed fee, wait for more proofs
-                        BatcherError::BatchCostTooHigh => {
-                            info!("No working batch found. Waiting for more proofs")
-                        }
-                        // FIXME: We should refactor this code and instead of returning None, return an error.
-                        // See issue https://github.com/yetanotherco/aligned_layer/issues/1046.
-                        e => error!("Unexpected error: {:?}", e),
-                    }
-                })
-                .ok()?;
+        let (resulting_batch_queue, finalized_batch) = batch_queue::try_build_batch(
+            batch_queue_copy,
+            gas_price,
+            self.max_batch_size,
+            self.max_batch_len,
+        )
+        .inspect_err(|e| {
+            *batch_posting = false;
+            match e {
+                // We can't post a batch since users are not willing to pay the needed fee, wait for more proofs
+                BatcherError::BatchCostTooHigh => {
+                    info!("No working batch found. Waiting for more proofs")
+                }
+                // FIXME: We should refactor this code and instead of returning None, return an error.
+                // See issue https://github.com/yetanotherco/aligned_layer/issues/1046.
+                e => error!("Unexpected error: {:?}", e),
+            }
+        })
+        .ok()?;
 
         batch_state_lock.batch_queue = resulting_batch_queue;
         let updated_user_proof_count_and_min_fee =
