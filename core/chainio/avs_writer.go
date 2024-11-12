@@ -142,7 +142,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		return nil, fmt.Errorf("transaction failed")
 	}
 
-	return retry.RetryWithData(respondToTaskV2Func, 1000, 2, 0, 60000, retry.MaxElapsedTime)
+	return retry.RetryWithData(respondToTaskV2Func, retry.MinDelay, retry.RetryFactor, 0, retry.MaxInterval, 0)
 }
 
 func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {

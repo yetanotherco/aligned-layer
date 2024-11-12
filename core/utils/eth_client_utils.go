@@ -15,11 +15,14 @@ import (
 // WaitForTransactionReceiptRetryable repeatedly attempts to fetch the transaction receipt for a given transaction hash.
 // If the receipt is not found, the function will retry with exponential backoff until the specified `waitTimeout` duration is reached.
 // If the receipt is still unavailable after `waitTimeout`, it will return an error.
+//
+// Note: The `time.Second * 2` is set as the max interval in the retry mechanism because we can't reliably measure the specific time the tx will be included in a block.
+// Setting a higher value will imply doing less retries across the waitTimeout and so we might lose the receipt
 func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash, waitTimeout time.Duration) (*types.Receipt, error) {
 	receipt_func := func() (*types.Receipt, error) {
 		return client.TransactionReceipt(ctx, txHash)
 	}
-	return retry.RetryWithData(receipt_func, retry.MinDelay, retry.RetryFactor, 0, retry.MaxInterval, waitTimeout)
+	return retry.RetryWithData(receipt_func, retry.MinDelay, retry.RetryFactor, 0, time.Second*2, waitTimeout)
 }
 
 func BytesToQuorumNumbers(quorumNumbersBytes []byte) eigentypes.QuorumNums {
