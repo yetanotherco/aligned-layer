@@ -26,7 +26,7 @@ pub const MAX_FEE_BATCH_PROOF_NUMBER: usize = 32;
 /// This corresponds to the number of proofs to compute for a default max_fee.
 pub const MAX_FEE_DEFAULT_PROOF_NUMBER: usize = 10;
 
-/// ethereum calls retry constants
+/// Ethereum calls retry constants
 pub const ETHEREUM_CALL_MIN_RETRY_DELAY: u64 = 500; // milliseconds
 pub const ETHEREUM_CALL_MAX_RETRIES: usize = 5;
 pub const ETHEREUM_CALL_BACKOFF_FACTOR: f32 = 2.0;
