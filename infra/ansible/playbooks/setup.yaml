@@ -1,0 +1,55 @@
+- hosts: "{{ host }}"
+
+  tasks:
+    # Install required packages
+    - name: Update apt and install required system packages
+      become: true
+      apt:
+        pkg:
+          - curl
+          - vim
+          - git
+          - ufw
+          - make
+          - gcc
+        state: latest
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    # Allow SSH connections and deny by default
+    - name: UFW - Allow SSH connections
+      become: true
+      community.general.ufw:
+        rule: allow
+        name: OpenSSH
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: UFW - Enable and deny by default
+      become: true
+      community.general.ufw:
+        state: enabled
+        default: deny
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    # Create basic directories
+    - name: Create basic directories if do not exist
+      ansible.builtin.file:
+        path: /home/{{ ansible_user }}/{{ item }}
+        state: directory
+        mode: '0755'
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+      loop:
+        - repos
+        - config
+        - services
+        - .keystores
+
+    - name: Enable linger for {{ ansible_user }}
+      become: true
+      shell: loginctl enable-linger {{ ansible_user }}
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"

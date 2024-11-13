@@ -26,6 +26,9 @@ type AggregatorConfig struct {
 		GarbageCollectorTasksInterval uint64
 		BlsServiceTaskTimeout         time.Duration
 		PendingBatchFetchBlockRange   uint64
+		GasBaseBumpPercentage         uint
+		GasBumpIncrementalPercentage  uint
+		TimeToWaitBeforeBump          time.Duration
 	}
 }
 
@@ -42,6 +45,9 @@ type AggregatorConfigFromYaml struct {
 		GarbageCollectorTasksInterval uint64         `yaml:"garbage_collector_tasks_interval"`
 		BlsServiceTaskTimeout         time.Duration  `yaml:"bls_service_task_timeout"`
 		PendingBatchFetchBlockRange   uint64         `yaml:"pending_batch_fetch_block_range"`
+		GasBaseBumpPercentage         uint           `yaml:"gas_base_bump_percentage"`
+		GasBumpIncrementalPercentage  uint           `yaml:"gas_bump_incremental_percentage"`
+		TimeToWaitBeforeBump          time.Duration  `yaml:"time_to_wait_before_bump"`
 	} `yaml:"aggregator"`
 }
 
@@ -88,6 +94,9 @@ func NewAggregatorConfig(configFilePath string) *AggregatorConfig {
 			GarbageCollectorTasksInterval uint64
 			BlsServiceTaskTimeout         time.Duration
 			PendingBatchFetchBlockRange   uint64
+			GasBaseBumpPercentage         uint
+			GasBumpIncrementalPercentage  uint
+			TimeToWaitBeforeBump          time.Duration
 		}(aggregatorConfigFromYaml.Aggregator),
 	}
 }

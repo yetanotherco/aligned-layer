@@ -1,0 +1,30 @@
+# Common variables for all the services
+# 'production' only prints info and above. 'development' also prints debug
+environment: "production"
+aligned_layer_deployment_config_file_path: "{{ aligned_layer_deployment_config_file_path }}"
+eigen_layer_deployment_config_file_path: "{{ eigen_layer_deployment_config_file_path }}"
+eth_rpc_url: "{{ eth_rpc_url }}"
+eth_rpc_url_fallback: "{{ eth_rpc_url_fallback }}"
+eth_ws_url: "{{ eth_ws_url }}"
+eth_ws_url_fallback: "{{ eth_ws_url_fallback }}"
+eigen_metrics_ip_port_address: "localhost:9090"
+
+## ECDSA Configurations
+ecdsa:
+  private_key_store_path: "{{ ecdsa_private_key_store_path }}"
+  private_key_store_password: "{{ ecdsa_private_key_store_password }}"
+
+## Batcher configurations
+batcher:
+  block_interval: 3
+  batch_size_interval: 10
+  transaction_wait_timeout: 36000 # 3 blocks
+  max_proof_size: 67108864 # 64 MiB
+  max_batch_size: 268435456 # 256 MiB
+  pre_verification_is_enabled: true
+  eth_ws_reconnects: 99999999999999
+  metrics_port: 9093
+  telemetry_ip_port_address: {{ telemetry_ip_port_address }}
+  non_paying:
+    address: 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 # Anvil address 9
+    replacement_private_key: {{ batcher_replacement_private_key }}
