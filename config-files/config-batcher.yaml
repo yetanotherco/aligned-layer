@@ -18,6 +18,7 @@ ecdsa:
 batcher:
   block_interval: 3
   batch_size_interval: 10
+  transaction_wait_timeout: 36000 # 3 blocks
   max_proof_size: 67108864 # 64 MiB
   max_batch_size: 268435456 # 256 MiB
   pre_verification_is_enabled: true

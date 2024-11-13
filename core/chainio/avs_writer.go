@@ -73,13 +73,9 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*common.Hash, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
-	tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
-		// Retry with fallback
-		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-		if err != nil {
-			return nil, fmt.Errorf("transaction simulation failed: %v", err)
-		}
+		return nil, err
 	}
 
 	err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
@@ -90,13 +86,9 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	// Send the transaction
 	txOpts.NoSend = false
 	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
-	tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	tx, err = w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
-		// Retry with fallback
-		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	txHash := tx.Hash()
@@ -110,17 +102,13 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bin
 	w.logger.Info("Simulated cost", "cost", simulatedCost)
 
 	// Get RespondToTaskFeeLimit
-	batchState, err := w.AvsContractBindings.ServiceManager.BatchesState(&bind.CallOpts{}, batchIdentifierHash)
+	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
 	if err != nil {
-		// Retry with fallback
-		batchState, err = w.AvsContractBindings.ServiceManagerFallback.BatchesState(&bind.CallOpts{}, batchIdentifierHash)
-		if err != nil {
-			// Fallback also failed
-			// Proceed to check values against simulated costs
-			w.logger.Error("Failed to get batch state", "error", err)
-			w.logger.Info("Proceeding with simulated cost checks")
-			return w.compareBalances(simulatedCost, aggregatorAddress, senderAddress)
-		}
+		// Fallback also failed
+		// Proceed to check values against simulated costs
+		w.logger.Error("Failed to get batch state", "error", err)
+		w.logger.Info("Proceeding with simulated cost checks")
+		return w.compareBalances(simulatedCost, aggregatorAddress, senderAddress)
 	}
 	// At this point, batchState was successfully retrieved
 	// Proceed to check values against RespondToTaskFeeLimit
@@ -147,15 +135,12 @@ func (w *AvsWriter) compareBalances(amount *big.Int, aggregatorAddress common.Ad
 func (w *AvsWriter) compareAggregatorBalance(amount *big.Int, aggregatorAddress common.Address) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	// Get Agg wallet balance
-	aggregatorBalance, err := w.Client.BalanceAt(ctx, aggregatorAddress, nil)
+
+	aggregatorBalance, err := w.BalanceAtRetryable(ctx, aggregatorAddress, nil)
 	if err != nil {
-		aggregatorBalance, err = w.ClientFallback.BalanceAt(ctx, aggregatorAddress, nil)
-		if err != nil {
-			// Ignore and continue.
-			w.logger.Error("failed to get aggregator balance: %v", err)
-			return nil
-		}
+		// Ignore and continue.
+		w.logger.Error("failed to get aggregator balance: %v", err)
+		return nil
 	}
 	w.logger.Info("Aggregator balance", "balance", aggregatorBalance)
 	if aggregatorBalance.Cmp(amount) < 0 {
@@ -166,14 +151,11 @@ func (w *AvsWriter) compareAggregatorBalance(amount *big.Int, aggregatorAddress 
 
 func (w *AvsWriter) compareBatcherBalance(amount *big.Int, senderAddress [20]byte) error {
 	// Get batcher balance
-	batcherBalance, err := w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
+	batcherBalance, err := w.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
 	if err != nil {
-		batcherBalance, err = w.AvsContractBindings.ServiceManagerFallback.BatchersBalances(&bind.CallOpts{}, senderAddress)
-		if err != nil {
-			// Ignore and continue.
-			w.logger.Error("Failed to get batcherBalance", "error", err)
-			return nil
-		}
+		// Ignore and continue.
+		w.logger.Error("Failed to get batcherBalance", "error", err)
+		return nil
 	}
 	w.logger.Info("Batcher balance", "balance", batcherBalance)
 	if batcherBalance.Cmp(amount) < 0 {
