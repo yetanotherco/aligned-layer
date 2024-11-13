@@ -13,11 +13,13 @@ import (
 )
 
 type Metrics struct {
-	ipPortAddress              string
-	logger                     logging.Logger
-	numAggregatedResponses     prometheus.Counter
-	numAggregatorReceivedTasks prometheus.Counter
-	numOperatorTaskResponses   prometheus.Counter
+	ipPortAddress               string
+	logger                      logging.Logger
+	numAggregatedResponses      prometheus.Counter
+	numAggregatorReceivedTasks  prometheus.Counter
+	numOperatorTaskResponses    prometheus.Counter
+	accumulatedGasPriceSpent    prometheus.Gauge
+	numAccumulatedGasPriceSpent prometheus.Counter
 }
 
 const alignedNamespace = "aligned"
@@ -39,6 +41,16 @@ func NewMetrics(ipPortAddress string, reg prometheus.Registerer, logger logging.
 		numAggregatorReceivedTasks: promauto.With(reg).NewCounter(prometheus.CounterOpts{
 			Namespace: alignedNamespace,
 			Name:      "aggregator_received_tasks",
+			Help:      "Number of tasks received by the Service Manager",
+		}),
+		accumulatedGasPriceSpent: promauto.With(reg).NewGauge(prometheus.GaugeOpts{
+			Namespace: alignedNamespace,
+			Name:      "aggregator_accumulated_gas_price_payed",
+			Help:      "Number of tasks received by the Service Manager",
+		}),
+		numAccumulatedGasPriceSpent: promauto.With(reg).NewCounter(prometheus.CounterOpts{
+			Namespace: alignedNamespace,
+			Name:      "aggregator_number_accumulated_gas_price_payed",
 			Help:      "Number of tasks received by the Service Manager",
 		}),
 	}
@@ -85,4 +97,12 @@ func (m *Metrics) IncAggregatedResponses() {
 
 func (m *Metrics) IncOperatorTaskResponses() {
 	m.numOperatorTaskResponses.Inc()
+}
+
+func (m *Metrics) IncAggregatorAccumResponse() {
+	m.numAccumulatedGasPriceSpent.Inc()
+}
+
+func (m *Metrics) AddAccumulatedGasPayedAggregator(value float64) {
+	m.accumulatedGasPriceSpent.Add(value)
 }
