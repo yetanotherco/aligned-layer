@@ -1,6 +1,5 @@
 /// Batcher ///
 pub const GAS_PRICE_INCREMENT_PERCENTAGE_PER_ITERATION: usize = 5;
-pub const CANCEL_TRANSACTION_MAX_RETRIES: usize = 33; // ~ 1 day
 pub const AGGREGATOR_GAS_COST: u128 = 400_000;
 pub const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
 pub const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
@@ -27,8 +26,14 @@ pub const MAX_FEE_BATCH_PROOF_NUMBER: usize = 32;
 /// This corresponds to the number of proofs to compute for a default max_fee.
 pub const MAX_FEE_DEFAULT_PROOF_NUMBER: usize = 10;
 
-/// retry
-pub const DEFAULT_MIN_RETRY_DELAY: u64 = 500; // milliseconds
-pub const DEFAULT_MAX_RETRIES: usize = 5;
-pub const DEFAULT_BACKOFF_FACTOR: f32 = 2.0;
-pub const DEFAULT_MAX_RETRY_DELAY: u64 = 3600; // seconds
+/// Ethereum calls retry constants
+pub const ETHEREUM_CALL_MIN_RETRY_DELAY: u64 = 500; // milliseconds
+pub const ETHEREUM_CALL_MAX_RETRIES: usize = 5;
+pub const ETHEREUM_CALL_BACKOFF_FACTOR: f32 = 2.0;
+pub const ETHEREUM_CALL_MAX_RETRY_DELAY: u64 = 3600; // seconds
+
+/// Ethereum transaction retry constants
+pub const BUMP_MIN_RETRY_DELAY: u64 = 500; // milliseconds
+pub const BUMP_MAX_RETRIES: usize = 33; // ~ 1 day
+pub const BUMP_BACKOFF_FACTOR: f32 = 2.0;
+pub const BUMP_MAX_RETRY_DELAY: u64 = 3600; // seconds
