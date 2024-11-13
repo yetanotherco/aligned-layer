@@ -112,6 +112,8 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			onGasPriceBumped(txOpts.GasPrice)
 		}
 
+		// We compare both Aggregator funds and Batcher balance in Aligned against respondToTaskFeeLimit
+		// Both are required to have some balance, more details inside the function
 		err = w.checkAggAndBatcherHaveEnoughBalance(tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
 			return nil, retry.PermanentError{Inner: err}
@@ -154,9 +156,8 @@ func (w *AvsWriter) checkIfAggregatorHadToPaidForBatcher(tx *types.Transaction, 
 	}
 	respondToTaskFeeLimit := batchState.RespondToTaskFeeLimit
 
+	// NOTE we are not using tx.Cost() because tx.Cost() includes tx.Value()
 	txCost := new(big.Int).Mul(big.NewInt(int64(tx.Gas())), tx.GasPrice())
-	// todo: 70_000 should come from the config or at least be a constant
-	txCost = txCost.Add(txCost, big.NewInt(70_0000))
 
 	if respondToTaskFeeLimit.Cmp(txCost) < 0 {
 		aggregatorDifferencePaid := new(big.Int).Sub(txCost, respondToTaskFeeLimit)
@@ -164,7 +165,6 @@ func (w *AvsWriter) checkIfAggregatorHadToPaidForBatcher(tx *types.Transaction, 
 		w.metrics.AddAggregatorGasPaidForBatcher(aggregatorDifferencePaidInEth)
 		w.metrics.IncAggregatorPaidForBatcher()
 		w.logger.Warnf("cost of transaction was higher than Batch.RespondToTaskFeeLimit, aggregator has paid the for the difference, aprox: %vethers", aggregatorDifferencePaidInEth)
-		return
 	}
 }
 
@@ -182,6 +182,9 @@ func (w *AvsWriter) checkAggAndBatcherHaveEnoughBalance(tx *types.Transaction, t
 	}
 	respondToTaskFeeLimit := batchState.RespondToTaskFeeLimit
 	w.logger.Info("Checking balance against Batch RespondToTaskFeeLimit", "RespondToTaskFeeLimit", respondToTaskFeeLimit)
+	// Note: we compare both Aggregator funds and Batcher balance in Aligned against respondToTaskFeeLimit
+		// Batcher will pay up to respondToTaskFeeLimit, for this he needs that amount of funds in Aligned
+		// Aggregator will pay any extra cost, for this he needs at least respondToTaskFeeLimit in his balance
 	return w.compareBalances(respondToTaskFeeLimit, aggregatorAddress, senderAddress)
 }
 
