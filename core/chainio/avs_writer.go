@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 	"github.com/yetanotherco/aligned_layer/metrics"
 )
 
@@ -29,7 +30,7 @@ type AvsWriter struct {
 	metrics             *metrics.Metrics
 }
 
-func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig) (*AvsWriter, error) {
+func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig, metrics *metrics.Metrics) (*AvsWriter, error) {
 
 	buildAllConfig := clients.BuildAllConfig{
 		EthHttpUrl:                 baseConfig.EthRpcUrl,
@@ -69,6 +70,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 		Signer:              privateKeySigner,
 		Client:              baseConfig.EthRpcClient,
 		ClientFallback:      baseConfig.EthRpcClientFallback,
+		metrics:             metrics,
 	}, nil
 }
 
@@ -131,10 +133,11 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bin
 	w.logger.Info("Batch RespondToTaskFeeLimit", "RespondToTaskFeeLimit", respondToTaskFeeLimit)
 
 	if respondToTaskFeeLimit.Cmp(simulatedCost) < 0 {
-		a, _ := respondToTaskFeeLimit.Sub(big.NewInt(0), simulatedCost).Float64()
-		w.metrics.AddAccumulatedGasPayedAggregator(a)
+		aggregatorDifferenceToPay := new(big.Int).Sub(simulatedCost, respondToTaskFeeLimit)
+		aggregatorDifferenceToPayInEth, _ := utils.WeiToEth(aggregatorDifferenceToPay).Float64()
+		w.metrics.AddAccumulatedGasPayedAggregator(aggregatorDifferenceToPayInEth)
 		w.metrics.IncAggregatorAccumResponse()
-		w.logger.Warn("cost of transaction is higher than Batch.RespondToTaskFeeLimit, aggregator will pay the for the difference")
+		w.logger.Warn("cost of transaction is higher than Batch.RespondToTaskFeeLimit, aggregator will pay the for the difference, aprox: %v", aggregatorDifferenceToPay)
 	}
 
 	return w.compareBalances(respondToTaskFeeLimit, aggregatorAddress, senderAddress)

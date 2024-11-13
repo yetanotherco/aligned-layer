@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"fmt"
@@ -41,4 +42,10 @@ func BytesToQuorumThresholdPercentages(quorumThresholdPercentagesBytes []byte) e
 		quorumThresholdPercentages[i] = eigentypes.QuorumThresholdPercentage(quorumNumberByte)
 	}
 	return quorumThresholdPercentages
+}
+
+func WeiToEth(wei *big.Int) *big.Int {
+	weiToEth := new(big.Int).SetInt64(1e18)
+
+	return new(big.Int).Quo(wei, weiToEth)
 }
