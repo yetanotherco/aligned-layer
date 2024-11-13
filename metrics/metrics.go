@@ -13,13 +13,13 @@ import (
 )
 
 type Metrics struct {
-	ipPortAddress               string
-	logger                      logging.Logger
-	numAggregatedResponses      prometheus.Counter
-	numAggregatorReceivedTasks  prometheus.Counter
-	numOperatorTaskResponses    prometheus.Counter
-	accumulatedGasPriceSpent    prometheus.Gauge
-	numAccumulatedGasPriceSpent prometheus.Counter
+	ipPortAddress                        string
+	logger                               logging.Logger
+	numAggregatedResponses               prometheus.Counter
+	numAggregatorReceivedTasks           prometheus.Counter
+	numOperatorTaskResponses             prometheus.Counter
+	aggregatorGasCostPaidForBatcherTotal prometheus.Gauge
+	aggregatorNumTimesPaidForBatcher     prometheus.Counter
 }
 
 const alignedNamespace = "aligned"
@@ -43,15 +43,15 @@ func NewMetrics(ipPortAddress string, reg prometheus.Registerer, logger logging.
 			Name:      "aggregator_received_tasks",
 			Help:      "Number of tasks received by the Service Manager",
 		}),
-		accumulatedGasPriceSpent: promauto.With(reg).NewGauge(prometheus.GaugeOpts{
+		aggregatorGasCostPaidForBatcherTotal: promauto.With(reg).NewGauge(prometheus.GaugeOpts{
 			Namespace: alignedNamespace,
-			Name:      "aggregator_accumulated_gas_price_payed",
-			Help:      "Number of tasks received by the Service Manager",
+			Name:      "aggregator_gas_cost_paid_for_batcher",
+			Help:      "Accumulated gas cost the aggregator paid for the batcher when the tx cost was higher than the respondToTaskFeeLimit",
 		}),
-		numAccumulatedGasPriceSpent: promauto.With(reg).NewCounter(prometheus.CounterOpts{
+		aggregatorNumTimesPaidForBatcher: promauto.With(reg).NewCounter(prometheus.CounterOpts{
 			Namespace: alignedNamespace,
-			Name:      "aggregator_number_accumulated_gas_price_payed",
-			Help:      "Number of tasks received by the Service Manager",
+			Name:      "aggregator_num_times_paid_for_batcher",
+			Help:      "Number of times the aggregator paid for the batcher when the tx cost was higher than the respondToTaskFeeLimit",
 		}),
 	}
 }
@@ -99,10 +99,10 @@ func (m *Metrics) IncOperatorTaskResponses() {
 	m.numOperatorTaskResponses.Inc()
 }
 
-func (m *Metrics) IncAggregatorAccumResponse() {
-	m.numAccumulatedGasPriceSpent.Inc()
+func (m *Metrics) IncAggregatorPaidForBatcher() {
+	m.aggregatorGasCostPaidForBatcherTotal.Inc()
 }
 
-func (m *Metrics) AddAccumulatedGasPayedAggregator(value float64) {
-	m.accumulatedGasPriceSpent.Add(value)
+func (m *Metrics) AddAggregatorGasPaidForBatcher(value float64) {
+	m.aggregatorNumTimesPaidForBatcher.Add(value)
 }
