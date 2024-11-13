@@ -11,6 +11,8 @@ import (
 )
 
 /*
+WaitForTransactionReceipt
+Wait for the transaction receipt on Ethereum using exponential backoff
 - All errors are considered Transient Errors
 - Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
 */

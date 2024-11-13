@@ -385,6 +385,8 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 // |---RETRYABLE---|
 
 /*
+InitializeNewTask
+Initialize a new task in the BLS Aggregation service
   - Errors:
     Permanent:
   - TaskAlreadyInitializedError (Permanent): Task is already intialized in the BLS Aggregation service (https://github.com/Layr-Labs/eigensdk-go/blob/dev/services/bls_aggregation/blsagg.go#L27).
