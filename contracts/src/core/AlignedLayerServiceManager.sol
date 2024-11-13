@@ -215,9 +215,8 @@ contract AlignedLayerServiceManager is
         uint256 txCost = (initialGasLeft - gasleft() + 70_000) * tx.gasprice;
 
         // limit amount to spend is respondToTaskFeeLimit
-        // transferAmount = if txCost > currentBatch.respondToTaskFeeLimit -> currentBatch.respondToTaskFeeLimit; else -> txCost
-        uint256 transferAmount = txCost > currentBatch.respondToTaskFeeLimit ?
-            currentBatch.respondToTaskFeeLimit : txCost;
+        uint256 transferAmount = txCost < currentBatch.respondToTaskFeeLimit ?
+            txCost : currentBatch.respondToTaskFeeLimit;
 
         batchersBalances[senderAddress] -= transferAmount;
 
