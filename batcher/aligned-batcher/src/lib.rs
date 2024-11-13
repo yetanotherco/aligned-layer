@@ -684,7 +684,7 @@ impl Batcher {
             return Ok(());
         };
 
-        // We estimate the min balance to be the minimum balance needed to pay for the
+        // We estimate the minimum balance for submission to be the product of the user's `user_min_fee` and the number of proofs they have included in the batch + 1.
         if !self.check_min_balance(user_min_fee, proofs_in_batch + 1, user_balance, msg_max_fee) {
             std::mem::drop(batch_state_lock);
             send_message(
@@ -778,7 +778,7 @@ impl Batcher {
         zk_utils::is_verifier_disabled(*disabled_verifiers, verifier)
     }
 
-    // Checks user has sufficient balance for paying all its the proofs in the current batch.
+    // Checks user has sufficient balance for paying all the users proofs in the current batch.
     fn check_min_balance(
         &self,
         user_min_fee: U256,
@@ -786,8 +786,10 @@ impl Batcher {
         user_balance: U256,
         user_max_fee: U256,
     ) -> bool {
-        // If user proof has not been submitted yet its default is U256::max_value().
-        // In this case we check the user `max_fee` can pay for its proof.
+        // `user_min_fee` is the minimum `max_fee` the user submitted to the batcher 
+        // and it represents the maximium price that the user will pay for each submitted proof. 
+        // We use 'user_min_fee' as an upper bound for the proof submission cost of the user, 
+        // and use it to validate the user's balance has enough fund available to pay for all submitted proofs.
         let mut min_fee = user_min_fee;
         if user_min_fee == U256::max_value() {
             min_fee = user_max_fee
