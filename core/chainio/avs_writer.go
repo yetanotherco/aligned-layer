@@ -86,11 +86,6 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		return nil, err
 	}
 
-	err = w.checkAggAndBatcherHaveEnoughBalance(tx, txOpts, batchIdentifierHash, senderAddress)
-	if err != nil {
-		return nil, err
-	}
-
 	// Set the nonce, as we might have to replace the transaction with a higher gas price
 	txNonce := big.NewInt(int64(tx.Nonce()))
 	txOpts.Nonce = txNonce
@@ -131,7 +126,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, tx.Hash(), timeToWaitBeforeBump)
 		if receipt != nil {
-			w.checkIfAggregatorHadToPaidForBatcher(receipt, txOpts, batchIdentifierHash)
+			w.checkIfAggregatorHadToPaidForBatcher(tx, batchIdentifierHash)
 			return receipt, nil
 		}
 
@@ -152,18 +147,18 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 // Calculates the transaction cost from the receipt and compares it with the batcher respondToTaskFeeLimit
 // if the tx cost was higher, then it means the aggregator has paid the difference for the batcher (txCost - respondToTaskFeeLimit) and so metrics are updated accordingly.
 // otherwise nothing is done.
-func (w *AvsWriter) checkIfAggregatorHadToPaidForBatcher(receipt *types.Receipt, txOpts bind.TransactOpts, batchIdentifierHash [32]byte) {
+func (w *AvsWriter) checkIfAggregatorHadToPaidForBatcher(tx *types.Transaction, batchIdentifierHash [32]byte) {
 	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
 	if err != nil {
 		return
 	}
 	respondToTaskFeeLimit := batchState.RespondToTaskFeeLimit
 
-	txCost := new(big.Int).Mul(big.NewInt(int64(receipt.GasUsed)), txOpts.GasPrice)
+	txCost := new(big.Int).Mul(big.NewInt(int64(tx.Gas())), tx.GasPrice())
 	// todo: 70_000 should come from the config or at least be a constant
 	txCost = txCost.Add(txCost, big.NewInt(70_0000))
 
-	if respondToTaskFeeLimit.Cmp(txCost) > 0 {
+	if respondToTaskFeeLimit.Cmp(txCost) < 0 {
 		aggregatorDifferencePaid := new(big.Int).Sub(txCost, respondToTaskFeeLimit)
 		aggregatorDifferencePaidInEth := utils.WeiToEth(aggregatorDifferencePaid)
 		w.metrics.AddAggregatorGasPaidForBatcher(aggregatorDifferencePaidInEth)
