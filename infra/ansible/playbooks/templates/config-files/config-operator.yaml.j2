@@ -1,0 +1,34 @@
+# Common variables for all the services
+# 'production' only prints info and above. 'development' also prints debug
+environment: 'production'
+aligned_layer_deployment_config_file_path: "{{ aligned_layer_deployment_config_file_path }}"
+eigen_layer_deployment_config_file_path: "{{ eigen_layer_deployment_config_file_path }}"
+eth_rpc_url: "{{ eth_rpc_url }}"
+eth_rpc_url_fallback: "{{ eth_rpc_url_fallback }}"
+eth_ws_url: "{{ eth_ws_url }}"
+eth_ws_url_fallback: "{{ eth_ws_url_fallback }}"
+eigen_metrics_ip_port_address: 'localhost:9090'
+
+## ECDSA Configurations
+ecdsa:
+  private_key_store_path: "{{ ecdsa_private_key_store_path }}"
+  private_key_store_password: "{{ ecdsa_private_key_store_password }}"
+
+## BLS Configurations
+bls:
+  private_key_store_path: "{{ bls_private_key_store_path }}"
+  private_key_store_password: "{{ bls_private_key_store_password }}"
+
+## Operator Configurations
+operator:
+  aggregator_rpc_server_ip_port_address: "{{ aggregator_rpc_server_ip_port_address }}"
+  operator_tracker_ip_port_address: "{{ operator_tracker_ip_port_address }}"
+  address: "{{ address }}"
+  earnings_receiver_address: "{{ address }}" #Can be the same as the operator.
+  delegation_approver_address: '0x0000000000000000000000000000000000000000'
+  staker_opt_out_window_blocks: 0
+  metadata_url: "{{ metadata_url }}"
+  enable_metrics: {{ enable_metrics }}
+  metrics_ip_port_address: "{{ metrics_ip_port_address }}"
+  max_batch_size: 268435456 # 256 MiB
+  last_processed_batch_filepath: "{{ last_processed_batch_filepath }}"
