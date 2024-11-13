@@ -30,6 +30,11 @@ type TaskErrorMessage struct {
 	TaskError  string `json:"error"`
 }
 
+type TaskGasPriceBumpMessage struct {
+	MerkleRoot     string `json:"merkle_root"`
+	BumpedGasPrice string `json:"bumped_gas_price"`
+}
+
 type TaskSentToEthereumMessage struct {
 	MerkleRoot string `json:"merkle_root"`
 	TxHash     string `json:"tx_hash"`
@@ -93,6 +98,16 @@ func (t *Telemetry) LogTaskError(batchMerkleRoot [32]byte, taskError error) {
 	}
 	if err := t.sendTelemetryMessage("/api/taskError", body); err != nil {
 		t.logger.Error("[Telemetry] Error in LogTaskError", "error", err)
+	}
+}
+
+func (t *Telemetry) BumpedTaskGasPrice(batchMerkleRoot [32]byte, bumpedGasPrice string) {
+	body := TaskGasPriceBumpMessage{
+		MerkleRoot:     fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
+		BumpedGasPrice: bumpedGasPrice,
+	}
+	if err := t.sendTelemetryMessage("/api/aggregatorTaskGasPriceBump", body); err != nil {
+		t.logger.Error("[Telemetry] Error in LogOperatorResponse", "error", err)
 	}
 }
 
