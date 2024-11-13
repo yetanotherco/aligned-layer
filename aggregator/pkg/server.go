@@ -56,7 +56,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	taskIndex, err := agg.GetTaskIndex(signedTaskResponse.BatchIdentifierHash)
 
 	if err != nil {
-		agg.logger.Warn("Task not found in the internal map, might have been missed. Trying to fetch it from logs")
+		agg.logger.Warn("Task not found in the internal map, might have been missed. Trying to fetch task data from Ethereum")
 		batch, err := agg.avsReader.GetPendingBatchFromMerkleRoot(signedTaskResponse.BatchMerkleRoot, agg.AggregatorConfig.Aggregator.PendingBatchFetchBlockRange)
 		if err != nil || batch == nil {
 			agg.logger.Warnf("Pending task with merkle root 0x%x not found in logs", signedTaskResponse.BatchMerkleRoot)
