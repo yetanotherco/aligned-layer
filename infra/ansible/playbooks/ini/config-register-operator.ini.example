@@ -1,0 +1,10 @@
+[global]
+address=
+metadata_url=
+el_delegation_manager_address=
+eth_rpc_url=
+private_key_store_path=
+private_key_store_password=
+chain_id=
+weth_address=
+weth_strategy_address=

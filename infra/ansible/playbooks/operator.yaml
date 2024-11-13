@@ -1,0 +1,181 @@
+- name: Run setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: operator
+
+- name: Run go playbook
+  ansible.builtin.import_playbook: go.yaml
+  vars:
+    host: operator
+
+- name: Run rust playbook
+  ansible.builtin.import_playbook: rust.yaml
+  vars:
+    host: operator
+
+- name: Run eigenlayer-cli playbook
+  ansible.builtin.import_playbook: eigenlayer-cli.yaml
+  vars:
+    host: operator
+
+- name: Run foundry playbook
+  ansible.builtin.import_playbook: foundry.yaml
+  vars:
+    host: operator
+
+
+- hosts: operator
+
+  tasks:
+
+    - name: Update apt and install required system packages
+      become: true
+      apt:
+        pkg:
+          - pkg-config
+          - libssl-dev
+        state: latest
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Create directory for the repository
+      ansible.builtin.file:
+        path: /home/{{ ansible_user }}/repos/operator
+        state: directory
+        mode: '0755'
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+
+    - name: Clone Aligned repository
+      ansible.builtin.git:
+        repo: https://github.com/yetanotherco/aligned_layer.git
+        dest: /home/{{ ansible_user }}/repos/operator/aligned_layer
+        version: v0.10.2
+        recursive: false
+
+    - name: Build the Operator
+      make:
+        chdir: /home/{{ ansible_user }}/repos/operator/aligned_layer
+        target: build_operator
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
+
+    - name: Copy ECDSA keystore to server
+      ansible.builtin.copy:
+        src: '{{ ecdsa_keystore_path }}'
+        dest: /home/{{ ansible_user }}/.keystores/operator.ecdsa
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+
+    - name: Copy BLS keystore to server
+      ansible.builtin.copy:
+        src: '{{ bls_keystore_path }}'
+        dest: /home/{{ ansible_user }}/.keystores/operator.bls
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+
+    - name: Create variables
+      set_fact:
+        weth_strategy_address: "{{ lookup('ini', 'weth_strategy_address', file='ini/config-register-operator.ini') }}"
+        address: "{{ lookup('ini', 'address', file='ini/config-register-operator.ini') }}"
+        eth_rpc_url: "{{ lookup('ini', 'eth_rpc_url', file='ini/config-register-operator.ini') }}"
+
+    - name: Check if Operator already staked wETH
+      ansible.builtin.command: "cast call {{ weth_strategy_address }}  shares(address)(uint256) {{ address }} --rpc-url {{ eth_rpc_url }}"
+      register: operator_stake
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/home/{{ ansible_user }}/.foundry/bin"
+
+    - name: Upload config file for register Operator
+      when: operator_stake.stdout == "0"
+      template:
+        src: operator/config-register-operator.yaml.j2
+        dest: "/home/{{ ansible_user }}/config/config-register-operator.yaml"
+      vars:
+        address: "{{ lookup('ini', 'address', file='ini/config-register-operator.ini') }}"
+        metadata_url: "{{ lookup('ini', 'metadata_url', file='ini/config-register-operator.ini') }}"
+        el_delegation_manager_address: "{{ lookup('ini', 'el_delegation_manager_address', file='ini/config-register-operator.ini') }}"
+        eth_rpc_url: "{{ lookup('ini', 'eth_rpc_url', file='ini/config-register-operator.ini') }}"
+        private_key_store_path: "{{ lookup('ini', 'private_key_store_path', file='ini/config-register-operator.ini') }}"
+        chain_id: "{{ lookup('ini', 'chain_id', file='ini/config-register-operator.ini') }}"
+
+    - name: Register Operator in EigenLayer
+      when: operator_stake.stdout == "0"
+      shell:
+        cmd: echo "{{ lookup('ini', 'private_key_store_password', file='ini/config-register-operator.ini') }}" | eigenlayer operator register /home/{{ ansible_user }}/config/config-register-operator.yaml >> register.log 2>&1
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/home/{{ ansible_user }}/bin"
+
+    - name: Swap holETH for wETH
+      when: operator_stake.stdout == "0"
+      shell:
+        cmd: cast send --value 0.1ether {{ lookup('ini', 'weth_address', file='ini/config-register-operator.ini') }} --password {{ lookup('ini', 'private_key_store_password', file='ini/config-register-operator.ini') }}
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/home/{{ ansible_user }}/.foundry/bin"
+        ETH_KEYSTORE: "{{ lookup('ini', 'private_key_store_path', file='ini/config-register-operator.ini') }}"
+        ETH_PASSWORD: "{{ lookup('ini', 'private_key_store_password', file='ini/config-register-operator.ini') }}" # It is not working idk why
+        ETH_RPC_URL: "{{ lookup('ini', 'eth_rpc_url', file='ini/config-register-operator.ini') }}"
+
+    - name: Upload config file for Operator
+      template:
+        src: config-files/config-operator.yaml.j2
+        dest: "/home/{{ ansible_user }}/config/config-operator.yaml"
+      vars:
+        aligned_layer_deployment_config_file_path: "{{ lookup('ini', 'aligned_layer_deployment_config_file_path', file='ini/config-operator.ini') }}"
+        eigen_layer_deployment_config_file_path: "{{ lookup('ini', 'eigen_layer_deployment_config_file_path', file='ini/config-operator.ini') }}"
+        eth_rpc_url: "{{ lookup('ini', 'eth_rpc_url', file='ini/config-operator.ini') }}"
+        eth_rpc_url_fallback: "{{ lookup('ini', 'eth_rpc_url_fallback', file='ini/config-operator.ini') }}"
+        eth_ws_url: "{{ lookup('ini', 'eth_ws_url', file='ini/config-operator.ini') }}"
+        eth_ws_url_fallback: "{{ lookup('ini', 'eth_ws_url_fallback', file='ini/config-operator.ini') }}"
+        ecdsa_private_key_store_path: "{{ lookup('ini', 'ecdsa_private_key_store_path', file='ini/config-operator.ini') }}"
+        ecdsa_private_key_store_password: "{{ lookup('ini', 'ecdsa_private_key_store_password', file='ini/config-operator.ini') }}"
+        bls_private_key_store_path: "{{ lookup('ini', 'bls_private_key_store_path', file='ini/config-operator.ini') }}"
+        bls_private_key_store_password: "{{ lookup('ini', 'bls_private_key_store_password', file='ini/config-operator.ini') }}"
+        aggregator_rpc_server_ip_port_address: "{{ lookup('ini', 'aggregator_rpc_server_ip_port_address', file='ini/config-operator.ini') }}"
+        operator_tracker_ip_port_address: "{{ lookup('ini', 'operator_tracker_ip_port_address', file='ini/config-operator.ini') }}"
+        address: "{{ lookup('ini', 'address', file='ini/config-operator.ini') }}"
+        metadata_url: "{{ lookup('ini', 'metadata_url', file='ini/config-operator.ini') }}"
+        enable_metrics: "{{ lookup('ini', 'enable_metrics', file='ini/config-operator.ini') }}"
+        metrics_ip_port_address: "{{ lookup('ini', 'metrics_ip_port_address', file='ini/config-operator.ini') }}"
+        last_processed_batch_filepath: "{{ lookup('ini', 'last_processed_batch_filepath', file='ini/config-operator.ini') }}"
+
+    - name: Deposit into wETH strategy
+      when: operator_stake.stdout == "0"
+      make:
+        chdir: /home/{{ ansible_user }}/repos/operator/aligned_layer
+        target: operator_deposit_into_strategy
+        params:
+          CONFIG_FILE=/home/{{ ansible_user }}/config/config-operator.yaml
+          STRATEGY_ADDRESS={{ lookup('ini', 'weth_strategy_address', file='ini/config-register-operator.ini') }}
+          AMOUNT=100000000000000000 # 0.1ether
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/go/bin"
+
+    - name: Allow access to tcp port 9092 from the VPN
+      become: true
+      ufw:
+        rule: allow
+        port: 9092
+        proto: tcp
+        src: 100.0.0.0/24
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Create systemd services directory
+      file:
+        path: "/home/{{ ansible_user }}/.config/systemd/user/"
+        state: directory
+
+    - name: Add service to systemd
+      template:
+        src: services/operator.service.j2
+        dest: "/home/{{ ansible_user }}/.config/systemd/user/operator.service"
+        force: no
+
+    - name: Start Operator service
+      ansible.builtin.systemd_service:
+        name: operator
+        state: started
+        enabled: true
+        scope: user

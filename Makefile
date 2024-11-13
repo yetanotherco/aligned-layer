@@ -247,11 +247,15 @@ operator_deposit_into_mock_strategy:
 		--strategy-address $(STRATEGY_ADDRESS) \
 		--amount 100000000000000000
 
+
+AMOUNT ?= 1000
+
 operator_deposit_into_strategy:
 	@echo "Depositing into strategy"
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
-		--amount 1000
+		--strategy-address $(STRATEGY_ADDRESS) \
+		--amount $(AMOUNT)
 
 operator_register_with_aligned_layer:
 	@echo "Registering operator with AlignedLayer"
@@ -1069,3 +1073,38 @@ setup_local_aligned_all:
 
 	tmux new-window -t aligned_layer -n telemetry
 	tmux send-keys -t aligned_layer:telemetry 'docker compose -f telemetry-docker-compose.yaml down && make telemetry_create_env && make telemetry_run_db && make open_telemetry_start && make telemetry_start' C-m
+
+__ANSIBLE__: ## ____
+
+ansible_batcher_create_env: ## Create empty variables files for the Batcher deploy
+	@cp -n infra/ansible/playbooks/ini/caddy-batcher.ini.example infra/ansible/playbooks/ini/caddy-batcher.ini
+	@cp -n infra/ansible/playbooks/ini/config-batcher.ini.example infra/ansible/playbooks/ini/config-batcher.ini
+	@cp -n infra/ansible/playbooks/ini/env-batcher.ini.example infra/ansible/playbooks/ini/env-batcher.ini
+	@echo "Config files for the Batcher created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_batcher_deploy"
+
+ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
+	@if [ -z "$(INVENTORY)" ] || [ -z "$(KEYSTORE)" ]; then \
+		echo "Error: Both INVENTORY and KEYSTORE must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/batcher.yaml \
+		-i $(INVENTORY) \
+		-e "keystore_path=$(KEYSTORE)"
+
+
+ansible_operator_create_env: ## Create empty variables files for the Operator deploy
+	@cp -n infra/ansible/playbooks/ini/config-operator.ini.example infra/ansible/playbooks/ini/config-operator.ini
+	@cp -n infra/ansible/playbooks/ini/config-register-operator.ini.example infra/ansible/playbooks/ini/config-register-operator.ini
+	@echo "Config files for the Operator created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_operator_deploy"
+
+ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ]  || [ -z "$(ECDSA_KEYSTORE)" ]  || [ -z "$(BLS_KEYSTORE)" ]; then \
+		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/operator.yaml \
+		-i $(INVENTORY) \
+		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
+		-e "bls_keystore_path=$(BLS_KEYSTORE)"
