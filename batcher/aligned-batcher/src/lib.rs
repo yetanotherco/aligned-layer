@@ -787,7 +787,7 @@ impl Batcher {
         user_max_fee: U256,
     ) -> bool {
         // If user proof has not been submitted yet its default is U256::max_value().
-        // In this case we check the user can pay for its proof.
+        // In this case we check the user `max_fee` can pay for its proof.
         let mut min_fee = user_min_fee;
         if user_min_fee == U256::max_value() {
             min_fee = user_max_fee
