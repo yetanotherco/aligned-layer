@@ -4,15 +4,14 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"net/http"
-	"net/rpc"
-	"strings"
-	"time"
-
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/types"
+	"net/http"
+	"net/rpc"
+	"strings"
+	"time"
 )
 
 func (agg *Aggregator) ServeOperators() error {
@@ -37,53 +36,13 @@ func (agg *Aggregator) ServeOperators() error {
 	return err
 }
 
-// Waits for the arrival of task associated with signedTaskResponse and returns true on success or false on failure
-// If the task is not present in the internal map, it will try to fetch it from logs and retry.
-// The number of retries is specified by `waitForEventRetries`, and the waiting time between each by `waitForEventSleepSeconds`
-func (agg *Aggregator) waitForTaskAndFetchIfLost(signedTaskResponse *types.SignedTaskResponse) bool {
-	for i := 0; i < waitForEventRetries; i++ {
-		// Lock
-		agg.taskMutex.Lock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Check if task is present")
-		_, ok := agg.batchesIdxByIdentifierHash[signedTaskResponse.BatchIdentifierHash]
-		// Unlock
-		agg.logger.Info("- Unlocked Resources: Check if task is present")
-		agg.taskMutex.Unlock()
-		if ok {
-			return true
-		}
-
-		// Task was not found in internal map, let's try to fetch it from logs
-		agg.logger.Info("Trying to fetch missed task from logs...")
-		batch, err := agg.avsReader.GetPendingBatchFromMerkleRoot(signedTaskResponse.BatchMerkleRoot)
-
-		if err == nil && batch != nil {
-			agg.logger.Info("Found missed task in logs with merkle root 0x%e", batch.BatchMerkleRoot)
-			// Adding new task will fail only if it already exists
-			agg.AddNewTask(batch.BatchMerkleRoot, batch.SenderAddress, batch.TaskCreatedBlock)
-			return true
-		}
-
-		if err != nil {
-			agg.logger.Warn("Error fetching task from logs: %v", err)
-		}
-
-		if batch == nil {
-			agg.logger.Info("Task not found in logs")
-		}
-
-		// Task was not found, wait and retry
-		time.Sleep(waitForEventSleepSeconds)
-	}
-
-	return false
-}
-
-// Aggregator Methods
+// ~~ AGGREGATOR METHODS ~~
 // This is the list of methods that the Aggregator exposes to the Operator
 // The Operator can call these methods to interact with the Aggregator
 // This methods are automatically registered by the RPC server
-// This takes a response an adds it to the internal. If reaching the quorum, it sends the aggregated signatures to ethereum
+
+// Takes a response from an operator and process it. After processing the response, the associated task may reach quorum, triggering a BLS service response.
+// If the task related to the response is not known to the aggregator (not stored in internal map), it will try to fetch it from the logs.
 // Returns:
 //   - 0: Success
 //   - 1: Error
@@ -97,21 +56,22 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	taskIndex, err := agg.GetTaskIndex(signedTaskResponse.BatchIdentifierHash)
 
 	if err != nil {
-		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
-		*reply = 1
-		return nil
-	}
-
-	agg.taskMutex.Lock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Get task taskIndex")
-	taskIndex, ok := agg.batchesIdxByIdentifierHash[signedTaskResponse.BatchIdentifierHash]
-	// Unlock
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Get task taskIndex")
-	agg.taskMutex.Unlock()
-	if !ok {
-		agg.logger.Errorf("Unexpected error fetching for task with merkle root 0x%x", signedTaskResponse.BatchMerkleRoot)
-		*reply = 1
-		return nil
+		agg.logger.Warn("Task not found in the internal map, might have been missed. Trying to fetch it from logs")
+		batch, err := agg.avsReader.GetPendingBatchFromMerkleRoot(signedTaskResponse.BatchMerkleRoot)
+		if err != nil {
+			agg.logger.Warn("Pending task with merkle root 0x%x not found in logs")
+			*reply = 1
+			return nil
+		}
+		agg.logger.Info("Task was found in the logs, adding it to the internal map")
+		agg.AddNewTask(batch.BatchMerkleRoot, batch.SenderAddress, batch.TaskCreatedBlock)
+		taskIndex, err = agg.GetTaskIndex(signedTaskResponse.BatchIdentifierHash)
+		if err != nil {
+			// This shouldn't happen, since we just added the task
+			agg.logger.Error("Unexpected error trying to get taskIndex from internal map")
+			*reply = 1
+			return nil
+		}
 	}
 
 	agg.telemetry.LogOperatorResponse(signedTaskResponse.BatchMerkleRoot, signedTaskResponse.OperatorId)
@@ -194,11 +154,11 @@ func (agg *Aggregator) ProcessNewSignature(ctx context.Context, taskIndex uint32
 func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error) {
 	getTaskIndex_func := func() (uint32, error) {
 		agg.taskMutex.Lock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Get task index")
 		taskIndex, ok := agg.batchesIdxByIdentifierHash[batchIdentifierHash]
+		agg.taskMutex.Unlock()
+		agg.logger.Info("- Unlocked Resources: Get task index")
 		if !ok {
-			agg.taskMutex.Unlock()
-			agg.logger.Info("- Unlocked Resources: Task not found in the internal map")
 			return taskIndex, fmt.Errorf("Task not found in the internal map")
 		} else {
 			return taskIndex, nil

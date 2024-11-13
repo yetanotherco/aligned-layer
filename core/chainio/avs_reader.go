@@ -158,21 +158,18 @@ func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64, interval uint64) (*[32]byt
 // Returns a pending batch from its merkle root or nil if it doesn't exist
 // Searches the last `BatchFetchBlocksRange` blocks at most
 func (r *AvsReader) GetPendingBatchFromMerkleRoot(merkleRoot [32]byte) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
-	latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(context.Background())
+	latestBlock, err := r.BlockNumberRetryable(context.Background())
 	if err != nil {
-		latestBlock, err = r.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
-		if err != nil {
-			return nil, fmt.Errorf("failed to get latest block number: %w", err)
-		}
+		return nil, fmt.Errorf("Failed to get latest block number: %w", err)
 	}
 
 	var fromBlock uint64 = 0
 
 	if latestBlock > BatchFetchBlocksRange {
-		fromBlock = latestBlock - BatchFetchBlocksRange
+		fromBlock = latestBlock - BatchFetchBlocksRange // TODO: Add this to config
 	}
 
-	logs, err := r.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: &latestBlock, Context: context.Background()}, [][32]byte{merkleRoot})
+	logs, err := r.FilterBatchV3Retryable(&bind.FilterOpts{Start: fromBlock, End: &latestBlock, Context: context.Background()}, [][32]byte{merkleRoot})
 	if err != nil {
 		return nil, err
 	}
@@ -181,17 +178,19 @@ func (r *AvsReader) GetPendingBatchFromMerkleRoot(merkleRoot [32]byte) (*service
 	}
 
 	if !logs.Next() {
-		return nil, nil //not an error, but no tasks found
+		return nil, nil //Not an error, but no tasks found
 	}
 
 	batch := logs.Event
 
 	batchIdentifier := append(batch.BatchMerkleRoot[:], batch.SenderAddress[:]...)
 	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
-	state, err := r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
+	state, err := r.BatchesStateRetryable(nil, batchIdentifierHash)
+
 	if err != nil {
 		return nil, err
 	}
+
 	if state.Responded {
 		return nil, nil
 	}
