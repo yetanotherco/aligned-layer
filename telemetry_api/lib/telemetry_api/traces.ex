@@ -208,6 +208,7 @@ defmodule TelemetryApi.Traces do
       :ok
     end
   end
+  
 
   @doc """
   Registers the sending of a batcher task to Ethereum in the task trace.
@@ -294,6 +295,23 @@ defmodule TelemetryApi.Traces do
       )
 
       IO.inspect("Task error registered. merkle_root: #{IO.inspect(merkle_root)}")
+      :ok
+    end
+  end
+  
+  @doc """
+  Registers a bump in the gas price when the aggregator tries to respond to a task in the task trace.
+
+  ## Examples
+
+      iex> merkle_root
+      iex> bumped_gas_price
+      iex> aggregator_task_gas_price_bumped(merkle_root, bumped_gas_price)
+      :ok
+  """
+  def aggregator_task_gas_price_bumped(merkle_root, bumped_gas_price) do
+    with {:ok, _trace} <- set_current_trace_with_subspan(merkle_root, :aggregator) do
+      Tracer.add_event("Task gas price bumped", [{"bumped__gas_price", bumped_gas_price}])
       :ok
     end
   end

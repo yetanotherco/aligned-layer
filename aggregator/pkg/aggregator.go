@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strings"
 	"sync"
 	"time"
@@ -300,7 +301,21 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 		"senderAddress", hex.EncodeToString(senderAddress[:]),
 		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
-	txHash, err := agg.avsWriter.SendAggregatedResponse(batchIdentifierHash, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	// This function is a callback that is called when the gas price is bumped on the avsWriter.SendAggregatedResponse
+	onGasPriceBumped := func(bumpedGasPrice *big.Int) {
+		agg.metrics.IncBumpedGasPriceForAggregatedResponse()
+		agg.telemetry.BumpedTaskGasPrice(batchMerkleRoot, bumpedGasPrice.String())
+	}
+	receipt, err := agg.avsWriter.SendAggregatedResponse(
+		batchIdentifierHash,
+		batchMerkleRoot,
+		senderAddress,
+		nonSignerStakesAndSignature,
+		agg.AggregatorConfig.Aggregator.GasBaseBumpPercentage,
+		agg.AggregatorConfig.Aggregator.GasBumpIncrementalPercentage,
+		agg.AggregatorConfig.Aggregator.TimeToWaitBeforeBump,
+		onGasPriceBumped,
+	)
 	if err != nil {
 		agg.walletMutex.Unlock()
 		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
@@ -310,13 +325,6 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 
 	agg.walletMutex.Unlock()
 	agg.logger.Infof("- Unlocked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchIdentifierHash[:]))
-
-	receipt, err := utils.WaitForTransactionReceipt(
-		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
-	if err != nil {
-		agg.telemetry.LogTaskError(batchMerkleRoot, err)
-		return nil, err
-	}
 
 	agg.metrics.IncAggregatedResponses()
 
@@ -385,15 +393,17 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 // |---RETRYABLE---|
 
 /*
+InitializeNewTask
+Initialize a new task in the BLS Aggregation service
   - Errors:
     Permanent:
   - TaskAlreadyInitializedError (Permanent): Task is already intialized in the BLS Aggregation service (https://github.com/Layr-Labs/eigensdk-go/blob/dev/services/bls_aggregation/blsagg.go#L27).
     Transient:
   - All others.
-  - Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
+  - Retry times (3 retries): 1 sec, 2 sec, 4 sec
 */
 func (agg *Aggregator) InitializeNewTask(batchIndex uint32, taskCreatedBlock uint32, quorumNums eigentypes.QuorumNums, quorumThresholdPercentages eigentypes.QuorumThresholdPercentages, timeToExpiry time.Duration) error {
-	initilizeNewTask_func := func() error {
+	initializeNewTask_func := func() error {
 		err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, timeToExpiry)
 		if err != nil {
 			// Task is already initialized
@@ -403,7 +413,7 @@ func (agg *Aggregator) InitializeNewTask(batchIndex uint32, taskCreatedBlock uin
 		}
 		return err
 	}
-	return retry.Retry(initilizeNewTask_func, retry.MinDelayChain, retry.RetryFactor, retry.NumRetries, retry.MaxIntervalChain, retry.MaxElapsedTime)
+	return retry.Retry(initializeNewTask_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
 // Long-lived goroutine that periodically checks and removes old Tasks from stored Maps
