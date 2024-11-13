@@ -26,8 +26,8 @@ The `config-batcher.ini` contains the following variables:
 | eth_rpc_url_fallback                      | HTTP RPC fallback url. Must be different than eth_rpc_url  | https://ethereum-holesky-rpc.publicnode.com                                                                     | https://ethereum-holesky-rpc.publicnode.com                                                                | https://ethereum-rpc.publicnode.com |
 | eth_ws_url                                | WS RPC url                                                 | <your_rpc_ws_provider>                                                                                          | <your_rpc_ws_provider>                                                                                     | <your_rpc_ws_provider>              |
 | eth_ws_url_fallback                       | WS RPC fallback url. Must be different than eth_ws_rpc_url | wss://ethereum-holesky-rpc.publicnode.com                                                                       | wss://ethereum-holesky-rpc.publicnode.com                                                                  | wss://ethereum-rpc.publicnode.com   |
-| ecdsa_private_key_store_path              | Path to the ECDSA keystore in the Operator host            | /home/app/.keystores/batcher.ecdsa                                                                              | /home/app/.keystores/batcher.ecdsa                                                                         | /home/app/.keystores/batcher.ecdsa  |
 | ecdsa_private_key_store_password          | Password of the ECDSA keystore                             | <your_ecdsa_keystore_password>                                                                                  | <your_ecdsa_keystore_password>                                                                             | <your_ecdsa_keystore_password>      |
+| telemetry_ip_port_address                 | IP:Port of the Telemetry service                           | <IP>:4001                                                                                                       | <IP>:4001                                                                                                  | TBD                                 |
 | batcher_replacement_private_key           | This is the private key for the non-paying users           | -                                                                                                               | -                                                                                                          | -                                   |
 
 The `env-batcher.ini` contains the following variables:
@@ -53,5 +53,5 @@ The `caddy-batcher.ini` contains the following variables:
 Deploy the Batcher:
 
 ```shell
-make ansible_batcher_deploy INVENTORY=</path/to/inventory> KEYSTORE=<path/to/keystore>
+make ansible_batcher_deploy INVENTORY=</path/to/inventory> KEYSTORE=<path/to/keystore/in/your/local>
 ```
