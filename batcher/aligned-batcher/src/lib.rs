@@ -787,10 +787,7 @@ impl Batcher {
         user_balance: U256,
         user_max_fee: U256,
     ) -> bool {
-        // `user_min_fee` is the minimum `max_fee` the user submitted to the batcher 
-        // and represents the maximium price that the user will pay for each submitted proof. 
-        // We define 'user_min_fee' as an upper bound for the proof submission cost of the user, 
-        // and use it to validate the user's balance has enough fund available to pay for all submitted proofs.
+        // `user_min_fee` is the minimum `max_fee` the user submitted to the batcher and represents the maximium price that the user will pay for each submitted proof. We define 'user_min_fee' as an upper bound for the proof submission cost of the user, and use it to validate the user's balance has enough fund available to pay for all submitted proofs.
         let mut min_fee = user_min_fee;
         if user_min_fee == U256::max_value() {
             min_fee = user_max_fee
