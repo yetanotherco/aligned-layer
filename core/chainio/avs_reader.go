@@ -17,10 +17,6 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
 )
 
-const (
-	BatchFetchBlocksRange uint64 = 1000
-)
-
 type AvsReader struct {
 	*sdkavsregistry.ChainReader
 	AvsContractBindings            *AvsServiceBindings
@@ -156,8 +152,8 @@ func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64, interval uint64) (*[32]byt
 }
 
 // Returns a pending batch from its merkle root or nil if it doesn't exist
-// Searches the last `BatchFetchBlocksRange` blocks at most
-func (r *AvsReader) GetPendingBatchFromMerkleRoot(merkleRoot [32]byte) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
+// Searches the last `blockRange` blocks at most
+func (r *AvsReader) GetPendingBatchFromMerkleRoot(merkleRoot [32]byte, blockRange uint64) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
 	latestBlock, err := r.BlockNumberRetryable(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get latest block number: %w", err)
@@ -165,8 +161,8 @@ func (r *AvsReader) GetPendingBatchFromMerkleRoot(merkleRoot [32]byte) (*service
 
 	var fromBlock uint64 = 0
 
-	if latestBlock > BatchFetchBlocksRange {
-		fromBlock = latestBlock - BatchFetchBlocksRange // TODO: Add this to config
+	if latestBlock > blockRange {
+		fromBlock = latestBlock - blockRange
 	}
 
 	logs, err := r.FilterBatchV3Retryable(&bind.FilterOpts{Start: fromBlock, End: &latestBlock, Context: context.Background()}, [][32]byte{merkleRoot})

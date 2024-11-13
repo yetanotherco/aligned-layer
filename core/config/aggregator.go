@@ -25,6 +25,7 @@ type AggregatorConfig struct {
 		GarbageCollectorTasksAge      uint64
 		GarbageCollectorTasksInterval uint64
 		BlsServiceTaskTimeout         time.Duration
+		PendingBatchFetchBlockRange   uint64
 	}
 }
 
@@ -40,6 +41,7 @@ type AggregatorConfigFromYaml struct {
 		GarbageCollectorTasksAge      uint64         `yaml:"garbage_collector_tasks_age"`
 		GarbageCollectorTasksInterval uint64         `yaml:"garbage_collector_tasks_interval"`
 		BlsServiceTaskTimeout         time.Duration  `yaml:"bls_service_task_timeout"`
+		PendingBatchFetchBlockRange   uint64         `yaml:"pending_batch_fetch_block_range"`
 	} `yaml:"aggregator"`
 }
 
@@ -85,6 +87,7 @@ func NewAggregatorConfig(configFilePath string) *AggregatorConfig {
 			GarbageCollectorTasksAge      uint64
 			GarbageCollectorTasksInterval uint64
 			BlsServiceTaskTimeout         time.Duration
+			PendingBatchFetchBlockRange   uint64
 		}(aggregatorConfigFromYaml.Aggregator),
 	}
 }
