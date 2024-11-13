@@ -214,18 +214,19 @@ contract AlignedLayerServiceManager is
         // 70k was measured by trial and error until the aggregator got paid a bit over what it needed
         uint256 txCost = (initialGasLeft - gasleft() + 70_000) * tx.gasprice;
 
-        if (txCost > currentBatch.respondToTaskFeeLimit) {
-            // Subtract the txCost from the batcher's balance
-            batchersBalances[senderAddress] -= currentBatch.respondToTaskFeeLimit;
-        } else {
-            batchersBalances[senderAddress] -= txCost;
-        }
+        // limit amount to spend is respondToTaskFeeLimit
+        // transferAmount = if txCost > currentBatch.respondToTaskFeeLimit -> currentBatch.respondToTaskFeeLimit; else -> txCost
+        uint256 transferAmount = txCost > currentBatch.respondToTaskFeeLimit ?
+            currentBatch.respondToTaskFeeLimit : txCost;
+
+        batchersBalances[senderAddress] -= transferAmount;
 
         emit BatcherBalanceUpdated(
             senderAddress,
             batchersBalances[senderAddress]
         );
-        payable(alignedAggregator).transfer(txCost);
+
+        payable(alignedAggregator).transfer(transferAmount);
     }
 
     function isVerifierDisabled(
