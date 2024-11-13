@@ -44,8 +44,12 @@ func BytesToQuorumThresholdPercentages(quorumThresholdPercentagesBytes []byte) e
 	return quorumThresholdPercentages
 }
 
-func WeiToEth(wei *big.Int) *big.Int {
-	weiToEth := new(big.Int).SetInt64(1e18)
+func WeiToEth(wei *big.Int) float64 {
+	weiToEth := new(big.Float).SetFloat64(1e18)
+	weiFloat := new(big.Float).SetInt(wei)
 
-	return new(big.Int).Quo(wei, weiToEth)
+	result := new(big.Float).Quo(weiFloat, weiToEth)
+	eth, _ := result.Float64()
+
+	return eth
 }

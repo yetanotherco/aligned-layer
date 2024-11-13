@@ -134,10 +134,10 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bin
 
 	if respondToTaskFeeLimit.Cmp(simulatedCost) < 0 {
 		aggregatorDifferenceToPay := new(big.Int).Sub(simulatedCost, respondToTaskFeeLimit)
-		aggregatorDifferenceToPayInEth, _ := utils.WeiToEth(aggregatorDifferenceToPay).Float64()
+		aggregatorDifferenceToPayInEth := utils.WeiToEth(aggregatorDifferenceToPay)
 		w.metrics.AddAggregatorGasPaidForBatcher(aggregatorDifferenceToPayInEth)
 		w.metrics.IncAggregatorPaidForBatcher()
-		w.logger.Warn("cost of transaction is higher than Batch.RespondToTaskFeeLimit, aggregator will pay the for the difference, aprox: %v", aggregatorDifferenceToPay)
+		w.logger.Warnf("cost of transaction is higher than Batch.RespondToTaskFeeLimit, aggregator will pay the for the difference, aprox: %vethers", aggregatorDifferenceToPayInEth)
 	}
 
 	return w.compareBalances(respondToTaskFeeLimit, aggregatorAddress, senderAddress)
