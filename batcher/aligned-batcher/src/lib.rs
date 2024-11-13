@@ -271,6 +271,9 @@ impl Batcher {
         Ok(())
     }
 
+    /// Listen for Ethereum new blocks.
+    /// Retries on recoverable errors using exponential backoff
+    /// with the maximum number of retries and a `MAX_DELAY` of 1 hour.
     pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), BatcherError> {
         retry_function(
             || {
@@ -280,6 +283,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             LISTEN_NEW_BLOCKS_MAX_TIMES,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await
         .map_err(|e| e.inner())
@@ -916,7 +920,9 @@ impl Batcher {
         }
     }
 
-    /// Gets the user nonce from Ethereum using exponential backoff.
+    /// Gets the user nonce from Ethereum.
+    /// Retries on recoverable errors using exponential backoff up to `DEFAULT_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
     async fn get_user_nonce_from_ethereum(
         &self,
         addr: Address,
@@ -932,6 +938,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             DEFAULT_MAX_RETRIES,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await
     }
@@ -1371,6 +1378,10 @@ impl Batcher {
         }
     }
 
+    /// Sends a `create_new_task` transaction to Ethereum and waits for a maximum of 3 blocks for the receipt.
+    /// Retries up to `DEFAULT_MAX_RETRIES` times using exponential backoff on recoverable errors while trying to send the transaction:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
+    /// `ReceiptNotFoundError` is treated as non-recoverable, and the transaction will be canceled using `cancel_create_new_task_tx` in that case.
     async fn create_new_task(
         &self,
         batch_merkle_root: [u8; 32],
@@ -1393,6 +1404,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             DEFAULT_MAX_RETRIES,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await;
         match result {
@@ -1416,11 +1428,10 @@ impl Batcher {
     }
 
     /// Sends a transaction to Ethereum with the same nonce as the previous one to override it.
-    /// In case of a recoverable error, it will retry with an exponential backoff up to CANCEL_TRANSACTION_MAX_RETRIES times.
-    /// A tx not included in 3 blocks will be considered an error, and will trigger a bump of the fee, with the rules on ```calculate_bumped_gas_price```
-    /// This will do 5 bumps every 3 blocks, and then the exponential backoff will dominate, doing bumps at 8,13,24,45,89 and so on.
-    /// Errors on ```get_gas_price``` calls inside this function are considered transient,
-    /// so they won't stop the retries.
+    /// Retries on recoverable errors with exponential backoff.
+    /// Bumps the fee if not included in 3 blocks, using `calculate_bumped_gas_price`.
+    /// In the first 5 attemps, bumps the fee every 3 blocks. Then exponential backoff takes over.
+    /// After 2 hours (attempt 13), retries occur hourly for 1 day (33 retries).
     pub async fn cancel_create_new_task_tx(&self, old_tx_gas_price: U256) {
         info!("Cancelling createNewTask transaction...");
         let iteration = Arc::new(Mutex::new(0));
@@ -1458,6 +1469,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             CANCEL_TRANSACTION_MAX_RETRIES,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await
         {
@@ -1550,7 +1562,9 @@ impl Batcher {
         Ok(())
     }
 
-    /// Gets the balance of user with address `addr` from Ethereum using exponential backoff.
+    /// Gets the balance of user with address `addr` from Ethereum.
+    /// Retries on recoverable errors using exponential backoff up to `DEFAULT_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs)
     /// Returns `None` if the balance couldn't be returned
     /// FIXME: This should return a `Result` instead.
     async fn get_user_balance(&self, addr: &Address) -> Option<U256> {
@@ -1565,12 +1579,15 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             DEFAULT_MAX_RETRIES,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await
         .ok()
     }
 
-    /// Checks if the user's balance is unlocked for a given address using exponential backoff.
+    /// Checks if the user's balance is unlocked for a given address.
+    /// Retries on recoverable errors using exponential backoff up to `DEFAULT_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
     /// Returns `false` if an error occurs during the retries.
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
         let Ok(unlocked) = retry_function(
@@ -1584,6 +1601,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             DEFAULT_MAX_RETRIES,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await
         else {
@@ -1593,7 +1611,9 @@ impl Batcher {
         unlocked
     }
 
-    /// Uploads the batch to s3 using exponential backoff.
+    /// Uploads the batch to s3.
+    /// Retries on recoverable errors using exponential backoff up to `DEFAULT_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
     async fn upload_batch_to_s3(
         &self,
         batch_bytes: &[u8],
@@ -1611,6 +1631,7 @@ impl Batcher {
             DEFAULT_MIN_RETRY_DELAY,
             DEFAULT_BACKOFF_FACTOR,
             DEFAULT_MAX_RETRIES,
+            DEFAULT_MAX_RETRY_DELAY,
         )
         .await
         .map_err(|e| BatcherError::BatchUploadError(e.to_string()))
