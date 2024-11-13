@@ -63,7 +63,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 			*reply = 1
 			return nil
 		}
-		agg.logger.Info("Task was found in the logs, adding it to the internal map")
+		agg.logger.Info("Task was found in Ethereum, adding it to the internal map")
 		agg.AddNewTask(batch.BatchMerkleRoot, batch.SenderAddress, batch.TaskCreatedBlock)
 		taskIndex, err = agg.GetTaskIndex(signedTaskResponse.BatchIdentifierHash)
 		if err != nil {
