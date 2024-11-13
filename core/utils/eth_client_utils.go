@@ -18,9 +18,17 @@ import (
 //
 // Note: The `time.Second * 2` is set as the max interval in the retry mechanism because we can't reliably measure the specific time the tx will be included in a block.
 // Setting a higher value will imply doing less retries across the waitTimeout and so we might lose the receipt
-func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash, waitTimeout time.Duration) (*types.Receipt, error) {
+func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, txHash gethcommon.Hash, waitTimeout time.Duration) (*types.Receipt, error) {
 	receipt_func := func() (*types.Receipt, error) {
-		return client.TransactionReceipt(ctx, txHash)
+		receipt, err := client.TransactionReceipt(context.Background(), txHash)
+		if err != nil {
+			receipt, err = client.TransactionReceipt(context.Background(), txHash)
+			if err != nil {
+				return nil, err
+			}
+			return receipt, nil
+		}
+		return receipt, nil
 	}
 	return retry.RetryWithData(receipt_func, retry.MinDelay, retry.RetryFactor, 0, time.Second*2, waitTimeout)
 }
@@ -45,7 +53,7 @@ func BytesToQuorumThresholdPercentages(quorumThresholdPercentagesBytes []byte) e
 // the currentGasPrice, a base bump percentage, a retry percentage, and the retry count.
 // Formula: currentGasPrice + (currentGasPrice * (baseBumpPercentage + retryCount * incrementalRetryPercentage) / 100)
 func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercentage uint, retryAttemptPercentage uint, retryCount int) *big.Int {
-	// Incremental percentage increase for each retry attempt (i*5%)
+	// Incremental percentage increase for each retry attempt (i*retryAttemptPercentage)
 	incrementalRetryPercentage := new(big.Int).Mul(big.NewInt(int64(retryAttemptPercentage)), big.NewInt(int64(retryCount)))
 
 	// Total bump percentage: base bump + incremental retry percentage
@@ -61,11 +69,17 @@ func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercent
 	return bumpedGasPrice
 }
 
-func GetGasPriceRetryable(client eth.InstrumentedClient, ctx context.Context) (*big.Int, error) {
+/*
+GetGasPriceRetryable
+Get the gas price from the client with retry logic.
+- All errors are considered Transient Errors
+- Retry times: 1 sec, 2 sec, 4 sec
+*/
+func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient) (*big.Int, error) {
 	respondToTaskV2_func := func() (*big.Int, error) {
 		gasPrice, err := client.SuggestGasPrice(context.Background())
 		if err != nil {
-			gasPrice, err = client.SuggestGasPrice(context.Background())
+			gasPrice, err = fallbackClient.SuggestGasPrice(context.Background())
 			if err != nil {
 				return nil, err
 			}

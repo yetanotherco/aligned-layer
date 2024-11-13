@@ -8,8 +8,8 @@ import (
 )
 
 func TestCalculateGasPriceBumpBasedOnRetry(t *testing.T) {
-	incrementalRetryPercentage := uint(20)
-	baseBumpPercentage := uint(5)
+	baseBumpPercentage := uint(20)
+	incrementalRetryPercentage := uint(5)
 
 	gasPrices := [5]*big.Int{
 		big.NewInt(3000000000),

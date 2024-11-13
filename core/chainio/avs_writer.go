@@ -96,7 +96,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	i := 0
 
 	respondToTaskV2Func := func() (*types.Receipt, error) {
-		gasPrice, err := utils.GetGasPriceRetryable(w.Client, context.Background())
+		gasPrice, err := utils.GetGasPriceRetryable(w.Client, w.ClientFallback)
 		if err != nil {
 			return nil, err
 		}
@@ -126,7 +126,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			return nil, err
 		}
 
-		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, context.Background(), tx.Hash(), timeToWaitBeforeBump)
+		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, tx.Hash(), timeToWaitBeforeBump)
 		if receipt != nil {
 			return receipt, nil
 		}
