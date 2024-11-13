@@ -1515,7 +1515,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "ETH"
         },
         "overrides": []
       },
@@ -1825,7 +1826,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 10,
         "x": 10,
         "y": 48
@@ -1980,6 +1981,6 @@
   "timezone": "browser",
   "title": "Aggregator Data",
   "uid": "aggregator",
-  "version": 2,
+  "version": 4,
   "weekStart": ""
 }
