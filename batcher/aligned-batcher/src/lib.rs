@@ -684,8 +684,8 @@ impl Batcher {
             return Ok(());
         };
 
-        // We estimate the min balance to be the minimum balance needed to pay for the 
-        if !self.check_min_balance( user_min_fee, proofs_in_batch + 1, user_balance, msg_max_fee) {
+        // We estimate the min balance to be the minimum balance needed to pay for the
+        if !self.check_min_balance(user_min_fee, proofs_in_batch + 1, user_balance, msg_max_fee) {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
@@ -779,7 +779,13 @@ impl Batcher {
     }
 
     // Checks user has sufficient balance for paying all its the proofs in the current batch.
-    fn check_min_balance(&self, user_min_fee: U256, user_proofs_in_batch: usize, user_balance: U256, user_max_fee: U256) -> bool {
+    fn check_min_balance(
+        &self,
+        user_min_fee: U256,
+        user_proofs_in_batch: usize,
+        user_balance: U256,
+        user_max_fee: U256,
+    ) -> bool {
         // If user proof has not been submitted yet its default is U256::max_value().
         // In this case we check the user can pay for its proof.
         let mut min_fee = user_min_fee;
