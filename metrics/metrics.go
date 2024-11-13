@@ -100,9 +100,9 @@ func (m *Metrics) IncOperatorTaskResponses() {
 }
 
 func (m *Metrics) IncAggregatorPaidForBatcher() {
-	m.aggregatorGasCostPaidForBatcherTotal.Inc()
+	m.aggregatorNumTimesPaidForBatcher.Inc()
 }
 
 func (m *Metrics) AddAggregatorGasPaidForBatcher(value float64) {
-	m.aggregatorNumTimesPaidForBatcher.Add(value)
+	m.aggregatorGasCostPaidForBatcherTotal.Add(value)
 }
