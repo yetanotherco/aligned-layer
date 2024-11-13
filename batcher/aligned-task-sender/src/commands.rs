@@ -324,19 +324,19 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
 
         // a thread to send tasks from each loaded wallet:
         let handle = tokio::spawn(async move {
-            let mut nonce = get_nonce_from_ethereum(&eth_rpc_url, wallet.address(), args.network.into())
-                .await
-                .inspect_err(|e| {
-                    error!(
-                        "Could not get nonce: {:?}, for sender {:?}",
-                        e,
-                        wallet.address()
-                    )
-                })
-                .unwrap();
+            let mut nonce =
+                get_nonce_from_ethereum(&eth_rpc_url, wallet.address(), args.network.into())
+                    .await
+                    .inspect_err(|e| {
+                        error!(
+                            "Could not get nonce: {:?}, for sender {:?}",
+                            e,
+                            wallet.address()
+                        )
+                    })
+                    .unwrap();
 
             loop {
-
                 let mut result = Vec::with_capacity(args.burst_size);
                 while result.len() < args.burst_size {
                     let samples = verification_data
