@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 use std::fs::File;
-use std::io;
 use std::io::BufReader;
 use std::io::Write;
 use std::path::PathBuf;
@@ -12,7 +11,7 @@ use aligned_sdk::core::{
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
 use aligned_sdk::sdk::get_chain_id;
-use aligned_sdk::sdk::get_next_nonce;
+use aligned_sdk::sdk::get_nonce_from_batcher;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
 use clap::Parser;
@@ -29,6 +28,7 @@ use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
 use crate::AlignedCommands::GetUserBalance;
+use crate::AlignedCommands::GetUserNonce;
 use crate::AlignedCommands::GetVkCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -56,6 +56,8 @@ pub enum AlignedCommands {
     DepositToBatcher(DepositToBatcherArgs),
     #[clap(about = "Get user balance from the batcher", name = "get-user-balance")]
     GetUserBalance(GetUserBalanceArgs),
+    #[clap(about = "Get user nonce from the batcher", name = "get-user-nonce")]
+    GetUserNonce(GetUserNonceArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -199,6 +201,23 @@ pub struct GetUserBalanceArgs {
     user_address: String,
 }
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct GetUserNonceArgs {
+    #[arg(
+        name = "Batcher connection address",
+        long = "batcher_url",
+        default_value = "ws://localhost:8080"
+    )]
+    batcher_url: String,
+    #[arg(
+        name = "The user's Ethereum address",
+        long = "user_addr",
+        required = true
+    )]
+    address: String,
+}
+
 #[derive(Debug, Clone, ValueEnum, Copy)]
 enum NetworkArg {
     Devnet,
@@ -302,16 +321,32 @@ async fn main() -> Result<(), AlignedError> {
 
             let nonce = match &submit_args.nonce {
                 Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
-                None => {
-                    get_nonce(
-                        &eth_rpc_url,
-                        wallet.address(),
-                        submit_args.network.into(),
-                        repetitions,
-                    )
-                    .await?
-                }
+                None => get_nonce_from_batcher(&connect_addr, wallet.address())
+                    .await
+                    .map_err(|e| match e {
+                        aligned_sdk::core::errors::GetNonceError::EthRpcError(e) => {
+                            SubmitError::GetNonceError(e)
+                        }
+                        aligned_sdk::core::errors::GetNonceError::ConnectionFailed(e) => {
+                            SubmitError::GenericError(e)
+                        }
+                        aligned_sdk::core::errors::GetNonceError::InvalidRequest(e) => {
+                            SubmitError::GenericError(e)
+                        }
+                        aligned_sdk::core::errors::GetNonceError::SerializationError(e) => {
+                            SubmitError::GenericError(e)
+                        }
+                        aligned_sdk::core::errors::GetNonceError::ProtocolMismatch {
+                            current,
+                            expected,
+                        } => SubmitError::ProtocolVersionMismatch { current, expected },
+                        aligned_sdk::core::errors::GetNonceError::UnexpectedResponse(e) => {
+                            SubmitError::UnexpectedBatcherResponse(e)
+                        }
+                    })?,
             };
+
+            warn!("Nonce: {nonce}");
 
             let verification_data = verification_data_from_args(&submit_args)?;
 
@@ -319,35 +354,38 @@ async fn main() -> Result<(), AlignedError> {
 
             info!("Submitting proofs to the Aligned batcher...");
 
-            let max_fees = vec![max_fee; repetitions];
-
-            let aligned_verification_data_vec = match submit_multiple(
+            let aligned_verification_data_vec = submit_multiple(
                 &connect_addr,
                 submit_args.network.into(),
                 &verification_data_arr,
-                &max_fees,
+                max_fee,
                 wallet.clone(),
                 nonce,
             )
-            .await
-            {
-                Ok(aligned_verification_data_vec) => aligned_verification_data_vec,
-                Err(e) => {
-                    let nonce_file = format!("nonce_{:?}.bin", wallet.address());
-
-                    handle_submit_err(e, nonce_file.as_str()).await;
-                    return Ok(());
-                }
-            };
+            .await;
 
             let mut unique_batch_merkle_roots = HashSet::new();
 
             for aligned_verification_data in aligned_verification_data_vec {
-                save_response(
-                    batch_inclusion_data_directory_path.clone(),
-                    &aligned_verification_data,
-                )?;
-                unique_batch_merkle_roots.insert(aligned_verification_data.batch_merkle_root);
+                match aligned_verification_data {
+                    Ok(aligned_verification_data) => {
+                        info!(
+                            "Proof submitted to aligned. Batch merkle root: 0x{}",
+                            hex::encode(aligned_verification_data.batch_merkle_root)
+                        );
+                        save_response(
+                            batch_inclusion_data_directory_path.clone(),
+                            &aligned_verification_data,
+                        )?;
+                        unique_batch_merkle_roots
+                            .insert(aligned_verification_data.batch_merkle_root);
+                    }
+                    Err(e) => {
+                        warn!("Error while submitting proof: {:?}", e);
+                        handle_submit_err(e).await;
+                        return Ok(());
+                    }
+                };
             }
 
             match unique_batch_merkle_roots.len() {
@@ -478,6 +516,18 @@ async fn main() -> Result<(), AlignedError> {
                 }
             }
         }
+        GetUserNonce(args) => {
+            let address = H160::from_str(&args.address).unwrap();
+            match get_nonce_from_batcher(&args.batcher_url, address).await {
+                Ok(nonce) => {
+                    info!("Nonce for address {} is {}", address, nonce);
+                }
+                Err(e) => {
+                    error!("Error while getting nonce: {:?}", e);
+                    return Ok(());
+                }
+            }
+        }
     }
 
     Ok(())
@@ -541,7 +591,7 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
     })
 }
 
-async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
+async fn handle_submit_err(err: SubmitError) {
     match err {
         SubmitError::InvalidNonce => {
             error!("Invalid nonce. try again");
@@ -550,15 +600,14 @@ async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
             error!("Batch was reset. try resubmitting the proof");
         }
         SubmitError::InvalidProof(reason) => error!("Submitted proof is invalid: {}", reason),
-        SubmitError::InsufficientBalance => {
-            error!("Insufficient balance to pay for the transaction")
+        SubmitError::InsufficientBalance(sender_address) => {
+            error!(
+                "Insufficient balance to pay for the transaction, address: {}",
+                sender_address
+            )
         }
         _ => {}
     }
-
-    delete_file(nonce_file).unwrap_or_else(|e| {
-        error!("Error while deleting nonce file: {}", e);
-    });
 }
 
 fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
@@ -570,43 +619,6 @@ fn read_file_option(param_name: &str, file_name: Option<PathBuf>) -> Result<Vec<
         param_name.to_string(),
     ))?;
     read_file(file_name)
-}
-
-fn write_file(file_name: &str, content: &[u8]) -> Result<(), SubmitError> {
-    std::fs::write(file_name, content)
-        .map_err(|e| SubmitError::IoError(PathBuf::from(file_name), e))
-}
-
-fn delete_file(file_name: &str) -> Result<(), io::Error> {
-    std::fs::remove_file(file_name)
-}
-
-async fn get_nonce(
-    eth_rpc_url: &str,
-    address: Address,
-    network: Network,
-    proof_count: usize,
-) -> Result<U256, AlignedError> {
-    let nonce = get_next_nonce(eth_rpc_url, address, network).await?;
-
-    let nonce_file = format!("nonce_{:?}.bin", address);
-
-    let local_nonce = read_file(PathBuf::from(nonce_file.clone())).unwrap_or(vec![0u8; 32]);
-    let local_nonce = U256::from_big_endian(local_nonce.as_slice());
-
-    let nonce = if local_nonce > nonce {
-        local_nonce
-    } else {
-        nonce
-    };
-
-    let mut nonce_bytes = [0; 32];
-
-    (nonce + U256::from(proof_count)).to_big_endian(&mut nonce_bytes);
-
-    write_file(nonce_file.as_str(), &nonce_bytes)?;
-
-    Ok(nonce)
 }
 
 pub async fn get_user_balance(

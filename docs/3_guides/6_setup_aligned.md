@@ -492,7 +492,7 @@ make install_aligned_compiling
 
 The SP1 and Risc0 proofs need the proof file and the vm program file.
 The current SP1 version used in Aligned is
-`v1.0.1` and the current Risc0 version used in Aligned is v1.0.1.
+`v3.0.0` and the current Risc0 version used in Aligned is `v1.1.2`.
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the
 verification key file.
 
@@ -527,6 +527,13 @@ to run it using the following documentation:
 
 ### DB Setup
 
+> [!NOTE]
+> If you want to run the DB separately, without docker,
+> you can set it up and start the explorer with the following command:
+> ```bash
+> make run_explorer_without_docker_db
+> ```
+
 To set up the explorer, an installation of the DB is necessary.
 
 First, you'll need to install docker if you don't have it already.
@@ -560,6 +567,13 @@ make explorer_ecto_setup_db
 
 ```bash
 make run_explorer
+```
+
+> [!NOTE]
+> If you want to run the DB separately, without docker,
+> you can set it up and start the explorer with the following command:
+```bash
+make run_explorer_without_docker_db
 ```
 
 </details>
