@@ -53,14 +53,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"BatchIdentifierHash", "0x"+hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 
-	agg.taskMutex.Lock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Process operator response")
-	// Unlock mutex after returning
-	defer func() {
-		agg.taskMutex.Unlock()
-		agg.logger.Info("- Unlocked Resources: Process operator response")
-	}()
-
 	taskIndex, err := agg.GetTaskIndex(signedTaskResponse.BatchIdentifierHash)
 
 	if err != nil {
@@ -161,7 +153,11 @@ func (agg *Aggregator) ProcessNewSignature(ctx context.Context, taskIndex uint32
 
 func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error) {
 	getTaskIndex_func := func() (uint32, error) {
+		agg.taskMutex.Lock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Get task index")
 		taskIndex, ok := agg.batchesIdxByIdentifierHash[batchIdentifierHash]
+		agg.taskMutex.Unlock()
+		agg.logger.Info("- Unlocked Resources: Get task index")
 		if !ok {
 			return taskIndex, fmt.Errorf("Task not found in the internal map")
 		} else {
