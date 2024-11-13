@@ -197,12 +197,14 @@ pub struct BatchInclusionData {
     pub batch_merkle_root: [u8; 32],
     pub batch_inclusion_proof: Proof<[u8; 32]>,
     pub index_in_batch: usize,
+    pub user_nonce: U256,
 }
 
 impl BatchInclusionData {
     pub fn new(
         verification_data_batch_index: usize,
         batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
+        user_nonce: U256,
     ) -> Self {
         let batch_inclusion_proof = batch_merkle_tree
             .get_proof_by_pos(verification_data_batch_index)
@@ -212,14 +214,33 @@ impl BatchInclusionData {
             batch_merkle_root: batch_merkle_tree.root,
             batch_inclusion_proof,
             index_in_batch: verification_data_batch_index,
+            user_nonce,
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClientMessage {
+pub struct SubmitProofMessage {
     pub verification_data: NoncedVerificationData,
     pub signature: Signature,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ClientMessage {
+    GetNonceForAddress(Address),
+    // Needs to be wrapped in box as the message is 3x bigger than the others
+    // see https://rust-lang.github.io/rust-clippy/master/index.html#large_enum_variant
+    SubmitProof(Box<SubmitProofMessage>),
+}
+
+impl Display for ClientMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // Use pattern matching to print the variant name
+        match self {
+            ClientMessage::GetNonceForAddress(_) => write!(f, "GetNonceForAddress"),
+            ClientMessage::SubmitProof(_) => write!(f, "SubmitProof"),
+        }
+    }
 }
 
 impl Eip712 for NoncedVerificationData {
@@ -272,7 +293,7 @@ impl Eip712 for NoncedVerificationData {
     }
 }
 
-impl ClientMessage {
+impl SubmitProofMessage {
     /// Client message is a wrap around verification data and its signature.
     /// The signature is obtained by calculating the commitments and then hashing them.
     pub async fn new(
@@ -284,7 +305,7 @@ impl ClientMessage {
             .await
             .expect("Failed to sign the verification data");
 
-        ClientMessage {
+        Self {
             verification_data,
             signature,
         }
@@ -330,57 +351,10 @@ impl AlignedVerificationData {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ValidityResponseMessage {
-    Valid,
-    InvalidNonce,
-    InvalidSignature,
-    InvalidChainId,
-    InvalidProof(ProofInvalidReason),
-    InvalidMaxFee,
-    InvalidReplacementMessage,
-    AddToBatchError,
-    ProofTooLarge,
-    InsufficientBalance(Address),
-    EthRpcError,
-    InvalidPaymentServiceAddress(Address, Address),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ProofInvalidReason {
     RejectedProof,
     VerifierNotSupported,
     DisabledVerifier(ProvingSystemId),
-}
-
-impl Display for ValidityResponseMessage {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ValidityResponseMessage::Valid => write!(f, "Valid"),
-            ValidityResponseMessage::InvalidNonce => write!(f, "Invalid nonce"),
-            ValidityResponseMessage::InvalidSignature => write!(f, "Invalid signature"),
-            ValidityResponseMessage::InvalidChainId => write!(f, "Invalid chain id"),
-            ValidityResponseMessage::InvalidProof(reason) => {
-                write!(f, "Invalid proof: {}", reason)
-            }
-            ValidityResponseMessage::InvalidMaxFee => write!(f, "Invalid max fee"),
-            ValidityResponseMessage::InvalidReplacementMessage => {
-                write!(f, "Invalid replacement message")
-            }
-            ValidityResponseMessage::AddToBatchError => write!(f, "Add to batch error"),
-            ValidityResponseMessage::ProofTooLarge => write!(f, "Proof too large"),
-            ValidityResponseMessage::InsufficientBalance(addr) => {
-                write!(f, "Insufficient balance for address {}", addr)
-            }
-            ValidityResponseMessage::EthRpcError => write!(f, "Eth RPC error"),
-            ValidityResponseMessage::InvalidPaymentServiceAddress(addr, expected) => {
-                write!(
-                    f,
-                    "Invalid payment service address: {}, expected: {}",
-                    addr, expected
-                )
-            }
-        }
-    }
 }
 
 impl Display for ProofInvalidReason {
@@ -396,13 +370,30 @@ impl Display for ProofInvalidReason {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ResponseMessage {
+pub enum SubmitProofResponseMessage {
     BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
-    CreateNewTaskError(String),
+    CreateNewTaskError(String, String), //merkle-root, error
     InvalidProof(ProofInvalidReason),
     BatchReset,
     Error(String),
+    InvalidNonce,
+    InvalidSignature,
+    ProofTooLarge,
+    InvalidMaxFee,
+    InsufficientBalance(Address),
+    InvalidChainId,
+    InvalidReplacementMessage,
+    AddToBatchError,
+    EthRpcError,
+    InvalidPaymentServiceAddress(Address, Address),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GetNonceResponseMessage {
+    Nonce(U256),
+    EthRpcError(String),
+    InvalidRequest(String),
 }
 
 #[derive(Debug, Clone, Copy)]

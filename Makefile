@@ -6,7 +6,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.10.2
+OPERATOR_VERSION=v0.10.3
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -94,6 +94,29 @@ anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
 
+pause_all_aligned_service_manager:
+	@echo "Pausing all contracts..."
+	. contracts/scripts/pause_aligned_service_manager.sh all
+
+unpause_all_aligned_service_manager:
+	@echo "Pausing all contracts..."
+	. contracts/scripts/unpause_aligned_service_manager.sh all
+
+get_paused_state_aligned_service_manager:
+	@echo "Getting paused state of Aligned Service Manager contract..."
+	. contracts/scripts/get_paused_state_aligned_service_manager.sh
+
+pause_batcher_payment_service:
+	@echo "Pausing BatcherPayments contract..."
+	. contracts/scripts/pause_batcher_payment_service.sh
+
+unpause_batcher_payment_service:
+	@echo "Unpausing BatcherPayments contract..."
+	. contracts/scripts/unpause_batcher_payment_service.sh
+
+get_paused_state_batcher_payments_service:
+	@echo "Getting paused state of Batcher Payments Service contract..."
+	. contracts/scripts/get_paused_state_batcher_payments_service.sh
 anvil_upgrade_initialize_disable_verifiers:
 	@echo "Initializing disabled verifiers..."
 	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh
@@ -120,6 +143,9 @@ aggregator_send_dummy_responses:
 	@echo "Sending dummy responses to Aggregator..."
 	@cd aggregator && go run dummy/submit_task_responses.go
 
+test_go_retries:
+	@cd core/ && \
+	go test -v -timeout 15m
 
 __OPERATOR__:
 
@@ -169,7 +195,7 @@ bindings:
 	cd contracts && ./generate-go-bindings.sh
 
 test:
-	go test ./...
+	go test ./... -timeout 15m
 
 
 get_delegation_manager_address:
@@ -341,7 +367,7 @@ batcher_send_risc0_task_no_pub_input:
         --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
@@ -457,9 +483,17 @@ deploy_aligned_contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
 
+deploy_pauser_registry: ## Deploy Pauser Registry
+	@echo "Deploying Pauser Registry..."
+	@. contracts/scripts/.env && . contracts/scripts/deploy_pauser_registry.sh
+
 upgrade_aligned_contracts: ## Upgrade Aligned Contracts
 	@echo "Upgrading Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_aligned_contracts.sh
+
+upgrade_pauser_aligned_contracts: ## Upgrade Aligned Contracts with Pauser initialization
+	@echo "Upgrading Aligned Contracts with Pauser initialization..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_pausable_to_service_manager.sh
 
 upgrade_registry_coordinator: ## Upgrade Registry Coordinator
 	@echo "Upgrading Registry Coordinator..."
@@ -667,6 +701,13 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "All Linux FFIs built successfully."
 
 __EXPLORER__:
+
+run_explorer_without_docker_db: explorer_ecto_setup_db
+	@cd explorer/ && \
+		pnpm install --prefix assets && \
+		mix setup && \
+		./start.sh
+
 run_explorer: explorer_run_db explorer_ecto_setup_db
 	@cd explorer/ && \
 		pnpm install --prefix assets && \
@@ -981,11 +1022,11 @@ open_telemetry_prod_start: ## Run open telemetry services with Cassandra using t
 # Elixir API
 telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
-	 	./start.sh	
+	 	./start.sh
 
 telemetry_ecto_migrate: ##
 		@cd telemetry_api && \
-			./ecto_setup_db.sh	
+			./ecto_setup_db.sh
 
 telemetry_build_db:
 	@cd telemetry_api && \
@@ -1011,6 +1052,28 @@ telemetry_create_env:
 	@cd telemetry_api && \
 		cp .env.dev .env
 
+setup_local_aligned_all:
+	tmux kill-session -t aligned_layer || true
+	tmux new-session -d -s aligned_layer
+
+	tmux new-window -t aligned_layer -n anvil
+	tmux send-keys -t aligned_layer 'make anvil_start_with_block_time' C-m
+
+	tmux new-window -t aligned_layer -n aggregator
+	tmux send-keys -t aligned_layer:aggregator 'make aggregator_start' C-m
+
+	tmux new-window -t aligned_layer -n operator
+	tmux send-keys -t aligned_layer:operator 'sleep 5 && make operator_register_and_start' C-m
+
+	tmux new-window -t aligned_layer -n batcher
+	tmux send-keys -t aligned_layer:batcher 'sleep 60 && make batcher_start_local' C-m
+
+	tmux new-window -t aligned_layer -n explorer
+	tmux send-keys -t aligned_layer:explorer 'make explorer_create_env && make explorer_build_db && make run_explorer' C-m
+
+	tmux new-window -t aligned_layer -n telemetry
+	tmux send-keys -t aligned_layer:telemetry 'docker compose -f telemetry-docker-compose.yaml down && make telemetry_create_env && make telemetry_run_db && make open_telemetry_start && make telemetry_start' C-m
+
 __ANSIBLE__: ## ____
 
 ansible_batcher_create_env: ## Create empty variables files for the Batcher deploy
@@ -1028,6 +1091,7 @@ ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
 	@ansible-playbook infra/ansible/playbooks/batcher.yaml \
 		-i $(INVENTORY) \
 		-e "keystore_path=$(KEYSTORE)"
+
 
 ansible_operator_create_env: ## Create empty variables files for the Operator deploy
 	@cp -n infra/ansible/playbooks/ini/config-operator.ini.example infra/ansible/playbooks/ini/config-operator.ini
