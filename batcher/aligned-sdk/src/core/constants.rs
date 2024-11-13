@@ -1,4 +1,6 @@
 /// Batcher ///
+pub const GAS_PRICE_INCREMENT_PERCENTAGE_PER_ITERATION: usize = 5;
+pub const CANCEL_TRANSACTION_MAX_RETRIES: usize = 33; // ~ 1 day
 pub const AGGREGATOR_GAS_COST: u128 = 400_000;
 pub const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
 pub const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
@@ -13,6 +15,7 @@ pub const MIN_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 1
 pub const RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER: u128 = 250; // fee_for_aggregator -> respondToTaskFeeLimit modifier
 pub const DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER: u128 = 150; // feeForAggregator modifier
 pub const GAS_PRICE_PERCENTAGE_MULTIPLIER: u128 = 110; // gasPrice modifier
+pub const OVERRIDE_GAS_PRICE_PERCENTAGE_MULTIPLIER: u128 = 120; // gasPrice modifier to override previous transactions
 pub const PERCENTAGE_DIVIDER: u128 = 100;
 
 /// SDK ///
@@ -23,3 +26,9 @@ pub const MAX_FEE_BATCH_PROOF_NUMBER: usize = 32;
 /// Estimated number of proofs for batch submission.
 /// This corresponds to the number of proofs to compute for a default max_fee.
 pub const MAX_FEE_DEFAULT_PROOF_NUMBER: usize = 10;
+
+/// retry
+pub const DEFAULT_MIN_RETRY_DELAY: u64 = 500; // milliseconds
+pub const DEFAULT_MAX_RETRIES: usize = 5;
+pub const DEFAULT_BACKOFF_FACTOR: f32 = 2.0;
+pub const DEFAULT_MAX_RETRY_DELAY: u64 = 3600; // seconds

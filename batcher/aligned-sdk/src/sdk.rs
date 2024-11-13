@@ -3,17 +3,17 @@ use crate::{
         batch::await_batch_verification,
         messaging::{receive, send_messages, ResponseStream},
         protocol::check_protocol_version,
-        serialization::cbor_serialize,
+        serialization::{cbor_deserialize, cbor_serialize},
     },
     core::{
         constants::{
             ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
             MAX_FEE_BATCH_PROOF_NUMBER, MAX_FEE_DEFAULT_PROOF_NUMBER,
         },
-        errors,
+        errors::{self, GetNonceError},
         types::{
-            AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
-            VerificationDataCommitment,
+            AlignedVerificationData, ClientMessage, GetNonceResponseMessage, Network,
+            PriceEstimate, ProvingSystemId, VerificationData,
         },
     },
     eth::{
@@ -39,14 +39,14 @@ use log::{debug, info};
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
-    StreamExt, TryStreamExt,
+    SinkExt, StreamExt, TryFutureExt, TryStreamExt,
 };
 
+use serde_json::json;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 
-use serde_json::json;
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
 /// * `batcher_url` - The url of the batcher to which the proof will be submitted.
@@ -55,7 +55,7 @@ use serde_json::json;
 /// * `verification_data` - An array of verification data of each proof.
 /// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
+/// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
 /// * `payment_service_addr` - The address of the payment service contract.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
@@ -83,25 +83,36 @@ pub async fn submit_multiple_and_wait_verification(
     eth_rpc_url: &str,
     network: Network,
     verification_data: &[VerificationData],
-    max_fees: &[U256],
+    max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
-    let aligned_verification_data = submit_multiple(
+) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
+    let mut aligned_verification_data = submit_multiple(
         batcher_url,
         network,
         verification_data,
-        max_fees,
+        max_fee,
         wallet,
         nonce,
     )
-    .await?;
+    .await;
 
-    for aligned_verification_data_item in aligned_verification_data.iter() {
-        await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await?;
+    // TODO: open issue: use a join to .await all at the same time, avoiding the loop
+    // And await only once per batch, no need to await multiple proofs if they are in the same batch.
+    let mut error_awaiting_batch_verification: Option<errors::SubmitError> = None;
+    for aligned_verification_data_item in aligned_verification_data.iter().flatten() {
+        if let Err(e) =
+            await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await
+        {
+            error_awaiting_batch_verification = Some(e);
+            break;
+        }
+    }
+    if let Some(error_awaiting_batch_verification) = error_awaiting_batch_verification {
+        aligned_verification_data.push(Err(error_awaiting_batch_verification));
     }
 
-    Ok(aligned_verification_data)
+    aligned_verification_data
 }
 
 /// Returns the estimated `max_fee` depending on the batch inclusion preference of the user, based on the max priority gas price.
@@ -208,11 +219,11 @@ async fn fetch_gas_price(
 /// Submits multiple proofs to the batcher to be verified in Aligned.
 /// # Arguments
 /// * `batcher_url` - The url of the batcher to which the proof will be submitted.
-/// * `chain` - The chain on which the verification will be done.
+/// * `network` - The netork on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
+/// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -234,13 +245,14 @@ pub async fn submit_multiple(
     batcher_url: &str,
     network: Network,
     verification_data: &[VerificationData],
-    max_fees: &[U256],
+    max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
-    let (ws_stream, _) = connect_async(batcher_url)
-        .await
-        .map_err(errors::SubmitError::WebSocketConnectionError)?;
+) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
+    let (ws_stream, _) = match connect_async(batcher_url).await {
+        Ok((ws_stream, response)) => (ws_stream, response),
+        Err(e) => return vec![Err(errors::SubmitError::WebSocketConnectionError(e))],
+    };
 
     debug!("WebSocket handshake has been successfully completed");
     let (ws_write, ws_read) = ws_stream.split();
@@ -252,7 +264,7 @@ pub async fn submit_multiple(
         ws_read,
         network,
         verification_data,
-        max_fees,
+        max_fee,
         wallet,
         nonce,
     )
@@ -261,7 +273,7 @@ pub async fn submit_multiple(
 
 pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {
     match network {
-        Network::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap(),
+        Network::Devnet => H160::from_str("0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650").unwrap(),
         Network::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").unwrap(),
         Network::HoleskyStage => {
             H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").unwrap()
@@ -279,23 +291,34 @@ pub fn get_aligned_service_manager_address(network: Network) -> ethers::types::H
     }
 }
 
+// Will submit the proofs to the batcher and wait for their responses
+// Will return once all proofs are responded, or up to a proof that is responded with an error
 async fn _submit_multiple(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     network: Network,
     verification_data: &[VerificationData],
-    max_fees: &[U256],
+    max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
+) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
     // First message from the batcher is the protocol version
-    check_protocol_version(&mut ws_read).await?;
+    if let Err(e) = check_protocol_version(&mut ws_read).await {
+        return vec![Err(e)];
+    }
 
     if verification_data.is_empty() {
-        return Err(errors::SubmitError::MissingRequiredParameter(
+        return vec![Err(errors::SubmitError::MissingRequiredParameter(
             "verification_data".to_string(),
-        ));
+        ))];
     }
+    if verification_data.len() > 10000 {
+        //TODO Magic number
+        return vec![Err(errors::SubmitError::GenericError(
+            "Trying to submit too many proofs at once".to_string(),
+        ))];
+    }
+
     let ws_write_clone = ws_write.clone();
 
     let response_stream: ResponseStream =
@@ -305,42 +328,26 @@ async fn _submit_multiple(
 
     let payment_service_addr = get_payment_service_address(network);
 
-    let sent_verification_data = {
-        // The sent verification data will be stored here so that we can calculate
-        // their commitments later.
-        send_messages(
-            response_stream.clone(),
+    let result = async {
+        let sent_verification_data_rev = send_messages(
             ws_write,
             payment_service_addr,
             verification_data,
-            max_fees,
+            max_fee,
             wallet,
             nonce,
         )
-        .await?
-    };
+        .await;
+        receive(response_stream, sent_verification_data_rev).await
+    }
+    .await;
 
-    let num_responses = Arc::new(Mutex::new(0));
-
-    // This vector is reversed so that when responses are received, the commitments corresponding
-    // to that response can simply be popped of this vector.
-    let mut verification_data_commitments_rev: Vec<VerificationDataCommitment> =
-        sent_verification_data
-            .into_iter()
-            .map(|vd| vd.into())
-            .rev()
-            .collect();
-
-    let aligned_verification_data = receive(
-        response_stream,
-        ws_write_clone,
-        verification_data.len(),
-        num_responses,
-        &mut verification_data_commitments_rev,
-    )
-    .await?;
-
-    Ok(aligned_verification_data)
+    // Close connection
+    info!("Closing WS connection");
+    if let Err(e) = ws_write_clone.lock().await.close().await {
+        return vec![Err(errors::SubmitError::GenericError(e.to_string()))];
+    }
+    result
 }
 
 /// Submits a proof to the batcher to be verified in Aligned and waits for the verification on-chain.
@@ -351,7 +358,7 @@ async fn _submit_multiple(
 /// * `verification_data` - The verification data of the proof.
 /// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
+/// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
 /// * `payment_service_addr` - The address of the payment service contract.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
@@ -385,20 +392,24 @@ pub async fn submit_and_wait_verification(
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
-    let max_fees = vec![max_fee];
-
     let aligned_verification_data = submit_multiple_and_wait_verification(
         batcher_url,
         eth_rpc_url,
         network,
         &verification_data,
-        &max_fees,
+        max_fee,
         wallet,
         nonce,
     )
-    .await?;
+    .await;
 
-    Ok(aligned_verification_data[0].clone())
+    match aligned_verification_data.first() {
+        Some(Ok(aligned_verification_data)) => Ok(aligned_verification_data.clone()),
+        Some(Err(e)) => Err(errors::SubmitError::GenericError(e.to_string())),
+        None => Err(errors::SubmitError::GenericError(
+            "No response from the batcher".to_string(),
+        )),
+    }
 }
 
 /// Submits a proof to the batcher to be verified in Aligned.
@@ -408,7 +419,7 @@ pub async fn submit_and_wait_verification(
 /// * `verification_data` - The verification data of the proof.
 /// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
+/// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -435,19 +446,24 @@ pub async fn submit(
     nonce: U256,
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
-    let max_fees = vec![max_fee];
 
     let aligned_verification_data = submit_multiple(
         batcher_url,
         network,
         &verification_data,
-        &max_fees,
+        max_fee,
         wallet,
         nonce,
     )
-    .await?;
+    .await;
 
-    Ok(aligned_verification_data[0].clone())
+    match aligned_verification_data.first() {
+        Some(Ok(aligned_verification_data)) => Ok(aligned_verification_data.clone()),
+        Some(Err(e)) => Err(errors::SubmitError::GenericError(e.to_string())),
+        None => Err(errors::SubmitError::GenericError(
+            "No response from the batcher".to_string(),
+        )),
+    }
 }
 
 /// Checks if the proof has been verified with Aligned and is included in the batch.
@@ -535,38 +551,105 @@ pub fn get_vk_commitment(
     hasher.finalize().into()
 }
 
-/// Returns the next nonce for a given address.
+/// Returns the next nonce for a given address from the batcher.
+/// You should prefer this method instead of [`get_nonce_from_ethereum`] if you have recently sent proofs,
+/// as the batcher proofs might not yet be on ethereum,
+/// producing an out-of-sync nonce with the payment service contract on ethereum
 /// # Arguments
-/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
-/// * `submitter_addr` - The address of the proof submitter for which the nonce will be retrieved.
-/// * `payment_service_addr` - The address of the batcher payment service contract.
+/// * `batcher_url` - The batcher websocket url.
+/// * `address` - The user address for which the nonce will be retrieved.
 /// # Returns
 /// * The next nonce of the proof submitter account.
 /// # Errors
-/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
-/// * `EthereumCallError` if there is an error in the Ethereum call.
-pub async fn get_next_nonce(
+/// * `EthRpcError` if the batcher has an error in the Ethereum call when retrieving the nonce if not already cached.
+pub async fn get_nonce_from_batcher(
+    batcher_ws_url: &str,
+    address: Address,
+) -> Result<U256, GetNonceError> {
+    let (ws_stream, _) = connect_async(batcher_ws_url).await.map_err(|_| {
+        GetNonceError::ConnectionFailed("Ws connection to batcher failed".to_string())
+    })?;
+
+    debug!("WebSocket handshake has been successfully completed");
+    let (mut ws_write, mut ws_read) = ws_stream.split();
+    check_protocol_version(&mut ws_read)
+        .map_err(|e| match e {
+            errors::SubmitError::ProtocolVersionMismatch { current, expected } => {
+                GetNonceError::ProtocolMismatch { current, expected }
+            }
+            _ => GetNonceError::UnexpectedResponse(
+                "Unexpected response, expected protocol version".to_string(),
+            ),
+        })
+        .await?;
+
+    let msg = ClientMessage::GetNonceForAddress(address);
+
+    let msg_bin = cbor_serialize(&msg)
+        .map_err(|_| GetNonceError::SerializationError("Failed to serialize msg".to_string()))?;
+    ws_write
+        .send(Message::Binary(msg_bin.clone()))
+        .await
+        .map_err(|_| {
+            GetNonceError::ConnectionFailed(
+                "Ws connection failed to send message to batcher".to_string(),
+            )
+        })?;
+
+    let mut response_stream: ResponseStream =
+        ws_read.try_filter(|msg| futures_util::future::ready(msg.is_binary()));
+
+    let msg = match response_stream.next().await {
+        Some(Ok(msg)) => msg,
+        _ => {
+            return Err(GetNonceError::ConnectionFailed(
+                "Connection was closed without close message before receiving all messages"
+                    .to_string(),
+            ));
+        }
+    };
+
+    let _ = ws_write.close().await;
+
+    match cbor_deserialize(msg.into_data().as_slice()) {
+        Ok(GetNonceResponseMessage::Nonce(nonce)) => Ok(nonce),
+        Ok(GetNonceResponseMessage::EthRpcError(e)) => Err(GetNonceError::EthRpcError(e)),
+        Ok(GetNonceResponseMessage::InvalidRequest(e)) => Err(GetNonceError::InvalidRequest(e)),
+        Err(_) => Err(GetNonceError::SerializationError(
+            "Failed to deserialize batcher message".to_string(),
+        )),
+    }
+}
+
+/// Returns the next nonce for a given address in Ethereum from aligned payment service contract.
+/// Note that it might be out of sync if you recently sent proofs. For that see [`get_nonce_from_batcher`]
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// * `address` - The user address for which the nonce will be retrieved.
+/// # Returns
+/// * The next nonce of the proof submitter account from ethereum.
+/// # Errors
+/// * `EthRpcError` if the batcher has an error in the Ethereum call when retrieving the nonce if not already cached.
+pub async fn get_nonce_from_ethereum(
     eth_rpc_url: &str,
     submitter_addr: Address,
     network: Network,
-) -> Result<U256, errors::NonceError> {
+) -> Result<U256, GetNonceError> {
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
-        .map_err(|e| errors::NonceError::EthereumProviderError(e.to_string()))?;
+        .map_err(|e| GetNonceError::EthRpcError(e.to_string()))?;
 
     let payment_service_address = get_payment_service_address(network);
 
     match batcher_payment_service(eth_rpc_provider, payment_service_address).await {
         Ok(contract) => {
             let call = contract.user_nonces(submitter_addr);
-
             let result = call
                 .call()
                 .await
-                .map_err(|e| errors::NonceError::EthereumCallError(e.to_string()))?;
-
+                .map_err(|e| GetNonceError::EthRpcError(e.to_string()))?;
             Ok(result)
         }
-        Err(e) => Err(errors::NonceError::EthereumCallError(e.to_string())),
+        Err(e) => Err(GetNonceError::EthRpcError(e.to_string())),
     }
 }
 
@@ -673,6 +756,10 @@ pub fn save_response(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
 ) -> Result<(), errors::FileError> {
+    info!(
+        "Saving batch inclusion data files in folder {}",
+        batch_inclusion_data_directory_path.display()
+    );
     save_response_cbor(
         batch_inclusion_data_directory_path.clone(),
         &aligned_verification_data.clone(),
@@ -697,12 +784,8 @@ fn save_response_cbor(
 
     let data = cbor_serialize(&aligned_verification_data)?;
 
-    let mut file = File::create(&batch_inclusion_data_path)?;
+    let mut file = File::create(batch_inclusion_data_path)?;
     file.write_all(data.as_slice())?;
-    info!(
-        "Batch inclusion data written into {}",
-        batch_inclusion_data_path.display()
-    );
 
     Ok(())
 }
@@ -735,13 +818,8 @@ fn save_response_json(
             "verification_data_batch_index": aligned_verification_data.index_in_batch,
             "merkle_proof": merkle_proof,
     });
-    let mut file = File::create(&batch_inclusion_data_path)?;
+    let mut file = File::create(batch_inclusion_data_path)?;
     file.write_all(serde_json::to_string_pretty(&data).unwrap().as_bytes())?;
-
-    info!(
-        "Batch inclusion data written into {}",
-        batch_inclusion_data_path.display()
-    );
 
     Ok(())
 }

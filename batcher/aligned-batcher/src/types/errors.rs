@@ -12,7 +12,7 @@ pub enum BatcherError {
     BatchUploadError(String),
     TaskCreationError(String),
     ReceiptNotFoundError,
-    TransactionSendError,
+    TransactionSendError(String),
     MaxRetriesReachedError,
     SerializationError(String),
     GasPriceError,
@@ -61,8 +61,8 @@ impl fmt::Debug for BatcherError {
             BatcherError::ReceiptNotFoundError => {
                 write!(f, "Receipt not found")
             }
-            BatcherError::TransactionSendError => {
-                write!(f, "Error sending tx")
+            BatcherError::TransactionSendError(e) => {
+                write!(f, "Error sending tx: {}", e)
             }
             BatcherError::MaxRetriesReachedError => {
                 write!(
@@ -98,23 +98,6 @@ impl fmt::Debug for BatcherError {
                     reason
                 )
             }
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum BatcherSendError {
-    TransactionReverted(String),
-    ReceiptNotFound,
-    UnknownError(String),
-}
-
-impl From<BatcherSendError> for BatcherError {
-    fn from(value: BatcherSendError) -> Self {
-        match value {
-            BatcherSendError::TransactionReverted(_) => BatcherError::TransactionSendError,
-            BatcherSendError::ReceiptNotFound => BatcherError::ReceiptNotFoundError,
-            BatcherSendError::UnknownError(err) => BatcherError::TaskCreationError(err),
         }
     }
 }

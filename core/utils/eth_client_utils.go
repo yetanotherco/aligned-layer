@@ -5,27 +5,34 @@ import (
 	"math/big"
 	"time"
 
-	"fmt"
-
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	retry "github.com/yetanotherco/aligned_layer/core"
 )
 
-const maxRetries = 25
-const sleepTime = 5 * time.Second
-
-func WaitForTransactionReceipt(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash) (*types.Receipt, error) {
-	for i := 0; i < maxRetries; i++ {
-		receipt, err := client.TransactionReceipt(ctx, txHash)
+// WaitForTransactionReceiptRetryable repeatedly attempts to fetch the transaction receipt for a given transaction hash.
+// If the receipt is not found, the function will retry with exponential backoff until the specified `waitTimeout` duration is reached.
+// If the receipt is still unavailable after `waitTimeout`, it will return an error.
+//
+// Note: The `time.Second * 2` is set as the max interval in the retry mechanism because we can't reliably measure the specific time the tx will be included in a block.
+// Setting a higher value will imply doing less retries across the waitTimeout, and so we might lose the receipt
+// All errors are considered Transient Errors
+// - Retry times: 0.5s, 1s, 2s, 2s, 2s, ... until it reaches waitTimeout
+func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, txHash gethcommon.Hash, waitTimeout time.Duration) (*types.Receipt, error) {
+	receipt_func := func() (*types.Receipt, error) {
+		receipt, err := client.TransactionReceipt(context.Background(), txHash)
 		if err != nil {
-			time.Sleep(sleepTime)
-		} else {
+			receipt, err = client.TransactionReceipt(context.Background(), txHash)
+			if err != nil {
+				return nil, err
+			}
 			return receipt, nil
 		}
+		return receipt, nil
 	}
-	return nil, fmt.Errorf("transaction receipt not found for txHash: %s", txHash.String())
+	return retry.RetryWithData(receipt_func, retry.MinDelay, retry.RetryFactor, 0, time.Second*2, waitTimeout)
 }
 
 func BytesToQuorumNumbers(quorumNumbersBytes []byte) eigentypes.QuorumNums {
@@ -52,4 +59,45 @@ func WeiToEth(wei *big.Int) float64 {
 	eth, _ := result.Float64()
 
 	return eth
+}
+
+// Simple algorithm to calculate the gasPrice bump based on:
+// the currentGasPrice, a base bump percentage, a retry percentage, and the retry count.
+// Formula: currentGasPrice + (currentGasPrice * (baseBumpPercentage + retryCount * incrementalRetryPercentage) / 100)
+func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercentage uint, retryAttemptPercentage uint, retryCount int) *big.Int {
+	// Incremental percentage increase for each retry attempt (i*retryAttemptPercentage)
+	incrementalRetryPercentage := new(big.Int).Mul(big.NewInt(int64(retryAttemptPercentage)), big.NewInt(int64(retryCount)))
+
+	// Total bump percentage: base bump + incremental retry percentage
+	totalBumpPercentage := new(big.Int).Add(big.NewInt(int64(baseBumpPercentage)), incrementalRetryPercentage)
+
+	// Calculate the bump amount: currentGasPrice * totalBumpPercentage / 100
+	bumpAmount := new(big.Int).Mul(currentGasPrice, totalBumpPercentage)
+	bumpAmount = new(big.Int).Div(bumpAmount, big.NewInt(100))
+
+	// Final bumped gas price: currentGasPrice + bumpAmount
+	bumpedGasPrice := new(big.Int).Add(currentGasPrice, bumpAmount)
+
+	return bumpedGasPrice
+}
+
+/*
+GetGasPriceRetryable
+Get the gas price from the client with retry logic.
+- All errors are considered Transient Errors
+- Retry times: 1 sec, 2 sec, 4 sec
+*/
+func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient) (*big.Int, error) {
+	respondToTaskV2_func := func() (*big.Int, error) {
+		gasPrice, err := client.SuggestGasPrice(context.Background())
+		if err != nil {
+			gasPrice, err = fallbackClient.SuggestGasPrice(context.Background())
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return gasPrice, nil
+	}
+	return retry.RetryWithData(respondToTaskV2_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }

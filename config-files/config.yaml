@@ -25,7 +25,6 @@ batcher:
   batch_size_interval: 10
   max_proof_size: 67108864 # 64 MiB
   max_batch_size: 268435456 # 256 MiB
-  eth_ws_reconnects: 99999999999999
   pre_verification_is_enabled: true
   metrics_port: 9093
 
@@ -36,6 +35,7 @@ aggregator:
   avs_service_manager_address: 0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690
   enable_metrics: true
   metrics_ip_port_address: localhost:9091
+  bls_service_task_timeout: 168h # The timeout of bls aggregation service tasks. Suggested value for prod '168h' (7 days)
 
 ## Operator Configurations
 operator:
