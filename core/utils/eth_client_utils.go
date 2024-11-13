@@ -17,7 +17,9 @@ import (
 // If the receipt is still unavailable after `waitTimeout`, it will return an error.
 //
 // Note: The `time.Second * 2` is set as the max interval in the retry mechanism because we can't reliably measure the specific time the tx will be included in a block.
-// Setting a higher value will imply doing less retries across the waitTimeout and so we might lose the receipt
+// Setting a higher value will imply doing less retries across the waitTimeout, and so we might lose the receipt
+// All errors are considered Transient Errors
+// - Retry times: 0.5s, 1s, 2s, 2s, 2s, ... until it reaches waitTimeout
 func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, txHash gethcommon.Hash, waitTimeout time.Duration) (*types.Receipt, error) {
 	receipt_func := func() (*types.Receipt, error) {
 		receipt, err := client.TransactionReceipt(context.Background(), txHash)
