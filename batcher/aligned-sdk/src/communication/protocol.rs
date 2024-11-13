@@ -2,7 +2,7 @@ use futures_util::{stream::SplitStream, StreamExt};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-use crate::core::{errors::SubmitError, types::ResponseMessage};
+use crate::core::{errors::SubmitError, types::SubmitProofResponseMessage};
 
 use super::serialization::cbor_deserialize;
 
@@ -13,7 +13,7 @@ pub async fn check_protocol_version(
 ) -> Result<(), SubmitError> {
     if let Some(Ok(msg)) = ws_read.next().await {
         match cbor_deserialize(msg.into_data().as_slice()) {
-            Ok(ResponseMessage::ProtocolVersion(protocol_version)) => {
+            Ok(SubmitProofResponseMessage::ProtocolVersion(protocol_version)) => {
                 if protocol_version > EXPECTED_PROTOCOL_VERSION {
                     return Err(SubmitError::ProtocolVersionMismatch {
                         current: protocol_version,
