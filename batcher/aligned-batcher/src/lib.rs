@@ -1420,10 +1420,6 @@ impl Batcher {
     /// Bumps the fee if not included in 3 blocks, using `calculate_bumped_gas_price`.
     /// In the first 5 attemps, bumps the fee every 3 blocks. Then exponential backoff takes over.
     /// After 2 hours (attempt 13), retries occur hourly for 1 day (33 retries).
-    /// Retries on recoverable errors with exponential backoff.
-    /// Bumps the fee if not included in 3 blocks, using `calculate_bumped_gas_price`.
-    /// In the first 5 attemps, bumps the fee every 3 blocks. Then exponential backoff takes over.
-    /// After 2 hours (attempt 13), retries occur hourly for 1 day (33 retries).
     pub async fn cancel_create_new_task_tx(&self, old_tx_gas_price: U256) {
         info!("Cancelling createNewTask transaction...");
         let iteration = Arc::new(Mutex::new(0));
