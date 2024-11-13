@@ -4,6 +4,7 @@ aggregator:
       ansible_host: aligned-holesky-stage-1-aggregator
       admin_user: admin
       ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
 batcher:
   hosts:
     aligned-holesky-stage-1:
