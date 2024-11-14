@@ -1,0 +1,6 @@
+[global]
+telemetry_api_url=
+aligned_aggregator_prometheus_ip=
+aligned_operator_prometheus_ip=
+aligned_batcher_prometheus_ip=
+aligned_tracker_prometheus_ip=

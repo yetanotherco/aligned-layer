@@ -1,22 +1,21 @@
 - name: Elixir Setup
-  hosts: all
-  become: true
+  hosts: "{{ host }}"
   vars:
-    user: "{{ user }}"
     erlang_version: 26.0
     elixir_version: 1.16.2-otp-26
 
   tasks:
     # Install required packages
     - name: Update apt and install required system packages
+      become: true
       apt:
         pkg:
           - build-essential
           - autoconf
           - m4
           - libncurses5-dev
-          - libwxgtk3.0-gtk3-dev
-          - libwxgtk-webview3.0-gtk3-dev
+          - libwxgtk3.2-dev
+          - libwxgtk-webview3.2-dev
           - libgl1-mesa-dev
           - libglu1-mesa-dev
           - libpng-dev
@@ -26,9 +25,11 @@
           - fop
           - libxml2-utils
           - libncurses-dev
-          - openjdk-11-jdk
+          - openjdk-17-jdk
         state: latest
         update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
 
     - name: Clone asdf repository into ~/.asdf
       ansible.builtin.git:
@@ -36,34 +37,28 @@
         dest: ~/.asdf
         single_branch: yes
         version: v0.14.0
-      become_user: "{{ user }}"
 
     - name: Insert lines to ~/.bashrc to source asdf
       ansible.builtin.blockinfile:
-        path: "/home/{{ user }}/.bashrc"
+        path: "/home/{{ ansible_user }}/.bashrc"
         block: |
           . "$HOME/.asdf/asdf.sh"
           . "$HOME/.asdf/completions/asdf.bash"
-      become_user: "{{ user }}"
-
-#    - name: Add asdf to the shell
-#      shell: export ASDF_DIR="$HOME/.asdf" && . ~/.asdf/asdf.sh
-#      become_user: "{{ user }}"
 
     - name: Add Erlang plugin to asdf
-      shell: asdf plugin add erlang
+      shell: /home/app/.asdf/bin/asdf plugin add erlang
 
     - name: Add Erlang version to asdf
-      shell: asdf install erlang {{ erlang_version }}
+      shell: /home/app/.asdf/bin/asdf install erlang {{ erlang_version }}
 
     - name: Set Erlang version as global
-      shell: asdf global erlang {{ erlang_version }}
+      shell: /home/app/.asdf/bin/asdf global erlang {{ erlang_version }}
 
     - name: Add Elixir plugin to asdf
-      shell: asdf plugin add elixir
+      shell: /home/app/.asdf/bin/asdf plugin add elixir
 
     - name: Add Elixir version to asdf
-      shell: asdf install elixir {{ elixir_version }}
+      shell: /home/app/.asdf/bin/asdf install elixir {{ elixir_version }}
 
     - name: Set Elixir version as global
-      shell: asdf global elixir {{ elixir_version }}
+      shell: /home/app/.asdf/bin/asdf global elixir {{ elixir_version }}

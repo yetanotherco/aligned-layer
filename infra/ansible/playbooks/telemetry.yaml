@@ -1,0 +1,202 @@
+- name: Run setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: telemetry
+
+- name: Run elixir playbook
+  ansible.builtin.import_playbook: elixir.yaml # fix!
+  vars:
+    host: telemetry
+
+- name: Setup Telemetry
+  hosts: telemetry
+  become: true
+
+  vars:
+    prometheus_version: "2.53.2"
+    ansible_ssh_user: admin
+  
+  tasks:
+    # install prometeus
+      # add config template to set server's IP (ini file)
+    # grafana
+      # config
+    # OpenTelemetry Collector
+    # install Jaeger
+    # install Cassandra
+    # install postgres
+    # install aligned Telemetry api
+    # install caddy
+      # add template for caddyfile for grafana (public) and Jaeger (tailscale)
+
+  - name: Install dependencies
+    apt:
+      name: 
+        - apt-transport-https
+        - software-properties-common
+        - wget
+      state: present
+      update_cache: yes
+
+  - name: Create keyrings directory for Grafana
+    file:
+      path: /etc/apt/keyrings
+      state: directory
+      mode: '0755'
+
+  - name: Download and install Grafana GPG key
+    shell: 
+      cmd: wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor -o /etc/apt/keyrings/grafana.gpg
+      creates: /etc/apt/keyrings/grafana.gpg
+
+  - name: Add Grafana stable repository
+    shell:
+      cmd: echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+      creates: /etc/apt/sources.list.d/grafana.list
+
+  - name: Update apt cache and install Grafana
+    apt:
+      name: grafana
+      state: present
+      update_cache: yes
+  
+  - name: Check if Prometheus is installed
+    stat:
+      path: /usr/local/bin/prometheus
+    register: prometheus_exists
+
+  - name: Create Prometheus group
+    when: not prometheus_exists.stat.exists
+    group:
+      name: prometheus
+      system: yes
+
+  - name: Create Prometheus user
+    when: not prometheus_exists.stat.exists
+    user:
+      name: prometheus
+      group: prometheus
+      shell: /sbin/nologin
+      system: yes
+
+  - name: Download Prometheus
+    when: not prometheus_exists.stat.exists
+    get_url:
+      url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+      dest: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+      mode: '0644'
+
+  - name: Extract Prometheus
+    when: not prometheus_exists.stat.exists
+    unarchive:
+      src: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+      dest: /tmp/
+      remote_src: yes
+
+  - name: Create Prometheus directories
+    when: not prometheus_exists.stat.exists
+    file:
+      path: "{{ item }}"
+      state: directory
+      owner: prometheus
+      group: prometheus
+      mode: '0755'
+    loop:
+      - /etc/prometheus
+      - /var/lib/prometheus
+
+  - name: Move Prometheus
+    when: not prometheus_exists.stat.exists
+    copy:
+      remote_src: true
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: prometheus
+      group: prometheus
+      mode: '0755'
+    with_items:
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus", dest: "/usr/local/bin/prometheus" }
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/promtool", dest: "/usr/local/bin/promtool" }
+
+  - name: Move Prometheus configuration and consoles
+    when: not prometheus_exists.stat.exists
+    copy:
+      remote_src: true
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: prometheus
+      group: prometheus
+      mode: '0755'
+    with_items:
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/consoles", dest: "/etc/prometheus/consoles" }
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/console_libraries", dest: "/etc/prometheus/console_libraries" }
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus.yml", dest: "/etc/prometheus/prometheus.yml" }
+
+  - name: Clean up Prometheus tar and extracted directory
+    when: not prometheus_exists.stat.exists
+    file:
+      path: "{{ item }}"
+      state: absent
+    loop:
+      - "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+      - "/tmp/prometheus-{{ prometheus_version }}.linux-amd64"
+
+  - name: Add prometheus config file
+    template:
+      src: prometheus/prometheus.yaml.j2
+      dest: /etc/prometheus/prometheus.yml
+    vars:
+      aligned_aggregator_prometheus_ip: "{{ lookup('ini', 'aligned_aggregator_prometheus_ip', file='ini/config-telemetry.ini') }}"
+      aligned_operator_prometheus_ip: "{{ lookup('ini', 'aligned_operator_prometheus_ip', file='ini/config-telemetry.ini') }}"
+      aligned_batcher_prometheus_ip: "{{ lookup('ini', 'aligned_batcher_prometheus_ip', file='ini/config-telemetry.ini') }}"
+      aligned_tracker_prometheus_ip: "{{ lookup('ini', 'aligned_tracker_prometheus_ip', file='ini/config-telemetry.ini') }}"
+
+  - name: Add grafana config file
+    template:
+      src: grafana.ini.j21
+      dest: /etc/grafana/grafana.ini
+
+  - name: Add Caddy repository to sources list
+    become: true
+    apt_repository:
+      repo:
+        "deb https://dl.cloudsmith.io/public/caddy/stable/deb/debian
+        any-version main"
+      state: present
+      filename: caddy-stable
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Add Caddy src repository to sources list
+    become: true
+    apt_repository:
+      repo:
+        "deb-src https://dl.cloudsmith.io/public/caddy/stable/deb/debian
+        any-version main"
+      state: present
+      filename: caddy-stable
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Install Caddy
+    become: true
+    apt:
+      update_cache: yes
+      name: caddy
+      state: present
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Add caddyfile config
+    become: true
+    template:
+      src: caddy/Caddyfile.telemetry.j2
+      dest: /etc/caddy/Caddyfile
+    vars:
+      telemetry_api_url: "{{ lookup('ini', 'telemetry_api_url', file='ini/config-telemetry.ini') }}"
+
+  handlers:
+    - name: Restart Grafana
+      service:
+        name: grafana-server
+        state: restarted
