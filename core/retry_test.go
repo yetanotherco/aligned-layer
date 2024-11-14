@@ -789,7 +789,7 @@ func TestBalanceAt(t *testing.T) {
 		return
 	}
 	aggregator_address := common.HexToAddress("0x0")
-	blockHeight := big.NewInt(13)
+	blockHeight := big.NewInt(22)
 
 	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
 	assert.Nil(t, err)
