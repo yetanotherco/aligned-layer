@@ -122,7 +122,7 @@ The `config-operator.ini` contains the variables to run the Operator in Aligned:
 Deploy the Operator:
 
 ```shell
-make ansible_operator_deploy INVENTORY=</path/to/inventory> ECDSA_KEYSTORE=</path/to/ecdsa/keystore> ECDSA_KEYSTORE=</path/to/bls/keystore>
+make ansible_operator_deploy INVENTORY=</path/to/inventory> ECDSA_KEYSTORE=</path/to/ecdsa/keystore> BLS_KEYSTORE=</path/to/bls/keystore>
 ```
 ## Aggregator
 
