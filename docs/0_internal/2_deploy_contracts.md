@@ -9,7 +9,7 @@ These contracts are not deployed by Aligned. Current EigenLayer contracts:
 
 ## Aligned Contracts
 
-### Deploy Service Manager
+### Set .env variables
 
 To deploy the AlignedLayer contracts, you will need to set environment variables in a `.env` file in the same
 directory as the deployment script (`contracts/scripts/`).
@@ -29,6 +29,8 @@ You can find an example `.env` file in [.env.example.holesky](../../contracts/sc
 
 > [!Warning]
 > All file paths must be inside the `script/` directory, as shown in `.env.example.holesky` because of `foundry`'s permissions to read and write files.
+
+### Set DEPLOY_CONFIG_PATH file
 
 You need to complete the `DEPLOY_CONFIG_PATH` file with the following information:
 
@@ -61,11 +63,15 @@ You can find an example config file in [aligned.holesky.config.json](../../contr
 > 
 > You can find the list of Holesky strategies for the `strategyWeights` field [here](https://github.com/Layr-Labs/eigenlayer-contracts?tab=readme-ov-file#current-testnet-deployment)
 
+#### Multisig configuration
+
 If you are using a Multisig for the contracts management (like upgrades or pauses), you need to set the Multisig address in the `permissions` sections.
 
 For example, if you are using a Multisig for the `upgrader` permission, you need to set the Multisig address in the `upgrader` field.
 
 Then run the following command:
+
+### Deploy the contracts
 
 ```bash
 make deploy_aligned_contracts
@@ -107,7 +113,9 @@ Once the contracts are deployed, you will see the following output at `OUTPUT_PA
 }
 ```
 
-### Deploy Batcher Payment Service
+## Batcher Payments Service Contracts
+
+### Set .env variables
 
 To deploy the Batcher Payment Service contract, you will need to set environment variables in a `.env` file in the same
 directory as the deployment script (`contracts/scripts/`).
@@ -126,6 +134,8 @@ The necessary environment variables are:
 
 You can find an example `.env` file in [.env.example.holesky](../../contracts/scripts/.env.example.holesky)
 
+### Set BATCHER_PAYMENT_SERVICE_CONFIG_PATH file
+
 You need to complete the `BATCHER_PAYMENT_SERVICE_CONFIG_PATH` file with the following information:
 
 ```json
@@ -143,10 +153,13 @@ You need to complete the `BATCHER_PAYMENT_SERVICE_CONFIG_PATH` file with the fol
 }
 ```
 
+#### Multisig configuration
+
 If you are using a Multisig for the contracts management (like upgrades or pauses), you need to set the Multisig address in the `permissions` sections.
 
 For the batcher payment service, you can set the Multisig address in the `owner` field. This will allow the Multisig to upgrade and pause the contract with the Multisig.
 
+### Deploy the contracts
 
 Then run the following command:
 
