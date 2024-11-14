@@ -15,7 +15,7 @@ This guide will walk you through the deployment of the Aligned Layer contracts.
 
     After finishing the setup of the multisig, you will have a multisig address.
 
-2. To deploy the contracts, you can follow the [Deployment Guide](./2_deployment.md).
+2. To deploy the contracts, you can follow the [Deployment Guide](./2_deploy_contracts.md).
 
     After finishing the deployment, you will have the deployed contract addresses.
 
