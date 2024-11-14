@@ -54,7 +54,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	taskIndex := uint32(0)
 
 	// TODO: Add Retryable
-	taskIndex, err := agg.GetTaskIndex(signedTaskResponse.BatchIdentifierHash)
+	taskIndex, err := agg.GetTaskIndexRetryable(signedTaskResponse.BatchIdentifierHash)
 
 	if err != nil {
 		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
@@ -73,7 +73,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 
 	agg.logger.Info("Starting bls signature process")
 	go func() {
-		err := agg.ProcessNewSignature(
+		err := agg.ProcessNewSignatureRetryable(
 			context.Background(), taskIndex, signedTaskResponse.BatchIdentifierHash,
 			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 		)
@@ -125,7 +125,7 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
   - Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
   - NOTE: TaskNotFound errors from the BLS Aggregation service are Transient errors as block reorg's may lead to these errors being thrown.
 */
-func (agg *Aggregator) ProcessNewSignature(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
+func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
 	processNewSignature_func := func() error {
 		err := agg.blsAggregationService.ProcessNewSignature(
 			ctx, taskIndex, taskResponse,
@@ -142,8 +142,12 @@ func (agg *Aggregator) ProcessNewSignature(ctx context.Context, taskIndex uint32
 	return retry.Retry(processNewSignature_func, retry.ChainRetryConfig())
 }
 
-// TODO: Add Retryable + Comment
-func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error) {
+// Checks Internal mapping for Signed Task Response, returns its TaskIndex.
+/*
+- All errors are considered Transient Errors
+- Retry times (3 retries): 1 sec, 2 sec, 4 sec
+*/
+func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte) (uint32, error) {
 	getTaskIndex_func := func() (uint32, error) {
 		agg.taskMutex.Lock()
 		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")

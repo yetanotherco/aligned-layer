@@ -32,8 +32,7 @@ func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkl
 		}
 		return tx, err
 	}
-	//return retry.RetryWithData(respondToTaskV2_func, retry.MinDelayChain, retry.RetryFactor, retry.NumRetries, retry.MaxIntervalChain, retry.MaxElapsedTime)
-	return retry.RetryWithData(respondToTaskV2_func, retry.DefaultRetryConfig())
+	return retry.RetryWithData(respondToTaskV2_func, retry.ChainRetryConfig())
 }
 
 /*
