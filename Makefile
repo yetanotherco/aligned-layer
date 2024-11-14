@@ -1108,3 +1108,8 @@ ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
 		-i $(INVENTORY) \
 		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
 		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+
+__ETHEREUM_PACKAGE__:  ## ____
+
+ethereum_package_start: ## Starts the ethereum_package environment
+	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package --args-file network_params.yaml

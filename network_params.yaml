@@ -1,0 +1,11 @@
+participants:
+  - el_type: geth
+    cl_type: lighthouse
+    count: 4
+    validator_count: 32
+
+additional_services:
+  - assertoor
+  - dora
+  - el_forkmon
+  - tx_spammer
