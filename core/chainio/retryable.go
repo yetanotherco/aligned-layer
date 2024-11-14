@@ -37,17 +37,17 @@ func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkl
 }
 
 /*
-BatchesStateRetryable
-Get the state of a batch from the AVS contract.
+RespondToTaskV2Retryable
+Send a transaction to the AVS contract to respond to a task.
 - All errors are considered Transient Errors
-- Retry times (3 retries): 1 sec, 2 sec, 4 sec
+- Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
+- NOTE: Contract call reverts are not considered `PermanentError`'s as block reorg's may lead to contract call revert in which case the aggregator should retry.
 */
 func (w *AvsWriter) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte, config *retry.RetryParams) (struct {
 	TaskCreatedBlock      uint32
 	Responded             bool
 	RespondToTaskFeeLimit *big.Int
 }, error) {
-
 	batchesState_func := func() (struct {
 		TaskCreatedBlock      uint32
 		Responded             bool
@@ -65,8 +65,8 @@ func (w *AvsWriter) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte, co
 }
 
 /*
-BatcherBalancesRetryable
-Get the balance of a batcher from the AVS contract.
+BatchesStateRetryable
+Get the state of a batch from the AVS contract.
 - All errors are considered Transient Errors
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec
 */
@@ -205,8 +205,17 @@ func SubscribeToNewTasksV2Retryable(
 	batchMerkleRoot [][32]byte,
 	config *retry.RetryParams,
 ) (event.Subscription, error) {
+	return retry.RetryWithData(SubscribeToNewTasksV2(opts, serviceManager, newTaskCreatedChan, batchMerkleRoot), retry.DefaultRetryConfig())
+}
+
+func SubscribeToNewTasksV3(
+	opts *bind.WatchOpts,
+	serviceManager *servicemanager.ContractAlignedLayerServiceManager,
+	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3,
+	batchMerkleRoot [][32]byte,
+) func() (event.Subscription, error) {
 	subscribe_func := func() (event.Subscription, error) {
-		return serviceManager.WatchNewBatchV2(opts, newTaskCreatedChan, batchMerkleRoot)
+		return serviceManager.WatchNewBatchV3(opts, newTaskCreatedChan, batchMerkleRoot)
 	}
 	return retry.RetryWithData(subscribe_func, config)
 }
