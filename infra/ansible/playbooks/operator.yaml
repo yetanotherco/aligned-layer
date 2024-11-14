@@ -162,13 +162,6 @@
       vars:
         ansible_ssh_user: "{{ admin_user }}"
 
-    - name: Build the Operator
-      make:
-        chdir: /home/{{ ansible_user }}/repos/operator/aligned_layer
-        target: build_operator
-      environment:
-        PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
-
     - name: Create systemd services directory
       file:
         path: "/home/{{ ansible_user }}/.config/systemd/user/"
