@@ -4,7 +4,10 @@ participants:
     count: 4
     validator_count: 32
 
+ethereum_metrics_exporter_enabled: true
+
 additional_services:
   - assertoor
   - dora
   - el_forkmon
+  - prometheus_grafana
