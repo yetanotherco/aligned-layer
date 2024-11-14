@@ -32,7 +32,8 @@ func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkl
 		}
 		return tx, err
 	}
-	return retry.RetryWithData(respondToTaskV2_func, retry.MinDelayChain, retry.RetryFactor, retry.NumRetries, retry.MaxIntervalChain, retry.MaxElapsedTime)
+	//return retry.RetryWithData(respondToTaskV2_func, retry.MinDelayChain, retry.RetryFactor, retry.NumRetries, retry.MaxIntervalChain, retry.MaxElapsedTime)
+	return retry.RetryWithData(respondToTaskV2_func, retry.DefaultRetryConfig())
 }
 
 /*
@@ -60,7 +61,7 @@ func (w *AvsWriter) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (s
 		}
 		return state, err
 	}
-	return retry.RetryWithData(batchesState_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(batchesState_func, retry.DefaultRetryConfig())
 }
 
 /*
@@ -79,7 +80,7 @@ func (w *AvsWriter) BatcherBalancesRetryable(opts *bind.CallOpts, senderAddress 
 		}
 		return batcherBalance, err
 	}
-	return retry.RetryWithData(batcherBalances_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(batcherBalances_func, retry.DefaultRetryConfig())
 }
 
 /*
@@ -100,7 +101,7 @@ func (w *AvsWriter) BalanceAtRetryable(ctx context.Context, aggregatorAddress co
 		}
 		return aggregatorBalance, err
 	}
-	return retry.RetryWithData(balanceAt_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(balanceAt_func, retry.DefaultRetryConfig())
 }
 
 // |---AVS_SUBSCRIBER---|
@@ -121,7 +122,7 @@ func (s *AvsSubscriber) BlockNumberRetryable(ctx context.Context) (uint64, error
 		}
 		return latestBlock, err
 	}
-	return retry.RetryWithData(latestBlock_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(latestBlock_func, retry.DefaultRetryConfig())
 }
 
 /*
@@ -134,7 +135,7 @@ func (s *AvsSubscriber) FilterBatchV2Retryable(opts *bind.FilterOpts, batchMerkl
 	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
 		return s.AvsContractBindings.ServiceManager.FilterNewBatchV2(opts, batchMerkleRoot)
 	}
-	return retry.RetryWithData(filterNewBatchV2_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(filterNewBatchV2_func, retry.DefaultRetryConfig())
 }
 
 /*
@@ -147,7 +148,7 @@ func (s *AvsSubscriber) FilterBatchV3Retryable(opts *bind.FilterOpts, batchMerkl
 	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
 		return s.AvsContractBindings.ServiceManager.FilterNewBatchV3(opts, batchMerkleRoot)
 	}
-	return retry.RetryWithData(filterNewBatchV2_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(filterNewBatchV2_func, retry.DefaultRetryConfig())
 }
 
 /*
@@ -169,7 +170,7 @@ func (s *AvsSubscriber) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte
 		return s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
 	}
 
-	return retry.RetryWithData(batchState_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(batchState_func, retry.DefaultRetryConfig())
 }
 
 /*
@@ -188,7 +189,7 @@ func (s *AvsSubscriber) SubscribeNewHeadRetryable(ctx context.Context, c chan<- 
 		}
 		return sub, err
 	}
-	return retry.RetryWithData(subscribeNewHead_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(subscribeNewHead_func, retry.DefaultRetryConfig())
 }
 
 /*
@@ -206,7 +207,7 @@ func SubscribeToNewTasksV2Retryable(
 	subscribe_func := func() (event.Subscription, error) {
 		return serviceManager.WatchNewBatchV2(opts, newTaskCreatedChan, batchMerkleRoot)
 	}
-	return retry.RetryWithData(subscribe_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(subscribe_func, retry.DefaultRetryConfig())
 }
 
 /*
@@ -224,5 +225,5 @@ func SubscribeToNewTasksV3Retryable(
 	subscribe_func := func() (event.Subscription, error) {
 		return serviceManager.WatchNewBatchV3(opts, newTaskCreatedChan, batchMerkleRoot)
 	}
-	return retry.RetryWithData(subscribe_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(subscribe_func, retry.DefaultRetryConfig())
 }

@@ -53,6 +53,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 	taskIndex := uint32(0)
 
+	// TODO: Add Retryable
 	taskIndex, err := agg.GetTaskIndex(signedTaskResponse.BatchIdentifierHash)
 
 	if err != nil {
@@ -114,6 +115,7 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 
 // |---RETRYABLE---|
 
+// TODO: Add Retryable
 /*
   - Errors:
     Permanent:
@@ -137,9 +139,10 @@ func (agg *Aggregator) ProcessNewSignature(ctx context.Context, taskIndex uint32
 		return err
 	}
 
-	return retry.Retry(processNewSignature_func, retry.MinDelayChain, retry.RetryFactor, retry.NumRetries, retry.MaxIntervalChain, retry.MaxElapsedTime)
+	return retry.Retry(processNewSignature_func, retry.ChainRetryConfig())
 }
 
+// TODO: Add Retryable + Comment
 func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error) {
 	getTaskIndex_func := func() (uint32, error) {
 		agg.taskMutex.Lock()
@@ -153,6 +156,5 @@ func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error
 			return taskIndex, nil
 		}
 	}
-
-	return retry.RetryWithData(getTaskIndex_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(getTaskIndex_func, retry.DefaultRetryConfig())
 }

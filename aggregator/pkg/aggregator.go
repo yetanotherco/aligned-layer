@@ -392,6 +392,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 
 // |---RETRYABLE---|
 
+// TODO: Add Retryable Label
 /*
 InitializeNewTask
 Initialize a new task in the BLS Aggregation service
@@ -413,7 +414,7 @@ func (agg *Aggregator) InitializeNewTask(batchIndex uint32, taskCreatedBlock uin
 		}
 		return err
 	}
-	return retry.Retry(initializeNewTask_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.Retry(initializeNewTask_func, retry.DefaultRetryConfig())
 }
 
 // Long-lived goroutine that periodically checks and removes old Tasks from stored Maps
