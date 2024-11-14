@@ -79,9 +79,9 @@ If you are using a Multisig for the contracts management (like upgrades or pause
 
 For example, if you are using a Multisig for the `upgrader` permission, you need to set the Multisig address in the `upgrader` field.
 
-Then run the following command:
-
 ### Deploy the contracts
+
+Once you have configured the `.env` and `DEPLOY_CONFIG_PATH` files, you can run the following command:
 
 ```bash
 make deploy_aligned_contracts
@@ -175,7 +175,7 @@ For the batcher payment service, you can set the Multisig address in the `owner`
 
 ### Deploy the contracts
 
-Then run the following command:
+Once you have configured the `.env` and `DEPLOY_CONFIG_PATH` files, you can run the following command:
 
 ```bash
 make deploy_batcher_payment_service
