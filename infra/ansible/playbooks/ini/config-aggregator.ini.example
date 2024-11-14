@@ -1,0 +1,14 @@
+[global]
+aligned_layer_deployment_config_file_path=
+eigen_layer_deployment_config_file_path=
+eth_rpc_url=
+eth_rpc_url_fallback=
+eth_ws_url=
+eth_ws_url_fallback=
+ecdsa_private_key_store_path=
+ecdsa_private_key_store_password=
+bls_private_key_store_path=
+bls_private_key_store_password=
+enable_metrics=
+metrics_ip_port_address=
+telemetry_ip_port_address=
