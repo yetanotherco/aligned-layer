@@ -1142,9 +1142,24 @@ install_spamoor: ## Instal spamoor to spam transactions
 	rm -rf spamoor
 
 # Spamoor funding wallet
-SPAMOOR_PRIVATE_KEY=2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6
+SPAMOOR_PRIVATE_KEY?=2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6
+NUM_WALLETS?=10000
+TX_PER_BLOCK?=300
+# Similar to a swap
+TX_CONSUMES_GAS?=150000
+
 spamoor_send_transactions: ## Sends normal transactions and also replacement transactions
-	spamoor blob-combined -p $(SPAMOOR_PRIVATE_KEY) -c $(COUNT) --max-pending $(TX_PER_BLOCK) -t $(TX_PER_BLOCK) -h http://127.0.0.1:65312/ -h http://127.0.0.1:65324
+	spamoor gasburnertx -p $(SPAMOOR_PRIVATE_KEY) -c $(COUNT) \
+		--gas-units-to-burn $(TX_CONSUMES_GAS) \
+		--max-wallets $(NUM_WALLETS) --max-pending $(TX_PER_BLOCK) \
+		-t $(TX_PER_BLOCK) -h http://127.0.0.1:8545/ -h http://127.0.0.1:8550/ -h http://127.0.0.1:8555/ -h http://127.0.0.1:8565/ \
+		--refill-amount 5 --refill-balance 2 \
+		2>&1 | grep -v 'checked child wallets (no funding needed)'
 
 spamoor_send_transactions_infinite: ## Sends normal transactions and also replacement transactions infinitely
-	spamoor blob-combined  -p $(SPAMOOR_PRIVATE_KEY) -t $(TX_PER_BLOCK) --max-pending $(TX_PER_BLOCK) -h http://127.0.0.1:65312/ -h http://127.0.0.1:65324 
+	spamoor gasburnertx -p $(SPAMOOR_PRIVATE_KEY) \
+	 	--gas-units-to-burn $(TX_CONSUMES_GAS) \
+		--max-wallets $(NUM_WALLETS) --max-pending $(TX_PER_BLOCK) \
+		-t $(TX_PER_BLOCK) -h http://127.0.0.1:8545/ \
+		--refill-amount 5 --refill-balance 2 \
+		2>&1 | grep -v 'checked child wallets (no funding needed)'
