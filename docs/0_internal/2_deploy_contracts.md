@@ -1,6 +1,12 @@
 # Deploying Aligned Contracts
 
+This guide will walk you through the deployment of the Aligned Layer contracts.
+
+Also, you will be able to deploy the Batch Payment Service contract.
+
 ## Eigenlayer Contracts
+
+To deploy Aligned contracts, you need previously deployed EigenLayer contracts.
 
 These contracts are not deployed by Aligned. Current EigenLayer contracts:
 
@@ -8,6 +14,10 @@ These contracts are not deployed by Aligned. Current EigenLayer contracts:
 - [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/mainnet/script/configs/mainnet/mainnet-addresses.config.json)
 
 ## Aligned Contracts
+
+This section will guide you through the deployment of the Aligned Layer contracts.
+
+After finishing the deployment, you will have the deployed contract addresses.
 
 ### Set .env variables
 
@@ -114,6 +124,10 @@ Once the contracts are deployed, you will see the following output at `OUTPUT_PA
 ```
 
 ## Batcher Payments Service Contracts
+
+This section will guide you through the deployment of the Aligned Layer contracts.
+
+After finishing the deployment, you will have the deployed contract addresses.
 
 ### Set .env variables
 
