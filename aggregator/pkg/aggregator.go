@@ -392,7 +392,6 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 
 // |---RETRYABLE---|
 
-// TODO: Add Retryable Label
 /*
 InitializeNewTask
 Initialize a new task in the BLS Aggregation service

@@ -53,7 +53,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 	taskIndex := uint32(0)
 
-	// TODO: Add Retryable
 	taskIndex, err := agg.GetTaskIndexRetryable(signedTaskResponse.BatchIdentifierHash)
 
 	if err != nil {
