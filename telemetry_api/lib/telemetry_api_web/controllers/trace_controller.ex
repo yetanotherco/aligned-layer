@@ -3,7 +3,7 @@ defmodule TelemetryApiWeb.TraceController do
 
   alias TelemetryApi.Traces
 
-  action_fallback TelemetryApiWeb.FallbackController
+  action_fallback(TelemetryApiWeb.FallbackController)
 
   @doc """
   Create a trace for a NewTask with the given merkle_root
@@ -116,6 +116,21 @@ defmodule TelemetryApiWeb.TraceController do
   """
   def task_error(conn, %{"merkle_root" => merkle_root, "error" => error}) do
     with :ok <- Traces.task_error(merkle_root, error) do
+      conn
+      |> put_status(:ok)
+      |> render(:show_merkle, merkle_root: merkle_root)
+    end
+  end
+
+  @doc """
+  Registers a gas price bump in the trace of the given merkle_root
+  Method: POST aggregatorTaskGasPriceBump
+  """
+  def aggregator_task_gas_price_bumped(conn, %{
+        "merkle_root" => merkle_root,
+        "bumped_gas_price" => bumped_gas_price
+      }) do
+    with :ok <- Traces.aggregator_task_gas_price_bumped(merkle_root, bumped_gas_price) do
       conn
       |> put_status(:ok)
       |> render(:show_merkle, merkle_root: merkle_root)

@@ -52,7 +52,7 @@
       ansible.builtin.git:
         repo: https://github.com/yetanotherco/aligned_layer.git
         dest: /home/{{ ansible_user }}/repos/batcher/aligned_layer
-        version: batcher_ansible
+        version: v0.10.2
         recursive: false
 
     # Build the batcher
