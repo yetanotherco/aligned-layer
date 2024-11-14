@@ -1122,3 +1122,17 @@ ethereum_package_inspect: ## Prints detailed information about the net
 
 ethereum_package_rm: ## Removes the ethereum_package environment and used resources
 	kurtosis enclave rm aligned -f
+
+install_spamoor: ## Instal spamoor to spam transactions
+	git clone https://github.com/ethpandaops/spamoor.git
+	cd spamoor && make
+	mv spamoor/bin/spamoor $(HOME)/.local/bin
+	rm -rf spamoor
+
+# Spamoor funding wallet
+SPAMOOR_PRIVATE_KEY=0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6
+spamoor_send_transactions: ## Sends normal transactions and also replacement transactions
+	spammoor -p $(SPAMOOR_PRIVATE_KEY) -c $(COUNT) --max-pending $(MAX_TX_PER_BLOCK) -t $(TX_PER_BLOCK) -h http://127.0.0.1:65312/ -h http://127.0.0.1:65324 blobs-combined 
+
+spamoor_send_transactions_infinite: ## Sends normal transactions and also replacement transactions infinitely
+	spammoor -p $(SPAMOOR_PRIVATE_KEY) -t $(TX_PER_BLOCK) --max-pending $(MAX_TX_PER_BLOCK) -h http://127.0.0.1:65312/ -h http://127.0.0.1:65324 blobs-combined 
