@@ -4,6 +4,21 @@ This guide will walk you through the deployment of the Aligned Layer contracts.
 
 Also, you will be able to deploy the Batch Payment Service contract.
 
+## Prerequisites
+
+- You need to have installed git and make.
+
+- Clone the repository
+   ```
+   git clone https://github.com/yetanotherco/aligned_layer.git
+   ```
+
+- Install foundry
+    ```shell
+    make install_foundry
+    foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
+    ```
+
 ## Eigenlayer Contracts
 
 To deploy Aligned contracts, you need previously deployed EigenLayer contracts.
@@ -175,7 +190,7 @@ For the batcher payment service, you can set the Multisig address in the `owner`
 
 ### Deploy the contracts
 
-Once you have configured the `.env` and `DEPLOY_CONFIG_PATH` files, you can run the following command:
+Once you have configured the `.env` and `BATCHER_PAYMENT_SERVICE_CONFIG_PATH` files, you can run the following command:
 
 ```bash
 make deploy_batcher_payment_service

@@ -2,12 +2,6 @@
 
 This guide will walk you through the deployment of the Aligned Layer contracts.
 
-## Prerequisites
-
-- Clone the repository
-   ```
-   git clone https://github.com/yetanotherco/aligned_layer.git
-   ```
   
 ## Setup
 
@@ -19,3 +13,6 @@ This guide will walk you through the deployment of the Aligned Layer contracts.
 
     After finishing the deployment, you will have the deployed contract addresses.
 
+3. Once you have deployed the Aligned contracts, you can perform upgrades on them.
+
+    a. If you are not using a Multisig wallet, you can follow the [Upgrade Guide](./3_a_upgrade_contracts.md).
