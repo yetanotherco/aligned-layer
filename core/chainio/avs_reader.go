@@ -174,7 +174,7 @@ func (r *AvsReader) GetPendingBatchFromMerkleRoot(merkleRoot [32]byte, blockRang
 	}
 
 	if !logs.Next() {
-		return nil, nil //Not an error, but no tasks found
+		return nil, nil // Not an error, but no tasks found
 	}
 
 	batch := logs.Event
@@ -188,7 +188,7 @@ func (r *AvsReader) GetPendingBatchFromMerkleRoot(merkleRoot [32]byte, blockRang
 	}
 
 	if state.Responded {
-		return nil, nil
+		return nil, nil // Task found but already responded
 	}
 
 	return batch, nil
