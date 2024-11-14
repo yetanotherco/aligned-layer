@@ -42,7 +42,7 @@ func (agg *Aggregator) ServeOperators() error {
 // This methods are automatically registered by the RPC server
 
 // Takes a response from an operator and process it. After processing the response, the associated task may reach quorum, triggering a BLS service response.
-// If the task related to the response is not known to the aggregator (not stored in internal map), it will try to fetch it from the logs.
+// If the task related to the response is not known to the aggregator (not stored in internal map), it will try to fetch it from the contract's Events.
 // Returns:
 //   - 0: Success
 //   - 1: Error
