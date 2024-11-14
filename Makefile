@@ -1132,7 +1132,7 @@ install_spamoor: ## Instal spamoor to spam transactions
 # Spamoor funding wallet
 SPAMOOR_PRIVATE_KEY=0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6
 spamoor_send_transactions: ## Sends normal transactions and also replacement transactions
-	spammoor -p $(SPAMOOR_PRIVATE_KEY) -c $(COUNT) --max-pending $(MAX_TX_PER_BLOCK) -t $(TX_PER_BLOCK) -h http://127.0.0.1:65312/ -h http://127.0.0.1:65324 blobs-combined 
+	spammoor -p $(SPAMOOR_PRIVATE_KEY) -c $(COUNT) --max-pending $(TX_PER_BLOCK) -t $(TX_PER_BLOCK) -h http://127.0.0.1:65312/ -h http://127.0.0.1:65324 blobs-combined 
 
 spamoor_send_transactions_infinite: ## Sends normal transactions and also replacement transactions infinitely
-	spammoor -p $(SPAMOOR_PRIVATE_KEY) -t $(TX_PER_BLOCK) --max-pending $(MAX_TX_PER_BLOCK) -h http://127.0.0.1:65312/ -h http://127.0.0.1:65324 blobs-combined 
+	spammoor -p $(SPAMOOR_PRIVATE_KEY) -t $(TX_PER_BLOCK) --max-pending $(TX_PER_BLOCK) -h http://127.0.0.1:65312/ -h http://127.0.0.1:65324 blobs-combined 
