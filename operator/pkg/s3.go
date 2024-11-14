@@ -7,38 +7,16 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/ugorji/go/codec"
+	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
 
-func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte, maxRetries int, retryDelay time.Duration) ([]VerificationData, error) {
-	o.Logger.Infof("Getting batch from data service, batchURL: %s", batchURL)
+func RequestBatch(req *http.Request, ctx context.Context) func() (*http.Response, error) {
 
-	var resp *http.Response
-	var err error
-	var req *http.Request
-
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		if attempt > 0 {
-			o.Logger.Infof("Waiting for %s before retrying data fetch (attempt %d of %d)", retryDelay, attempt+1, maxRetries)
-			select {
-			case <-time.After(retryDelay):
-				// Wait before retrying
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			}
-			retryDelay *= 2 // Exponential backoff. Ex: 5s, 10s, 20s
-		}
-
-		req, err = http.NewRequestWithContext(ctx, "GET", batchURL, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		resp, err = http.DefaultClient.Do(req)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			break // Successful request, exit retry loop
-		}
+	req_func := func() (*http.Response, error) {
+		resp, err := http.DefaultClient.Do(req)
 
 		if resp != nil {
 			err := resp.Body.Close()
@@ -46,13 +24,63 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 				return nil, err
 			}
 		}
-
-		o.Logger.Warnf("Error fetching batch from data service - (attempt %d): %v", attempt+1, err)
+		return resp, err
 	}
+	return req_func
+}
 
+// TODO: How to log retries?
+func RequestBatchRetryable(ctx context.Context, logger logging.Logger, req *http.Request) (*http.Response, error) {
+
+	return retry.RetryWithData(RequestBatch(req, ctx), retry.DefaultRetryConfig())
+}
+
+func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte, maxRetries int, retryDelay time.Duration) ([]VerificationData, error) {
+	o.Logger.Infof("Getting batch from data service, batchURL: %s", batchURL)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", batchURL, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	resp, err := RequestBatchRetryable(ctx, o.Logger, req)
+	if err != nil {
+		return nil, err
+	}
+
+	/*
+		for attempt := 0; attempt < maxRetries; attempt++ {
+			if attempt > 0 {
+				o.Logger.Infof("Waiting for %s before retrying data fetch (attempt %d of %d)", retryDelay, attempt+1, maxRetries)
+				select {
+				case <-time.After(retryDelay):
+					// Wait before retrying
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				}
+				retryDelay *= 2 // Exponential backoff. Ex: 5s, 10s, 20s
+			}
+
+			req, err = http.NewRequestWithContext(ctx, "GET", batchURL, nil)
+			if err != nil {
+				return nil, err
+			}
+
+			resp, err = http.DefaultClient.Do(req)
+			if err == nil && resp.StatusCode == http.StatusOK {
+				break // Successful request, exit retry loop
+			}
+
+			if resp != nil {
+				err := resp.Body.Close()
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			o.Logger.Warnf("Error fetching batch from data service - (attempt %d): %v", attempt+1, err)
+		}
+	*/
 
 	// At this point, the HTTP request was successfull.
 
