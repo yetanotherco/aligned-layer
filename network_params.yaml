@@ -1,7 +1,7 @@
 participants:
   - el_type: geth
     cl_type: lighthouse
-    count: 4
+    count: 2
     validator_count: 32
 
 ethereum_metrics_exporter_enabled: true
@@ -21,6 +21,8 @@ port_publisher:
 network_params:
   # The address of the staking contract address on the Eth1 chain
   deposit_contract_address: "0x4242424242424242424242424242424242424242"
+
+  network_id: "31337"
 
   # Number of seconds per slot on the Beacon chain
   seconds_per_slot: 7

@@ -1131,6 +1131,9 @@ batcher_start_ethereum_package: user_fund_payment_service
 aggregator_start_ethereum_package:
 	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
 
+operator_start_ethereum_package:
+	$(MAKE) operator_full_registration OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml \
+	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
 
 install_spamoor: ## Instal spamoor to spam transactions
 	git clone https://github.com/ethpandaops/spamoor.git
