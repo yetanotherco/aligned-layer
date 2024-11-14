@@ -156,6 +156,7 @@ The `config-aggregator.ini` contains the variables to run the Operator in Aligne
 | bls_private_key_store_password            | Password of the BLS keystore                                                                                                                                                       | <your_bls_keystore_password>                                                                                                        | <your_bls_keystore_password>                                                                                                  | <your_bls_keystore_password>                                  |
 | enable_metrics                            | Expose or not prometheus metrics                                                                                                                                                   | `true`                                                                                                                              | `true`                                                                                                                        | `true`                                                        |
 | metrics_ip_port_address                   | Where to expose prometheus metrics if enabled                                                                                                                                      | `localhost:9092`                                                                                                                    | `localhost:9092`                                                                                                              | `localhost:9092`                                              |
+| telemetry_ip_port_address                 | Where to send telemetry traces                                                                                                                                                     | `100.73.98.8:4001`                                                                                                                  | `100.91.67.33:4001`                                                                                                            | TBD                                              |
 
 Deploy the Aggregator:
 
@@ -264,3 +265,4 @@ Public Key: E([...,...])
 ```
 
 Refer to this link for more details about keystore creation https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#create-keys
+
