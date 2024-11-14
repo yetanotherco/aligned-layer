@@ -14,8 +14,6 @@ additional_services:
 
 # Default configuration parameters for the network
 network_params:
-  network: "aligned-devnet"
-
   # The address of the staking contract address on the Eth1 chain
   deposit_contract_address: "0x4242424242424242424242424242424242424242"
 
@@ -49,8 +47,6 @@ network_params:
   #     secretKey: "0x",
   #   }
   # }'
-
-  devnet_repo: ethpandaops
 
   prefunded_accounts: {
       # Got this accounts from anvil.
