@@ -42,7 +42,16 @@ func TestRetryWithData(t *testing.T) {
 		x, err := DummyFunction(43)
 		return &x, err
 	}
-	_, err := retry.RetryWithData(function, 1000, 2, 3, retry.MaxInterval, retry.MaxElapsedTime)
+
+	config := &retry.RetryConfig{
+		InitialInterval:     1000,
+		MaxInterval:         2,
+		MaxElapsedTime:      3,
+		RandomizationFactor: 0,
+		Multiplier:          retry.DefaultMultiplier,
+		NumRetries:          retry.DefaultNumRetries,
+	}
+	_, err := retry.RetryWithData(function, config)
 	if err != nil {
 		t.Errorf("Retry error!: %s", err)
 	}
@@ -53,7 +62,15 @@ func TestRetry(t *testing.T) {
 		_, err := DummyFunction(43)
 		return err
 	}
-	err := retry.Retry(function, 1000, 2, 3, retry.MaxInterval, retry.MaxElapsedTime)
+	config := &retry.RetryConfig{
+		InitialInterval:     1000,
+		MaxInterval:         2,
+		MaxElapsedTime:      3,
+		RandomizationFactor: 0,
+		Multiplier:          retry.DefaultMultiplier,
+		NumRetries:          retry.DefaultNumRetries,
+	}
+	err := retry.Retry(function, config)
 	if err != nil {
 		t.Errorf("Retry error!: %s", err)
 	}
