@@ -16,6 +16,8 @@ import (
 // |---AVS_WRITER---|
 
 /*
+RespondToTaskV2Retryable
+Send a transaction to the AVS contract to respond to a task.
 - All errors are considered Transient Errors
 - Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
 - NOTE: Contract call reverts are not considered `PermanentError`'s as block reorg's may lead to contract call revert in which case the aggregator should retry.
@@ -34,8 +36,10 @@ func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkl
 }
 
 /*
+BatchesStateRetryable
+Get the state of a batch from the AVS contract.
 - All errors are considered Transient Errors
-- Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
+- Retry times (3 retries): 1 sec, 2 sec, 4 sec
 */
 func (w *AvsWriter) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (struct {
 	TaskCreatedBlock      uint32
@@ -56,12 +60,14 @@ func (w *AvsWriter) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (s
 		}
 		return state, err
 	}
-	return retry.RetryWithData(batchesState_func, retry.MinDelayChain, retry.RetryFactor, retry.NumRetries, retry.MaxIntervalChain, retry.MaxElapsedTime)
+	return retry.RetryWithData(batchesState_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
 /*
+BatcherBalancesRetryable
+Get the balance of a batcher from the AVS contract.
 - All errors are considered Transient Errors
-- Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
+- Retry times (3 retries): 1 sec, 2 sec, 4 sec
 */
 func (w *AvsWriter) BatcherBalancesRetryable(opts *bind.CallOpts, senderAddress common.Address) (*big.Int, error) {
 	batcherBalances_func := func() (*big.Int, error) {
@@ -73,10 +79,14 @@ func (w *AvsWriter) BatcherBalancesRetryable(opts *bind.CallOpts, senderAddress 
 		}
 		return batcherBalance, err
 	}
-	return retry.RetryWithData(batcherBalances_func, retry.MinDelayChain, retry.RetryFactor, retry.NumRetries, retry.MaxIntervalChain, retry.MaxElapsedTime)
+	return retry.RetryWithData(batcherBalances_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
 /*
+BalanceAtRetryable
+Get the balance of aggregatorAddress at blockNumber.
+If blockNumber is nil, it gets the latest balance.
+TODO: it gets the balance from an Address, not necessarily an aggregator. The name of the parameter should be changed.
 - All errors are considered Transient Errors
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec.
 */
@@ -96,6 +106,8 @@ func (w *AvsWriter) BalanceAtRetryable(ctx context.Context, aggregatorAddress co
 // |---AVS_SUBSCRIBER---|
 
 /*
+BlockNumberRetryable
+Get the latest block number from Ethereum
 - All errors are considered Transient Errors
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec.
 */
@@ -113,6 +125,8 @@ func (s *AvsSubscriber) BlockNumberRetryable(ctx context.Context) (uint64, error
 }
 
 /*
+FilterBatchV2Retryable
+Get NewBatchV2 logs from the AVS contract.
 - All errors are considered Transient Errors
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec.
 */
@@ -124,6 +138,8 @@ func (s *AvsSubscriber) FilterBatchV2Retryable(opts *bind.FilterOpts, batchMerkl
 }
 
 /*
+FilterBatchV3Retryable
+Get NewBatchV3 logs from the AVS contract.
 - All errors are considered Transient Errors
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec.
 */
@@ -135,8 +151,10 @@ func (s *AvsSubscriber) FilterBatchV3Retryable(opts *bind.FilterOpts, batchMerkl
 }
 
 /*
+BatchesStateRetryable
+Get the state of a batch from the AVS contract.
 - All errors are considered Transient Errors
-- Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
+- Retry times (3 retries): 1 sec, 2 sec, 4 sec
 */
 func (s *AvsSubscriber) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (struct {
 	TaskCreatedBlock      uint32
@@ -151,10 +169,12 @@ func (s *AvsSubscriber) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte
 		return s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
 	}
 
-	return retry.RetryWithData(batchState_func, retry.MinDelayChain, retry.RetryFactor, retry.NumRetries, retry.MaxIntervalChain, retry.MaxElapsedTime)
+	return retry.RetryWithData(batchState_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
 }
 
 /*
+SubscribeNewHeadRetryable
+Subscribe to new heads from the Ethereum node.
 - All errors are considered Transient Errors
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec.
 */
@@ -172,6 +192,8 @@ func (s *AvsSubscriber) SubscribeNewHeadRetryable(ctx context.Context, c chan<- 
 }
 
 /*
+SubscribeToNewTasksV2Retryable
+Subscribe to NewBatchV2 logs from the AVS contract.
 - All errors are considered Transient Errors
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec.
 */
@@ -188,6 +210,8 @@ func SubscribeToNewTasksV2Retryable(
 }
 
 /*
+SubscribeToNewTasksV3Retryable
+Subscribe to NewBatchV3 logs from the AVS contract.
 - All errors are considered Transient Errors
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec.
 */
