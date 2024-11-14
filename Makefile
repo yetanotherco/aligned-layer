@@ -1123,6 +1123,15 @@ ethereum_package_inspect: ## Prints detailed information about the net
 ethereum_package_rm: ## Removes the ethereum_package environment and used resources
 	kurtosis enclave rm aligned -f
 
+batcher_start_ethereum_package: user_fund_payment_service
+	@echo "Starting Batcher..."
+	@$(MAKE) run_storage &
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher-ethereum-package.yaml --env-file ./batcher/aligned-batcher/.env.dev
+
+aggregator_start_ethereum_package:
+	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
+
+
 install_spamoor: ## Instal spamoor to spam transactions
 	git clone https://github.com/ethpandaops/spamoor.git
 	cd spamoor && make
