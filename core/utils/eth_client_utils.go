@@ -86,6 +86,7 @@ func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercent
 	return bumpedGasPrice
 }
 
+//TODO: move to retryable function file
 /*
 GetGasPriceRetryable
 Get the gas price from the client with retry logic.
