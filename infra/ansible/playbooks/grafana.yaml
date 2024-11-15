@@ -1,0 +1,50 @@
+- name: Grafana Setup
+  hosts: "{{ host }}"
+
+  tasks:
+
+  - name: Create keyrings directory for Grafana
+    file:
+      path: /etc/apt/keyrings
+      state: directory
+      mode: '0755'
+
+  - name: Download and install Grafana GPG key
+    shell: 
+      cmd: wget -q -O - https://apt.grafana.com/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/grafana.gpg
+      creates: /etc/apt/keyrings/grafana.gpg
+    vars: 
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Add Grafana stable repository
+    shell:
+      cmd: echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+      creates: /etc/apt/sources.list.d/grafana.list
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Update apt cache and install Grafana
+    become: true
+    apt:
+      name: grafana
+      state: present
+      update_cache: yes
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+  
+  - name: Add grafana config file
+    become: true
+    template:
+      src: grafana/grafana.ini.j2
+      dest: /etc/grafana/grafana.ini
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+      grafana_http_port: "{{ lookup('ini', 'grafana_http_port', file=ini_file) }}"
+
+  - name: Restart Grafana
+    become: true
+    service:
+      name: grafana-server
+      state: restarted
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"

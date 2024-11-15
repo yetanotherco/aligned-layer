@@ -1,0 +1,26 @@
+- name: Jaeger Setup
+  hosts: "{{ host }}"
+
+  tasks:
+
+  - name: Download Jaeger package
+    get_url:
+      url: https://github.com/jaegertracing/jaeger/releases/download/v{{ version }}/jaeger-{{ version }}-linux-amd64.tar.gz
+      dest: /tmp/jaeger-{{ version }}-linux-amd64.tar.gz
+      mode: '0644'
+
+  - name: Install Jaeger package
+    become: true
+    unarchive:
+      src: "/tmp/jaeger-{{ version }}-linux-amd64.tar.gz"
+      dest: "/usr/local/bin/"
+      remote_src: yes
+      extra_opts:
+      - --strip-components=1
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Clean up Jaeger tarball package
+    file:
+      path: /tmp/jaeger-{{ version }}-linux-amd64.tar.gz
+      state: absent

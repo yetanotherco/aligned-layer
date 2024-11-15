@@ -1,0 +1,37 @@
+- name: Postgres Setup
+  hosts: "{{ host }}"
+
+  tasks:
+
+  - name: Ensure Postgres GPG directory exists
+    become: true
+    file:
+      path: "/usr/share/postgresql-common/pgdg"
+      state: directory
+      mode: '0755'
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Download and add Postgres GPG key
+    become: true
+    get_url:
+      url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+      dest: "/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc"
+      mode: '0644'
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Add Postgres repository
+    become: true
+    shell: echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Install Postgres 16
+    become: true
+    apt:
+      update_cache: yes
+      name: postgresql-16
+      state: present
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"

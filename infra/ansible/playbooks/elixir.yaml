@@ -46,19 +46,19 @@
           . "$HOME/.asdf/completions/asdf.bash"
 
     - name: Add Erlang plugin to asdf
-      shell: /home/app/.asdf/bin/asdf plugin add erlang
+      shell: /home/{{ ansible_user }}/.asdf/bin/asdf plugin add erlang
 
     - name: Add Erlang version to asdf
-      shell: /home/app/.asdf/bin/asdf install erlang {{ erlang_version }}
+      shell: /home/{{ ansible_user }}/.asdf/bin/asdf install erlang {{ erlang_version }}
 
     - name: Set Erlang version as global
-      shell: /home/app/.asdf/bin/asdf global erlang {{ erlang_version }}
+      shell: /home/{{ ansible_user }}/.asdf/bin/asdf global erlang {{ erlang_version }}
 
     - name: Add Elixir plugin to asdf
-      shell: /home/app/.asdf/bin/asdf plugin add elixir
+      shell: /home/{{ ansible_user }}/.asdf/bin/asdf plugin add elixir
 
     - name: Add Elixir version to asdf
-      shell: /home/app/.asdf/bin/asdf install elixir {{ elixir_version }}
+      shell: /home/{{ ansible_user }}/.asdf/bin/asdf install elixir {{ elixir_version }}
 
     - name: Set Elixir version as global
-      shell: /home/app/.asdf/bin/asdf global elixir {{ elixir_version }}
+      shell: /home/{{ ansible_user }}/.asdf/bin/asdf global elixir {{ elixir_version }}

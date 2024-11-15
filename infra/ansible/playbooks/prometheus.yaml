@@ -1,0 +1,95 @@
+- name: Prometheus Setup
+  hosts: "{{ host }}"
+
+  tasks:
+
+  - name: Check if Prometheus is installed
+    stat:
+      path: /usr/local/bin/prometheus
+    register: prometheus_exists
+
+  - name: Create Prometheus group
+    when: not prometheus_exists.stat.exists
+    group:
+      name: prometheus
+      system: yes
+
+  - name: Create Prometheus user
+    when: not prometheus_exists.stat.exists
+    user:
+      name: prometheus
+      group: prometheus
+      shell: /sbin/nologin
+      system: yes
+
+  - name: Download Prometheus
+    when: not prometheus_exists.stat.exists
+    get_url:
+      url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+      dest: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+      mode: '0644'
+
+  - name: Extract Prometheus
+    when: not prometheus_exists.stat.exists
+    unarchive:
+      src: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+      dest: /tmp/
+      remote_src: yes
+
+  - name: Create Prometheus directories
+    when: not prometheus_exists.stat.exists
+    file:
+      path: "{{ item }}"
+      state: directory
+      owner: prometheus
+      group: prometheus
+      mode: '0755'
+    loop:
+      - /etc/prometheus
+      - /var/lib/prometheus
+
+  - name: Move Prometheus
+    when: not prometheus_exists.stat.exists
+    copy:
+      remote_src: true
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: prometheus
+      group: prometheus
+      mode: '0755'
+    with_items:
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus", dest: "/usr/local/bin/prometheus" }
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/promtool", dest: "/usr/local/bin/promtool" }
+
+  - name: Move Prometheus configuration and consoles
+    when: not prometheus_exists.stat.exists
+    copy:
+      remote_src: true
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: prometheus
+      group: prometheus
+      mode: '0755'
+    with_items:
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/consoles", dest: "/etc/prometheus/consoles" }
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/console_libraries", dest: "/etc/prometheus/console_libraries" }
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus.yml", dest: "/etc/prometheus/prometheus.yml" }
+
+  - name: Clean up Prometheus tar and extracted directory
+    when: not prometheus_exists.stat.exists
+    file:
+      path: "{{ item }}"
+      state: absent
+    loop:
+      - "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+      - "/tmp/prometheus-{{ prometheus_version }}.linux-amd64"
+
+  - name: Add prometheus config file
+    template:
+      src: prometheus/prometheus.yaml.j2
+      dest: /etc/prometheus/prometheus.yml
+    vars:
+      aligned_aggregator_prometheus_ip: "{{ lookup('ini', 'aligned_aggregator_prometheus_ip', file='ini/config-telemetry.ini') }}"
+      aligned_operator_prometheus_ip: "{{ lookup('ini', 'aligned_operator_prometheus_ip', file='ini/config-telemetry.ini') }}"
+      aligned_batcher_prometheus_ip: "{{ lookup('ini', 'aligned_batcher_prometheus_ip', file='ini/config-telemetry.ini') }}"
+      aligned_tracker_prometheus_ip: "{{ lookup('ini', 'aligned_tracker_prometheus_ip', file='ini/config-telemetry.ini') }}"

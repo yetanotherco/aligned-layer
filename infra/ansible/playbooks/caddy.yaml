@@ -1,0 +1,49 @@
+- name: Caddy Setup
+  hosts: "{{ host }}"
+
+  tasks:
+
+  - name: Install dependencies for Caddy
+    become: true
+    apt:
+      name:
+        - debian-keyring
+        - debian-archive-keyring
+        - apt-transport-https
+        - curl
+      state: present
+      update_cache: yes
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Download and install Caddy GPG key
+    shell: 
+      cmd: curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+      creates: /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Add Caddy repository
+    shell:
+      cmd: curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+      creates: /etc/apt/sources.list.d/caddy-stable.list
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Install Caddy
+    become: true
+    apt:
+      update_cache: yes
+      name: caddy
+      state: present
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Add caddyfile config
+    become: true
+    template:
+      src: caddy/Caddyfile.{{ host }}.j2
+      dest: /etc/caddy/Caddyfile
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+      caddy_api_url: "{{ lookup('ini', 'caddy_api_url', file=ini_file) }}"

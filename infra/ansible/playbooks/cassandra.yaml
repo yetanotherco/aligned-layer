@@ -1,0 +1,28 @@
+- name: Cassandra Setup
+  hosts: "{{ host }}"
+
+  tasks:
+
+  - name: Download and add Apache Cassandra GPG key
+    become: true
+    get_url:
+      url: "https://downloads.apache.org/cassandra/KEYS"
+      dest: "/etc/apt/keyrings/apache-cassandra.asc"
+      mode: '0644'
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Add Apache Cassandra repository
+    become: true
+    shell: echo "deb [signed-by=/etc/apt/keyrings/apache-cassandra.asc] https://debian.cassandra.apache.org 41x main" | sudo tee /etc/apt/sources.list.d/cassandra.sources.list
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Install Cassandra
+    become: true
+    apt:
+      update_cache: yes
+      name: cassandra
+      state: present
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"

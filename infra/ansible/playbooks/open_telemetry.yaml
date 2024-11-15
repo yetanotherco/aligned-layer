@@ -1,0 +1,30 @@
+- name: OpenTelemetry Setup
+  hosts: "{{ host }}"
+
+  tasks:
+
+  - name: Download OpenTelemetry Collector package
+    get_url:
+      url: https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.113.0/otelcol_0.113.0_linux_amd64.deb
+      dest: /tmp/otelcol_0.113.0_linux_amd64.deb
+      mode: '0644'
+
+  - name: Install OpenTelemetry Collector package
+    command: sudo dpkg -i /tmp/otelcol_0.113.0_linux_amd64.deb
+    args:
+        creates: /usr/bin/otelcol
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Clean up OpenTelemetry Collector package
+    file:
+      path: /tmp/otelcol_0.113.0_linux_amd64.deb
+      state: absent
+
+  - name: Restart OpenTelemetry service
+    become: true
+    systemd_service:
+      state: restarted
+      name: otelcol
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
