@@ -17,19 +17,21 @@ func RequestBatch(req *http.Request, ctx context.Context) func() (*http.Response
 
 	req_func := func() (*http.Response, error) {
 		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			// Handle Permanent Error cases here
 
-		if resp != nil {
-			err := resp.Body.Close()
-			if err != nil {
-				return nil, err
+			// From my understanding upon erroring, we close the response body to free the resources before trying???
+			if resp != nil {
+				err = resp.Body.Close()
+				resp = nil
 			}
 		}
+
 		return resp, err
 	}
 	return req_func
 }
 
-// TODO: How to log retries?
 func RequestBatchRetryable(ctx context.Context, logger logging.Logger, req *http.Request) (*http.Response, error) {
 
 	return retry.RetryWithData(RequestBatch(req, ctx), retry.DefaultRetryConfig())
