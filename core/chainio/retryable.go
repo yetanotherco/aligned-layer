@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
@@ -298,4 +299,22 @@ func SubscribeToNewTasksV3Retryable(
 	batchMerkleRoot [][32]byte,
 ) (event.Subscription, error) {
 	return retry.RetryWithData(SubscribeToNewTasksV3(opts, serviceManager, newTaskCreatedChan, batchMerkleRoot), retry.DefaultRetryConfig())
+}
+
+func IsOperatorRegistered(r *AvsReader, address ethcommon.Address, opts *bind.CallOpts) func() (bool, error) {
+	op_registered_func := func() (bool, error) {
+		return r.ChainReader.IsOperatorRegistered(opts, address)
+	}
+	return op_registered_func
+}
+
+/*
+IsOperatorRegistered
+Queries the Eigenlayer Contracts and verifies the Operator is registered on Aligned.
+- All errors are considered Transient Errors
+- Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
+- NOTE: Contract call reverts are not considered `PermanentError`'s as block reorg's may lead to contract call revert in which case the aggregator should retry.
+*/
+func (r *AvsReader) IsOperatorRegisteredRetryable(address ethcommon.Address, opts *bind.CallOpts) (bool, error) {
+	return retry.RetryWithData(IsOperatorRegistered(r, address, opts), retry.DefaultRetryConfig())
 }

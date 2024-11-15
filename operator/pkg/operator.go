@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
@@ -80,7 +81,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		log.Fatalf("Could not create AVS reader")
 	}
 
-	registered, err := avsReader.IsOperatorRegistered(configuration.Operator.Address)
+	registered, err := avsReader.IsOperatorRegisteredRetryable(configuration.Operator.Address, &bind.CallOpts{})
 	if err != nil {
 		log.Fatalf("Could not check if operator is registered")
 	}

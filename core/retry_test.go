@@ -928,3 +928,51 @@ func TestBatchersBalances(t *testing.T) {
 		return
 	}
 }
+func TestIsOperatorRegistered(t *testing.T) {
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return
+	}
+	senderAddress := common.HexToAddress("0x0")
+
+	is_registered_func := chainio.IsOperatorRegistered(avsReader, senderAddress, &bind.CallOpts{})
+	_, err = is_registered_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+
+	is_registered_func = chainio.IsOperatorRegistered(avsReader, senderAddress, &bind.CallOpts{})
+	_, err = is_registered_func()
+	assert.NotNil(t, err)
+	if _, ok := err.(retry.PermanentError); ok {
+		t.Errorf("BatchersBalances Emitted non-Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connection reset") {
+		t.Errorf("BatchersBalances did not return expected error: %s\n", err)
+		return
+	}
+
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	is_registered_func = chainio.IsOperatorRegistered(avsReader, senderAddress, &bind.CallOpts{})
+	_, err = is_registered_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+}
