@@ -688,7 +688,7 @@ impl Batcher {
             self.metrics.user_error(&["invalid_nonce", ""]);
             return Ok(());
         };
-
+        
         if !self.verify_user_has_enough_balance(user_balance, user_accumulated_fee, msg_max_fee) {
             std::mem::drop(batch_state_lock);
             send_message(
@@ -825,7 +825,7 @@ impl Batcher {
         let original_max_fee = entry.nonced_verification_data.max_fee;
         if original_max_fee > replacement_max_fee {
             std::mem::drop(batch_state_lock);
-            warn!("Invalid replacement message for address {addr}, had fee {original_max_fee:?} < {replacement_max_fee:?}");
+            warn!("Invalid replacement message for address {addr}, had max fee: {original_max_fee:?}, received fee: {replacement_max_fee:?}");
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::InvalidReplacementMessage,
@@ -891,9 +891,20 @@ impl Batcher {
             BatchQueueEntryPriority::new(replacement_max_fee, nonce),
         );
 
+        // update max_fee_limit
         let updated_max_fee_limit_in_batch = batch_state_lock.get_user_min_fee_in_batch(&addr);
         if batch_state_lock
             .update_user_max_fee_limit(&addr, updated_max_fee_limit_in_batch)
+            .is_none()
+        {
+            std::mem::drop(batch_state_lock);
+            warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
+            return;
+        };
+
+        // update total_fees_in_queue
+        if batch_state_lock
+            .update_user_total_fees_in_queue_of_replacement_message(&addr, original_max_fee, replacement_max_fee)
             .is_none()
         {
             std::mem::drop(batch_state_lock);
@@ -1046,7 +1057,7 @@ impl Batcher {
 
         if current_batch_len < 2 {
             info!(
-                "Current batch has {} proof. Waiting for more proofs...",
+                "Current batch has {} proofs. Waiting for more proofs...",
                 current_batch_len
             );
             return None;

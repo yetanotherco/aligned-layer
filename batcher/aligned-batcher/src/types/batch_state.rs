@@ -13,6 +13,9 @@ pub(crate) struct BatchState {
 }
 
 impl BatchState {
+
+    // CONSTRUCTORS:
+
     pub(crate) fn new() -> Self {
         Self {
             batch_queue: BatchQueue::new(),
@@ -26,6 +29,8 @@ impl BatchState {
             user_states,
         }
     }
+
+    // GETTERS:
 
     pub(crate) fn get_entry(&self, sender: Address, nonce: U256) -> Option<&BatchQueueEntry> {
         self.batch_queue
@@ -53,52 +58,9 @@ impl BatchState {
         Some(user_state.total_fees_in_queue)
     }
 
-    pub(crate) fn update_user_nonce(&mut self, addr: &Address, new_nonce: U256) -> Option<U256> {
-        if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
-            user_state.get_mut().nonce = new_nonce;
-            return Some(new_nonce);
-        }
-        None
-    }
-
-    pub(crate) fn update_user_total_fees_in_queue(
-        &mut self,
-        addr: &Address,
-        new_total_fees_in_queue: U256,
-    ) -> Option<U256> {
-        if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
-            user_state.get_mut().total_fees_in_queue = new_total_fees_in_queue;
-            return Some(new_total_fees_in_queue);
-        }
-        None
-    }
-
     pub(crate) async fn get_user_proof_count(&self, addr: &Address) -> Option<usize> {
         let user_state = self.get_user_state(addr)?;
         Some(user_state.proofs_in_batch)
-    }
-
-    /// Checks if the entry is valid
-    /// An entry is valid if there is no entry with the same sender, lower nonce and a lower fee
-    pub(crate) fn replacement_entry_is_valid(
-        &mut self,
-        replacement_entry: &BatchQueueEntry,
-    ) -> bool {
-        let replacement_max_fee = replacement_entry.nonced_verification_data.max_fee;
-        let nonce = replacement_entry.nonced_verification_data.nonce;
-        let sender = replacement_entry.sender;
-
-        debug!(
-            "Checking validity of entry with sender: {:?}, nonce: {:?}, max_fee: {:?}",
-            sender, nonce, replacement_max_fee
-        );
-
-        // it is a valid entry only if there is no entry with the same sender, lower nonce and a lower fee
-        !self.batch_queue.iter().any(|(entry, _)| {
-            entry.sender == sender
-                && entry.nonced_verification_data.nonce < nonce
-                && entry.nonced_verification_data.max_fee < replacement_max_fee
-        })
     }
 
     pub(crate) fn get_user_min_fee_in_batch(&self, addr: &Address) -> U256 {
@@ -109,6 +71,8 @@ impl BatchState {
             .min()
             .unwrap_or(U256::max_value())
     }
+
+    // SETTERS:
 
     pub(crate) fn update_user_max_fee_limit(
         &mut self,
@@ -130,6 +94,40 @@ impl BatchState {
         if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
             user_state.get_mut().proofs_in_batch = new_proof_count;
             return Some(new_proof_count);
+        }
+        None
+    }
+
+    pub(crate) fn update_user_nonce(&mut self, addr: &Address, new_nonce: U256) -> Option<U256> {
+        if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
+            user_state.get_mut().nonce = new_nonce;
+            return Some(new_nonce);
+        }
+        None
+    }
+
+    pub(crate) fn update_user_total_fees_in_queue(
+        &mut self,
+        addr: &Address,
+        new_total_fees_in_queue: U256,
+    ) -> Option<U256> {
+        if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
+            user_state.get_mut().total_fees_in_queue = new_total_fees_in_queue;
+            return Some(new_total_fees_in_queue);
+        }
+        None
+    }
+
+    pub(crate) fn update_user_total_fees_in_queue_of_replacement_message(
+        &mut self,
+        addr: &Address,
+        original_max_fee: U256,
+        new_max_fee: U256,
+    ) -> Option<U256> {
+        let fee_difference = new_max_fee - original_max_fee; //here we already know new_max_fee > original_max_fee
+        if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
+            user_state.get_mut().total_fees_in_queue += fee_difference;
+            return Some(user_state.get().total_fees_in_queue);
         }
         None
     }
@@ -157,6 +155,8 @@ impl BatchState {
         None
     }
 
+    // LOGIC:
+
     pub(crate) fn calculate_new_user_states_data(&self) -> HashMap<Address, (usize, U256, U256)> {
         let mut updated_user_states = HashMap::new(); // address -> (proof_count, max_fee_limit, total_fees_in_queue)
         for (entry, _) in self.batch_queue.iter() {
@@ -174,5 +174,29 @@ impl BatchState {
         }
 
         updated_user_states
+    }
+
+
+    /// Checks if the entry is valid
+    /// An entry is valid if there is no entry with the same sender, lower nonce and a lower fee
+    pub(crate) fn replacement_entry_is_valid(
+        &mut self,
+        replacement_entry: &BatchQueueEntry,
+    ) -> bool {
+        let replacement_max_fee = replacement_entry.nonced_verification_data.max_fee;
+        let nonce = replacement_entry.nonced_verification_data.nonce;
+        let sender = replacement_entry.sender;
+
+        debug!(
+            "Checking validity of entry with sender: {:?}, nonce: {:?}, max_fee: {:?}",
+            sender, nonce, replacement_max_fee
+        );
+
+        // it is a valid entry only if there is no entry with the same sender, lower nonce and a lower fee
+        !self.batch_queue.iter().any(|(entry, _)| {
+            entry.sender == sender
+                && entry.nonced_verification_data.nonce < nonce
+                && entry.nonced_verification_data.max_fee < replacement_max_fee
+        })
     }
 }
