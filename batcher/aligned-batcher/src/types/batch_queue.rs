@@ -146,8 +146,8 @@ pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, Ba
 pub(crate) fn try_build_batch(
     batch_queue: BatchQueue,
     gas_price: U256,
-    max_batch_size: usize,
-    max_batch_len: usize,
+    max_batch_byte_size: usize,
+    max_batch_proof_qty: usize,
 ) -> Result<(BatchQueue, Vec<BatchQueueEntry>), BatcherError> {
     let mut batch_queue = batch_queue;
     let mut batch_size = calculate_batch_size(&batch_queue)?;
@@ -157,9 +157,9 @@ pub(crate) fn try_build_batch(
         let batch_len = batch_queue.len();
         let fee_per_proof = calculate_fee_per_proof(batch_len, gas_price);
 
-        if batch_size > max_batch_size
+        if batch_size > max_batch_byte_size
             || fee_per_proof > entry.nonced_verification_data.max_fee
-            || batch_len > max_batch_len
+            || batch_len > max_batch_proof_qty
         {
             // Update the state for the next iteration:
             // * Subtract this entry size to the size of the batch size.
@@ -535,7 +535,7 @@ mod test {
     }
 
     #[test]
-    fn batch_finalization_algorithm_works_not_bigger_than_max_batch_len() {
+    fn batch_finalization_algorithm_works_not_bigger_than_max_batch_proof_qty() {
         // The following information will be the same for each entry, it is just some dummy data to see
         // algorithm working.
 
@@ -626,10 +626,10 @@ mod test {
         let gas_price = U256::from(1);
 
         // The max batch len is 2, so the algorithm should stop at the second entry.
-        let max_batch_len = 2;
+        let max_batch_proof_qty = 2;
 
         let (resulting_batch_queue, finalized_batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, max_batch_len).unwrap();
+            try_build_batch(batch_queue, gas_price, 5000000, max_batch_proof_qty).unwrap();
 
         assert_eq!(resulting_batch_queue.len(), 1);
         assert_eq!(finalized_batch.len(), 2);

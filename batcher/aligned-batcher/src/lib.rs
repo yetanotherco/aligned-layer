@@ -82,8 +82,8 @@ pub struct Batcher {
     max_block_interval: u64,
     transaction_wait_timeout: u64,
     max_proof_size: usize,
-    max_batch_size: usize,
-    max_batch_len: usize,
+    max_batch_byte_size: usize,
+    max_batch_proof_qty: usize,
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
@@ -245,8 +245,8 @@ impl Batcher {
             max_block_interval: config.batcher.block_interval,
             transaction_wait_timeout: config.batcher.transaction_wait_timeout,
             max_proof_size: config.batcher.max_proof_size,
-            max_batch_size: config.batcher.max_batch_size,
-            max_batch_len: config.batcher.max_batch_len,
+            max_batch_byte_size: config.batcher.max_batch_byte_size,
+            max_batch_proof_qty: config.batcher.max_batch_proof_qty,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
@@ -1060,8 +1060,8 @@ impl Batcher {
         let (resulting_batch_queue, finalized_batch) = batch_queue::try_build_batch(
             batch_queue_copy,
             gas_price,
-            self.max_batch_size,
-            self.max_batch_len,
+            self.max_batch_byte_size,
+            self.max_batch_proof_qty,
         )
         .inspect_err(|e| {
             *batch_posting = false;
