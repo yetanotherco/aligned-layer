@@ -43,15 +43,32 @@ impl BatchState {
         Some(user_state.nonce)
     }
 
-    pub(crate) async fn get_user_min_fee(&self, addr: &Address) -> Option<U256> {
+    pub(crate) async fn get_user_last_max_fee_limit(&self, addr: &Address) -> Option<U256> {
         let user_state = self.get_user_state(addr)?;
-        Some(user_state.min_fee)
+        Some(user_state.last_max_fee_limit)
+    }
+
+    pub(crate) async fn get_user_total_fees_in_queue(&self, addr: &Address) -> Option<U256> {
+        let user_state = self.get_user_state(addr)?;
+        Some(user_state.total_fees_in_queue)
     }
 
     pub(crate) fn update_user_nonce(&mut self, addr: &Address, new_nonce: U256) -> Option<U256> {
         if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
             user_state.get_mut().nonce = new_nonce;
             return Some(new_nonce);
+        }
+        None
+    }
+
+    pub(crate) fn update_user_total_fees_in_queue(
+        &mut self,
+        addr: &Address,
+        new_total_fees_in_queue: U256,
+    ) -> Option<U256> {
+        if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
+            user_state.get_mut().total_fees_in_queue = new_total_fees_in_queue;
+            return Some(new_total_fees_in_queue);
         }
         None
     }
@@ -93,14 +110,14 @@ impl BatchState {
             .unwrap_or(U256::max_value())
     }
 
-    pub(crate) fn update_user_min_fee(
+    pub(crate) fn update_user_max_fee_limit(
         &mut self,
         addr: &Address,
-        new_min_fee: U256,
+        new_max_fee_limit: U256,
     ) -> Option<U256> {
         if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
-            user_state.get_mut().min_fee = new_min_fee;
-            return Some(new_min_fee);
+            user_state.get_mut().last_max_fee_limit = new_max_fee_limit;
+            return Some(new_max_fee_limit);
         }
         None
     }
@@ -117,39 +134,42 @@ impl BatchState {
         None
     }
 
-    /// Updates the user with address `addr` with the provided values of `new_nonce`, `new_min_fee` and
-    /// `new_proof_count`.
+    /// Updates the user with address `addr` with the provided values of
+    /// `new_nonce`, `new_max_fee_limit`, `new_proof_count` and `new_total_fees_in_queue`
     /// If state is updated successfully, returns the updated values inside a `Some()`
     /// If the address was not found in the user states, returns `None`
     pub(crate) fn update_user_state(
         &mut self,
         addr: &Address,
         new_nonce: U256,
-        new_min_fee: U256,
+        new_max_fee_limit: U256,
         new_proof_count: usize,
-    ) -> Option<(U256, U256, usize)> {
+        new_total_fees_in_queue: U256,
+    ) -> Option<(U256, U256, usize, U256)> {
         let updated_nonce = self.update_user_nonce(addr, new_nonce);
-        let updated_min_fee = self.update_user_min_fee(addr, new_min_fee);
+        let updated_max_fee_limit = self.update_user_max_fee_limit(addr, new_max_fee_limit);
         let updated_proof_count = self.update_user_proof_count(addr, new_proof_count);
+        let updated_total_fees_in_queue = self.update_user_total_fees_in_queue(addr, new_total_fees_in_queue);
 
-        if updated_nonce.is_some() && updated_min_fee.is_some() && updated_proof_count.is_some() {
-            return Some((new_nonce, new_min_fee, new_proof_count));
+        if updated_nonce.is_some() && updated_max_fee_limit.is_some() && updated_proof_count.is_some() && updated_total_fees_in_queue.is_some() {
+            return Some((new_nonce, new_max_fee_limit, new_proof_count, new_total_fees_in_queue));
         }
         None
     }
 
-    pub(crate) fn get_user_proofs_in_batch_and_min_fee(&self) -> HashMap<Address, (usize, U256)> {
-        let mut updated_user_states = HashMap::new();
+    pub(crate) fn calculate_new_user_states_data(&self) -> HashMap<Address, (usize, U256, U256)> {
+        let mut updated_user_states = HashMap::new(); // address -> (proof_count, max_fee_limit, total_fees_in_queue)
         for (entry, _) in self.batch_queue.iter() {
             let addr = entry.sender;
-            let user_min_fee = entry.nonced_verification_data.max_fee;
+            let max_fee = entry.nonced_verification_data.max_fee;
 
-            let (proof_count, min_fee) =
-                updated_user_states.entry(addr).or_insert((0, user_min_fee));
+            let (proof_count, max_fee_limit, total_fees_in_queue) =
+                updated_user_states.entry(addr).or_insert((0, max_fee, U256::zero()));
 
             *proof_count += 1;
-            if entry.nonced_verification_data.max_fee < *min_fee {
-                *min_fee = entry.nonced_verification_data.max_fee;
+            *total_fees_in_queue += max_fee;
+            if max_fee < *max_fee_limit {
+                *max_fee_limit = max_fee;
             }
         }
 
