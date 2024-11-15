@@ -13,7 +13,6 @@ pub(crate) struct BatchState {
 }
 
 impl BatchState {
-
     // CONSTRUCTORS:
 
     pub(crate) fn new() -> Self {
@@ -147,10 +146,20 @@ impl BatchState {
         let updated_nonce = self.update_user_nonce(addr, new_nonce);
         let updated_max_fee_limit = self.update_user_max_fee_limit(addr, new_max_fee_limit);
         let updated_proof_count = self.update_user_proof_count(addr, new_proof_count);
-        let updated_total_fees_in_queue = self.update_user_total_fees_in_queue(addr, new_total_fees_in_queue);
+        let updated_total_fees_in_queue =
+            self.update_user_total_fees_in_queue(addr, new_total_fees_in_queue);
 
-        if updated_nonce.is_some() && updated_max_fee_limit.is_some() && updated_proof_count.is_some() && updated_total_fees_in_queue.is_some() {
-            return Some((new_nonce, new_max_fee_limit, new_proof_count, new_total_fees_in_queue));
+        if updated_nonce.is_some()
+            && updated_max_fee_limit.is_some()
+            && updated_proof_count.is_some()
+            && updated_total_fees_in_queue.is_some()
+        {
+            return Some((
+                new_nonce,
+                new_max_fee_limit,
+                new_proof_count,
+                new_total_fees_in_queue,
+            ));
         }
         None
     }
@@ -163,8 +172,9 @@ impl BatchState {
             let addr = entry.sender;
             let max_fee = entry.nonced_verification_data.max_fee;
 
-            let (proof_count, max_fee_limit, total_fees_in_queue) =
-                updated_user_states.entry(addr).or_insert((0, max_fee, U256::zero()));
+            let (proof_count, max_fee_limit, total_fees_in_queue) = updated_user_states
+                .entry(addr)
+                .or_insert((0, max_fee, U256::zero()));
 
             *proof_count += 1;
             *total_fees_in_queue += max_fee;
@@ -175,7 +185,6 @@ impl BatchState {
 
         updated_user_states
     }
-
 
     /// Checks if the entry is valid
     /// An entry is valid if there is no entry with the same sender, lower nonce and a lower fee

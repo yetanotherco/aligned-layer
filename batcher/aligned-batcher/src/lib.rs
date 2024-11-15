@@ -667,7 +667,9 @@ impl Batcher {
         let batch_state_lock = self.batch_state.lock().await;
 
         let msg_max_fee = nonced_verification_data.max_fee;
-        let Some(user_last_max_fee_limit) = batch_state_lock.get_user_last_max_fee_limit(&addr).await else {
+        let Some(user_last_max_fee_limit) =
+            batch_state_lock.get_user_last_max_fee_limit(&addr).await
+        else {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
@@ -678,7 +680,8 @@ impl Batcher {
             return Ok(());
         };
 
-        let Some(user_accumulated_fee) = batch_state_lock.get_user_total_fees_in_queue(&addr).await else {
+        let Some(user_accumulated_fee) = batch_state_lock.get_user_total_fees_in_queue(&addr).await
+        else {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
@@ -688,7 +691,7 @@ impl Batcher {
             self.metrics.user_error(&["invalid_nonce", ""]);
             return Ok(());
         };
-        
+
         if !self.verify_user_has_enough_balance(user_balance, user_accumulated_fee, msg_max_fee) {
             std::mem::drop(batch_state_lock);
             send_message(
@@ -904,7 +907,11 @@ impl Batcher {
 
         // update total_fees_in_queue
         if batch_state_lock
-            .update_user_total_fees_in_queue_of_replacement_message(&addr, original_max_fee, replacement_max_fee)
+            .update_user_total_fees_in_queue_of_replacement_message(
+                &addr,
+                original_max_fee,
+                replacement_max_fee,
+            )
             .is_none()
         {
             std::mem::drop(batch_state_lock);
@@ -1106,9 +1113,8 @@ impl Batcher {
         let user_addresses: Vec<Address> = batch_state_lock.user_states.keys().cloned().collect();
         let default_value = (0, U256::MAX, U256::zero());
         for addr in user_addresses.iter() {
-            let (proof_count, max_fee_limit, total_fees_in_queue) = new_user_states
-                .get(addr)
-                .unwrap_or(&default_value);
+            let (proof_count, max_fee_limit, total_fees_in_queue) =
+                new_user_states.get(addr).unwrap_or(&default_value);
 
             // FIXME: The case where a the update functions return `None` can only happen when the user was not found
             // in the `user_states` map should not really happen here, but doing this check so that we don't unwrap.
