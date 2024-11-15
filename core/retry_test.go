@@ -928,3 +928,51 @@ func TestBatchersBalances(t *testing.T) {
 		return
 	}
 }
+
+func TestDisabledVerifiers(t *testing.T) {
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		log.Fatalf("Could not create AVS reader")
+	}
+
+	dis_ver_func := chainio.DisabledVerifiers(avsReader, &bind.CallOpts{})
+	_, err = dis_ver_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+
+	dis_ver_func = chainio.DisabledVerifiers(avsReader, &bind.CallOpts{})
+	_, err = dis_ver_func()
+	assert.NotNil(t, err)
+	if _, ok := err.(retry.PermanentError); ok {
+		t.Errorf("DisabledVerifiers Emitted non-Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connection reset") {
+		t.Errorf(" did not return expected error: %s\n", err)
+		return
+	}
+
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	dis_ver_func = chainio.DisabledVerifiers(avsReader, &bind.CallOpts{})
+	_, err = dis_ver_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+}

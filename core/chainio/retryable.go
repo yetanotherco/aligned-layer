@@ -299,3 +299,22 @@ func SubscribeToNewTasksV3Retryable(
 ) (event.Subscription, error) {
 	return retry.RetryWithData(SubscribeToNewTasksV3(opts, serviceManager, newTaskCreatedChan, batchMerkleRoot), retry.DefaultRetryConfig())
 }
+
+// |---AVS Reader---|
+
+func DisabledVerifiers(r *AvsReader, opts *bind.CallOpts) func() (*big.Int, error) {
+	disabled_ver_func := func() (*big.Int, error) {
+		return r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.DisabledVerifiers(opts)
+	}
+	return disabled_ver_func
+}
+
+/*
+Retrieves the Verifiers Blacklist Bitmap from the `AlignedServiceManager` Contract.
+- All errors are considered Transient Errors
+- Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
+- NOTE: Contract call reverts are not considered `PermanentError`'s as block reorg's may lead to contract call revert in which case the aggregator should retry.
+*/
+func (r *AvsReader) DisabledVerifiersRetryable(opts *bind.CallOpts) (*big.Int, error) {
+	return retry.RetryWithData(DisabledVerifiers(r, opts), retry.ChainRetryConfig())
+}
