@@ -1131,9 +1131,13 @@ batcher_start_ethereum_package: user_fund_payment_service
 aggregator_start_ethereum_package:
 	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
 
-operator_start_ethereum_package:
+operator_register_and_start_ethereum_package:
 	$(MAKE) operator_full_registration OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml \
 	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+
+operator_register_start_ethereum_package:
+	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+
 
 install_spamoor: ## Instal spamoor to spam transactions
 	git clone https://github.com/ethpandaops/spamoor.git
@@ -1142,9 +1146,9 @@ install_spamoor: ## Instal spamoor to spam transactions
 	rm -rf spamoor
 
 # Spamoor funding wallet
-SPAMOOR_PRIVATE_KEY?=2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6
-NUM_WALLETS?=10000
-TX_PER_BLOCK?=300
+SPAMOOR_PRIVATE_KEY?=dbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97
+NUM_WALLETS?=1000
+TX_PER_BLOCK?=250
 # Similar to a swap
 TX_CONSUMES_GAS?=150000
 
@@ -1153,7 +1157,7 @@ spamoor_send_transactions: ## Sends normal transactions and also replacement tra
 		--gas-units-to-burn $(TX_CONSUMES_GAS) \
 		--max-wallets $(NUM_WALLETS) --max-pending $(TX_PER_BLOCK) \
 		-t $(TX_PER_BLOCK) -h http://127.0.0.1:8545/ -h http://127.0.0.1:8550/ -h http://127.0.0.1:8555/ -h http://127.0.0.1:8565/ \
-		--refill-amount 5 --refill-balance 2 \
+		--refill-amount 5 --refill-balance 2 --tipfee 30 --basefee 30  \
 		2>&1 | grep -v 'checked child wallets (no funding needed)'
 
 spamoor_send_transactions_infinite: ## Sends normal transactions and also replacement transactions infinitely
