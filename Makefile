@@ -1157,13 +1157,5 @@ spamoor_send_transactions: ## Sends normal transactions and also replacement tra
 		--gas-units-to-burn $(TX_CONSUMES_GAS) \
 		--max-wallets $(NUM_WALLETS) --max-pending $(TX_PER_BLOCK) \
 		-t $(TX_PER_BLOCK) -h http://127.0.0.1:8545/ -h http://127.0.0.1:8550/ -h http://127.0.0.1:8555/ -h http://127.0.0.1:8565/ \
-		--refill-amount 5 --refill-balance 2 --tipfee 30 --basefee 30  \
-		2>&1 | grep -v 'checked child wallets (no funding needed)'
-
-spamoor_send_transactions_infinite: ## Sends normal transactions and also replacement transactions infinitely
-	spamoor gasburnertx -p $(SPAMOOR_PRIVATE_KEY) \
-	 	--gas-units-to-burn $(TX_CONSUMES_GAS) \
-		--max-wallets $(NUM_WALLETS) --max-pending $(TX_PER_BLOCK) \
-		-t $(TX_PER_BLOCK) -h http://127.0.0.1:8545/ \
-		--refill-amount 5 --refill-balance 2 \
+		--refill-amount 5 --refill-balance 2 --tipfee $(TIP_FEE) --basefee 100  \
 		2>&1 | grep -v 'checked child wallets (no funding needed)'
