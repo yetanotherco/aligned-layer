@@ -114,8 +114,10 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			onGasPriceBumped(txOpts.GasPrice)
 		}
 
+		w.logger.Infof("Gas price was bumped")
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
+			w.logger.Errorf("Permanent error when checking respond to task fee limit, err %v", err)
 			return nil, retry.PermanentError{Inner: err}
 		}
 
@@ -123,9 +125,11 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 		tx, err = w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
+			w.logger.Errorf("Respond to task transaction err, %v", err)
 			return nil, err
 		}
 
+		w.logger.Infof("Transaction sent, waiting for receipt")
 		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, tx.Hash(), timeToWaitBeforeBump)
 		if receipt != nil {
 			return receipt, nil
