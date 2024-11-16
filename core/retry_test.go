@@ -928,3 +928,196 @@ func TestBatchersBalances(t *testing.T) {
 		return
 	}
 }
+
+func TestFilterNewBatchV3(t *testing.T) {
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return
+	}
+	filter_func := chainio.FilterNewBatchV3(avsReader, &bind.FilterOpts{Start: 1, End: nil, Context: context.Background()}, nil)
+	_, err = filter_func()
+	assert.Nil(t, err)
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+	filter_func = chainio.FilterNewBatchV3(avsReader, &bind.FilterOpts{Start: 1, End: nil, Context: context.Background()}, nil)
+	_, err = filter_func()
+	assert.NotNil(t, err)
+	if _, ok := err.(retry.PermanentError); ok {
+		t.Errorf("BatchersBalances Emitted non-Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connection reset") {
+		t.Errorf("BatchersBalances did not return expected error: %s\n", err)
+		return
+	}
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+	filter_func = chainio.FilterNewBatchV3(avsReader, &bind.FilterOpts{Start: 1, End: nil, Context: context.Background()}, nil)
+	_, err = filter_func()
+	assert.Nil(t, err)
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+}
+
+func TestParseNewBatchV3(t *testing.T) {
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return
+	}
+	logs, err := avsReader.FilterNewBatchV3Retryable(&bind.FilterOpts{Start: 1, End: nil, Context: context.Background()}, nil)
+	if err != nil {
+		return
+	}
+	parse_func := chainio.ParseNewBatchV3(avsReader, logs.Event.Raw)
+	_, err = parse_func()
+	assert.NotNil(t, err)
+	if !strings.Contains(err.Error(), "no event signature") {
+		t.Errorf("ParseNewBatchV3 did not return expected error: %s\n", err)
+		return
+	}
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+	parse_func = chainio.ParseNewBatchV3(avsReader, logs.Event.Raw)
+	_, err = parse_func()
+	assert.NotNil(t, err)
+	if _, ok := err.(retry.PermanentError); ok {
+		t.Errorf("ParseNewBatchV3 Emitted non-Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connection reset") {
+		t.Errorf("ParseNewBatchV3 did not return expected error: %s\n", err)
+		return
+	}
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+	parse_func = chainio.ParseNewBatchV3(avsReader, logs.Event.Raw)
+	_, err = parse_func()
+	assert.NotNil(t, err)
+	if !strings.Contains(err.Error(), "no event signature") {
+		t.Errorf("ParseNewBatchV3 did not return expected error: %s\n", err)
+		return
+	}
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+}
+
+func TestBatchesStateReader(t *testing.T) {
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return
+	}
+	num := big.NewInt(6)
+
+	var bytes [32]byte
+	num.FillBytes(bytes[:])
+
+	state_func := chainio.ReaderBatchesState(avsReader, &bind.CallOpts{}, bytes)
+	_, err = state_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("error killing process: %v\n", err)
+		return
+	}
+
+	state_func = chainio.ReaderBatchesState(avsReader, &bind.CallOpts{}, bytes)
+	_, err = state_func()
+	assert.NotNil(t, err)
+	if _, ok := err.(retry.PermanentError); ok {
+		t.Errorf("BatchesStateReader Emitted non-Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		t.Errorf("BatchesStateReader did not contain expected error: %s\n", err)
+		return
+	}
+
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	state_func = chainio.ReaderBatchesState(avsReader, &bind.CallOpts{}, bytes)
+	_, err = state_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+}
+
+func TestReaderFilterBatchV3(t *testing.T) {
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return
+	}
+	batch_func := chainio.FilterNewBatchV3(avsReader, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+
+	batch_func = chainio.FilterNewBatchV3(avsReader, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
+	assert.NotNil(t, err)
+	if _, ok := err.(retry.PermanentError); ok {
+		t.Errorf("FilerBatchV3 Emitted non Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connection reset") {
+		t.Errorf("FilterBatchV3 Emitted non Transient error: %s\n", err)
+		return
+	}
+
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	batch_func = chainio.FilterNewBatchV3(avsReader, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+}

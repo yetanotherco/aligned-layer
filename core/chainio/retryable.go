@@ -299,3 +299,68 @@ func SubscribeToNewTasksV3Retryable(
 ) (event.Subscription, error) {
 	return retry.RetryWithData(SubscribeToNewTasksV3(opts, serviceManager, newTaskCreatedChan, batchMerkleRoot), retry.DefaultRetryConfig())
 }
+
+func FilterNewBatchV3(r *AvsReader, opts *bind.FilterOpts, batchMerkleRoot [][32]byte) func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
+	filter_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
+		return r.AvsContractBindings.ServiceManager.FilterNewBatchV3(opts, batchMerkleRoot)
+	}
+	return filter_func
+}
+
+/*
+FilterBatchV3Retryable
+Get NewBatchV3 logs from the AVS contract.
+- All errors are considered Transient Errors
+- Retry times (3 retries): 1 sec, 2 sec, 4 sec.
+*/
+func (r *AvsReader) FilterNewBatchV3Retryable(opts *bind.FilterOpts, batchMerkleRoot [][32]byte) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
+
+	return retry.RetryWithData(FilterNewBatchV3(r, opts, batchMerkleRoot), retry.DefaultRetryConfig())
+}
+
+func ParseNewBatchV3(r *AvsReader, log types.Log) func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
+	filter_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
+		return r.AvsContractBindings.ServiceManager.ParseNewBatchV3(log)
+	}
+	return filter_func
+}
+
+/*
+ParseNewBatchV3
+Parses and returns the task data from a NewBatchV3 Log
+- All errors are considered Transient Errors
+- Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
+*/
+func (r *AvsReader) ParseNewBatchV3Retryable(log types.Log) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
+	return retry.RetryWithData(ParseNewBatchV3(r, log), retry.ChainRetryConfig())
+}
+
+func ReaderBatchesState(r *AvsReader, opts *bind.CallOpts, arg0 [32]byte) func() (struct {
+	TaskCreatedBlock      uint32
+	Responded             bool
+	RespondToTaskFeeLimit *big.Int
+}, error) {
+	batchState_func := func() (struct {
+		TaskCreatedBlock      uint32
+		Responded             bool
+		RespondToTaskFeeLimit *big.Int
+	}, error) {
+		return r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
+	}
+	return batchState_func
+}
+
+/*
+BatchesStateRetryable
+Get the state of V3 batches from the AVS contract.
+- All errors are considered Transient Errors
+- Retry times (3 retries): 1 sec, 2 sec, 4 sec
+*/
+func (r *AvsReader) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (struct {
+	TaskCreatedBlock      uint32
+	Responded             bool
+	RespondToTaskFeeLimit *big.Int
+}, error) {
+
+	return retry.RetryWithData(ReaderBatchesState(r, opts, arg0), retry.DefaultRetryConfig())
+}
