@@ -98,6 +98,15 @@ type Aggregator struct {
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
 	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
+	logger := aggregatorConfig.BaseConfig.Logger
+
+	// Metrics
+	reg := prometheus.NewRegistry()
+	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
+
+	// Telemetry
+	aggregatorTelemetry := NewTelemetry(aggregatorConfig.Aggregator.TelemetryIpPortAddress, logger)
+
 	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
 		return nil, err
@@ -108,7 +117,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig, aggregatorMetrics)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +138,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 
 	aggregatorPrivateKey := aggregatorConfig.EcdsaConfig.PrivateKey
 
-	logger := aggregatorConfig.BaseConfig.Logger
 	clients, err := sdkclients.BuildAll(chainioConfig, aggregatorPrivateKey, logger)
 	if err != nil {
 		logger.Errorf("Cannot create sdk clients", "err", err)
@@ -154,13 +162,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	operatorPubkeysService := oppubkeysserv.NewOperatorsInfoServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, nil, oppubkeysserv.Opts{}, logger)
 	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.ChainReader, operatorPubkeysService, logger)
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, hashFunction, logger)
-
-	// Metrics
-	reg := prometheus.NewRegistry()
-	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
-
-	// Telemetry
-	aggregatorTelemetry := NewTelemetry(aggregatorConfig.Aggregator.TelemetryIpPortAddress, logger)
 
 	nextBatchIndex := uint32(0)
 

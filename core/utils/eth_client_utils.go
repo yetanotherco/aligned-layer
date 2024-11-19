@@ -51,6 +51,16 @@ func BytesToQuorumThresholdPercentages(quorumThresholdPercentagesBytes []byte) e
 	return quorumThresholdPercentages
 }
 
+func WeiToEth(wei *big.Int) float64 {
+	weiToEth := new(big.Float).SetFloat64(1e18)
+	weiFloat := new(big.Float).SetInt(wei)
+
+	result := new(big.Float).Quo(weiFloat, weiToEth)
+	eth, _ := result.Float64()
+
+	return eth
+}
+
 // Simple algorithm to calculate the gasPrice bump based on:
 // the currentGasPrice, a base bump percentage, a retry percentage, and the retry count.
 // Formula: currentGasPrice + (currentGasPrice * (baseBumpPercentage + retryCount * incrementalRetryPercentage) / 100)
