@@ -95,7 +95,6 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 	// Set Retry config for RespondToTaskV2
 	respondToTaskV2Config := retry.DefaultRetryConfig()
-	respondToTaskV2Config.MaxNumRetries = 0
 	respondToTaskV2Config.MaxElapsedTime = 0
 
 	// Set Retry config for WaitForTxRetryable
