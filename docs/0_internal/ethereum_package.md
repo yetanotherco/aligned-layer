@@ -70,6 +70,13 @@ make spamoor_send_transactions  \\
   TIP_FEE=<TIP_FEE_IN_GWEI>
 ```
 
+## Changing Network Params
+
+To adjust network params you have to modify `network_params.yaml`.
+
+> [!NOTE]
+> We are using a hardcoded input to deploy Eigen and Aligned contracts using the output from anvil.
+
 ## How to make transactions compete and see bumping in the Aggregator and Batcher logs
 
 To increment the gas price and make transactions compete with aligned transactions we need to:
