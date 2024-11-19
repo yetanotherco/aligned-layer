@@ -18,9 +18,7 @@ func RequestBatch(req *http.Request, ctx context.Context) func() (*http.Response
 	req_func := func() (*http.Response, error) {
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			// Handle Permanent Error cases here
-
-			// From my understanding upon erroring, we close the response body to free the resources before trying???
+			// We close the response body to free the resources before re-trying
 			if resp != nil {
 				err = resp.Body.Close()
 				resp = nil
@@ -49,40 +47,6 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 	if err != nil {
 		return nil, err
 	}
-
-	/*
-		for attempt := 0; attempt < maxRetries; attempt++ {
-			if attempt > 0 {
-				o.Logger.Infof("Waiting for %s before retrying data fetch (attempt %d of %d)", retryDelay, attempt+1, maxRetries)
-				select {
-				case <-time.After(retryDelay):
-					// Wait before retrying
-				case <-ctx.Done():
-					return nil, ctx.Err()
-				}
-				retryDelay *= 2 // Exponential backoff. Ex: 5s, 10s, 20s
-			}
-
-			req, err = http.NewRequestWithContext(ctx, "GET", batchURL, nil)
-			if err != nil {
-				return nil, err
-			}
-
-			resp, err = http.DefaultClient.Do(req)
-			if err == nil && resp.StatusCode == http.StatusOK {
-				break // Successful request, exit retry loop
-			}
-
-			if resp != nil {
-				err := resp.Body.Close()
-				if err != nil {
-					return nil, err
-				}
-			}
-
-			o.Logger.Warnf("Error fetching batch from data service - (attempt %d): %v", attempt+1, err)
-		}
-	*/
 
 	// At this point, the HTTP request was successfull.
 
