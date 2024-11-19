@@ -826,7 +826,7 @@ func TestBatchesStateWriter(t *testing.T) {
 }
 
 func TestBalanceAt(t *testing.T) {
-	cmd, _, err := SetupAnvil(8545)
+	cmd, client, err := SetupAnvil(8545)
 	if err != nil {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
@@ -837,9 +837,14 @@ func TestBalanceAt(t *testing.T) {
 		return
 	}
 	aggregator_address := common.HexToAddress("0x0")
-	blockHeight := big.NewInt(13)
+	// Fetch the latest block number
+	blockNumberUint64, err := client.BlockNumber(context.Background())
+	blockNumber := new(big.Int).SetUint64(blockNumberUint64)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	balance_func := chainio.BalanceAt(avsWriter, context.Background(), aggregator_address, blockHeight)
+	balance_func := chainio.BalanceAt(avsWriter, context.Background(), aggregator_address, blockNumber)
 	_, err = balance_func()
 	assert.Nil(t, err)
 
@@ -848,7 +853,7 @@ func TestBalanceAt(t *testing.T) {
 		return
 	}
 
-	balance_func = chainio.BalanceAt(avsWriter, context.Background(), aggregator_address, blockHeight)
+	balance_func = chainio.BalanceAt(avsWriter, context.Background(), aggregator_address, blockNumber)
 	_, err = balance_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
@@ -865,7 +870,7 @@ func TestBalanceAt(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	balance_func = chainio.BalanceAt(avsWriter, context.Background(), aggregator_address, blockHeight)
+	balance_func = chainio.BalanceAt(avsWriter, context.Background(), aggregator_address, blockNumber)
 	_, err = balance_func()
 	assert.Nil(t, err)
 
