@@ -841,7 +841,7 @@ func TestBalanceAt(t *testing.T) {
 	blockNumberUint64, err := client.BlockNumber(context.Background())
 	blockNumber := new(big.Int).SetUint64(blockNumberUint64)
 	if err != nil {
-		log.Fatal(err)
+		t.Errorf("Error retrieving Anvil Block Number: %v\n", err)
 	}
 
 	balance_func := chainio.BalanceAt(avsWriter, context.Background(), aggregator_address, blockNumber)
