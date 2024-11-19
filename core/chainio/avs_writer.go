@@ -81,15 +81,15 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, timeToWaitBeforeBump time.Duration, onGasPriceBumped func(*big.Int)) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
-	tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	sim_tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
 		return nil, err
 	}
 
 	// Set the nonce, as we might have to replace the transaction with a higher gas price
-	txNonce := big.NewInt(int64(tx.Nonce()))
+	txNonce := big.NewInt(int64(sim_tx.Nonce()))
 	txOpts.Nonce = txNonce
-	txOpts.GasPrice = tx.GasPrice()
+	txOpts.GasPrice = sim_tx.GasPrice()
 	txOpts.NoSend = false
 	i := 0
 
@@ -114,7 +114,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 		// We compare both Aggregator funds and Batcher balance in Aligned against respondToTaskFeeLimit
 		// Both are required to have some balance, more details inside the function
-		err = w.checkAggAndBatcherHaveEnoughBalance(tx, txOpts, batchIdentifierHash, senderAddress)
+    	err = w.checkAggAndBatcherHaveEnoughBalance(sim_tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
 			w.logger.Errorf("Permanent error when checking respond to task fee limit, err %v", err)
 			return nil, retry.PermanentError{Inner: err}
@@ -122,16 +122,16 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice)
 
-		tx, err = w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		real_tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
 			w.logger.Errorf("Respond to task transaction err, %v", err)
 			return nil, err
 		}
 
 		w.logger.Infof("Transaction sent, waiting for receipt")
-		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, tx.Hash(), timeToWaitBeforeBump)
+		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, real_tx.Hash(), timeToWaitBeforeBump)
 		if receipt != nil {
-			w.checkIfAggregatorHadToPaidForBatcher(tx, batchIdentifierHash)
+			w.checkIfAggregatorHadToPaidForBatcher(real_tx, batchIdentifierHash)
 			return receipt, nil
 		}
 
