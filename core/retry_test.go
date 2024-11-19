@@ -49,7 +49,7 @@ func TestRetryWithData(t *testing.T) {
 		MaxElapsedTime:      3,
 		RandomizationFactor: 0,
 		Multiplier:          retry.DefaultMultiplier,
-		NumRetries:          retry.DefaultNumRetries,
+		MaxNumRetries:       retry.DefaultMaxNumRetries,
 	}
 	_, err := retry.RetryWithData(function, config)
 	if err != nil {
@@ -68,7 +68,7 @@ func TestRetry(t *testing.T) {
 		MaxElapsedTime:      3,
 		RandomizationFactor: 0,
 		Multiplier:          retry.DefaultMultiplier,
-		NumRetries:          retry.DefaultNumRetries,
+		MaxNumRetries:       retry.DefaultMaxNumRetries,
 	}
 	err := retry.Retry(function, config)
 	if err != nil {

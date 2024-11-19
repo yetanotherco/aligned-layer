@@ -97,13 +97,13 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 	// Set Retry config for RespondToTaskV2
 	respondToTaskV2Config := retry.DefaultRetryConfig()
-	respondToTaskV2Config.NumRetries = 0
+	respondToTaskV2Config.MaxNumRetries = 0
 	respondToTaskV2Config.MaxElapsedTime = 0
 
 	// Set Retry config for WaitForTxRetryable
 	waitForTxConfig := retry.DefaultRetryConfig()
 	waitForTxConfig.MaxInterval = 2 * time.Second
-	waitForTxConfig.NumRetries = 0
+	waitForTxConfig.MaxNumRetries = 0
 	waitForTxConfig.MaxElapsedTime = timeToWaitBeforeBump
 
 	respondToTaskV2Func := func() (*types.Receipt, error) {
