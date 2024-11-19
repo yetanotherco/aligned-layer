@@ -26,13 +26,13 @@ func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkl
 	respondToTaskV2_func := func() (*types.Transaction, error) {
 		// Try with main connection
 		tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-		println("error probably revert: 1", err)
+		println("error probably revert: 1", err.Error())
 		if err != nil {
 			// If error try with fallback
 			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		}
 		// todo quitar retry para ver err mas rapido
-		println("error probably revert: 2", err)
+		println("error probably revert: 2", err.Error())
 
 		return tx, err
 	}
