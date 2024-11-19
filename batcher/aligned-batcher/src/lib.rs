@@ -519,7 +519,7 @@ impl Batcher {
             )
             .await;
             self.metrics
-                .user_error(&["invalid_paument_service_address", ""]);
+                .user_error(&["invalid_payment_service_address", ""]);
             return Ok(());
         }
 
@@ -633,7 +633,7 @@ impl Batcher {
                         SubmitProofResponseMessage::EthRpcError,
                     )
                     .await;
-                    self.metrics.user_error(&["invalid_nonce", ""]); // TODO in this PR put a new label!!
+                    self.metrics.user_error(&["eth_rpc_error", ""]);
                     return Ok(());
                 }
             };
@@ -676,7 +676,7 @@ impl Batcher {
                 SubmitProofResponseMessage::InvalidNonce, // TODO this is not an invalid nonce error
             )
             .await;
-            self.metrics.user_error(&["invalid_nonce", ""]);
+            self.metrics.user_error(&["batcher_state_error", ""]);
             return Ok(());
         };
 
@@ -688,7 +688,7 @@ impl Batcher {
                 SubmitProofResponseMessage::InvalidNonce, // TODO this is not an invalid nonce error
             )
             .await;
-            self.metrics.user_error(&["invalid_nonce", ""]);
+            self.metrics.user_error(&["batcher_state_error", ""]);
             return Ok(());
         };
 
@@ -712,7 +712,7 @@ impl Batcher {
                 SubmitProofResponseMessage::InvalidNonce, // TODO this is not an invalid nonce error
             )
             .await;
-            self.metrics.user_error(&["invalid_nonce", ""]);
+            self.metrics.user_error(&["batcher_state_error", ""]);
             return Ok(());
         };
 
