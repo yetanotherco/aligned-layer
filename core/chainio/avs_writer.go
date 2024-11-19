@@ -174,7 +174,14 @@ func (w *AvsWriter) checkIfAggregatorHadToPaidForBatcher(tx *types.Transaction, 
 func (w *AvsWriter) checkAggAndBatcherHaveEnoughBalance(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
 	w.logger.Info("Checking if aggregator and batcher have enough balance for the transaction")
 	aggregatorAddress := txOpts.From
-	txCost := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), txOpts.GasPrice)
+	txGasAsBigInt := new(big.Int).SetUint64(tx.Gas())
+	txGasPrice := txOpts.GasPrice
+	w.logger.Info("Transaction Gas Cost", "cost", txGasAsBigInt)
+	w.logger.Info("Transaction Gas Price", "cost", txGasPrice)
+
+	txCost := new(big.Int).Mul(txGasAsBigInt, txGasPrice)
+
+	// txCost := new(big.Int).Mul(new(big.Int)tx.Gas()), txOpts.GasPrice)
 	w.logger.Info("Transaction cost", "cost", txCost)
 
 	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
