@@ -21,6 +21,11 @@ import (
 	"github.com/yetanotherco/aligned_layer/metrics"
 )
 
+const (
+	waitForTxConfigMaxInterval = 2 * time.Second
+	waitForTxConfigNumRetries  = 0
+)
+
 type AvsWriter struct {
 	*avsregistry.ChainWriter
 	AvsContractBindings *AvsServiceBindings
@@ -94,13 +99,13 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	i := 0
 
 	// Set Retry config for RespondToTaskV2
-	respondToTaskV2Config := retry.RpcRetryConfig()
+	respondToTaskV2Config := retry.EthCallRetryConfig()
 	respondToTaskV2Config.MaxElapsedTime = 0
 
 	// Set Retry config for WaitForTxRetryable
-	waitForTxConfig := retry.RpcRetryConfig()
-	waitForTxConfig.MaxInterval = 2 * time.Second
-	waitForTxConfig.NumRetries = 0
+	waitForTxConfig := retry.EthCallRetryConfig()
+	waitForTxConfig.MaxInterval = waitForTxConfigMaxInterval
+	waitForTxConfig.NumRetries = waitForTxConfigNumRetries
 	waitForTxConfig.MaxElapsedTime = timeToWaitBeforeBump
 
 	respondToTaskV2Func := func() (*types.Receipt, error) {
@@ -193,8 +198,8 @@ func (w *AvsWriter) checkAggAndBatcherHaveEnoughBalance(tx *types.Transaction, t
 	respondToTaskFeeLimit := batchState.RespondToTaskFeeLimit
 	w.logger.Info("Checking balance against Batch RespondToTaskFeeLimit", "RespondToTaskFeeLimit", respondToTaskFeeLimit)
 	// Note: we compare both Aggregator funds and Batcher balance in Aligned against respondToTaskFeeLimit
-		// Batcher will pay up to respondToTaskFeeLimit, for this he needs that amount of funds in Aligned
-		// Aggregator will pay any extra cost, for this he needs at least respondToTaskFeeLimit in his balance
+	// Batcher will pay up to respondToTaskFeeLimit, for this he needs that amount of funds in Aligned
+	// Aggregator will pay any extra cost, for this he needs at least respondToTaskFeeLimit in his balance
 	return w.compareBalances(respondToTaskFeeLimit, aggregatorAddress, senderAddress)
 }
 
