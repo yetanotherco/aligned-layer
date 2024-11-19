@@ -48,8 +48,8 @@ func TestRetryWithData(t *testing.T) {
 		MaxInterval:         2,
 		MaxElapsedTime:      3,
 		RandomizationFactor: 0,
-		Multiplier:          retry.RpcMultiplier,
-		NumRetries:          retry.RpcNumRetries,
+		Multiplier:          retry.EthCallMultiplier,
+		NumRetries:          retry.EthCallNumRetries,
 	}
 	_, err := retry.RetryWithData(function, config)
 	if err != nil {
@@ -67,8 +67,8 @@ func TestRetry(t *testing.T) {
 		MaxInterval:         2,
 		MaxElapsedTime:      3,
 		RandomizationFactor: 0,
-		Multiplier:          retry.RpcMultiplier,
-		NumRetries:          retry.RpcNumRetries,
+		Multiplier:          retry.EthCallMultiplier,
+		NumRetries:          retry.EthCallNumRetries,
 	}
 	err := retry.Retry(function, config)
 	if err != nil {
@@ -170,7 +170,7 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 	}
 
 	// Assert Call succeeds when Anvil running
-	receipt_function := utils.WaitForTransactionReceipt(*client, *client, hash, retry.RpcRetryConfig())
+	receipt_function := utils.WaitForTransactionReceipt(*client, *client, hash, retry.EthCallRetryConfig())
 	_, err = receipt_function()
 	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
 	if !strings.Contains(err.Error(), "not found") {
@@ -183,7 +183,7 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 		return
 	}
 
-	receipt_function = utils.WaitForTransactionReceipt(*client, *client, hash, retry.RpcRetryConfig())
+	receipt_function = utils.WaitForTransactionReceipt(*client, *client, hash, retry.EthCallRetryConfig())
 	_, err = receipt_function()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
@@ -200,7 +200,7 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	receipt_function = utils.WaitForTransactionReceipt(*client, *client, hash, retry.RpcRetryConfig())
+	receipt_function = utils.WaitForTransactionReceipt(*client, *client, hash, retry.EthCallRetryConfig())
 	_, err = receipt_function()
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "not found") {
