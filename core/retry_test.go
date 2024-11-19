@@ -524,7 +524,7 @@ func TestFilterBatchV2(t *testing.T) {
 		t.Errorf("FilterBatchV2 Emitted non Transient error: %s\n", err)
 		return
 	}
-	if !strings.Contains(err.Error(), "connection reset") {
+	if !strings.Contains(err.Error(), "connection refused") {
 		t.Errorf("FilterBatchV2 Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -571,7 +571,7 @@ func TestFilterBatchV3(t *testing.T) {
 		t.Errorf("FilerBatchV3 Emitted non Transient error: %s\n", err)
 		return
 	}
-	if !strings.Contains(err.Error(), "connection reset") {
+	if !strings.Contains(err.Error(), "connection refused") {
 		t.Errorf("FilterBatchV3 Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -620,7 +620,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 		t.Errorf("BatchesStateSubscriber Emitted non Transient error: %s\n", err)
 		return
 	}
-	if !strings.Contains(err.Error(), "connection reset") {
+	if !strings.Contains(err.Error(), "connection refused") {
 		t.Errorf("BatchesStateSubscriber Emitted non Transient error: %s\n", err)
 		return
 	}
