@@ -24,7 +24,7 @@ func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, fallbackC
 	receipt_func := func() (*types.Receipt, error) {
 		receipt, err := client.TransactionReceipt(context.Background(), txHash)
 		if err != nil {
-			receipt, err = client.TransactionReceipt(context.Background(), txHash)
+			receipt, err = fallbackClient.TransactionReceipt(context.Background(), txHash)
 			if err != nil {
 				return nil, err
 			}
@@ -49,6 +49,16 @@ func BytesToQuorumThresholdPercentages(quorumThresholdPercentagesBytes []byte) e
 		quorumThresholdPercentages[i] = eigentypes.QuorumThresholdPercentage(quorumNumberByte)
 	}
 	return quorumThresholdPercentages
+}
+
+func WeiToEth(wei *big.Int) float64 {
+	weiToEth := new(big.Float).SetFloat64(1e18)
+	weiFloat := new(big.Float).SetInt(wei)
+
+	result := new(big.Float).Quo(weiFloat, weiToEth)
+	eth, _ := result.Float64()
+
+	return eth
 }
 
 // Simple algorithm to calculate the gasPrice bump based on:
