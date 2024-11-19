@@ -1,10 +1,24 @@
-- import_playbook: setup.yaml
-- import_playbook: webserver.yaml
-#- import_playbook: elixir.yaml # Not working
-#- import_playbook: docker.yaml
+- name: Run setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: explorer
 
-- hosts: aligned-holesky-explorer
-  become: true
+- name: Run elixir playbook
+  ansible.builtin.import_playbook: elixir.yaml
+  vars:
+    host: explorer
+
+- name: Run nodejs playbook
+  ansible.builtin.import_playbook: nodejs.yaml
+  vars:
+    host: explorer
+
+- name: Run postgres playbook
+  ansible.builtin.import_playbook: postgres.yaml
+  vars:
+    host: explorer
+
+- hosts: explorer
   vars:
     user: "{{ user }}"
 
