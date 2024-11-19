@@ -158,5 +158,5 @@ func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte) (uint
 			return taskIndex, nil
 		}
 	}
-	return retry.RetryWithData(getTaskIndex_func, retry.RpcRetryConfig())
+	return retry.RetryWithData(getTaskIndex_func, retry.EthCallRetryConfig())
 }
