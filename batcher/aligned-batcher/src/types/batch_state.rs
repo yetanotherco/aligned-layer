@@ -77,7 +77,8 @@ impl BatchState {
         &mut self,
         addr: &Address,
         new_max_fee_limit: U256,
-    ) -> Option<U256> { // TODO refactor to return Result, or something less redundant
+    ) -> Option<U256> {
+        // TODO refactor to return Result, or something less redundant
         if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
             user_state.get_mut().last_max_fee_limit = new_max_fee_limit;
             return Some(new_max_fee_limit);
@@ -89,7 +90,8 @@ impl BatchState {
         &mut self,
         addr: &Address,
         new_proof_count: usize,
-    ) -> Option<usize> { // TODO refactor to return Result, or something less redundant
+    ) -> Option<usize> {
+        // TODO refactor to return Result, or something less redundant
         if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
             user_state.get_mut().proofs_in_batch = new_proof_count;
             return Some(new_proof_count);
@@ -97,7 +99,8 @@ impl BatchState {
         None
     }
 
-    pub(crate) fn update_user_nonce(&mut self, addr: &Address, new_nonce: U256) -> Option<U256> { // TODO refactor to return Result, or something less redundant
+    pub(crate) fn update_user_nonce(&mut self, addr: &Address, new_nonce: U256) -> Option<U256> {
+        // TODO refactor to return Result, or something less redundant
         if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
             user_state.get_mut().nonce = new_nonce;
             return Some(new_nonce);
@@ -109,7 +112,8 @@ impl BatchState {
         &mut self,
         addr: &Address,
         new_total_fees_in_queue: U256,
-    ) -> Option<U256> { // TODO refactor to return Result, or something less redundant
+    ) -> Option<U256> {
+        // TODO refactor to return Result, or something less redundant
         if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
             user_state.get_mut().total_fees_in_queue = new_total_fees_in_queue;
             return Some(new_total_fees_in_queue);
@@ -122,7 +126,8 @@ impl BatchState {
         addr: &Address,
         original_max_fee: U256,
         new_max_fee: U256,
-    ) -> Option<U256> { // TODO refactor to return Result, or something less redundant
+    ) -> Option<U256> {
+        // TODO refactor to return Result, or something less redundant
         let fee_difference = new_max_fee - original_max_fee; //here we already know new_max_fee > original_max_fee
         if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
             user_state.get_mut().total_fees_in_queue += fee_difference;
@@ -142,7 +147,8 @@ impl BatchState {
         new_max_fee_limit: U256,
         new_proof_count: usize,
         new_total_fees_in_queue: U256,
-    ) -> Option<(U256, U256, usize, U256)> { // TODO refactor to return Result, or something less redundant
+    ) -> Option<(U256, U256, usize, U256)> {
+        // TODO refactor to return Result, or something less redundant
         let updated_nonce = self.update_user_nonce(addr, new_nonce);
         let updated_max_fee_limit = self.update_user_max_fee_limit(addr, new_max_fee_limit);
         let updated_proof_count = self.update_user_proof_count(addr, new_proof_count);

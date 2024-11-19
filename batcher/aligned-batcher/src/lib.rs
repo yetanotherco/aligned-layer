@@ -905,7 +905,8 @@ impl Batcher {
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::AddToBatchError,
-            ).await;
+            )
+            .await;
             return;
         };
 
@@ -923,7 +924,8 @@ impl Batcher {
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::AddToBatchError,
-            ).await;
+            )
+            .await;
         };
     }
 
