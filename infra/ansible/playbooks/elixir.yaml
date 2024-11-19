@@ -26,25 +26,28 @@
         state: latest
         update_cache: true
 
-    - name: Clone asdf repository into ~/.asdf
-      ansible.builtin.git:
-        name: https://github.com/asdf-vm/asdf.git
-        dest: ~/.asdf
-        single_branch: yes
-        version: v0.14.0
-      become_user: "{{ user }}"
+    ########## Install libssl1.1 ##########
+    - name: Check if libssl1.1 is installed
+      become: true
+      ansible.builtin.shell:
+        cmd: dpkg -l | grep libssl1.1
+      register: libssl_check
+      changed_when: false
+      failed_when: libssl_check.rc not in [0, 1]
 
-    - name: Insert lines to ~/.bashrc to source asdf
-      ansible.builtin.blockinfile:
-        path: "/home/{{ user }}/.bashrc"
-        block: |
-          . "$HOME/.asdf/asdf.sh"
-          . "$HOME/.asdf/completions/asdf.bash"
-      become_user: "{{ user }}"
+    - name: Download libssl1.1
+      become: true
+      register: download_libssl
+      ansible.builtin.get_url:
+        url: http://ftp.de.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.1w-0+deb11u1_amd64.deb
+        dest: /root/
+      when: libssl_check.rc != 0
 
-#    - name: Add asdf to the shell
-#      shell: export ASDF_DIR="$HOME/.asdf" && . ~/.asdf/asdf.sh
-#      become_user: "{{ user }}"
+    - name: Install libssl1.1
+      become: true
+      ansible.builtin.apt:
+        deb: "{{ download_libssl.dest }}"
+      when: libssl_check.rc != 0
 
     - name: Add Erlang plugin to asdf
       shell: asdf plugin add erlang
