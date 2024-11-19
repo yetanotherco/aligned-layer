@@ -104,6 +104,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	waitForTxConfig := retry.DefaultRetryConfig()
 	waitForTxConfig.MaxInterval = 2 * time.Second
 	waitForTxConfig.NumRetries = 0
+	waitForTxConfig.MaxElapsedTime = timeToWaitBeforeBump
 
 	respondToTaskV2Func := func() (*types.Receipt, error) {
 		gasPrice, err := utils.GetGasPriceRetryable(w.Client, w.ClientFallback)
@@ -136,7 +137,6 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			return nil, err
 		}
 
-		waitForTxConfig.MaxElapsedTime = timeToWaitBeforeBump
 		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, tx.Hash(), waitForTxConfig)
 		if receipt != nil {
 			return receipt, nil
