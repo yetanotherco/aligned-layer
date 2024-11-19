@@ -78,20 +78,20 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, timeToWaitBeforeBump time.Duration, onGasPriceBumped func(*big.Int)) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
-	tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	sim_tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
 		return nil, err
 	}
 
-	err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
+	err = w.checkRespondToTaskFeeLimit(sim_tx, txOpts, batchIdentifierHash, senderAddress)
 	if err != nil {
 		return nil, err
 	}
 
 	// Set the nonce, as we might have to replace the transaction with a higher gas price
-	txNonce := big.NewInt(int64(tx.Nonce()))
+	txNonce := big.NewInt(int64(sim_tx.Nonce()))
 	txOpts.Nonce = txNonce
-	txOpts.GasPrice = tx.GasPrice()
+	txOpts.GasPrice = sim_tx.GasPrice()
 	txOpts.NoSend = false
 	i := 0
 
@@ -114,19 +114,19 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			onGasPriceBumped(txOpts.GasPrice)
 		}
 
-		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
+		err = w.checkRespondToTaskFeeLimit(sim_tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
 			return nil, retry.PermanentError{Inner: err}
 		}
 
 		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice)
 
-		tx, err = w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		real_tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
 			return nil, err
 		}
 
-		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, tx.Hash(), timeToWaitBeforeBump)
+		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, real_tx.Hash(), timeToWaitBeforeBump)
 		if receipt != nil {
 			return receipt, nil
 		}
