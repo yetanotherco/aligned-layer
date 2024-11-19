@@ -59,15 +59,25 @@ make telemetry_full_start
 make run_explorer
 ```
 
-To spam transactions run:
+To spam transactions install spamoor:
+```bash
+make install_spamoor
+```
+
+and run:
 
 ```bash
 make spamoor_send_transactions  \\
   COUNT=<TOTAL_TX_TO_EXECUTE> \\
   TX_PER_BLOCK=<LIMIT_OF_TXS_TO_SEND_PER_BLOCK> \\
   TX_CONSUME_GAS=<HOW_MUCH_GAS_TO_USE_PER_TX> \\
-  NUM_WALLETS=<NUMBER_OF_WALLETS_FROM_WHICH_TO_SEND_TXS>
+  NUM_WALLETS=<NUMBER_OF_WALLETS_FROM_WHICH_TO_SEND_TXS> \\
   TIP_FEE=<TIP_FEE_IN_GWEI>
+```
+
+Example:
+```bash
+make spamoor_send_transactions COUNT=1000 TX_CONSUME_GAS=150000 TX_PER_BLOCK=50 NUM_WALLETS=100 TIP_FEE=2
 ```
 
 ## Changing Network Params
