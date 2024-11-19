@@ -114,25 +114,31 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 		// We compare both Aggregator funds and Batcher balance in Aligned against respondToTaskFeeLimit
 		// Both are required to have some balance, more details inside the function
-    	err = w.checkAggAndBatcherHaveEnoughBalance(sim_tx, txOpts, batchIdentifierHash, senderAddress)
+		err = w.checkAggAndBatcherHaveEnoughBalance(sim_tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
 			w.logger.Errorf("Permanent error when checking respond to task fee limit, err %v", err)
 			return nil, retry.PermanentError{Inner: err}
 		}
 
-		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice)
+		w.logger.Infof("Checking batch state again before sending bumped transaction")
+		batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
+		if batchState.Responded {
+			return nil, nil
+		}
 
+		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice)
 		real_tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
 			w.logger.Errorf("Respond to task transaction err, %v", err)
 			return nil, err
 		}
-
 		w.logger.Infof("Transaction sent, waiting for receipt")
-		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, real_tx.Hash(), timeToWaitBeforeBump)
-		if receipt != nil {
+		time.Sleep(timeToWaitBeforeBump)
+
+		batchState, err = w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
+		if batchState.Responded {
 			w.checkIfAggregatorHadToPaidForBatcher(real_tx, batchIdentifierHash)
-			return receipt, nil
+			return nil, nil
 		}
 
 		// if we are here, it means we have reached the receipt waiting timeout
