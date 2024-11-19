@@ -114,7 +114,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 		// We compare both Aggregator funds and Batcher balance in Aligned against respondToTaskFeeLimit
 		// Both are required to have some balance, more details inside the function
-    err = w.checkAggAndBatcherHaveEnoughBalance(sim_tx, txOpts, batchIdentifierHash, senderAddress)
+		err = w.checkAggAndBatcherHaveEnoughBalance(sim_tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
 			return nil, retry.PermanentError{Inner: err}
 		}
