@@ -72,11 +72,27 @@
         deb: "{{ download_erlang.dest }}"
       when: erlang_check.rc != 0
 
-    - name: Add Elixir plugin to asdf
-      shell: asdf plugin add elixir
+    ########## Install Elixir v1.16.2-otp-26 ##########
+    - name: Check if Elixir v1.16.2 is installed
+      become: true
+      ansible.builtin.shell:
+        cmd: elixir --version | grep "Elixir 1.16.2"
+      register: elixir_check
+      changed_when: false
+      failed_when: elixir_check.rc not in [0, 1]
 
-    - name: Add Elixir version to asdf
-      shell: asdf install elixir {{ elixir_version }}
+    - name: Download Elixir v1.16.2-otp-26
+      become: true
+      register: download_elixir
+      ansible.builtin.get_url:
+        url: https://github.com/elixir-lang/elixir/releases/download/v1.16.2/elixir-otp-26.zip
+        dest: /root/
+      when: elixir_check.rc != 0
 
-    - name: Set Elixir version as global
-      shell: asdf global elixir {{ elixir_version }}
+    - name: Install Elixir v1.16.2-otp-26
+      become: true
+      ansible.builtin.unarchive:
+        remote_src: true
+        src: "{{ download_elixir.dest }}"
+        dest: /usr/local/
+      when: elixir_check.rc != 0
