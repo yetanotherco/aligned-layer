@@ -199,7 +199,11 @@ func BatchState(s *AvsSubscriber, opts *bind.CallOpts, arg0 [32]byte) func() (st
 		Responded             bool
 		RespondToTaskFeeLimit *big.Int
 	}, error) {
-		return s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
+		state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
+		if err != nil {
+			state, err = s.AvsContractBindings.ServiceManagerFallback.BatchesState(opts, arg0)
+		}
+		return state, err
 	}
 	return batchState_func
 }
