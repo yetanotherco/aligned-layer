@@ -16,3 +16,5 @@ This guide will walk you through the deployment of the Aligned Layer contracts.
 3. Once you have deployed the Aligned contracts, you can perform upgrades on them.
 
     a. If you are not using a Multisig wallet, you can follow the [Upgrade Guide](./3_a_upgrade_contracts.md).
+    
+    b. If you are using a Multisig wallet, you can follow the [Upgrade Guide with Multisig](./3_b_upgrade_contracts_with_multisig.md). 

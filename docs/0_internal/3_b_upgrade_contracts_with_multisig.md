@@ -17,23 +17,30 @@ In this guide we make an upgrade of Aligned Layer Service Manager contract using
 
 ## Prerequisites
 
-- To upgrade any of the contracts, you need to have set the `.env`, `DEPLOY_CONFIG_PATH` and `BATCHER_PAYMENT_SERVICE_CONFIG_PATH`
-
-- You need to have installed git and make.
+- You need to have installed
+  - git
+  - make 
+  - [jq](https://jqlang.github.io/jq/download/)
 
 - Clone the repository
+
    ```
    git clone https://github.com/yetanotherco/aligned_layer.git
    ```
 
 - Install foundry
+
     ```shell
     make install_foundry
     foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
     ```
 
-## Deploy the new implementation
+## Steps
 
-The first step is to deploy the new implementation of the contract. 
+1. Deploy the new implementation following the [Deploy New Implementation Guide](./3_b_1_deploy_new_impl.md).
 
-You need to 
+2. Once you have deployed the new implementation, you can propose the upgrade transaction with the multisig following the [Propose Upgrade Guide](./3_b_2_propose_upgrade.md).
+
+3. After the upgrade is proposed, multisig participants can approve the upgrade following the [Approve Upgrade Guide](./3_b_3_approve_upgrade.md).
+
+Finishing the approval process, the contract will be upgraded to the new implementation.

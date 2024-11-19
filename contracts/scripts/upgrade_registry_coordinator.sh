@@ -40,6 +40,8 @@ rm -f "script/output/holesky/alignedlayer_deployment_output.temp.json"
 
 data=$(cast calldata "upgrade(address, address)" $registry_coordinator $new_registry_coordinator_implementation)
 
+echo "The new RegistryCoordinator Implementation is $new_registry_coordinator_implementation"
+
 if [ "$MULTISIG" = false ]; then
   echo "Executing upgrade transaction"
   proxy_admin=$(jq -r '.addresses.alignedLayerProxyAdmin' $OUTPUT_PATH)
