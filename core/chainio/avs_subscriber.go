@@ -68,13 +68,13 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 	// Subscribe to new tasks
 	sub, err := SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil)
 	if err != nil {
-		s.logger.Error("Primary failed to subscribe to new AlignedLayer V2 tasks after %d retries", retry.DefaultNumRetries, "err", err)
+		s.logger.Error("Primary failed to subscribe to new AlignedLayer V2 tasks after %d retries", retry.RpcNumRetries, "err", err)
 		return nil, err
 	}
 
 	subFallback, err := SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil)
 	if err != nil {
-		s.logger.Error("Fallback failed to subscribe to new AlignedLayer V2 tasks after %d retries", retry.DefaultNumRetries, "err", err)
+		s.logger.Error("Fallback failed to subscribe to new AlignedLayer V2 tasks after %d retries", retry.RpcNumRetries, "err", err)
 		return nil, err
 	}
 	s.logger.Info("Subscribed to new AlignedLayer V2 tasks")

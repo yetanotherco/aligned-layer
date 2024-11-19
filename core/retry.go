@@ -25,14 +25,14 @@ func (e PermanentError) Is(err error) bool {
 }
 
 const (
-	DefaultInitialInterval             = 1 * time.Second  // Initial delay for retry interval.
-	DefaultMaxInterval                 = 60 * time.Second // Maximum interval an individual retry may have.
-	DefaultMaxElapsedTime              = 0 * time.Second  // Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
-	DefaultRandomizationFactor float64 = 0                // Randomization (Jitter) factor used to map retry interval to a range of values around the computed interval. In precise terms (random value in range [1 - randomizationfactor, 1 + randomizationfactor]). NOTE: This is set to 0 as we do not use jitter in Aligned.
-	DefaultMultiplier          float64 = 2                // Multiplier factor computed exponential retry interval is scaled by.
-	DefaultNumRetries          uint64  = 3                // Total number of retries attempted.
-	ChainInitialInterval               = 12 * time.Second // Initial delay for retry interval for contract calls. Corresponds to 1 ethereum block.
-	ChainMaxInterval                   = 2 * time.Minute  // Maximum interval for an individual retry.
+	RpcInitialInterval             = 1 * time.Second  // Initial delay for retry interval.
+	RpcMaxInterval                 = 60 * time.Second // Maximum interval an individual retry may have.
+	RpcMaxElapsedTime              = 0 * time.Second  // Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
+	RpcRandomizationFactor float64 = 0                // Randomization (Jitter) factor used to map retry interval to a range of values around the computed interval. In precise terms (random value in range [1 - randomizationfactor, 1 + randomizationfactor]). NOTE: This is set to 0 as we do not use jitter in Aligned.
+	RpcMultiplier          float64 = 2                // Multiplier factor computed exponential retry interval is scaled by.
+	RpcNumRetries          uint64  = 3                // Total number of retries attempted.
+	ChainInitialInterval           = 12 * time.Second // Initial delay for retry interval for contract calls. Corresponds to 1 ethereum block.
+	ChainMaxInterval               = 2 * time.Minute  // Maximum interval for an individual retry.
 )
 
 type RetryConfig struct {
@@ -46,12 +46,12 @@ type RetryConfig struct {
 
 func RpcRetryConfig() *RetryConfig {
 	return &RetryConfig{
-		InitialInterval:     DefaultInitialInterval,
-		MaxInterval:         DefaultMaxInterval,
-		MaxElapsedTime:      DefaultMaxElapsedTime,
-		RandomizationFactor: DefaultRandomizationFactor,
-		Multiplier:          DefaultMultiplier,
-		NumRetries:          DefaultNumRetries,
+		InitialInterval:     RpcInitialInterval,
+		MaxInterval:         RpcMaxInterval,
+		MaxElapsedTime:      RpcMaxElapsedTime,
+		RandomizationFactor: RpcRandomizationFactor,
+		Multiplier:          RpcMultiplier,
+		NumRetries:          RpcNumRetries,
 	}
 }
 
@@ -59,10 +59,10 @@ func ChainRetryConfig() *RetryConfig {
 	return &RetryConfig{
 		InitialInterval:     ChainInitialInterval,
 		MaxInterval:         ChainMaxInterval,
-		MaxElapsedTime:      DefaultMaxElapsedTime,
-		RandomizationFactor: DefaultRandomizationFactor,
-		Multiplier:          DefaultMultiplier,
-		NumRetries:          DefaultNumRetries,
+		MaxElapsedTime:      RpcMaxElapsedTime,
+		RandomizationFactor: RpcRandomizationFactor,
+		Multiplier:          RpcMultiplier,
+		NumRetries:          RpcNumRetries,
 	}
 }
 
