@@ -139,7 +139,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		// we increment the i here to add an incremental percentage to increase the odds of being included in the next blocks
 		i++
 
-		w.logger.Infof("RespondToTask receipt waiting timeout has passed, will try again...")
+		w.logger.Infof("RespondToTask receipt waiting timeout has passed, will try again...", "merkle_root", batchMerkleRoot)
 		if err != nil {
 			return nil, err
 		}
