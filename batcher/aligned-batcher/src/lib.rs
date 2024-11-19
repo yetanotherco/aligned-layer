@@ -673,7 +673,7 @@ impl Batcher {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidNonce, // TODO this is not an invalid nonce error
+                SubmitProofResponseMessage::AddToBatchError,
             )
             .await;
             self.metrics.user_error(&["batcher_state_error", ""]);
@@ -685,7 +685,7 @@ impl Batcher {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidNonce, // TODO this is not an invalid nonce error
+                SubmitProofResponseMessage::AddToBatchError,
             )
             .await;
             self.metrics.user_error(&["batcher_state_error", ""]);
@@ -709,7 +709,7 @@ impl Batcher {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidNonce, // TODO this is not an invalid nonce error
+                SubmitProofResponseMessage::AddToBatchError,
             )
             .await;
             self.metrics.user_error(&["batcher_state_error", ""]);
@@ -902,6 +902,10 @@ impl Batcher {
         {
             std::mem::drop(batch_state_lock);
             warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::AddToBatchError,
+            ).await;
             return;
         };
 
@@ -916,6 +920,10 @@ impl Batcher {
         {
             std::mem::drop(batch_state_lock);
             warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::AddToBatchError,
+            ).await;
         };
     }
 
