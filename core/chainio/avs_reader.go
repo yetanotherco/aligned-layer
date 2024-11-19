@@ -86,7 +86,7 @@ func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager
 	var tasks []servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
 
 	for logs.Next() {
-		task, err := r.ParseNewBatchV3Retryable(logs.Event.Raw)
+		task, err := r.AvsContractBindings.ServiceManager.ParseNewBatchV3(logs.Event.Raw)
 		if err != nil {
 			return nil, err
 		}

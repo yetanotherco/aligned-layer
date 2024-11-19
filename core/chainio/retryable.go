@@ -318,23 +318,6 @@ func (r *AvsReader) FilterNewBatchV3Retryable(opts *bind.FilterOpts, batchMerkle
 	return retry.RetryWithData(FilterNewBatchV3(r, opts, batchMerkleRoot), retry.DefaultRetryConfig())
 }
 
-func ParseNewBatchV3(r *AvsReader, log types.Log) func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
-	filter_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
-		return r.AvsContractBindings.ServiceManager.ParseNewBatchV3(log)
-	}
-	return filter_func
-}
-
-/*
-ParseNewBatchV3
-Parses and returns the task data from a NewBatchV3 Log
-- All errors are considered Transient Errors
-- Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
-*/
-func (r *AvsReader) ParseNewBatchV3Retryable(log types.Log) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
-	return retry.RetryWithData(ParseNewBatchV3(r, log), retry.ChainRetryConfig())
-}
-
 func ReaderBatchesState(r *AvsReader, opts *bind.CallOpts, arg0 [32]byte) func() (struct {
 	TaskCreatedBlock      uint32
 	Responded             bool
