@@ -49,14 +49,28 @@
         deb: "{{ download_libssl.dest }}"
       when: libssl_check.rc != 0
 
-    - name: Add Erlang plugin to asdf
-      shell: asdf plugin add erlang
+    ########## Install Erlang 26.2.1-1 ##########
+    - name: Check if Erlang 26.2.1-1 is installed
+      become: true
+      ansible.builtin.shell:
+        cmd: dpkg -l | grep esl-erlang
+      register: erlang_check
+      changed_when: false
+      failed_when: erlang_check.rc not in [0, 1]
 
-    - name: Add Erlang version to asdf
-      shell: asdf install erlang {{ erlang_version }}
+    - name: Download Erlang 26.2.1-1
+      become: true
+      register: download_erlang
+      ansible.builtin.get_url:
+        url: https://binaries2.erlang-solutions.com/debian/pool/contrib/e/esl-erlang/esl-erlang_26.2.1-1~debian~bullseye_amd64.deb
+        dest: /root/
+      when: erlang_check.rc != 0
 
-    - name: Set Erlang version as global
-      shell: asdf global erlang {{ erlang_version }}
+    - name: Install Erlang 26.2.1-1
+      become: true
+      ansible.builtin.apt:
+        deb: "{{ download_erlang.dest }}"
+      when: erlang_check.rc != 0
 
     - name: Add Elixir plugin to asdf
       shell: asdf plugin add elixir
