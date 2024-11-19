@@ -681,7 +681,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
-	w, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	w, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig, nil)
 	if err != nil {
 		t.Errorf("Error killing process: %v\n", err)
 		return
@@ -734,7 +734,7 @@ func TestBatchesStateWriter(t *testing.T) {
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
-	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig, nil)
 	if err != nil {
 		t.Errorf("Error killing process: %v\n", err)
 		return
@@ -784,12 +784,12 @@ func TestBalanceAt(t *testing.T) {
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
-	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig, nil)
 	if err != nil {
 		return
 	}
 	aggregator_address := common.HexToAddress("0x0")
-	blockHeight := big.NewInt(13)
+	blockHeight := big.NewInt(22)
 
 	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
 	assert.Nil(t, err)
@@ -831,7 +831,7 @@ func TestBatchersBalances(t *testing.T) {
 	}
 
 	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
-	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig, nil)
 	if err != nil {
 		return
 	}
