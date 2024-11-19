@@ -116,6 +116,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		// Both are required to have some balance, more details inside the function
 		err = w.checkAggAndBatcherHaveEnoughBalance(tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
+			w.logger.Errorf("Permanent error when checking respond to task fee limit, err %v", err)
 			return nil, retry.PermanentError{Inner: err}
 		}
 
@@ -123,9 +124,11 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 		tx, err = w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
+			w.logger.Errorf("Respond to task transaction err, %v", err)
 			return nil, err
 		}
 
+		w.logger.Infof("Transaction sent, waiting for receipt")
 		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, tx.Hash(), timeToWaitBeforeBump)
 		if receipt != nil {
 			w.checkIfAggregatorHadToPaidForBatcher(tx, batchIdentifierHash)
@@ -183,8 +186,8 @@ func (w *AvsWriter) checkAggAndBatcherHaveEnoughBalance(tx *types.Transaction, t
 	respondToTaskFeeLimit := batchState.RespondToTaskFeeLimit
 	w.logger.Info("Checking balance against Batch RespondToTaskFeeLimit", "RespondToTaskFeeLimit", respondToTaskFeeLimit)
 	// Note: we compare both Aggregator funds and Batcher balance in Aligned against respondToTaskFeeLimit
-		// Batcher will pay up to respondToTaskFeeLimit, for this he needs that amount of funds in Aligned
-		// Aggregator will pay any extra cost, for this he needs at least respondToTaskFeeLimit in his balance
+	// Batcher will pay up to respondToTaskFeeLimit, for this he needs that amount of funds in Aligned
+	// Aggregator will pay any extra cost, for this he needs at least respondToTaskFeeLimit in his balance
 	return w.compareBalances(respondToTaskFeeLimit, aggregatorAddress, senderAddress)
 }
 
