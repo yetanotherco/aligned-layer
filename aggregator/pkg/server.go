@@ -114,7 +114,6 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 
 // |---RETRYABLE---|
 
-// TODO: Add Retryable
 /*
   - Errors:
     Permanent:
