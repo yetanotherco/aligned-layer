@@ -114,7 +114,6 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			onGasPriceBumped(txOpts.GasPrice)
 		}
 
-		w.logger.Infof("Gas price was bumped")
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
 			w.logger.Errorf("Permanent error when checking respond to task fee limit, err %v", err)
