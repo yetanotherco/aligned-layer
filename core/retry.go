@@ -160,7 +160,7 @@ func RetryWithData[T any](functionToRetry func() (T, error), config *RetryConfig
 	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption, maxElapsedTimeOption)
 	var maxRetriesBackoff backoff.BackOff
 
-	if config.NumRetries > 0 {
+	if config.MaxNumRetries > 0 {
 		maxRetriesBackoff = backoff.WithMaxRetries(expBackoff, config.MaxNumRetries)
 	} else {
 		maxRetriesBackoff = expBackoff
@@ -207,7 +207,7 @@ func Retry(functionToRetry func() error, config *RetryConfig) error {
 	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption, maxElapsedTimeOption)
 	var maxRetriesBackoff backoff.BackOff
 
-	if config.NumRetries > 0 {
+	if config.MaxNumRetries > 0 {
 		maxRetriesBackoff = backoff.WithMaxRetries(expBackoff, config.MaxNumRetries)
 	} else {
 		maxRetriesBackoff = expBackoff
