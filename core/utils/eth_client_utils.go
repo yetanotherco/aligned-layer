@@ -15,7 +15,7 @@ func WaitForTransactionReceipt(client eth.InstrumentedClient, fallbackClient eth
 	receipt_func := func() (*types.Receipt, error) {
 		receipt, err := client.TransactionReceipt(context.Background(), txHash)
 		if err != nil {
-			receipt, err = client.TransactionReceipt(context.Background(), txHash)
+			receipt, err = fallbackClient.TransactionReceipt(context.Background(), txHash)
 			if err != nil {
 				return nil, err
 			}

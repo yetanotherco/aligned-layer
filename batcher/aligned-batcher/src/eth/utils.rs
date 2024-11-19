@@ -9,9 +9,9 @@ use crate::{
     },
 };
 use aligned_sdk::core::constants::{
-    DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES, DEFAULT_MAX_RETRY_DELAY, DEFAULT_MIN_RETRY_DELAY,
-    GAS_PRICE_INCREMENT_PERCENTAGE_PER_ITERATION, OVERRIDE_GAS_PRICE_PERCENTAGE_MULTIPLIER,
-    PERCENTAGE_DIVIDER,
+    ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
+    ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_INCREMENT_PERCENTAGE_PER_ITERATION,
+    OVERRIDE_GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
 };
 use ethers::prelude::*;
 use ethers::providers::{Http, Provider};
@@ -62,7 +62,7 @@ pub fn calculate_bumped_gas_price(
 }
 
 /// Gets the current nonce from Ethereum.
-/// Retries on recoverable errors using exponential backoff up to `DEFAULT_MAX_RETRIES` times:
+/// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
 /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
 pub async fn get_current_nonce(
     eth_http_provider: &Provider<Http>,
@@ -71,10 +71,10 @@ pub async fn get_current_nonce(
 ) -> Result<U256, ProviderError> {
     retry_function(
         || get_current_nonce_retryable(eth_http_provider, eth_http_provider_fallback, addr),
-        DEFAULT_MIN_RETRY_DELAY,
-        DEFAULT_BACKOFF_FACTOR,
-        DEFAULT_MAX_RETRIES,
-        DEFAULT_MAX_RETRY_DELAY,
+        ETHEREUM_CALL_MIN_RETRY_DELAY,
+        ETHEREUM_CALL_BACKOFF_FACTOR,
+        ETHEREUM_CALL_MAX_RETRIES,
+        ETHEREUM_CALL_MAX_RETRY_DELAY,
     )
     .await
     .map_err(|e| {
@@ -84,7 +84,7 @@ pub async fn get_current_nonce(
 }
 
 /// Gets the current gas price from Ethereum.
-/// Retries on recoverable errors using exponential backoff up to `DEFAULT_MAX_RETRIES` times:
+/// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
 /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
 pub async fn get_gas_price(
     eth_http_provider: &Provider<Http>,
@@ -92,10 +92,10 @@ pub async fn get_gas_price(
 ) -> Result<U256, ProviderError> {
     retry_function(
         || get_gas_price_retryable(eth_http_provider, eth_http_provider_fallback),
-        DEFAULT_MIN_RETRY_DELAY,
-        DEFAULT_BACKOFF_FACTOR,
-        DEFAULT_MAX_RETRIES,
-        DEFAULT_MAX_RETRY_DELAY,
+        ETHEREUM_CALL_MIN_RETRY_DELAY,
+        ETHEREUM_CALL_BACKOFF_FACTOR,
+        ETHEREUM_CALL_MAX_RETRIES,
+        ETHEREUM_CALL_MAX_RETRY_DELAY,
     )
     .await
     .map_err(|e| {

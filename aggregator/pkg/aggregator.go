@@ -74,7 +74,12 @@ type Aggregator struct {
 	// Note: In case of a reboot it can start from 0 again
 	nextBatchIndex uint32
 
-	// Mutex to protect batchesIdentifierHashByIdx, batchesIdxByIdentifierHash and nextBatchIndex
+	// Mutex to protect:
+	// - batchesIdentifierHashByIdx
+	// - batchesIdxByIdentifierHash
+	// - batchCreatedBlockByIdx
+	// - batchDataByIdentifierHash
+	// - nextBatchIndex
 	taskMutex *sync.Mutex
 
 	// Mutex to protect ethereum wallet
@@ -443,6 +448,8 @@ func (agg *Aggregator) ClearTasksFromMaps() {
 			agg.logger.Warn("No old tasks found")
 			continue // Retry in the next iteration
 		}
+		agg.taskMutex.Lock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Cleaning finalized tasks")
 
 		taskIdxToDelete := agg.batchesIdxByIdentifierHash[*oldTaskIdHash]
 		agg.logger.Info("Old task found", "taskIndex", taskIdxToDelete)
@@ -460,6 +467,8 @@ func (agg *Aggregator) ClearTasksFromMaps() {
 			}
 		}
 		lastIdxDeleted = taskIdxToDelete
+		agg.taskMutex.Unlock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Cleaning finalized tasks")
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Done cleaning finalized tasks from maps")
 	}
 }
