@@ -23,7 +23,6 @@
           - fop
           - libxml2-utils
           - libncurses-dev
-          - openjdk-11-jdk
         state: latest
         update_cache: true
 
