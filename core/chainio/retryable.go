@@ -71,7 +71,7 @@ func (w *AvsWriter) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (s
 	Responded             bool
 	RespondToTaskFeeLimit *big.Int
 }, error) {
-	return retry.RetryWithData(BatchesState(w, opts, arg0), retry.DefaultRetryConfig())
+	return retry.RetryWithData(BatchesState(w, opts, arg0), retry.RpcRetryConfig())
 }
 
 func BatcherBalances(w *AvsWriter, opts *bind.CallOpts, senderAddress common.Address) func() (*big.Int, error) {
@@ -94,7 +94,7 @@ Get the balance of a batcher from the AVS contract.
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec
 */
 func (w *AvsWriter) BatcherBalancesRetryable(opts *bind.CallOpts, senderAddress common.Address) (*big.Int, error) {
-	return retry.RetryWithData(BatcherBalances(w, opts, senderAddress), retry.DefaultRetryConfig())
+	return retry.RetryWithData(BatcherBalances(w, opts, senderAddress), retry.RpcRetryConfig())
 }
 
 func BalanceAt(w *AvsWriter, ctx context.Context, aggregatorAddress common.Address, blockNumber *big.Int) func() (*big.Int, error) {
@@ -119,7 +119,7 @@ TODO: it gets the balance from an Address, not necessarily an aggregator. The na
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec.
 */
 func (w *AvsWriter) BalanceAtRetryable(ctx context.Context, aggregatorAddress common.Address, blockNumber *big.Int) (*big.Int, error) {
-	return retry.RetryWithData(BalanceAt(w, ctx, aggregatorAddress, blockNumber), retry.DefaultRetryConfig())
+	return retry.RetryWithData(BalanceAt(w, ctx, aggregatorAddress, blockNumber), retry.RpcRetryConfig())
 }
 
 // |---AVS_SUBSCRIBER---|
@@ -144,7 +144,7 @@ Get the latest block number from Ethereum
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec.
 */
 func (s *AvsSubscriber) BlockNumberRetryable(ctx context.Context) (uint64, error) {
-	return retry.RetryWithData(BlockNumber(s, ctx), retry.DefaultRetryConfig())
+	return retry.RetryWithData(BlockNumber(s, ctx), retry.RpcRetryConfig())
 }
 
 func FilterBatchV2(s *AvsSubscriber, opts *bind.FilterOpts, batchMerkleRoot [][32]byte) func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
@@ -165,7 +165,7 @@ Get NewBatchV2 logs from the AVS contract.
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec.
 */
 func (s *AvsSubscriber) FilterBatchV2Retryable(opts *bind.FilterOpts, batchMerkleRoot [][32]byte) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
-	return retry.RetryWithData(FilterBatchV2(s, opts, batchMerkleRoot), retry.DefaultRetryConfig())
+	return retry.RetryWithData(FilterBatchV2(s, opts, batchMerkleRoot), retry.RpcRetryConfig())
 }
 
 func FilterBatchV3(s *AvsSubscriber, opts *bind.FilterOpts, batchMerkleRoot [][32]byte) func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
@@ -186,7 +186,7 @@ Get NewBatchV3 logs from the AVS contract.
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec.
 */
 func (s *AvsSubscriber) FilterBatchV3Retryable(opts *bind.FilterOpts, batchMerkleRoot [][32]byte) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
-	return retry.RetryWithData(FilterBatchV3(s, opts, batchMerkleRoot), retry.DefaultRetryConfig())
+	return retry.RetryWithData(FilterBatchV3(s, opts, batchMerkleRoot), retry.RpcRetryConfig())
 }
 
 func BatchState(s *AvsSubscriber, opts *bind.CallOpts, arg0 [32]byte) func() (struct {
@@ -220,7 +220,7 @@ func (s *AvsSubscriber) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte
 	RespondToTaskFeeLimit *big.Int
 }, error) {
 
-	return retry.RetryWithData(BatchState(s, opts, arg0), retry.DefaultRetryConfig())
+	return retry.RetryWithData(BatchState(s, opts, arg0), retry.RpcRetryConfig())
 }
 
 func SubscribeNewHead(s *AvsSubscriber, ctx context.Context, c chan<- *types.Header) func() (ethereum.Subscription, error) {
@@ -243,7 +243,7 @@ Subscribe to new heads from the Ethereum node.
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec.
 */
 func (s *AvsSubscriber) SubscribeNewHeadRetryable(ctx context.Context, c chan<- *types.Header) (ethereum.Subscription, error) {
-	return retry.RetryWithData(SubscribeNewHead(s, ctx, c), retry.DefaultRetryConfig())
+	return retry.RetryWithData(SubscribeNewHead(s, ctx, c), retry.RpcRetryConfig())
 }
 
 func SubscribeToNewTasksV2(
@@ -270,7 +270,7 @@ func SubscribeToNewTasksV2Retryable(
 	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2,
 	batchMerkleRoot [][32]byte,
 ) (event.Subscription, error) {
-	return retry.RetryWithData(SubscribeToNewTasksV2(opts, serviceManager, newTaskCreatedChan, batchMerkleRoot), retry.DefaultRetryConfig())
+	return retry.RetryWithData(SubscribeToNewTasksV2(opts, serviceManager, newTaskCreatedChan, batchMerkleRoot), retry.RpcRetryConfig())
 }
 
 func SubscribeToNewTasksV3(
@@ -297,5 +297,5 @@ func SubscribeToNewTasksV3Retryable(
 	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3,
 	batchMerkleRoot [][32]byte,
 ) (event.Subscription, error) {
-	return retry.RetryWithData(SubscribeToNewTasksV3(opts, serviceManager, newTaskCreatedChan, batchMerkleRoot), retry.DefaultRetryConfig())
+	return retry.RetryWithData(SubscribeToNewTasksV3(opts, serviceManager, newTaskCreatedChan, batchMerkleRoot), retry.RpcRetryConfig())
 }

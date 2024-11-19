@@ -30,7 +30,7 @@ const (
 	DefaultMaxElapsedTime              = 0 * time.Second  // Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
 	DefaultRandomizationFactor float64 = 0                // Randomization (Jitter) factor used to map retry interval to a range of values around the computed interval. In precise terms (random value in range [1 - randomizationfactor, 1 + randomizationfactor]). NOTE: This is set to 0 as we do not use jitter in Aligned.
 	DefaultMultiplier          float64 = 2                // Multiplier factor computed exponential retry interval is scaled by.
-	DefaultMaxNumRetries       uint64  = 3                // Total number of retries attempted.
+	DefaultNumRetries          uint64  = 3                // Total number of retries attempted.
 	ChainInitialInterval               = 12 * time.Second // Initial delay for retry interval for contract calls. Corresponds to 1 ethereum block.
 	ChainMaxInterval                   = 2 * time.Minute  // Maximum interval for an individual retry.
 )
@@ -41,17 +41,17 @@ type RetryConfig struct {
 	MaxElapsedTime      time.Duration // Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
 	RandomizationFactor float64
 	Multiplier          float64
-	MaxNumRetries       uint64
+	NumRetries          uint64
 }
 
-func DefaultRetryConfig() *RetryConfig {
+func RpcRetryConfig() *RetryConfig {
 	return &RetryConfig{
 		InitialInterval:     DefaultInitialInterval,
 		MaxInterval:         DefaultMaxInterval,
 		MaxElapsedTime:      DefaultMaxElapsedTime,
 		RandomizationFactor: DefaultRandomizationFactor,
 		Multiplier:          DefaultMultiplier,
-		MaxNumRetries:       DefaultMaxNumRetries,
+		NumRetries:          DefaultNumRetries,
 	}
 }
 
@@ -62,7 +62,7 @@ func ChainRetryConfig() *RetryConfig {
 		MaxElapsedTime:      DefaultMaxElapsedTime,
 		RandomizationFactor: DefaultRandomizationFactor,
 		Multiplier:          DefaultMultiplier,
-		MaxNumRetries:       DefaultMaxNumRetries,
+		NumRetries:          DefaultNumRetries,
 	}
 }
 
@@ -160,8 +160,8 @@ func RetryWithData[T any](functionToRetry func() (T, error), config *RetryConfig
 	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption, maxElapsedTimeOption)
 	var maxRetriesBackoff backoff.BackOff
 
-	if config.MaxNumRetries > 0 {
-		maxRetriesBackoff = backoff.WithMaxRetries(expBackoff, config.MaxNumRetries)
+	if config.NumRetries > 0 {
+		maxRetriesBackoff = backoff.WithMaxRetries(expBackoff, config.NumRetries)
 	} else {
 		maxRetriesBackoff = expBackoff
 	}
@@ -207,8 +207,8 @@ func Retry(functionToRetry func() error, config *RetryConfig) error {
 	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption, maxElapsedTimeOption)
 	var maxRetriesBackoff backoff.BackOff
 
-	if config.MaxNumRetries > 0 {
-		maxRetriesBackoff = backoff.WithMaxRetries(expBackoff, config.MaxNumRetries)
+	if config.NumRetries > 0 {
+		maxRetriesBackoff = backoff.WithMaxRetries(expBackoff, config.NumRetries)
 	} else {
 		maxRetriesBackoff = expBackoff
 	}

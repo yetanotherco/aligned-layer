@@ -103,5 +103,5 @@ func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.Inst
 
 		return gasPrice, nil
 	}
-	return retry.RetryWithData(respondToTaskV2_func, retry.DefaultRetryConfig())
+	return retry.RetryWithData(respondToTaskV2_func, retry.RpcRetryConfig())
 }

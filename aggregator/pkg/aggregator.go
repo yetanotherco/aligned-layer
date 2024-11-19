@@ -419,7 +419,7 @@ func (agg *Aggregator) InitializeNewTask(batchIndex uint32, taskCreatedBlock uin
 		}
 		return err
 	}
-	return retry.Retry(initializeNewTask_func, retry.DefaultRetryConfig())
+	return retry.Retry(initializeNewTask_func, retry.RpcRetryConfig())
 }
 
 // Long-lived goroutine that periodically checks and removes old Tasks from stored Maps
