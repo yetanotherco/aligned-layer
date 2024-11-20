@@ -23,8 +23,11 @@ import (
 )
 
 const (
-	waitForTxConfigMaxInterval = 2 * time.Second
-	waitForTxConfigNumRetries  = 0
+	waitForTxMaxInterval                 = 2 * time.Second
+	waitForTxNumRetries                  = 0
+	respondToTaskV2NumRetries     uint64 = 0
+	respondToTaskV2MaxInterval           = time.Millisecond * 500
+	respondToTaskV2MaxElapsedTime        = 0
 )
 
 type AvsWriter struct {
@@ -111,12 +114,14 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 	// Set Retry config for RespondToTaskV2
 	respondToTaskV2Config := retry.EthCallRetryConfig()
-	respondToTaskV2Config.MaxElapsedTime = 0
+	respondToTaskV2Config.NumRetries = respondToTaskV2NumRetries
+	respondToTaskV2Config.MaxInterval = respondToTaskV2MaxInterval
+	respondToTaskV2Config.MaxElapsedTime = respondToTaskV2MaxElapsedTime
 
 	// Set Retry config for WaitForTxRetryable
 	waitForTxConfig := retry.EthCallRetryConfig()
-	waitForTxConfig.MaxInterval = waitForTxConfigMaxInterval
-	waitForTxConfig.NumRetries = waitForTxConfigNumRetries
+	waitForTxConfig.MaxInterval = waitForTxMaxInterval
+	waitForTxConfig.NumRetries = waitForTxNumRetries
 	waitForTxConfig.MaxElapsedTime = timeToWaitBeforeBump
 
 	var sentTxs []*types.Transaction
@@ -185,7 +190,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		}
 		sentTxs = append(sentTxs, realTx)
 
-    w.logger.Infof("Transaction sent, waiting for receipt", "merkle root", batchMerkleRootHashString)
+		w.logger.Infof("Transaction sent, waiting for receipt", "merkle root", batchMerkleRootHashString)
 		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, realTx.Hash(), waitForTxConfig)
 
 		if receipt != nil {
@@ -204,7 +209,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		return nil, fmt.Errorf("transaction failed")
 	}
 
-  // This just retries the bump of a fee in case of a timeout
+	// This just retries the bump of a fee in case of a timeout
 	// The wait is done before on WaitForTransactionReceiptRetryable, and all the functions are retriable,
 	// so this retry doesn't need to wait more time
 	return retry.RetryWithData(respondToTaskV2Func, respondToTaskV2Config)
