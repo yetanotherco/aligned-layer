@@ -84,14 +84,9 @@ func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercent
 	return bumpedGasPrice
 }
 
-/*
-GetGasPriceRetryable
-Get the gas price from the client with retry logic.
-- All errors are considered Transient Errors
-- Retry times: 1 sec, 2 sec, 4 sec
-*/
-func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient) (*big.Int, error) {
-	respondToTaskV2_func := func() (*big.Int, error) {
+func GetGasPrice(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient) func() (*big.Int, error) {
+
+	getGasPrice_func := func() (*big.Int, error) {
 		gasPrice, err := client.SuggestGasPrice(context.Background())
 		if err != nil {
 			gasPrice, err = fallbackClient.SuggestGasPrice(context.Background())
@@ -102,5 +97,15 @@ func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.Inst
 
 		return gasPrice, nil
 	}
-	return retry.RetryWithData(respondToTaskV2_func, retry.EthCallRetryConfig())
+	return getGasPrice_func
+}
+
+/*
+GetGasPriceRetryable
+Get the gas price from the client with retry logic.
+- All errors are considered Transient Errors
+- Retry times: 1 sec, 2 sec, 4 sec
+*/
+func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient) (*big.Int, error) {
+	return retry.RetryWithData(GetGasPrice(client, fallbackClient), retry.EthCallRetryConfig())
 }

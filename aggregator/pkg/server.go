@@ -114,16 +114,8 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 
 // |---RETRYABLE---|
 
-/*
-  - Errors:
-    Permanent:
-  - SignatureVerificationError: Verification of the sigature within the BLS Aggregation Service failed. (https://github.com/Layr-Labs/eigensdk-go/blob/dev/services/bls_aggregation/blsagg.go#L42).
-    Transient:
-  - All others.
-  - Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
-  - NOTE: TaskNotFound errors from the BLS Aggregation service are Transient errors as block reorg's may lead to these errors being thrown.
-*/
-func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
+func ProcessNewSignature(agg *Aggregator, ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) func() error {
+
 	processNewSignature_func := func() error {
 		err := agg.blsAggregationService.ProcessNewSignature(
 			ctx, taskIndex, taskResponse,
@@ -136,16 +128,25 @@ func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskInd
 		}
 		return err
 	}
-
-	return retry.Retry(processNewSignature_func, retry.ChainRetryConfig())
+	return processNewSignature_func
 }
 
-// Checks Internal mapping for Signed Task Response, returns its TaskIndex.
 /*
-- All errors are considered Transient Errors
-- Retry times (3 retries): 1 sec, 2 sec, 4 sec
+  - Errors:
+    Permanent:
+  - SignatureVerificationError: Verification of the sigature within the BLS Aggregation Service failed. (https://github.com/Layr-Labs/eigensdk-go/blob/dev/services/bls_aggregation/blsagg.go#L42).
+    Transient:
+  - All others.
+  - Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
+  - NOTE: TaskNotFound errors from the BLS Aggregation service are Transient errors as block reorg's may lead to these errors being thrown.
 */
-func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte) (uint32, error) {
+func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
+
+	return retry.Retry(ProcessNewSignature(agg, ctx, taskIndex, taskResponse, blsSignature, operatorId), retry.ChainRetryConfig())
+}
+
+func GetTaskIndex(agg *Aggregator, batchIdentifierHash [32]byte) func() (uint32, error) {
+
 	getTaskIndex_func := func() (uint32, error) {
 		agg.taskMutex.Lock()
 		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
@@ -158,5 +159,14 @@ func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte) (uint
 			return taskIndex, nil
 		}
 	}
-	return retry.RetryWithData(getTaskIndex_func, retry.EthCallRetryConfig())
+	return getTaskIndex_func
+}
+
+// Checks Internal mapping for Signed Task Response, returns its TaskIndex.
+/*
+- All errors are considered Transient Errors
+- Retry times (3 retries): 1 sec, 2 sec, 4 sec
+*/
+func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte) (uint32, error) {
+	return retry.RetryWithData(GetTaskIndex(agg, batchIdentifierHash), retry.EthCallRetryConfig())
 }

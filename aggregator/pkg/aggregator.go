@@ -398,17 +398,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 
 // |---RETRYABLE---|
 
-/*
-InitializeNewTask
-Initialize a new task in the BLS Aggregation service
-  - Errors:
-    Permanent:
-  - TaskAlreadyInitializedError (Permanent): Task is already intialized in the BLS Aggregation service (https://github.com/Layr-Labs/eigensdk-go/blob/dev/services/bls_aggregation/blsagg.go#L27).
-    Transient:
-  - All others.
-  - Retry times (3 retries): 1 sec, 2 sec, 4 sec
-*/
-func (agg *Aggregator) InitializeNewTask(batchIndex uint32, taskCreatedBlock uint32, quorumNums eigentypes.QuorumNums, quorumThresholdPercentages eigentypes.QuorumThresholdPercentages, timeToExpiry time.Duration) error {
+func InitializeNewTask(agg *Aggregator, batchIndex uint32, taskCreatedBlock uint32, quorumNums eigentypes.QuorumNums, quorumThresholdPercentages eigentypes.QuorumThresholdPercentages, timeToExpiry time.Duration) func() error {
 	initializeNewTask_func := func() error {
 		err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, timeToExpiry)
 		if err != nil {
@@ -419,7 +409,21 @@ func (agg *Aggregator) InitializeNewTask(batchIndex uint32, taskCreatedBlock uin
 		}
 		return err
 	}
-	return retry.Retry(initializeNewTask_func, retry.EthCallRetryConfig())
+	return initializeNewTask_func
+}
+
+/*
+InitializeNewTask
+Initialize a new task in the BLS Aggregation service
+  - Errors:
+    Permanent:
+  - TaskAlreadyInitializedError (Permanent): Task is already intialized in the BLS Aggregation service (https://github.com/Layr-Labs/eigensdk-go/blob/dev/services/bls_aggregation/blsagg.go#L27).
+    Transient:
+  - All others.
+  - Retry times (3 retries): 1 sec, 2 sec, 4 sec
+*/
+func (agg *Aggregator) InitializeNewTaskRetryable(batchIndex uint32, taskCreatedBlock uint32, quorumNums eigentypes.QuorumNums, quorumThresholdPercentages eigentypes.QuorumThresholdPercentages, timeToExpiry time.Duration) error {
+	return retry.Retry(InitializeNewTask(agg, batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, timeToExpiry), retry.EthCallRetryConfig())
 }
 
 // Long-lived goroutine that periodically checks and removes old Tasks from stored Maps
