@@ -183,7 +183,11 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		return nil, fmt.Errorf("transaction failed")
 	}
 
-	return retry.RetryWithData(respondToTaskV2Func, retry.MinDelay, retry.RetryFactor, 0, retry.MaxInterval, 0)
+	// This just retries the bump of a fee in case of a timeout
+	// The wait is done before on WaitForTransactionReceiptRetryable, and all the functions are retriable,
+	// so this retry doesn't need to wait more time
+	maxInterval := time.Millisecond * 500
+	return retry.RetryWithData(respondToTaskV2Func, retry.MinDelay, retry.RetryFactor, 0, maxInterval, 0)
 }
 
 // Calculates the transaction cost from the receipt and compares it with the batcher respondToTaskFeeLimit
