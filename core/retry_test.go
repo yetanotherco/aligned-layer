@@ -170,7 +170,7 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 	}
 
 	// Assert Call succeeds when Anvil running
-	receipt_function := utils.WaitForTransactionReceipt(*client, *client, hash, retry.EthCallRetryConfig())
+	receipt_function := utils.WaitForTransactionReceiptFunc(*client, *client, hash, retry.EthCallRetryConfig())
 	_, err = receipt_function()
 	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
 	if !strings.Contains(err.Error(), "not found") {
@@ -183,7 +183,7 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 		return
 	}
 
-	receipt_function = utils.WaitForTransactionReceipt(*client, *client, hash, retry.EthCallRetryConfig())
+	receipt_function = utils.WaitForTransactionReceiptFunc(*client, *client, hash, retry.EthCallRetryConfig())
 	_, err = receipt_function()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
@@ -200,7 +200,7 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	receipt_function = utils.WaitForTransactionReceipt(*client, *client, hash, retry.EthCallRetryConfig())
+	receipt_function = utils.WaitForTransactionReceiptFunc(*client, *client, hash, retry.EthCallRetryConfig())
 	_, err = receipt_function()
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "not found") {
@@ -222,7 +222,7 @@ func TestGetGasPrice(t *testing.T) {
 	}
 
 	// Assert Call succeeds when Anvil running
-	receipt_function := utils.GetGasPrice(*client, *client)
+	receipt_function := utils.GetGasPriceFunc(*client, *client)
 	_, err = receipt_function()
 	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
 	if !strings.Contains(err.Error(), "not found") {
@@ -235,7 +235,7 @@ func TestGetGasPrice(t *testing.T) {
 		return
 	}
 
-	receipt_function = utils.GetGasPrice(*client, *client)
+	receipt_function = utils.GetGasPriceFunc(*client, *client)
 	_, err = receipt_function()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
@@ -252,7 +252,7 @@ func TestGetGasPrice(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	receipt_function = utils.GetGasPrice(*client, *client)
+	receipt_function = utils.GetGasPriceFunc(*client, *client)
 	_, err = receipt_function()
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "not found") {
@@ -411,7 +411,7 @@ func TestSubscribeToNewTasksV3(t *testing.T) {
 		t.Errorf("Error setting up Avs Service Bindings: %s\n", err)
 	}
 
-	sub_func := chainio.SubscribeToNewTasksV3(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	sub_func := chainio.SubscribeToNewTasksV3Func(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	_, err = sub_func()
 	assert.Nil(t, err)
 
@@ -420,7 +420,7 @@ func TestSubscribeToNewTasksV3(t *testing.T) {
 		return
 	}
 
-	sub_func = chainio.SubscribeToNewTasksV3(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	sub_func = chainio.SubscribeToNewTasksV3Func(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	_, err = sub_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
@@ -437,7 +437,7 @@ func TestSubscribeToNewTasksV3(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	sub_func = chainio.SubscribeToNewTasksV3(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	sub_func = chainio.SubscribeToNewTasksV3Func(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	_, err = sub_func()
 	assert.Nil(t, err)
 
@@ -464,7 +464,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		t.Errorf("Error setting up Avs Service Bindings: %s\n", err)
 	}
 
-	sub_func := chainio.SubscribeToNewTasksV2(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	sub_func := chainio.SubscribeToNewTasksV2Func(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	_, err = sub_func()
 	assert.Nil(t, err)
 
@@ -473,7 +473,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		return
 	}
 
-	sub_func = chainio.SubscribeToNewTasksV2(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	sub_func = chainio.SubscribeToNewTasksV2Func(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	_, err = sub_func()
 
 	assert.NotNil(t, err)
@@ -491,7 +491,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	sub_func = chainio.SubscribeToNewTasksV2(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	sub_func = chainio.SubscribeToNewTasksV2Func(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
 	_, err = sub_func()
 	assert.Nil(t, err)
 
@@ -513,7 +513,7 @@ func TestBlockNumber(t *testing.T) {
 	if err != nil {
 		return
 	}
-	block_func := chainio.BlockNumber(sub, context.Background())
+	block_func := chainio.BlockNumberFunc(sub, context.Background())
 	_, err = block_func()
 	assert.Nil(t, err)
 
@@ -522,7 +522,7 @@ func TestBlockNumber(t *testing.T) {
 		return
 	}
 
-	block_func = chainio.BlockNumber(sub, context.Background())
+	block_func = chainio.BlockNumberFunc(sub, context.Background())
 	_, err = block_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
@@ -539,7 +539,7 @@ func TestBlockNumber(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	block_func = chainio.BlockNumber(sub, context.Background())
+	block_func = chainio.BlockNumberFunc(sub, context.Background())
 	_, err = block_func()
 	assert.Nil(t, err)
 
@@ -560,7 +560,7 @@ func TestFilterBatchV2(t *testing.T) {
 	if err != nil {
 		return
 	}
-	batch_func := chainio.FilterBatchV2(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	batch_func := chainio.FilterBatchV2Func(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	_, err = batch_func()
 	assert.Nil(t, err)
 
@@ -569,7 +569,7 @@ func TestFilterBatchV2(t *testing.T) {
 		return
 	}
 
-	batch_func = chainio.FilterBatchV2(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	batch_func = chainio.FilterBatchV2Func(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	_, err = batch_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
@@ -586,7 +586,7 @@ func TestFilterBatchV2(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	batch_func = chainio.FilterBatchV2(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	batch_func = chainio.FilterBatchV2Func(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	_, err = batch_func()
 	assert.Nil(t, err)
 
@@ -607,7 +607,7 @@ func TestFilterBatchV3(t *testing.T) {
 	if err != nil {
 		return
 	}
-	batch_func := chainio.FilterBatchV3(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	batch_func := chainio.FilterBatchV3Func(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	_, err = batch_func()
 	assert.Nil(t, err)
 
@@ -616,7 +616,7 @@ func TestFilterBatchV3(t *testing.T) {
 		return
 	}
 
-	batch_func = chainio.FilterBatchV3(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	batch_func = chainio.FilterBatchV3Func(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	_, err = batch_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
@@ -633,7 +633,7 @@ func TestFilterBatchV3(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	batch_func = chainio.FilterBatchV3(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	batch_func = chainio.FilterBatchV3Func(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
 	_, err = batch_func()
 	assert.Nil(t, err)
 
@@ -656,7 +656,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 	}
 
 	zero_bytes := [32]byte{}
-	batch_state_func := chainio.BatchState(avsSubscriber, nil, zero_bytes)
+	batch_state_func := chainio.BatchStateFunc(avsSubscriber, nil, zero_bytes)
 	_, err = batch_state_func()
 	assert.Nil(t, err)
 
@@ -665,7 +665,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 		return
 	}
 
-	batch_state_func = chainio.BatchState(avsSubscriber, nil, zero_bytes)
+	batch_state_func = chainio.BatchStateFunc(avsSubscriber, nil, zero_bytes)
 	_, err = batch_state_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
@@ -682,7 +682,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	batch_state_func = chainio.BatchState(avsSubscriber, nil, zero_bytes)
+	batch_state_func = chainio.BatchStateFunc(avsSubscriber, nil, zero_bytes)
 	_, err = batch_state_func()
 	assert.Nil(t, err)
 
@@ -705,7 +705,7 @@ func TestSubscribeNewHead(t *testing.T) {
 		return
 	}
 
-	sub_func := chainio.SubscribeNewHead(avsSubscriber, context.Background(), c)
+	sub_func := chainio.SubscribeNewHeadFunc(avsSubscriber, context.Background(), c)
 	_, err = sub_func()
 	assert.Nil(t, err)
 
@@ -714,7 +714,7 @@ func TestSubscribeNewHead(t *testing.T) {
 		return
 	}
 
-	sub_func = chainio.SubscribeNewHead(avsSubscriber, context.Background(), c)
+	sub_func = chainio.SubscribeNewHeadFunc(avsSubscriber, context.Background(), c)
 	_, err = sub_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
@@ -731,7 +731,7 @@ func TestSubscribeNewHead(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	sub_func = chainio.SubscribeNewHead(avsSubscriber, context.Background(), c)
+	sub_func = chainio.SubscribeNewHeadFunc(avsSubscriber, context.Background(), c)
 	_, err = sub_func()
 	assert.Nil(t, err)
 
@@ -785,7 +785,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	zero_bytes := [32]byte{}
 
 	// NOTE: With zero bytes the tx reverts
-	resp_func := chainio.RespondToTaskV2(w, &txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	resp_func := chainio.RespondToTaskV2Func(w, &txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
 	_, err = resp_func()
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "execution reverted") {
@@ -796,7 +796,7 @@ func TestRespondToTaskV2(t *testing.T) {
 		t.Errorf("Error killing process: %v\n", err)
 	}
 
-	resp_func = chainio.RespondToTaskV2(w, &txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	resp_func = chainio.RespondToTaskV2Func(w, &txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
 	_, err = resp_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(*backoff.PermanentError); ok {
@@ -812,7 +812,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	}
 
 	// NOTE: With zero bytes the tx reverts
-	resp_func = chainio.RespondToTaskV2(w, &txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	resp_func = chainio.RespondToTaskV2Func(w, &txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
 	_, err = resp_func()
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "execution reverted") {
@@ -841,7 +841,7 @@ func TestBatchesStateWriter(t *testing.T) {
 	var bytes [32]byte
 	num.FillBytes(bytes[:])
 
-	state_func := chainio.BatchesState(avsWriter, &bind.CallOpts{}, bytes)
+	state_func := chainio.BatchesStateFunc(avsWriter, &bind.CallOpts{}, bytes)
 	_, err = state_func()
 	assert.Nil(t, err)
 
@@ -850,7 +850,7 @@ func TestBatchesStateWriter(t *testing.T) {
 		return
 	}
 
-	state_func = chainio.BatchesState(avsWriter, &bind.CallOpts{}, bytes)
+	state_func = chainio.BatchesStateFunc(avsWriter, &bind.CallOpts{}, bytes)
 	_, err = state_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
@@ -867,7 +867,7 @@ func TestBatchesStateWriter(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	state_func = chainio.BatchesState(avsWriter, &bind.CallOpts{}, bytes)
+	state_func = chainio.BatchesStateFunc(avsWriter, &bind.CallOpts{}, bytes)
 	_, err = state_func()
 	assert.Nil(t, err)
 
@@ -896,7 +896,7 @@ func TestBalanceAt(t *testing.T) {
 		t.Errorf("Error retrieving Anvil Block Number: %v\n", err)
 	}
 
-	balance_func := chainio.BalanceAt(avsWriter, context.Background(), aggregator_address, blockNumber)
+	balance_func := chainio.BalanceAtFunc(avsWriter, context.Background(), aggregator_address, blockNumber)
 	_, err = balance_func()
 	assert.Nil(t, err)
 
@@ -905,7 +905,7 @@ func TestBalanceAt(t *testing.T) {
 		return
 	}
 
-	balance_func = chainio.BalanceAt(avsWriter, context.Background(), aggregator_address, blockNumber)
+	balance_func = chainio.BalanceAtFunc(avsWriter, context.Background(), aggregator_address, blockNumber)
 	_, err = balance_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
@@ -922,7 +922,7 @@ func TestBalanceAt(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	balance_func = chainio.BalanceAt(avsWriter, context.Background(), aggregator_address, blockNumber)
+	balance_func = chainio.BalanceAtFunc(avsWriter, context.Background(), aggregator_address, blockNumber)
 	_, err = balance_func()
 	assert.Nil(t, err)
 
@@ -945,7 +945,7 @@ func TestBatchersBalances(t *testing.T) {
 	}
 	senderAddress := common.HexToAddress("0x0")
 
-	batcher_func := chainio.BatcherBalances(avsWriter, &bind.CallOpts{}, senderAddress)
+	batcher_func := chainio.BatcherBalancesFunc(avsWriter, &bind.CallOpts{}, senderAddress)
 	_, err = batcher_func()
 	assert.Nil(t, err)
 
@@ -954,7 +954,7 @@ func TestBatchersBalances(t *testing.T) {
 		return
 	}
 
-	batcher_func = chainio.BatcherBalances(avsWriter, &bind.CallOpts{}, senderAddress)
+	batcher_func = chainio.BatcherBalancesFunc(avsWriter, &bind.CallOpts{}, senderAddress)
 	_, err = batcher_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
@@ -971,7 +971,7 @@ func TestBatchersBalances(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	batcher_func = chainio.BatcherBalances(avsWriter, &bind.CallOpts{}, senderAddress)
+	batcher_func = chainio.BatcherBalancesFunc(avsWriter, &bind.CallOpts{}, senderAddress)
 	_, err = batcher_func()
 	assert.Nil(t, err)
 

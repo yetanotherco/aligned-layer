@@ -11,7 +11,7 @@ import (
 	retry "github.com/yetanotherco/aligned_layer/core"
 )
 
-func WaitForTransactionReceipt(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, txHash gethcommon.Hash, config *retry.RetryConfig) func() (*types.Receipt, error) {
+func WaitForTransactionReceiptFunc(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, txHash gethcommon.Hash, config *retry.RetryConfig) func() (*types.Receipt, error) {
 	receipt_func := func() (*types.Receipt, error) {
 		receipt, err := client.TransactionReceipt(context.Background(), txHash)
 		if err != nil {
@@ -35,7 +35,7 @@ func WaitForTransactionReceipt(client eth.InstrumentedClient, fallbackClient eth
 // All errors are considered Transient Errors
 // - Retry times: 0.5s, 1s, 2s, 2s, 2s, ... until it reaches waitTimeout
 func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, txHash gethcommon.Hash, config *retry.RetryConfig) (*types.Receipt, error) {
-	return retry.RetryWithData(WaitForTransactionReceipt(client, fallbackClient, txHash, config), config)
+	return retry.RetryWithData(WaitForTransactionReceiptFunc(client, fallbackClient, txHash, config), config)
 }
 
 func BytesToQuorumNumbers(quorumNumbersBytes []byte) eigentypes.QuorumNums {
@@ -84,7 +84,7 @@ func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercent
 	return bumpedGasPrice
 }
 
-func GetGasPrice(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient) func() (*big.Int, error) {
+func GetGasPriceFunc(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient) func() (*big.Int, error) {
 
 	getGasPrice_func := func() (*big.Int, error) {
 		gasPrice, err := client.SuggestGasPrice(context.Background())
@@ -107,5 +107,5 @@ Get the gas price from the client with retry logic.
 - Retry times: 1 sec, 2 sec, 4 sec
 */
 func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient) (*big.Int, error) {
-	return retry.RetryWithData(GetGasPrice(client, fallbackClient), retry.EthCallRetryConfig())
+	return retry.RetryWithData(GetGasPriceFunc(client, fallbackClient), retry.EthCallRetryConfig())
 }

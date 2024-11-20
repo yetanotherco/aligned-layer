@@ -114,7 +114,7 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 
 // |---RETRYABLE---|
 
-func ProcessNewSignature(agg *Aggregator, ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) func() error {
+func ProcessNewSignatureFunc(agg *Aggregator, ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) func() error {
 
 	processNewSignature_func := func() error {
 		err := agg.blsAggregationService.ProcessNewSignature(
@@ -142,10 +142,10 @@ func ProcessNewSignature(agg *Aggregator, ctx context.Context, taskIndex uint32,
 */
 func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
 
-	return retry.Retry(ProcessNewSignature(agg, ctx, taskIndex, taskResponse, blsSignature, operatorId), retry.ChainRetryConfig())
+	return retry.Retry(ProcessNewSignatureFunc(agg, ctx, taskIndex, taskResponse, blsSignature, operatorId), retry.ChainRetryConfig())
 }
 
-func GetTaskIndex(agg *Aggregator, batchIdentifierHash [32]byte) func() (uint32, error) {
+func GetTaskIndexFunc(agg *Aggregator, batchIdentifierHash [32]byte) func() (uint32, error) {
 
 	getTaskIndex_func := func() (uint32, error) {
 		agg.taskMutex.Lock()
@@ -168,5 +168,5 @@ func GetTaskIndex(agg *Aggregator, batchIdentifierHash [32]byte) func() (uint32,
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec
 */
 func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte) (uint32, error) {
-	return retry.RetryWithData(GetTaskIndex(agg, batchIdentifierHash), retry.EthCallRetryConfig())
+	return retry.RetryWithData(GetTaskIndexFunc(agg, batchIdentifierHash), retry.EthCallRetryConfig())
 }

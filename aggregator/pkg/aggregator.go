@@ -398,7 +398,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 
 // |---RETRYABLE---|
 
-func InitializeNewTask(agg *Aggregator, batchIndex uint32, taskCreatedBlock uint32, quorumNums eigentypes.QuorumNums, quorumThresholdPercentages eigentypes.QuorumThresholdPercentages, timeToExpiry time.Duration) func() error {
+func InitializeNewTaskFunc(agg *Aggregator, batchIndex uint32, taskCreatedBlock uint32, quorumNums eigentypes.QuorumNums, quorumThresholdPercentages eigentypes.QuorumThresholdPercentages, timeToExpiry time.Duration) func() error {
 	initializeNewTask_func := func() error {
 		err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, timeToExpiry)
 		if err != nil {
@@ -423,7 +423,7 @@ Initialize a new task in the BLS Aggregation service
   - Retry times (3 retries): 1 sec, 2 sec, 4 sec
 */
 func (agg *Aggregator) InitializeNewTaskRetryable(batchIndex uint32, taskCreatedBlock uint32, quorumNums eigentypes.QuorumNums, quorumThresholdPercentages eigentypes.QuorumThresholdPercentages, timeToExpiry time.Duration) error {
-	return retry.Retry(InitializeNewTask(agg, batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, timeToExpiry), retry.EthCallRetryConfig())
+	return retry.Retry(InitializeNewTaskFunc(agg, batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, timeToExpiry), retry.EthCallRetryConfig())
 }
 
 // Long-lived goroutine that periodically checks and removes old Tasks from stored Maps
