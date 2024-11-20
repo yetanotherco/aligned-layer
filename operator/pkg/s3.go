@@ -7,49 +7,47 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/ugorji/go/codec"
+	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
 
-func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte, maxRetries int, retryDelay time.Duration) ([]VerificationData, error) {
+const BatchDownloadRetryDelay = 5 * time.Second
+
+func RequestBatch(req *http.Request, ctx context.Context) func() (*http.Response, error) {
+
+	req_func := func() (*http.Response, error) {
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			// We close the response body to free the resources before re-trying
+			if resp != nil {
+				err = resp.Body.Close()
+				resp = nil
+			}
+		}
+
+		return resp, err
+	}
+	return req_func
+}
+
+func RequestBatchRetryable(ctx context.Context, logger logging.Logger, req *http.Request, config *retry.RetryConfig) (*http.Response, error) {
+
+	return retry.RetryWithData(RequestBatch(req, ctx), config)
+}
+
+func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte) ([]VerificationData, error) {
 	o.Logger.Infof("Getting batch from data service, batchURL: %s", batchURL)
 
-	var resp *http.Response
-	var err error
-	var req *http.Request
-
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		if attempt > 0 {
-			o.Logger.Infof("Waiting for %s before retrying data fetch (attempt %d of %d)", retryDelay, attempt+1, maxRetries)
-			select {
-			case <-time.After(retryDelay):
-				// Wait before retrying
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			}
-			retryDelay *= 2 // Exponential backoff. Ex: 5s, 10s, 20s
-		}
-
-		req, err = http.NewRequestWithContext(ctx, "GET", batchURL, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		resp, err = http.DefaultClient.Do(req)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			break // Successful request, exit retry loop
-		}
-
-		if resp != nil {
-			err := resp.Body.Close()
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		o.Logger.Warnf("Error fetching batch from data service - (attempt %d): %v", attempt+1, err)
+	req, err := http.NewRequestWithContext(ctx, "GET", batchURL, nil)
+	if err != nil {
+		return nil, err
 	}
 
+	config := retry.EthCallRetryConfig()
+	config.InitialInterval = BatchDownloadRetryDelay
+	resp, err := RequestBatchRetryable(ctx, o.Logger, req, config)
 	if err != nil {
 		return nil, err
 	}

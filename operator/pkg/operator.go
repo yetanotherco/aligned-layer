@@ -66,10 +66,8 @@ type Operator struct {
 }
 
 const (
-	BatchDownloadTimeout    = 1 * time.Minute
-	BatchDownloadMaxRetries = 3
-	BatchDownloadRetryDelay = 5 * time.Second
-	UnverifiedBatchOffset   = 100
+	BatchDownloadTimeout  = 1 * time.Minute
+	UnverifiedBatchOffset = 100
 )
 
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
@@ -361,7 +359,7 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
 	defer cancel()
 
-	verificationDataBatch, err := o.getBatchFromDataService(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot, BatchDownloadMaxRetries, BatchDownloadRetryDelay)
+	verificationDataBatch, err := o.getBatchFromDataService(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err
@@ -442,7 +440,7 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
 	defer cancel()
 
-	verificationDataBatch, err := o.getBatchFromDataService(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot, BatchDownloadMaxRetries, BatchDownloadRetryDelay)
+	verificationDataBatch, err := o.getBatchFromDataService(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err
