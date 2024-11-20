@@ -79,13 +79,10 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 // SendAggregatedResponse continuously sends a RespondToTask transaction until it is included in the blockchain.
 // This function:
 //  1. Simulates the transaction to calculate the nonce and initial gas price without broadcasting it.
-//  2. Repeatedly attempts to send the transaction, increasing the gas price after each timeout or failure
-//     to ensure it meets network requirements for inclusion.
+//  2. Repeatedly attempts to send the transaction, bumping the gas price after `timeToWaitBeforeBump` has passed.
 //  3. Monitors for the receipt of previously sent transactions or checks the state to confirm if the response
 //     has already been processed (e.g., by another transaction).
-//  4. Uses a gas price bumping mechanism, based on configurable percentages, to gradually raise the gas price
-//     while avoiding replacement transaction underpricing errors.
-//  5. Validates that the aggregator and batcher have sufficient balance to cover transaction costs before sending.
+//  4. Validates that the aggregator and batcher have sufficient balance to cover transaction costs before sending.
 //
 // Returns:
 //   - A transaction receipt if the transaction is successfully included in the blockchain.
