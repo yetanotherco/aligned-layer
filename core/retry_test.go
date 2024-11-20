@@ -222,21 +222,17 @@ func TestGetGasPrice(t *testing.T) {
 	}
 
 	// Assert Call succeeds when Anvil running
-	receipt_function := utils.GetGasPriceFunc(*client, *client)
-	_, err = receipt_function()
-	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
-	if !strings.Contains(err.Error(), "not found") {
-		t.Errorf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
-		return
-	}
+	gas_function := utils.GetGasPriceFunc(*client, *client)
+	_, err = gas_function()
+	assert.Nil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
 
 	if err = cmd.Process.Kill(); err != nil {
 		t.Errorf("Error killing process: %v\n", err)
 		return
 	}
 
-	receipt_function = utils.GetGasPriceFunc(*client, *client)
-	_, err = receipt_function()
+	gas_function = utils.GetGasPriceFunc(*client, *client)
+	_, err = gas_function()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
@@ -252,13 +248,9 @@ func TestGetGasPrice(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	receipt_function = utils.GetGasPriceFunc(*client, *client)
-	_, err = receipt_function()
-	assert.NotNil(t, err)
-	if !strings.Contains(err.Error(), "not found") {
-		t.Errorf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
-		return
-	}
+	gas_function = utils.GetGasPriceFunc(*client, *client)
+	_, err = gas_function()
+	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
 		t.Errorf("Error killing process: %v\n", err)
