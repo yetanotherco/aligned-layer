@@ -3,51 +3,62 @@ package operator
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
-	"os/exec"
 	"strings"
-	"syscall"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	retry "github.com/yetanotherco/aligned_layer/core"
 )
 
-// Function wrapper around `make run_storage`
-func RunStorage() (*exec.Cmd, error) {
-
-	// Create a command
-	cmd := exec.Command("make", "run_storage")
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
-
-	// Run the command
-	err := cmd.Start()
+// EchoHandler reads and writes the request body
+func EchoHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		fmt.Printf("Error: %s\n", err)
+		http.Error(w, "Error reading body", http.StatusBadRequest)
+		return
 	}
+	defer r.Body.Close()
 
-	// Delay needed for anvil to start
-	time.Sleep(750 * time.Millisecond)
-
-	return cmd, nil
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
 }
-func TestRequestBatch(t *testing.T) {
-	/*
-		cmd, err := RunStorage()
-		if err != nil {
-			t.Errorf("Error setting up Anvil: %s\n", err)
-		}
-	*/
+
+// Note the httptest API requires that for restarting a server its url is empty. Given ours the default address is in use.
+// Its abstracting creation of a task server works around these issues.
+// NOTE: httptest panic's if the url of the server starts without being set to "" ref: https://cs.opensource.google/go/go/+/refs/tags/go1.23.3:src/net/http/httptest/server.go;l=127
+func CreateTestServer() *httptest.Server {
 	// To Simulate Retrieving information from S3 we create a mock http server.
 	expected := "dummy data"
-	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Errorf("error %v %v", w, expected)
-	}))
-	defer svr.Close()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, expected)
+	})
+	// create a listener with the desired port.
+	l, err := net.Listen("tcp", "127.0.0.1:7878")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	svr := httptest.NewUnstartedServer(handler)
+
+	// NewUnstartedServer creates a listener. Close that listener and replace
+	// with the one we created.
+	svr.Listener.Close()
+	svr.Listener = l
+
+	return svr
+}
+
+func TestRequestBatch(t *testing.T) {
+	svr := CreateTestServer()
+
+	// Start the server.
+	svr.Start()
 
 	req, err := http.NewRequestWithContext(context.Background(), "GET", svr.URL, nil)
 	if err != nil {
@@ -59,12 +70,6 @@ func TestRequestBatch(t *testing.T) {
 	assert.Nil(t, err)
 
 	svr.Close()
-	/*
-		if err := cmd.Process.Kill(); err != nil {
-			t.Errorf("Error killing process: %v\n", err)
-			return
-		}
-	*/
 
 	batcher_func = RequestBatch(req, context.Background())
 	_, err = batcher_func()
@@ -78,22 +83,11 @@ func TestRequestBatch(t *testing.T) {
 		return
 	}
 
+	svr = CreateTestServer()
 	svr.Start()
-	/*
-		cmd, err = RunStorage()
-		if err != nil {
-			t.Errorf("Error setting up Anvil: %s\n", err)
-		}
-	*/
+	defer svr.Close()
 
 	batcher_func = RequestBatch(req, context.Background())
 	_, err = batcher_func()
 	assert.Nil(t, err)
-
-	/*
-		if err := cmd.Process.Kill(); err != nil {
-			t.Errorf("Error killing process: %v\n", err)
-			return
-		}
-	*/
 }

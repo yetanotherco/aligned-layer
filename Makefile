@@ -150,6 +150,8 @@ aggregator_send_dummy_responses:
 test_go_retries:
 	@cd core/ && \
 	go test -v -timeout 15m
+	@cd operator/pkg/ && \
+	go test -v -run TestRequestBatch
 
 __OPERATOR__:
 
