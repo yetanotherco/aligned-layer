@@ -17,12 +17,14 @@ import (
 // If the receipt is still unavailable after `waitTimeout`, it will return an error.
 //
 // Note: The `time.Second * 2` is set as the max interval in the retry mechanism because we can't reliably measure the specific time the tx will be included in a block.
-// Setting a higher value will imply doing less retries across the waitTimeout and so we might lose the receipt
+// Setting a higher value will imply doing less retries across the waitTimeout, and so we might lose the receipt
+// All errors are considered Transient Errors
+// - Retry times: 0.5s, 1s, 2s, 2s, 2s, ... until it reaches waitTimeout
 func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, txHash gethcommon.Hash, waitTimeout time.Duration) (*types.Receipt, error) {
 	receipt_func := func() (*types.Receipt, error) {
 		receipt, err := client.TransactionReceipt(context.Background(), txHash)
 		if err != nil {
-			receipt, err = client.TransactionReceipt(context.Background(), txHash)
+			receipt, err = fallbackClient.TransactionReceipt(context.Background(), txHash)
 			if err != nil {
 				return nil, err
 			}
@@ -47,6 +49,16 @@ func BytesToQuorumThresholdPercentages(quorumThresholdPercentagesBytes []byte) e
 		quorumThresholdPercentages[i] = eigentypes.QuorumThresholdPercentage(quorumNumberByte)
 	}
 	return quorumThresholdPercentages
+}
+
+func WeiToEth(wei *big.Int) float64 {
+	weiToEth := new(big.Float).SetFloat64(1e18)
+	weiFloat := new(big.Float).SetInt(wei)
+
+	result := new(big.Float).Quo(weiFloat, weiToEth)
+	eth, _ := result.Float64()
+
+	return eth
 }
 
 // Simple algorithm to calculate the gasPrice bump based on:

@@ -170,7 +170,7 @@ pub async fn create_new_task_retryable(
         })?
         .map_err(|e| {
             warn!("Error while waiting for batch inclusion: {e}");
-            RetryError::Transient(BatcherError::TransactionSendError(e.to_string()))
+            RetryError::Permanent(BatcherError::ReceiptNotFoundError)
         })?
         .ok_or(RetryError::Permanent(BatcherError::ReceiptNotFoundError))
 }

@@ -17,7 +17,7 @@ func RegisterOperator(
 	configuration *config.OperatorConfig,
 	operatorToAvsRegistrationSigSalt [32]byte,
 ) error {
-	writer, err := chainio.NewAvsWriterFromConfig(configuration.BaseConfig, configuration.EcdsaConfig)
+	writer, err := chainio.NewAvsWriterFromConfig(configuration.BaseConfig, configuration.EcdsaConfig, nil)
 	if err != nil {
 		configuration.BaseConfig.Logger.Error("Failed to create AVS writer", "err", err)
 		return err

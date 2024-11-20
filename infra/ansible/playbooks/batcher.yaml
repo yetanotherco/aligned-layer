@@ -97,7 +97,6 @@
         telemetry_ip_port_address: "{{ lookup('ini', 'telemetry_ip_port_address', file='ini/config-batcher.ini') }}"
         batcher_replacement_private_key: "{{ lookup('ini', 'batcher_replacement_private_key', file='ini/config-batcher.ini') }}"
 
-
     - name: Upload env file for batcher
       template:
         src: config-files/env-batcher.j2

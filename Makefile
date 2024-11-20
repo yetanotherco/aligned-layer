@@ -132,6 +132,10 @@ anvil_start_with_block_time:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
 
+anvil_start_with_block_time_with_more_prefunded_accounts:
+	@echo "Starting Anvil..."
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 -a 2000
+
 _AGGREGATOR_:
 
 aggregator_start:
@@ -247,11 +251,15 @@ operator_deposit_into_mock_strategy:
 		--strategy-address $(STRATEGY_ADDRESS) \
 		--amount 100000000000000000
 
+
+AMOUNT ?= 1000
+
 operator_deposit_into_strategy:
 	@echo "Depositing into strategy"
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
-		--amount 1000
+		--strategy-address $(STRATEGY_ADDRESS) \
+		--amount $(AMOUNT)
 
 operator_register_with_aligned_layer:
 	@echo "Registering operator with AlignedLayer"
@@ -280,7 +288,7 @@ verifier_disable:
 
 __BATCHER__:
 
-BURST_SIZE=5
+BURST_SIZE ?= 5
 
 user_fund_payment_service:
 	@. ./scripts/user_fund_payment_service_devnet.sh
@@ -293,6 +301,11 @@ batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
 
 batcher_start_local: user_fund_payment_service
+	@echo "Starting Batcher..."
+	@$(MAKE) run_storage &
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
+
+batcher_start_local_no_fund:
 	@echo "Starting Batcher..."
 	@$(MAKE) run_storage &
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
@@ -397,7 +410,7 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--repetitions 4 \
+		--repetitions $(BURST_SIZE) \
 		--network $(NETWORK)
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
@@ -443,6 +456,82 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 	@echo "Sending a burst of tasks to Batcher..."
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
+
+
+__TASK_SENDER__:
+BURST_TIME_SECS ?= 3
+
+task_sender_generate_groth16_proofs:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- generate-proofs \
+	--number-of-proofs $(NUMBER_OF_PROOFS) --proof-type groth16 \
+	--dir-to-save-proofs $(CURDIR)/scripts/test_files/task_sender/proofs
+
+# ===== DEVNET =====
+task_sender_fund_wallets_devnet:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- generate-and-fund-wallets \
+	--eth-rpc-url http://localhost:8545 \
+	--network devnet \
+	--amount-to-deposit 1 \
+	--amount-to-deposit-to-aligned 0.9999 \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
+
+task_sender_send_infinite_proofs_devnet:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- send-infinite-proofs \
+	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
+	--eth-rpc-url http://localhost:8545 \
+	--batcher-url ws://localhost:8080 \
+	--network devnet \
+	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
+
+task_sender_test_connections_devnet:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- test-connections \
+	--batcher-url ws://localhost:8080 \
+	--num-senders $(NUM_SENDERS)
+
+# ===== HOLESKY-STAGE =====
+task_sender_generate_and_fund_wallets_holesky_stage:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- generate-and-fund-wallets \
+	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
+	--network holesky-stage \
+	--funding-wallet-private-key $(FUNDING_WALLET_PRIVATE_KEY) \
+	--number-wallets $(NUM_WALLETS) \
+	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) \
+	--amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
+
+task_sender_send_infinite_proofs_holesky_stage:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- send-infinite-proofs \
+	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
+	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
+	--batcher-url wss://stage.batcher.alignedlayer.com  \
+	--network holesky-stage \
+	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
+
+task_sender_test_connections_holesky_stage:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- test-connections \
+	--batcher-url wss://stage.batcher.alignedlayer.com \
+	--num-senders $(NUM_SENDERS)
+
+__UTILS__:
+aligned_get_user_balance_devnet:
+	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
+		--user_addr $(USER_ADDR)
+
+aligned_get_user_balance_holesky:
+	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
+		--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+		--network holesky \
+		--user_addr $(USER_ADDR)
+
 
 __GENERATE_PROOFS__:
  # TODO add a default proving system
@@ -1087,3 +1176,34 @@ ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
 	@ansible-playbook infra/ansible/playbooks/batcher.yaml \
 		-i $(INVENTORY) \
 		-e "keystore_path=$(KEYSTORE)"
+
+ansible_aggregator_create_env: ## Create empty variables files for the Aggregator deploy
+	@cp -n infra/ansible/playbooks/ini/config-aggregator.ini.example infra/ansible/playbooks/ini/config-aggregator.ini
+	@echo "Config files for the Aggregator created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_aggregator_deploy"
+
+ansible_aggregator_deploy: ## Deploy the Operator. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ] || [ -z "$(ECDSA_KEYSTORE)" ] || [ -z "$(BLS_KEYSTORE)" ]; then \
+		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/aggregator.yaml \
+		-i $(INVENTORY) \
+		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
+		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+
+ansible_operator_create_env: ## Create empty variables files for the Operator deploy
+	@cp -n infra/ansible/playbooks/ini/config-operator.ini.example infra/ansible/playbooks/ini/config-operator.ini
+	@cp -n infra/ansible/playbooks/ini/config-register-operator.ini.example infra/ansible/playbooks/ini/config-register-operator.ini
+	@echo "Config files for the Operator created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_operator_deploy"
+
+ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ]  || [ -z "$(ECDSA_KEYSTORE)" ]  || [ -z "$(BLS_KEYSTORE)" ]; then \
+		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/operator.yaml \
+		-i $(INVENTORY) \
+		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
+		-e "bls_keystore_path=$(BLS_KEYSTORE)"

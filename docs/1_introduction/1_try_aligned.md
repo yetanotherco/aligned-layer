@@ -50,7 +50,7 @@ Use the link in the response to check the status of your transaction in the Alig
 
 ```bash
 aligned verify-proof-onchain \
---aligned-verification-data ~/.aligned/aligned_verification_data/*.json \
+--aligned-verification-data ~/.aligned/aligned_verification_data/*.cbor \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
 --network holesky 
 ```
