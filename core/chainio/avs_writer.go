@@ -76,9 +76,22 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}, nil
 }
 
-// Sends AggregatedResponse and waits for the receipt for three blocks, if not received
-// it will try again bumping the last tx gas price based on `CalculateGasPriceBump`
-// This process happens indefinitely until the transaction is included.
+// SendAggregatedResponse continuously sends a RespondToTask transaction until it is included in the blockchain.
+// This function:
+//  1. Simulates the transaction to calculate the nonce and initial gas price without broadcasting it.
+//  2. Repeatedly attempts to send the transaction, increasing the gas price after each timeout or failure
+//     to ensure it meets network requirements for inclusion.
+//  3. Monitors for the receipt of previously sent transactions or checks the state to confirm if the response
+//     has already been processed (e.g., by another transaction).
+//  4. Uses a gas price bumping mechanism, based on configurable percentages, to gradually raise the gas price
+//     while avoiding replacement transaction underpricing errors.
+//  5. Validates that the aggregator and batcher have sufficient balance to cover transaction costs before sending.
+//
+// Returns:
+//   - A transaction receipt if the transaction is successfully included in the blockchain.
+//   - If no receipt is found, but the batch state indicates the response has already been processed, it exits
+//     without an error (returning `nil, nil`).
+//   - An error if the process encounters a fatal issue (e.g., permanent failure in verifying balances or state).
 func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, timeToWaitBeforeBump time.Duration, onGasPriceBumped func(*big.Int)) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
@@ -104,9 +117,9 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			return nil, err
 		}
 		previousTxGasPrice := txOpts.GasPrice
-		// minimum gas price required for the new transaction to ensure it's 10% higher than the previous one.
+		// in order to avoid replacement transaction underpriced
+		// the bumped gas price has to be at least 10% higher than the previous one.
 		minimumGasPriceBump := utils.CalculateGasPriceBumpBasedOnRetry(previousTxGasPrice, 10, 0, 0)
-		// calculate the suggested bumped gas price based on the current gas price and retry iteration.
 		suggestedBumpedGasPrice := utils.CalculateGasPriceBumpBasedOnRetry(
 			gasPrice,
 			gasBumpPercentage,
@@ -118,12 +131,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		if suggestedBumpedGasPrice.Cmp(minimumGasPriceBump) > 0 {
 			txOpts.GasPrice = suggestedBumpedGasPrice
 		} else {
-			txOpts.GasPrice = utils.CalculateGasPriceBumpBasedOnRetry(
-				previousTxGasPrice,
-				gasBumpPercentage,
-				gasBumpIncrementalPercentage,
-				i,
-			)
+			txOpts.GasPrice = minimumGasPriceBump
 		}
 
 		if i > 0 {
@@ -217,12 +225,7 @@ func (w *AvsWriter) checkAggAndBatcherHaveEnoughBalance(tx *types.Transaction, t
 	aggregatorAddress := txOpts.From
 	txGasAsBigInt := new(big.Int).SetUint64(tx.Gas())
 	txGasPrice := txOpts.GasPrice
-	w.logger.Info("Transaction Gas Cost", "cost", txGasAsBigInt)
-	w.logger.Info("Transaction Gas Price", "cost", txGasPrice)
-
 	txCost := new(big.Int).Mul(txGasAsBigInt, txGasPrice)
-
-	// txCost := new(big.Int).Mul(new(big.Int)tx.Gas()), txOpts.GasPrice)
 	w.logger.Info("Transaction cost", "cost", txCost)
 
 	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
