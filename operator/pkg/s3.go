@@ -13,6 +13,8 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
 
+const BatchDownloadRetryDelay = 5 * time.Second
+
 func RequestBatch(req *http.Request, ctx context.Context) func() (*http.Response, error) {
 
 	req_func := func() (*http.Response, error) {
@@ -30,12 +32,12 @@ func RequestBatch(req *http.Request, ctx context.Context) func() (*http.Response
 	return req_func
 }
 
-func RequestBatchRetryable(ctx context.Context, logger logging.Logger, req *http.Request) (*http.Response, error) {
+func RequestBatchRetryable(ctx context.Context, logger logging.Logger, req *http.Request, config *retry.RetryConfig) (*http.Response, error) {
 
-	return retry.RetryWithData(RequestBatch(req, ctx), retry.EthCallRetryConfig())
+	return retry.RetryWithData(RequestBatch(req, ctx), config)
 }
 
-func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte, maxRetries int, retryDelay time.Duration) ([]VerificationData, error) {
+func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte) ([]VerificationData, error) {
 	o.Logger.Infof("Getting batch from data service, batchURL: %s", batchURL)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", batchURL, nil)
@@ -43,7 +45,9 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 		return nil, err
 	}
 
-	resp, err := RequestBatchRetryable(ctx, o.Logger, req)
+	config := retry.EthCallRetryConfig()
+	config.InitialInterval = BatchDownloadRetryDelay
+	resp, err := RequestBatchRetryable(ctx, o.Logger, req, config)
 	if err != nil {
 		return nil, err
 	}
