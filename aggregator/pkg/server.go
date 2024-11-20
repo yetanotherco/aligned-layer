@@ -6,11 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/rpc"
-	"strings"
 	"time"
 
-	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
-	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
@@ -72,7 +69,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 
 	agg.logger.Info("Starting bls signature process")
 	go func() {
-		err := agg.ProcessNewSignature(
+		err := agg.blsAggregationService.ProcessNewSignature(
 			context.Background(), taskIndex, signedTaskResponse.BatchIdentifierHash,
 			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 		)
@@ -110,34 +107,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 	*reply = 1
 	return nil
-}
-
-// |---RETRYABLE---|
-
-/*
-  - Errors:
-    Permanent:
-  - SignatureVerificationError: Verification of the sigature within the BLS Aggregation Service failed. (https://github.com/Layr-Labs/eigensdk-go/blob/dev/services/bls_aggregation/blsagg.go#L42).
-    Transient:
-  - All others.
-  - Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
-  - NOTE: TaskNotFound errors from the BLS Aggregation service are Transient errors as block reorg's may lead to these errors being thrown.
-*/
-func (agg *Aggregator) ProcessNewSignature(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
-	processNewSignature_func := func() error {
-		err := agg.blsAggregationService.ProcessNewSignature(
-			ctx, taskIndex, taskResponse,
-			blsSignature, operatorId,
-		)
-		if err != nil {
-			if strings.Contains(err.Error(), "Failed to verify signature") {
-				err = retry.PermanentError{Inner: err}
-			}
-		}
-		return err
-	}
-
-	return retry.Retry(processNewSignature_func, retry.MinDelayChain, retry.RetryFactor, retry.NumRetries, retry.MaxIntervalChain, retry.MaxElapsedTime)
 }
 
 func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error) {
