@@ -104,7 +104,7 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay time.Durat
 					if panic_err, ok := r.(error); ok {
 						err = panic_err
 					} else {
-						err = fmt.Errorf("panicked: %v", panic_err)
+						err = fmt.Errorf("RetryWithData panicked: %v", panic_err)
 					}
 				}
 			}()
@@ -151,7 +151,7 @@ func Retry(functionToRetry func() error, minDelay time.Duration, factor float64,
 					if panic_err, ok := r.(error); ok {
 						err = panic_err
 					} else {
-						err = fmt.Errorf("panicked: %v", panic_err)
+						err = fmt.Errorf("Retry panicked: %v", panic_err)
 					}
 				}
 			}()

@@ -213,13 +213,6 @@ func (w *AvsWriter) checkIfAggregatorHadToPaidForBatcher(tx *types.Transaction, 
 }
 
 func (w *AvsWriter) checkAggAndBatcherHaveEnoughBalance(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
-	defer func() {
-		if r := recover(); r != nil {
-			w.logger.Error("Recovered from panic", "error", r)
-		}
-		// return fmt.Errorf("Recovered from panic") // TODO can't do this
-	}()
-
 	w.logger.Info("Checking if aggregator and batcher have enough balance for the transaction")
 	aggregatorAddress := txOpts.From
 	txGasAsBigInt := new(big.Int).SetUint64(tx.Gas())

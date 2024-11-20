@@ -225,6 +225,13 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 const MaxSentTxRetries = 5
 
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
+	defer func() {
+		err := recover() //stops panics
+		if err != nil {
+			agg.logger.Error("handleBlsAggServiceResponse recovered from panic", "err", err)
+		}
+	}()
+
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching task data")
 	batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
@@ -433,7 +440,7 @@ func (agg *Aggregator) ClearTasksFromMaps() {
 	defer func() {
 		err := recover() //stops panics
 		if err != nil {
-			agg.logger.Error("Recovered from panic", "err", err)
+			agg.logger.Error("ClearTasksFromMaps Recovered from panic", "err", err)
 		}
 	}()
 
