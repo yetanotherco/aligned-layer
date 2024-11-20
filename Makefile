@@ -297,6 +297,11 @@ batcher_start_local: user_fund_payment_service
 	@$(MAKE) run_storage &
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
 
+batcher_start_local_no_fund:
+	@echo "Starting Batcher..."
+	@$(MAKE) run_storage &
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
+
 install_batcher:
 	@cargo install --path batcher/aligned-batcher
 
