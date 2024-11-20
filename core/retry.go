@@ -125,7 +125,6 @@ Reference: https://github.com/cenkalti/backoff/blob/v4/exponential.go#L9
 
 // Same as Retry only that the functionToRetry can return a value upon correct execution
 func RetryWithData[T any](functionToRetry func() (T, error), config *RetryConfig) (T, error) {
-	//func RetryWithData[T any](functionToRetry func() (T, error), minDelay time.Duration, factor float64, maxTries uint64, maxInterval time.Duration, maxElapsedTime time.Duration) (T, error) {
 	f := func() (T, error) {
 		var (
 			val T
