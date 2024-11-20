@@ -93,27 +93,56 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts.NoSend = false
 	i := 0
 
+	var sentTxs []*types.Transaction
+
 	respondToTaskV2Func := func() (*types.Receipt, error) {
 		gasPrice, err := utils.GetGasPriceRetryable(w.Client, w.ClientFallback)
 		if err != nil {
 			return nil, err
 		}
-
-		bumpedGasPrice := utils.CalculateGasPriceBumpBasedOnRetry(gasPrice, gasBumpPercentage, gasBumpIncrementalPercentage, i)
-		// new bumped gas price must be higher than the last one (this should hardly ever happen though)
-		if bumpedGasPrice.Cmp(txOpts.GasPrice) > 0 {
-			txOpts.GasPrice = bumpedGasPrice
+		previousTxGasPrice := txOpts.GasPrice
+		// minimum gas price required for the new transaction to ensure it's 10% higher than the previous one.
+		minimumGasPriceBump := utils.CalculateGasPriceBumpBasedOnRetry(previousTxGasPrice, 10, 0, 0)
+		// calculate the suggested bumped gas price based on the current gas price and retry iteration.
+		suggestedBumpedGasPrice := utils.CalculateGasPriceBumpBasedOnRetry(
+			gasPrice,
+			gasBumpPercentage,
+			gasBumpIncrementalPercentage,
+			i,
+		)
+		// check the new gas price is sufficiently bumped.
+		// if the suggested bump does not meet the minimum threshold, use a fallback calculation to slightly increment the previous gas price.
+		if suggestedBumpedGasPrice.Cmp(minimumGasPriceBump) > 0 {
+			txOpts.GasPrice = suggestedBumpedGasPrice
 		} else {
-			// bump the last tx gas price a little by `gasBumpIncrementalPercentage` to replace it.
-			txOpts.GasPrice = utils.CalculateGasPriceBumpBasedOnRetry(txOpts.GasPrice, gasBumpIncrementalPercentage, 0, 0)
+			txOpts.GasPrice = utils.CalculateGasPriceBumpBasedOnRetry(
+				previousTxGasPrice,
+				gasBumpPercentage,
+				gasBumpIncrementalPercentage,
+				i,
+			)
 		}
 
 		if i > 0 {
-			w.logger.Infof("Checking batch state again before sending bumped transaction")
+			w.logger.Infof("Trying to get old sent transaction receipt before sending a new transaction", "merkle root", batchMerkleRoot)
+			for _, tx := range sentTxs {
+				receipt, _ := w.Client.TransactionReceipt(context.Background(), tx.Hash())
+				if receipt != nil {
+					receipt, _ = w.ClientFallback.TransactionReceipt(context.Background(), tx.Hash())
+					if receipt != nil {
+						w.checkIfAggregatorHadToPaidForBatcher(tx, batchIdentifierHash)
+						return receipt, nil
+					}
+				}
+			}
+			w.logger.Infof("Receipts for old transactions not found, will check if the batch state has been responded", "merkle root", batchMerkleRoot)
 			batchState, _ := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
 			if batchState.Responded {
+				w.logger.Infof("Batch state has been already responded", "merkle root", batchMerkleRoot)
 				return nil, nil
 			}
+			w.logger.Infof("Batch state has not been responded yet, will send a new tx", "merkle root", batchMerkleRoot)
+
 			onGasPriceBumped(txOpts.GasPrice)
 		}
 
@@ -121,17 +150,19 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		// Both are required to have some balance, more details inside the function
 		err = w.checkAggAndBatcherHaveEnoughBalance(sim_tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
-			w.logger.Errorf("Permanent error when checking respond to task fee limit, err %v", err)
+			w.logger.Errorf("Permanent error when checking aggregator and batcher balances, err %v", err, "merkle root", batchMerkleRoot)
 			return nil, retry.PermanentError{Inner: err}
 		}
 
-		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice)
+		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice, "merkle root", batchMerkleRoot)
 		real_tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
-			w.logger.Errorf("Respond to task transaction err, %v", err)
+			w.logger.Errorf("Respond to task transaction err, %v", err, "merkle root", batchMerkleRoot)
 			return nil, err
 		}
-		w.logger.Infof("Transaction sent, waiting for receipt")
+		sentTxs = append(sentTxs, real_tx)
+
+		w.logger.Infof("Transaction sent, waiting for receipt", "merkle root", batchMerkleRoot)
 		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, real_tx.Hash(), timeToWaitBeforeBump)
 		if receipt != nil {
 			w.checkIfAggregatorHadToPaidForBatcher(real_tx, batchIdentifierHash)
