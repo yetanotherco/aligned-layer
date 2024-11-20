@@ -64,12 +64,18 @@ func WeiToEth(wei *big.Int) float64 {
 // Simple algorithm to calculate the gasPrice bump based on:
 // the currentGasPrice, a base bump percentage, a retry percentage, and the retry count.
 // Formula: currentGasPrice + (currentGasPrice * (baseBumpPercentage + retryCount * incrementalRetryPercentage) / 100)
-func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercentage uint, retryAttemptPercentage uint, retryCount int) *big.Int {
+func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercentage uint, retryAttemptPercentage uint, bumpPercentageLimit uint, retryCount int) *big.Int {
 	// Incremental percentage increase for each retry attempt (i*retryAttemptPercentage)
 	incrementalRetryPercentage := new(big.Int).Mul(big.NewInt(int64(retryAttemptPercentage)), big.NewInt(int64(retryCount)))
 
 	// Total bump percentage: base bump + incremental retry percentage
 	totalBumpPercentage := new(big.Int).Add(big.NewInt(int64(baseBumpPercentage)), incrementalRetryPercentage)
+
+	// Make sure the percentage to bump isn't higher than the limit
+	bumpPercentageLimitAsBigInt := big.NewInt(int64(bumpPercentageLimit))
+	if totalBumpPercentage.Cmp(bumpPercentageLimitAsBigInt) > 0 {
+		totalBumpPercentage = bumpPercentageLimitAsBigInt
+	}
 
 	// Calculate the bump amount: currentGasPrice * totalBumpPercentage / 100
 	bumpAmount := new(big.Int).Mul(currentGasPrice, totalBumpPercentage)

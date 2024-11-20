@@ -331,6 +331,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 		nonSignerStakesAndSignature,
 		agg.AggregatorConfig.Aggregator.GasBaseBumpPercentage,
 		agg.AggregatorConfig.Aggregator.GasBumpIncrementalPercentage,
+		agg.AggregatorConfig.Aggregator.GasBumpPercentageLimit,
 		agg.AggregatorConfig.Aggregator.TimeToWaitBeforeBump,
 		onGasPriceBumped,
 	)
