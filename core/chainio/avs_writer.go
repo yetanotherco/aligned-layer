@@ -109,6 +109,11 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		}
 
 		if i > 0 {
+			w.logger.Infof("Checking batch state again before sending bumped transaction")
+			batchState, _ := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
+			if batchState.Responded {
+				return nil, nil
+			}
 			onGasPriceBumped(txOpts.GasPrice)
 		}
 
@@ -120,12 +125,6 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			return nil, retry.PermanentError{Inner: err}
 		}
 
-		w.logger.Infof("Checking batch state again before sending bumped transaction")
-		batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
-		if batchState.Responded {
-			return nil, nil
-		}
-
 		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice)
 		real_tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
@@ -133,12 +132,10 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			return nil, err
 		}
 		w.logger.Infof("Transaction sent, waiting for receipt")
-		time.Sleep(timeToWaitBeforeBump)
-
-		batchState, err = w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
-		if batchState.Responded {
+		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, real_tx.Hash(), timeToWaitBeforeBump)
+		if receipt != nil {
 			w.checkIfAggregatorHadToPaidForBatcher(real_tx, batchIdentifierHash)
-			return nil, nil
+			return receipt, nil
 		}
 
 		// if we are here, it means we have reached the receipt waiting timeout
