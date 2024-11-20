@@ -928,3 +928,98 @@ func TestBatchersBalances(t *testing.T) {
 		return
 	}
 }
+
+func TestFilterBatchV3Reader(t *testing.T) {
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	r, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return
+	}
+	batch_func := chainio.FilterBatchV3Reader(r, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+
+	batch_func = chainio.FilterBatchV3Reader(r, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
+	assert.NotNil(t, err)
+	if _, ok := err.(retry.PermanentError); ok {
+		t.Errorf("FilerBatchV3 Emitted non Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connection refused") {
+		t.Errorf("FilterBatchV3 Emitted non Transient error: %s\n", err)
+		return
+	}
+
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	batch_func = chainio.FilterBatchV3Reader(r, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+}
+
+func TestBlockNumberReader(t *testing.T) {
+	// Start anvil
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	r, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return
+	}
+	block_func := chainio.BlockNumberReader(r, context.Background())
+	_, err = block_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+
+	block_func = chainio.BlockNumberReader(r, context.Background())
+	_, err = block_func()
+	assert.NotNil(t, err)
+	if _, ok := err.(retry.PermanentError); ok {
+		t.Errorf("BlockNumber Emitted non Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		t.Errorf("BlockNumber Emitted non Transient error: %s\n", err)
+		return
+	}
+
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	block_func = chainio.BlockNumberReader(r, context.Background())
+	_, err = block_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+}
