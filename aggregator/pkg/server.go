@@ -143,11 +143,9 @@ func (agg *Aggregator) ProcessNewSignature(ctx context.Context, taskIndex uint32
 func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error) {
 	getTaskIndex_func := func() (uint32, error) {
 		agg.taskMutex.Lock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
 		taskIndex, ok := agg.batchesIdxByIdentifierHash[batchIdentifierHash]
+		agg.taskMutex.Unlock()
 		if !ok {
-			agg.taskMutex.Unlock()
-			agg.logger.Info("- Unlocked Resources: Task not found in the internal map")
 			return taskIndex, fmt.Errorf("Task not found in the internal map")
 		} else {
 			return taskIndex, nil
