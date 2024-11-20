@@ -73,6 +73,11 @@ Example:
 make spamoor_send_transactions COUNT=1000 TX_CONSUME_GAS=150000 TX_PER_BLOCK=50 NUM_WALLETS=100 TIP_FEE=2
 ```
 
+## Network status
+
+You can check the network status using Grafana and el_forkmon explorer.
+Run `make ethereum_package_inspect` to see the exposed ports for the enabled services. You can check for example the Grafana panels under `Dashboards -> Ethereum Metrics Exporter Overview` which provides useful information about the network.
+
 ## Changing Network Params
 
 To adjust network params you have to modify `network_params.yaml`.
