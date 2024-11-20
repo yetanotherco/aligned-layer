@@ -38,11 +38,13 @@ impl NonPayingConfig {
 #[derive(Debug, Deserialize)]
 pub struct BatcherConfigFromYaml {
     pub block_interval: u64,
+    pub transaction_wait_timeout: u64,
     pub max_proof_size: usize,
-    pub max_batch_size: usize,
-    pub eth_ws_reconnects: usize,
+    pub max_batch_byte_size: usize,
+    pub max_batch_proof_qty: usize,
     pub pre_verification_is_enabled: bool,
     pub metrics_port: u16,
+    pub telemetry_ip_port_address: String,
     pub non_paying: Option<NonPayingConfigFromYaml>,
 }
 

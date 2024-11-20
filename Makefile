@@ -17,7 +17,8 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib
+	export LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib
+	OPERATOR_FFIS=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib
 endif
 
 ifeq ($(OS),Linux)
@@ -93,6 +94,29 @@ anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
 
+pause_all_aligned_service_manager:
+	@echo "Pausing all contracts..."
+	. contracts/scripts/pause_aligned_service_manager.sh all
+
+unpause_all_aligned_service_manager:
+	@echo "Pausing all contracts..."
+	. contracts/scripts/unpause_aligned_service_manager.sh all
+
+get_paused_state_aligned_service_manager:
+	@echo "Getting paused state of Aligned Service Manager contract..."
+	. contracts/scripts/get_paused_state_aligned_service_manager.sh
+
+pause_batcher_payment_service:
+	@echo "Pausing BatcherPayments contract..."
+	. contracts/scripts/pause_batcher_payment_service.sh
+
+unpause_batcher_payment_service:
+	@echo "Unpausing BatcherPayments contract..."
+	. contracts/scripts/unpause_batcher_payment_service.sh
+
+get_paused_state_batcher_payments_service:
+	@echo "Getting paused state of Batcher Payments Service contract..."
+	. contracts/scripts/get_paused_state_batcher_payments_service.sh
 anvil_upgrade_initialize_disable_verifiers:
 	@echo "Initializing disabled verifiers..."
 	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh
@@ -108,6 +132,10 @@ anvil_start_with_block_time:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
 
+anvil_start_with_block_time_with_more_prefunded_accounts:
+	@echo "Starting Anvil..."
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 -a 2000
+
 _AGGREGATOR_:
 
 aggregator_start:
@@ -119,6 +147,9 @@ aggregator_send_dummy_responses:
 	@echo "Sending dummy responses to Aggregator..."
 	@cd aggregator && go run dummy/submit_task_responses.go
 
+test_go_retries:
+	@cd core/ && \
+	go test -v -timeout 15m
 
 __OPERATOR__:
 
@@ -141,7 +172,7 @@ build_operator_macos:
 
 build_operator_linux:
 	@echo "Building Operator..."
-	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(OPERATOR_FFIS)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
 update_operator:
@@ -168,7 +199,7 @@ bindings:
 	cd contracts && ./generate-go-bindings.sh
 
 test:
-	go test ./...
+	go test ./... -timeout 15m
 
 
 get_delegation_manager_address:
@@ -220,11 +251,15 @@ operator_deposit_into_mock_strategy:
 		--strategy-address $(STRATEGY_ADDRESS) \
 		--amount 100000000000000000
 
+
+AMOUNT ?= 1000
+
 operator_deposit_into_strategy:
 	@echo "Depositing into strategy"
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
-		--amount 1000
+		--strategy-address $(STRATEGY_ADDRESS) \
+		--amount $(AMOUNT)
 
 operator_register_with_aligned_layer:
 	@echo "Registering operator with AlignedLayer"
@@ -253,7 +288,7 @@ verifier_disable:
 
 __BATCHER__:
 
-BURST_SIZE=5
+BURST_SIZE ?= 5
 
 user_fund_payment_service:
 	@. ./scripts/user_fund_payment_service_devnet.sh
@@ -266,6 +301,11 @@ batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
 
 batcher_start_local: user_fund_payment_service
+	@echo "Starting Batcher..."
+	@$(MAKE) run_storage &
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
+
+batcher_start_local_no_fund:
 	@echo "Starting Batcher..."
 	@$(MAKE) run_storage &
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
@@ -336,7 +376,7 @@ batcher_send_risc0_task_no_pub_input:
         --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
@@ -370,7 +410,7 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--repetitions 4 \
+		--repetitions $(BURST_SIZE) \
 		--network $(NETWORK)
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
@@ -417,6 +457,82 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
+
+__TASK_SENDER__:
+BURST_TIME_SECS ?= 3
+
+task_sender_generate_groth16_proofs:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- generate-proofs \
+	--number-of-proofs $(NUMBER_OF_PROOFS) --proof-type groth16 \
+	--dir-to-save-proofs $(CURDIR)/scripts/test_files/task_sender/proofs
+
+# ===== DEVNET =====
+task_sender_fund_wallets_devnet:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- generate-and-fund-wallets \
+	--eth-rpc-url http://localhost:8545 \
+	--network devnet \
+	--amount-to-deposit 1 \
+	--amount-to-deposit-to-aligned 0.9999 \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
+
+task_sender_send_infinite_proofs_devnet:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- send-infinite-proofs \
+	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
+	--eth-rpc-url http://localhost:8545 \
+	--batcher-url ws://localhost:8080 \
+	--network devnet \
+	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
+
+task_sender_test_connections_devnet:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- test-connections \
+	--batcher-url ws://localhost:8080 \
+	--num-senders $(NUM_SENDERS)
+
+# ===== HOLESKY-STAGE =====
+task_sender_generate_and_fund_wallets_holesky_stage:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- generate-and-fund-wallets \
+	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
+	--network holesky-stage \
+	--funding-wallet-private-key $(FUNDING_WALLET_PRIVATE_KEY) \
+	--number-wallets $(NUM_WALLETS) \
+	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) \
+	--amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
+
+task_sender_send_infinite_proofs_holesky_stage:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- send-infinite-proofs \
+	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
+	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
+	--batcher-url wss://stage.batcher.alignedlayer.com  \
+	--network holesky-stage \
+	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
+
+task_sender_test_connections_holesky_stage:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- test-connections \
+	--batcher-url wss://stage.batcher.alignedlayer.com \
+	--num-senders $(NUM_SENDERS)
+
+__UTILS__:
+aligned_get_user_balance_devnet:
+	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
+		--user_addr $(USER_ADDR)
+
+aligned_get_user_balance_holesky:
+	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
+		--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+		--network holesky \
+		--user_addr $(USER_ADDR)
+
+
 __GENERATE_PROOFS__:
  # TODO add a default proving system
 
@@ -452,9 +568,17 @@ deploy_aligned_contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
 
+deploy_pauser_registry: ## Deploy Pauser Registry
+	@echo "Deploying Pauser Registry..."
+	@. contracts/scripts/.env && . contracts/scripts/deploy_pauser_registry.sh
+
 upgrade_aligned_contracts: ## Upgrade Aligned Contracts
 	@echo "Upgrading Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_aligned_contracts.sh
+
+upgrade_pauser_aligned_contracts: ## Upgrade Aligned Contracts with Pauser initialization
+	@echo "Upgrading Aligned Contracts with Pauser initialization..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_pausable_to_service_manager.sh
 
 upgrade_registry_coordinator: ## Upgrade Registry Coordinator
 	@echo "Upgrading Registry Coordinator..."
@@ -662,6 +786,13 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "All Linux FFIs built successfully."
 
 __EXPLORER__:
+
+run_explorer_without_docker_db: explorer_ecto_setup_db
+	@cd explorer/ && \
+		pnpm install --prefix assets && \
+		mix setup && \
+		./start.sh
+
 run_explorer: explorer_run_db explorer_ecto_setup_db
 	@cd explorer/ && \
 		pnpm install --prefix assets && \
@@ -976,11 +1107,11 @@ open_telemetry_prod_start: ## Run open telemetry services with Cassandra using t
 # Elixir API
 telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
-	 	./start.sh	
+	 	./start.sh
 
 telemetry_ecto_migrate: ##
 		@cd telemetry_api && \
-			./ecto_setup_db.sh	
+			./ecto_setup_db.sh
 
 telemetry_build_db:
 	@cd telemetry_api && \
@@ -1005,3 +1136,74 @@ telemetry_dump_db:
 telemetry_create_env:
 	@cd telemetry_api && \
 		cp .env.dev .env
+
+setup_local_aligned_all:
+	tmux kill-session -t aligned_layer || true
+	tmux new-session -d -s aligned_layer
+
+	tmux new-window -t aligned_layer -n anvil
+	tmux send-keys -t aligned_layer 'make anvil_start_with_block_time' C-m
+
+	tmux new-window -t aligned_layer -n aggregator
+	tmux send-keys -t aligned_layer:aggregator 'make aggregator_start' C-m
+
+	tmux new-window -t aligned_layer -n operator
+	tmux send-keys -t aligned_layer:operator 'sleep 5 && make operator_register_and_start' C-m
+
+	tmux new-window -t aligned_layer -n batcher
+	tmux send-keys -t aligned_layer:batcher 'sleep 60 && make batcher_start_local' C-m
+
+	tmux new-window -t aligned_layer -n explorer
+	tmux send-keys -t aligned_layer:explorer 'make explorer_create_env && make explorer_build_db && make run_explorer' C-m
+
+	tmux new-window -t aligned_layer -n telemetry
+	tmux send-keys -t aligned_layer:telemetry 'docker compose -f telemetry-docker-compose.yaml down && make telemetry_create_env && make telemetry_run_db && make open_telemetry_start && make telemetry_start' C-m
+
+__ANSIBLE__: ## ____
+
+ansible_batcher_create_env: ## Create empty variables files for the Batcher deploy
+	@cp -n infra/ansible/playbooks/ini/caddy-batcher.ini.example infra/ansible/playbooks/ini/caddy-batcher.ini
+	@cp -n infra/ansible/playbooks/ini/config-batcher.ini.example infra/ansible/playbooks/ini/config-batcher.ini
+	@cp -n infra/ansible/playbooks/ini/env-batcher.ini.example infra/ansible/playbooks/ini/env-batcher.ini
+	@echo "Config files for the Batcher created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_batcher_deploy"
+
+ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
+	@if [ -z "$(INVENTORY)" ] || [ -z "$(KEYSTORE)" ]; then \
+		echo "Error: Both INVENTORY and KEYSTORE must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/batcher.yaml \
+		-i $(INVENTORY) \
+		-e "keystore_path=$(KEYSTORE)"
+
+ansible_aggregator_create_env: ## Create empty variables files for the Aggregator deploy
+	@cp -n infra/ansible/playbooks/ini/config-aggregator.ini.example infra/ansible/playbooks/ini/config-aggregator.ini
+	@echo "Config files for the Aggregator created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_aggregator_deploy"
+
+ansible_aggregator_deploy: ## Deploy the Operator. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ] || [ -z "$(ECDSA_KEYSTORE)" ] || [ -z "$(BLS_KEYSTORE)" ]; then \
+		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/aggregator.yaml \
+		-i $(INVENTORY) \
+		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
+		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+
+ansible_operator_create_env: ## Create empty variables files for the Operator deploy
+	@cp -n infra/ansible/playbooks/ini/config-operator.ini.example infra/ansible/playbooks/ini/config-operator.ini
+	@cp -n infra/ansible/playbooks/ini/config-register-operator.ini.example infra/ansible/playbooks/ini/config-register-operator.ini
+	@echo "Config files for the Operator created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_operator_deploy"
+
+ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ]  || [ -z "$(ECDSA_KEYSTORE)" ]  || [ -z "$(BLS_KEYSTORE)" ]; then \
+		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/operator.yaml \
+		-i $(INVENTORY) \
+		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
+		-e "bls_keystore_path=$(BLS_KEYSTORE)"

@@ -1,0 +1,12 @@
+- name: Foundry Setup
+  hosts: "{{ host }}"
+
+  tasks:
+
+    - name: Download Foundry
+      shell:
+        cmd: curl -L https://foundry.paradigm.xyz | bash
+
+    - name: Run Foundryup
+      shell:
+        cmd: /home/{{ ansible_user }}/.foundry/bin/foundryup

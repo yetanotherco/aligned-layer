@@ -18,11 +18,14 @@ ecdsa:
 batcher:
   block_interval: 3
   batch_size_interval: 10
+  transaction_wait_timeout: 36000 # 3 blocks
   max_proof_size: 67108864 # 64 MiB
-  max_batch_size: 268435456 # 256 MiB
+  max_batch_byte_size: 268435456 # 256 MiB
+  max_batch_proof_qty: 3000 # 3000 proofs in a batch
   eth_ws_reconnects: 99999999999999
   pre_verification_is_enabled: true
   metrics_port: 9093
+  telemetry_ip_port_address: localhost:4001
   non_paying:
     address: 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 # Anvil address 9
     replacement_private_key: ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 # Anvil address 1
