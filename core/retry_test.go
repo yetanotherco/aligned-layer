@@ -42,7 +42,16 @@ func TestRetryWithData(t *testing.T) {
 		x, err := DummyFunction(43)
 		return &x, err
 	}
-	_, err := retry.RetryWithData(function, 1000, 2, 3, retry.MaxInterval, retry.MaxElapsedTime)
+
+	config := &retry.RetryConfig{
+		InitialInterval:     1000,
+		MaxInterval:         2,
+		MaxElapsedTime:      3,
+		RandomizationFactor: 0,
+		Multiplier:          retry.DefaultMultiplier,
+		MaxNumRetries:       retry.DefaultMaxNumRetries,
+	}
+	_, err := retry.RetryWithData(function, config)
 	if err != nil {
 		t.Errorf("Retry error!: %s", err)
 	}
@@ -53,7 +62,15 @@ func TestRetry(t *testing.T) {
 		_, err := DummyFunction(43)
 		return err
 	}
-	err := retry.Retry(function, 1000, 2, 3, retry.MaxInterval, retry.MaxElapsedTime)
+	config := &retry.RetryConfig{
+		InitialInterval:     1000,
+		MaxInterval:         2,
+		MaxElapsedTime:      3,
+		RandomizationFactor: 0,
+		Multiplier:          retry.DefaultMultiplier,
+		MaxNumRetries:       retry.DefaultMaxNumRetries,
+	}
+	err := retry.Retry(function, config)
 	if err != nil {
 		t.Errorf("Retry error!: %s", err)
 	}
@@ -153,7 +170,8 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 	}
 
 	// Assert Call succeeds when Anvil running
-	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, time.Second*45)
+	receipt_function := utils.WaitForTransactionReceipt(*client, *client, hash, retry.DefaultRetryConfig())
+	_, err = receipt_function()
 	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
 	if !strings.Contains(err.Error(), "not found") {
 		t.Errorf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
@@ -165,7 +183,8 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 		return
 	}
 
-	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, time.Second*45)
+	receipt_function = utils.WaitForTransactionReceipt(*client, *client, hash, retry.DefaultRetryConfig())
+	_, err = receipt_function()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
@@ -181,7 +200,8 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, time.Second*45)
+	receipt_function = utils.WaitForTransactionReceipt(*client, *client, hash, retry.DefaultRetryConfig())
+	_, err = receipt_function()
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "not found") {
 		t.Errorf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
@@ -339,7 +359,8 @@ func TestSubscribeToNewTasksV3(t *testing.T) {
 		t.Errorf("Error setting up Avs Service Bindings: %s\n", err)
 	}
 
-	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	sub_func := chainio.SubscribeToNewTasksV3(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	_, err = sub_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -347,13 +368,14 @@ func TestSubscribeToNewTasksV3(t *testing.T) {
 		return
 	}
 
-	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	sub_func = chainio.SubscribeToNewTasksV3(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	_, err = sub_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("SubscribeToNewTasksV3 Emitted non Transient error: %s\n", err)
 		return
 	}
-	if !strings.Contains(err.Error(), "connect: connection refused") {
+	if !strings.Contains(err.Error(), "connection reset") {
 		t.Errorf("SubscribeToNewTasksV3 Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -363,7 +385,8 @@ func TestSubscribeToNewTasksV3(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	sub_func = chainio.SubscribeToNewTasksV3(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	_, err = sub_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -389,7 +412,8 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		t.Errorf("Error setting up Avs Service Bindings: %s\n", err)
 	}
 
-	_, err = chainio.SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	sub_func := chainio.SubscribeToNewTasksV2(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	_, err = sub_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -397,13 +421,15 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		return
 	}
 
-	_, err = chainio.SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	sub_func = chainio.SubscribeToNewTasksV2(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	_, err = sub_func()
+
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("SubscribeToNewTasksV2 Emitted non Transient error: %s\n", err)
 		return
 	}
-	if !strings.Contains(err.Error(), "connect: connection refused") {
+	if !strings.Contains(err.Error(), "connection reset") {
 		t.Errorf("SubscribeToNewTasksV2 Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -413,7 +439,8 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = chainio.SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	sub_func = chainio.SubscribeToNewTasksV2(&bind.WatchOpts{}, s.ServiceManager, channel, nil)
+	_, err = sub_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -434,7 +461,8 @@ func TestBlockNumber(t *testing.T) {
 	if err != nil {
 		return
 	}
-	_, err = sub.BlockNumberRetryable(context.Background())
+	block_func := chainio.BlockNumber(sub, context.Background())
+	_, err = block_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -442,7 +470,8 @@ func TestBlockNumber(t *testing.T) {
 		return
 	}
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	block_func = chainio.BlockNumber(sub, context.Background())
+	_, err = block_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("BlockNumber Emitted non Transient error: %s\n", err)
@@ -458,7 +487,8 @@ func TestBlockNumber(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = sub.BlockNumberRetryable(context.Background())
+	block_func = chainio.BlockNumber(sub, context.Background())
+	_, err = block_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -478,7 +508,8 @@ func TestFilterBatchV2(t *testing.T) {
 	if err != nil {
 		return
 	}
-	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	batch_func := chainio.FilterBatchV2(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -486,13 +517,14 @@ func TestFilterBatchV2(t *testing.T) {
 		return
 	}
 
-	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	batch_func = chainio.FilterBatchV2(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("FilterBatchV2 Emitted non Transient error: %s\n", err)
 		return
 	}
-	if !strings.Contains(err.Error(), "connect: connection refused") {
+	if !strings.Contains(err.Error(), "connection refused") {
 		t.Errorf("FilterBatchV2 Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -502,7 +534,8 @@ func TestFilterBatchV2(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	batch_func = chainio.FilterBatchV2(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -522,7 +555,8 @@ func TestFilterBatchV3(t *testing.T) {
 	if err != nil {
 		return
 	}
-	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	batch_func := chainio.FilterBatchV3(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -530,13 +564,14 @@ func TestFilterBatchV3(t *testing.T) {
 		return
 	}
 
-	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	batch_func = chainio.FilterBatchV3(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("FilerBatchV3 Emitted non Transient error: %s\n", err)
 		return
 	}
-	if !strings.Contains(err.Error(), "connect: connection refused") {
+	if !strings.Contains(err.Error(), "connection refused") {
 		t.Errorf("FilterBatchV3 Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -546,7 +581,8 @@ func TestFilterBatchV3(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	batch_func = chainio.FilterBatchV3(avsSubscriber, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -568,7 +604,8 @@ func TestBatchesStateSubscriber(t *testing.T) {
 	}
 
 	zero_bytes := [32]byte{}
-	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
+	batch_state_func := chainio.BatchState(avsSubscriber, nil, zero_bytes)
+	_, err = batch_state_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -576,13 +613,14 @@ func TestBatchesStateSubscriber(t *testing.T) {
 		return
 	}
 
-	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
+	batch_state_func = chainio.BatchState(avsSubscriber, nil, zero_bytes)
+	_, err = batch_state_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("BatchesStateSubscriber Emitted non Transient error: %s\n", err)
 		return
 	}
-	if !strings.Contains(err.Error(), "connect: connection refused") {
+	if !strings.Contains(err.Error(), "connection refused") {
 		t.Errorf("BatchesStateSubscriber Emitted non Transient error: %s\n", err)
 		return
 	}
@@ -592,7 +630,8 @@ func TestBatchesStateSubscriber(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes)
+	batch_state_func = chainio.BatchState(avsSubscriber, nil, zero_bytes)
+	_, err = batch_state_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -614,7 +653,8 @@ func TestSubscribeNewHead(t *testing.T) {
 		return
 	}
 
-	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
+	sub_func := chainio.SubscribeNewHead(avsSubscriber, context.Background(), c)
+	_, err = sub_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -622,7 +662,8 @@ func TestSubscribeNewHead(t *testing.T) {
 		return
 	}
 
-	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
+	sub_func = chainio.SubscribeNewHead(avsSubscriber, context.Background(), c)
+	_, err = sub_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("SubscribeNewHead Emitted non Transient error: %s\n", err)
@@ -638,7 +679,8 @@ func TestSubscribeNewHead(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c)
+	sub_func = chainio.SubscribeNewHead(avsSubscriber, context.Background(), c)
+	_, err = sub_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -691,7 +733,8 @@ func TestRespondToTaskV2(t *testing.T) {
 	zero_bytes := [32]byte{}
 
 	// NOTE: With zero bytes the tx reverts
-	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	resp_func := chainio.RespondToTaskV2(w, &txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	_, err = resp_func()
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "execution reverted") {
 		t.Errorf("RespondToTaskV2 did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
@@ -701,7 +744,8 @@ func TestRespondToTaskV2(t *testing.T) {
 		t.Errorf("Error killing process: %v\n", err)
 	}
 
-	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	resp_func = chainio.RespondToTaskV2(w, &txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	_, err = resp_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(*backoff.PermanentError); ok {
 		t.Errorf("RespondToTaskV2 Emitted non-Transient error: %s\n", err)
@@ -716,7 +760,8 @@ func TestRespondToTaskV2(t *testing.T) {
 	}
 
 	// NOTE: With zero bytes the tx reverts
-	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	resp_func = chainio.RespondToTaskV2(w, &txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature)
+	_, err = resp_func()
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "execution reverted") {
 		t.Errorf("RespondToTaskV2 did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
@@ -744,7 +789,8 @@ func TestBatchesStateWriter(t *testing.T) {
 	var bytes [32]byte
 	num.FillBytes(bytes[:])
 
-	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
+	state_func := chainio.BatchesState(avsWriter, &bind.CallOpts{}, bytes)
+	_, err = state_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -752,7 +798,8 @@ func TestBatchesStateWriter(t *testing.T) {
 		return
 	}
 
-	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
+	state_func = chainio.BatchesState(avsWriter, &bind.CallOpts{}, bytes)
+	_, err = state_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("BatchesStateWriter Emitted non-Transient error: %s\n", err)
@@ -768,7 +815,8 @@ func TestBatchesStateWriter(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes)
+	state_func = chainio.BatchesState(avsWriter, &bind.CallOpts{}, bytes)
+	_, err = state_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -778,7 +826,7 @@ func TestBatchesStateWriter(t *testing.T) {
 }
 
 func TestBalanceAt(t *testing.T) {
-	cmd, _, err := SetupAnvil(8545)
+	cmd, client, err := SetupAnvil(8545)
 	if err != nil {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
@@ -789,9 +837,15 @@ func TestBalanceAt(t *testing.T) {
 		return
 	}
 	aggregator_address := common.HexToAddress("0x0")
-	blockHeight := big.NewInt(22)
+	// Fetch the latest block number
+	blockNumberUint64, err := client.BlockNumber(context.Background())
+	blockNumber := new(big.Int).SetUint64(blockNumberUint64)
+	if err != nil {
+		t.Errorf("Error retrieving Anvil Block Number: %v\n", err)
+	}
 
-	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
+	balance_func := chainio.BalanceAt(avsWriter, context.Background(), aggregator_address, blockNumber)
+	_, err = balance_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -799,7 +853,8 @@ func TestBalanceAt(t *testing.T) {
 		return
 	}
 
-	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
+	balance_func = chainio.BalanceAt(avsWriter, context.Background(), aggregator_address, blockNumber)
+	_, err = balance_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("BalanceAt Emitted non-Transient error: %s\n", err)
@@ -815,7 +870,8 @@ func TestBalanceAt(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight)
+	balance_func = chainio.BalanceAt(avsWriter, context.Background(), aggregator_address, blockNumber)
+	_, err = balance_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -837,7 +893,8 @@ func TestBatchersBalances(t *testing.T) {
 	}
 	senderAddress := common.HexToAddress("0x0")
 
-	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
+	batcher_func := chainio.BatcherBalances(avsWriter, &bind.CallOpts{}, senderAddress)
+	_, err = batcher_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -845,7 +902,8 @@ func TestBatchersBalances(t *testing.T) {
 		return
 	}
 
-	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
+	batcher_func = chainio.BatcherBalances(avsWriter, &bind.CallOpts{}, senderAddress)
+	_, err = batcher_func()
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("BatchersBalances Emitted non-Transient error: %s\n", err)
@@ -861,7 +919,147 @@ func TestBatchersBalances(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
+	batcher_func = chainio.BatcherBalances(avsWriter, &bind.CallOpts{}, senderAddress)
+	_, err = batcher_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+}
+
+func TestFilterNewBatchV3(t *testing.T) {
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return
+	}
+	filter_func := chainio.FilterNewBatchV3(avsReader, &bind.FilterOpts{Start: 1, End: nil, Context: context.Background()}, nil)
+	_, err = filter_func()
+	assert.Nil(t, err)
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+	filter_func = chainio.FilterNewBatchV3(avsReader, &bind.FilterOpts{Start: 1, End: nil, Context: context.Background()}, nil)
+	_, err = filter_func()
+	assert.NotNil(t, err)
+	if _, ok := err.(retry.PermanentError); ok {
+		t.Errorf("BatchersBalances Emitted non-Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connection reset") {
+		t.Errorf("BatchersBalances did not return expected error: %s\n", err)
+		return
+	}
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+	filter_func = chainio.FilterNewBatchV3(avsReader, &bind.FilterOpts{Start: 1, End: nil, Context: context.Background()}, nil)
+	_, err = filter_func()
+	assert.Nil(t, err)
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+}
+func TestBatchesStateReader(t *testing.T) {
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return
+	}
+	num := big.NewInt(6)
+
+	var bytes [32]byte
+	num.FillBytes(bytes[:])
+
+	state_func := chainio.ReaderBatchesState(avsReader, &bind.CallOpts{}, bytes)
+	_, err = state_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("error killing process: %v\n", err)
+		return
+	}
+
+	state_func = chainio.ReaderBatchesState(avsReader, &bind.CallOpts{}, bytes)
+	_, err = state_func()
+	assert.NotNil(t, err)
+	if _, ok := err.(retry.PermanentError); ok {
+		t.Errorf("BatchesStateReader Emitted non-Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connection reset") {
+		t.Errorf("BatchesStateReader did not contain expected error: %s\n", err)
+		return
+	}
+
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	state_func = chainio.ReaderBatchesState(avsReader, &bind.CallOpts{}, bytes)
+	_, err = state_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+}
+
+func TestReaderFilterBatchV3(t *testing.T) {
+	cmd, _, err := SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return
+	}
+	batch_func := chainio.FilterNewBatchV3(avsReader, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
+	assert.Nil(t, err)
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+
+	batch_func = chainio.FilterNewBatchV3(avsReader, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
+	assert.NotNil(t, err)
+	if _, ok := err.(retry.PermanentError); ok {
+		t.Errorf("FilerBatchV3 Emitted non Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connection reset") {
+		t.Errorf("FilterBatchV3 Emitted non Transient error: %s\n", err)
+		return
+	}
+
+	cmd, _, err = SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	batch_func = chainio.FilterNewBatchV3(avsReader, &bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil)
+	_, err = batch_func()
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {

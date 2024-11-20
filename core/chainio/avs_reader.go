@@ -77,7 +77,7 @@ func (r *AvsReader) DisabledVerifiers() (*big.Int, error) {
 
 // Returns all the "NewBatchV3" logs that have not been responded starting from the given block number
 func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
-	logs, err := r.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
+	logs, err := r.FilterNewBatchV3Retryable(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
 
 	if err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager
 		// now check if its finalized or not before appending
 		batchIdentifier := append(task.BatchMerkleRoot[:], task.SenderAddress[:]...)
 		batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
-		state, err := r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
+		state, err := r.BatchesStateRetryable(nil, batchIdentifierHash)
 
 		if err != nil {
 			return nil, err
