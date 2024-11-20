@@ -141,7 +141,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			return nil, err
 		}
 
-		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, realTx.Hash(), timeToWaitBeforeBump)
+		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, realTx.Hash(), waitForTxConfig)
 		if receipt != nil {
 			w.checkIfAggregatorHadToPaidForBatcher(realTx, batchIdentifierHash)
 			return receipt, nil
