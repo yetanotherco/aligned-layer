@@ -278,9 +278,14 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]), "merkleRoot", "0x"+hex.EncodeToString(batchData.BatchMerkleRoot[:]))
-	_, err = agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
+	receipt, err := agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
 	if err == nil {
-		agg.telemetry.TaskSentToEthereum(batchData.BatchMerkleRoot, "0x32432")
+		// In some cases, we may fail to retrieve the receipt for the transaction.
+		txHash := "Unknown"
+		if receipt != nil {
+			txHash = receipt.TxHash.String()
+		}
+		agg.telemetry.TaskSentToEthereum(batchData.BatchMerkleRoot, txHash)
 		agg.logger.Info("Aggregator successfully responded to task",
 			"taskIndex", blsAggServiceResp.TaskIndex,
 			"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
