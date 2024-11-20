@@ -2,6 +2,7 @@ package chainio
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"time"
@@ -95,6 +96,8 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 	var sentTxs []*types.Transaction
 
+	batchMerkleRootHashString := hex.EncodeToString(batchMerkleRoot[:])
+
 	respondToTaskV2Func := func() (*types.Receipt, error) {
 		gasPrice, err := utils.GetGasPriceRetryable(w.Client, w.ClientFallback)
 		if err != nil {
@@ -124,7 +127,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		}
 
 		if i > 0 {
-			w.logger.Infof("Trying to get old sent transaction receipt before sending a new transaction", "merkle root", batchMerkleRoot)
+			w.logger.Infof("Trying to get old sent transaction receipt before sending a new transaction", "merkle root", batchMerkleRootHashString)
 			for _, tx := range sentTxs {
 				receipt, _ := w.Client.TransactionReceipt(context.Background(), tx.Hash())
 				if receipt != nil {
@@ -135,13 +138,13 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 					}
 				}
 			}
-			w.logger.Infof("Receipts for old transactions not found, will check if the batch state has been responded", "merkle root", batchMerkleRoot)
+			w.logger.Infof("Receipts for old transactions not found, will check if the batch state has been responded", "merkle root", batchMerkleRootHashString)
 			batchState, _ := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
 			if batchState.Responded {
-				w.logger.Infof("Batch state has been already responded", "merkle root", batchMerkleRoot)
+				w.logger.Infof("Batch state has been already responded", "merkle root", batchMerkleRootHashString)
 				return nil, nil
 			}
-			w.logger.Infof("Batch state has not been responded yet, will send a new tx", "merkle root", batchMerkleRoot)
+			w.logger.Infof("Batch state has not been responded yet, will send a new tx", "merkle root", batchMerkleRootHashString)
 
 			onGasPriceBumped(txOpts.GasPrice)
 		}
@@ -150,19 +153,19 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		// Both are required to have some balance, more details inside the function
 		err = w.checkAggAndBatcherHaveEnoughBalance(sim_tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
-			w.logger.Errorf("Permanent error when checking aggregator and batcher balances, err %v", err, "merkle root", batchMerkleRoot)
+			w.logger.Errorf("Permanent error when checking aggregator and batcher balances, err %v", err, "merkle root", batchMerkleRootHashString)
 			return nil, retry.PermanentError{Inner: err}
 		}
 
-		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice, "merkle root", batchMerkleRoot)
+		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice, "merkle root", batchMerkleRootHashString)
 		real_tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
-			w.logger.Errorf("Respond to task transaction err, %v", err, "merkle root", batchMerkleRoot)
+			w.logger.Errorf("Respond to task transaction err, %v", err, "merkle root", batchMerkleRootHashString)
 			return nil, err
 		}
 		sentTxs = append(sentTxs, real_tx)
 
-		w.logger.Infof("Transaction sent, waiting for receipt", "merkle root", batchMerkleRoot)
+		w.logger.Infof("Transaction sent, waiting for receipt", "merkle root", batchMerkleRootHashString)
 		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, real_tx.Hash(), timeToWaitBeforeBump)
 		if receipt != nil {
 			w.checkIfAggregatorHadToPaidForBatcher(real_tx, batchIdentifierHash)
@@ -173,7 +176,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		// we increment the i here to add an incremental percentage to increase the odds of being included in the next blocks
 		i++
 
-		w.logger.Infof("RespondToTask receipt waiting timeout has passed, will try again...", "merkle_root", batchMerkleRoot)
+		w.logger.Infof("RespondToTask receipt waiting timeout has passed, will try again...", "merkle_root", batchMerkleRootHashString)
 		if err != nil {
 			return nil, err
 		}
