@@ -1236,10 +1236,16 @@ operator_register_start_ethereum_package:
 
 
 install_spamoor: ## Instal spamoor to spam transactions
-	git clone https://github.com/ethpandaops/spamoor.git
-	cd spamoor && make
-	mv spamoor/bin/spamoor $(HOME)/.local/bin
-	rm -rf spamoor
+	@echo "Installing spamoor..."
+	@git clone https://github.com/ethpandaops/spamoor.git
+	@cd spamoor && make
+	@mv spamoor/bin/spamoor $(HOME)/.local/bin
+	@rm -rf spamoor
+	@echo "======================================================================="
+	@echo "Installation complete! Run 'spamoor --help' to verify the installation."
+	@echo "If 'spamoor' is not recognized, make sure it's in your PATH by adding the following line to your shell configuration:"
+	@echo "export PATH=\$$PATH:\$$HOME/.local/bin"
+	@echo "======================================================================="
 
 # Spamoor funding wallet
 SPAMOOR_PRIVATE_KEY?=dbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97
