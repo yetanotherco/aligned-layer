@@ -32,7 +32,7 @@ func RequestBatch(req *http.Request, ctx context.Context) func() (*http.Response
 
 func RequestBatchRetryable(ctx context.Context, logger logging.Logger, req *http.Request) (*http.Response, error) {
 
-	return retry.RetryWithData(RequestBatch(req, ctx), retry.DefaultRetryConfig())
+	return retry.RetryWithData(RequestBatch(req, ctx), retry.EthCallRetryConfig())
 }
 
 func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte, maxRetries int, retryDelay time.Duration) ([]VerificationData, error) {
