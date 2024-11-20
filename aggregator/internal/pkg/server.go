@@ -56,8 +56,8 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		agg.taskMutex.Lock()
 		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
 		taskIndex, ok = agg.batchesIdxByIdentifierHash[signedTaskResponse.BatchIdentifierHash]
+		agg.taskMutex.Unlock()
 		if !ok {
-			agg.taskMutex.Unlock()
 			agg.logger.Info("- Unlocked Resources: Task not found in the internal map")
 			time.Sleep(waitForEventSleepSeconds)
 		} else {
@@ -108,10 +108,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		agg.logger.Info("Bls context finished correctly")
 		*reply = 0
 	}
-
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Task response processing finished")
-	agg.taskMutex.Unlock()
-
 	return nil
 }
 
