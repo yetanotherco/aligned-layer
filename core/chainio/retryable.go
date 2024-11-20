@@ -299,3 +299,47 @@ func SubscribeToNewTasksV3Retryable(
 ) (event.Subscription, error) {
 	return retry.RetryWithData(SubscribeToNewTasksV3(opts, serviceManager, newTaskCreatedChan, batchMerkleRoot), retry.EthCallRetryConfig())
 }
+
+func FilterBatchV3Reader(r *AvsReader, opts *bind.FilterOpts, batchMerkleRoot [][32]byte) func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
+	filterNewBatchV3_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
+		logs, err := r.AvsContractBindings.ServiceManager.FilterNewBatchV3(opts, batchMerkleRoot)
+		if err != nil {
+			logs, err = r.AvsContractBindings.ServiceManagerFallback.FilterNewBatchV3(opts, batchMerkleRoot)
+		}
+		return logs, err
+	}
+	return filterNewBatchV3_func
+}
+
+/*
+FilterBatchV3Retryable
+Get NewBatchV3 logs from the AVS contract.
+- All errors are considered Transient Errors
+- Retry times (3 retries): 1 sec, 2 sec, 4 sec.
+*/
+func (r *AvsReader) FilterBatchV3Retryable(opts *bind.FilterOpts, batchMerkleRoot [][32]byte) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
+	return retry.RetryWithData(FilterBatchV3Reader(r, opts, batchMerkleRoot), retry.EthCallRetryConfig())
+}
+
+func BlockNumberReader(r *AvsReader, ctx context.Context) func() (uint64, error) {
+	latestBlock_func := func() (uint64, error) {
+		// Try with main connection
+		latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(ctx)
+		if err != nil {
+			// If error try with fallback connection
+			latestBlock, err = r.AvsContractBindings.ethClientFallback.BlockNumber(ctx)
+		}
+		return latestBlock, err
+	}
+	return latestBlock_func
+}
+
+/*
+BlockNumberRetryable
+Get the latest block number from Ethereum
+- All errors are considered Transient Errors
+- Retry times (3 retries): 1 sec, 2 sec, 4 sec.
+*/
+func (r *AvsReader) BlockNumberRetryable(ctx context.Context) (uint64, error) {
+	return retry.RetryWithData(BlockNumberReader(r, ctx), retry.EthCallRetryConfig())
+}

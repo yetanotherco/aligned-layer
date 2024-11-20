@@ -111,12 +111,9 @@ func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager
 
 // This function is a helper to get a task hash of aproximately nBlocksOld blocks ago
 func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64, interval uint64) (*[32]byte, error) {
-	latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(context.Background())
+	latestBlock, err := r.BlockNumberRetryable(context.Background())
 	if err != nil {
-		latestBlock, err = r.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
-		if err != nil {
-			return nil, fmt.Errorf("failed to get latest block number: %w", err)
-		}
+		return nil, fmt.Errorf("failed to get latest block number: %w", err)
 	}
 
 	if latestBlock < nBlocksOld {
@@ -129,7 +126,7 @@ func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64, interval uint64) (*[32]byt
 	toBlock := latestBlock - nBlocksOld
 	fromBlock = toBlock - interval
 
-	logs, err := r.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: &toBlock, Context: context.Background()}, nil)
+	logs, err := r.FilterBatchV3Retryable(&bind.FilterOpts{Start: fromBlock, End: &toBlock, Context: context.Background()}, nil)
 	if err != nil {
 		return nil, err
 	}
