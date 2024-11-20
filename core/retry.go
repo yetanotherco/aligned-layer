@@ -137,7 +137,7 @@ func RetryWithData[T any](functionToRetry func() (T, error), config *RetryConfig
 					if panic_err, ok := r.(error); ok {
 						err = panic_err
 					} else {
-						err = fmt.Errorf("panicked: %v", panic_err)
+						err = fmt.Errorf("RetryWithData panicked: %v", panic_err)
 					}
 				}
 			}()
@@ -184,7 +184,7 @@ func Retry(functionToRetry func() error, config *RetryConfig) error {
 					if panic_err, ok := r.(error); ok {
 						err = panic_err
 					} else {
-						err = fmt.Errorf("panicked: %v", panic_err)
+						err = fmt.Errorf("Retry panicked: %v", panic_err)
 					}
 				}
 			}()

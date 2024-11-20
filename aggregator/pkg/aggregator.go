@@ -225,6 +225,13 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 const MaxSentTxRetries = 5
 
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
+	defer func() {
+		err := recover() //stops panics
+		if err != nil {
+			agg.logger.Error("handleBlsAggServiceResponse recovered from panic", "err", err)
+		}
+	}()
+
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching task data")
 	batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
@@ -277,10 +284,15 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	}
 
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
-		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]), "merkleRoot", "0x"+hex.EncodeToString(batchData.BatchMerkleRoot[:]))
 	receipt, err := agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
 	if err == nil {
-		agg.telemetry.TaskSentToEthereum(batchData.BatchMerkleRoot, receipt.TxHash.String())
+		// In some cases, we may fail to retrieve the receipt for the transaction.
+		txHash := "Unknown"
+		if receipt != nil {
+			txHash = receipt.TxHash.String()
+		}
+		agg.telemetry.TaskSentToEthereum(batchData.BatchMerkleRoot, txHash)
 		agg.logger.Info("Aggregator successfully responded to task",
 			"taskIndex", blsAggServiceResp.TaskIndex,
 			"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
@@ -432,7 +444,7 @@ func (agg *Aggregator) ClearTasksFromMaps() {
 	defer func() {
 		err := recover() //stops panics
 		if err != nil {
-			agg.logger.Error("Recovered from panic", "err", err)
+			agg.logger.Error("ClearTasksFromMaps Recovered from panic", "err", err)
 		}
 	}()
 

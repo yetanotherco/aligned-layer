@@ -23,6 +23,7 @@ func RespondToTaskV2Func(w *AvsWriter, opts *bind.TransactOpts, batchMerkleRoot 
 			// If error try with fallback
 			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		}
+
 		return tx, err
 	}
 	return respondToTaskV2_func
