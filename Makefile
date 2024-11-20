@@ -1213,13 +1213,10 @@ __ETHEREUM_PACKAGE__:  ## ____
 ethereum_package_start: ## Starts the ethereum_package environment
 	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package --args-file network_params.yaml
 
-ethereum_package_stop: ## Starts the ethereum_package environment
-	kurtosis enclave stop aligned
-
 ethereum_package_inspect: ## Prints detailed information about the net
 	kurtosis enclave inspect aligned
 
-ethereum_package_rm: ## Removes the ethereum_package environment and used resources
+ethereum_package_rm: ## Stops and removes the ethereum_package environment and used resources
 	kurtosis enclave rm aligned -f
 
 batcher_start_ethereum_package: user_fund_payment_service

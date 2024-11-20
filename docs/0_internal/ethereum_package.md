@@ -19,17 +19,10 @@ make ethereum_package_inspect
 
 This will show you all the containers running and their respective ports. The most interesting ones are grafana and el_forkmon, they will provide you with metrics to see the gasPrice, gasUsed, txPerBlock, and others that will be in our interest to create chaos on the network.
 
-To restart the network run the following:
+To stop the network run the following:
 
 ```bash
 make ethereum_package_rm
-make ethereum_package_start
-```
-
-To temporarily stop the network run:
-
-```bash
-make ethereum_package_stop
 ```
 
 To start the batcher run:
