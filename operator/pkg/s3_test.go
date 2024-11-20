@@ -2,7 +2,6 @@ package operator
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -26,7 +25,11 @@ func EchoHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
-	w.Write(body)
+	_, err = w.Write(body)
+	if err != nil {
+		http.Error(w, "Error writing body", http.StatusBadRequest)
+		return
+	}
 }
 
 // Note the httptest API requires that for restarting a server its url is empty. Given ours the default address is in use.
@@ -34,11 +37,7 @@ func EchoHandler(w http.ResponseWriter, r *http.Request) {
 // NOTE: httptest panic's if the url of the server starts without being set to "" ref: https://cs.opensource.google/go/go/+/refs/tags/go1.23.3:src/net/http/httptest/server.go;l=127
 func CreateTestServer() *httptest.Server {
 	// To Simulate Retrieving information from S3 we create a mock http server.
-	expected := "dummy data"
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, expected)
-	})
-	// create a listener with the desired port.
+	handler := http.HandlerFunc(EchoHandler) // create a listener with the desired port.
 	l, err := net.Listen("tcp", "127.0.0.1:7878")
 	if err != nil {
 		log.Fatal(err)
