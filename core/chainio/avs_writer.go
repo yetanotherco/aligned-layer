@@ -93,6 +93,17 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts.NoSend = false
 	i := 0
 
+	// Set Retry config for RespondToTaskV2
+	respondToTaskV2Config := retry.DefaultRetryConfig()
+	respondToTaskV2Config.MaxNumRetries = 0
+	respondToTaskV2Config.MaxElapsedTime = 0
+
+	// Set Retry config for WaitForTxRetryable
+	waitForTxConfig := retry.DefaultRetryConfig()
+	waitForTxConfig.MaxInterval = 2 * time.Second
+	waitForTxConfig.MaxNumRetries = 0
+	waitForTxConfig.MaxElapsedTime = timeToWaitBeforeBump
+
 	respondToTaskV2Func := func() (*types.Receipt, error) {
 		gasPrice, err := utils.GetGasPriceRetryable(w.Client, w.ClientFallback)
 		if err != nil {
@@ -126,7 +137,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			return nil, err
 		}
 
-		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, tx.Hash(), timeToWaitBeforeBump)
+		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, tx.Hash(), waitForTxConfig)
 		if receipt != nil {
 			w.checkIfAggregatorHadToPaidForBatcher(tx, batchIdentifierHash)
 			return receipt, nil
@@ -143,7 +154,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		return nil, fmt.Errorf("transaction failed")
 	}
 
-	return retry.RetryWithData(respondToTaskV2Func, retry.MinDelay, retry.RetryFactor, 0, retry.MaxInterval, 0)
+	return retry.RetryWithData(respondToTaskV2Func, respondToTaskV2Config)
 }
 
 // Calculates the transaction cost from the receipt and compares it with the batcher respondToTaskFeeLimit

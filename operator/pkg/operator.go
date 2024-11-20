@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
@@ -372,7 +373,7 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 	var wg sync.WaitGroup
 	wg.Add(verificationDataBatchLen)
 
-	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
+	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiersRetryable(&bind.CallOpts{})
 	if err != nil {
 		o.Logger.Errorf("Could not check verifiers status: %s", err)
 		results <- false
@@ -452,7 +453,7 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	results := make(chan bool, verificationDataBatchLen)
 	var wg sync.WaitGroup
 	wg.Add(verificationDataBatchLen)
-	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
+	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiersRetryable(&bind.CallOpts{})
 	if err != nil {
 		o.Logger.Errorf("Could not check verifiers status: %s", err)
 		results <- false
