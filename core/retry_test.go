@@ -214,6 +214,58 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 	}
 }
 
+func TestGetGasPrice(t *testing.T) {
+
+	cmd, client, err := SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	// Assert Call succeeds when Anvil running
+	receipt_function := utils.GetGasPrice(*client, *client)
+	_, err = receipt_function()
+	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
+		return
+	}
+
+	if err = cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+
+	receipt_function = utils.GetGasPrice(*client, *client)
+	_, err = receipt_function()
+	assert.NotNil(t, err)
+	if _, ok := err.(retry.PermanentError); ok {
+		t.Errorf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
+	if !strings.Contains(err.Error(), "connect: connection refused") {
+		t.Errorf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
+		return
+	}
+
+	cmd, client, err = SetupAnvil(8545)
+	if err != nil {
+		t.Errorf("Error setting up Anvil: %s\n", err)
+	}
+
+	receipt_function = utils.GetGasPrice(*client, *client)
+	_, err = receipt_function()
+	assert.NotNil(t, err)
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
+		return
+	}
+
+	if err := cmd.Process.Kill(); err != nil {
+		t.Errorf("Error killing process: %v\n", err)
+		return
+	}
+}
+
 // NOTE: The following tests involving starting the aggregator panic after the connection to anvil is cut crashing the test runner.
 // The originates within the eigen-sdk and as of 8/11/24 is currently working to be fixed.
 
