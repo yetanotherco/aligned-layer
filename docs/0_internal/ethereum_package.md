@@ -22,7 +22,7 @@ This will show you all the containers running and their respective ports. The mo
 To restart the network run the following:
 
 ```bash
-make ethereum_package rm
+make ethereum_package_rm
 make ethereum_package_start
 ```
 
