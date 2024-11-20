@@ -99,9 +99,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		*reply = 0
 	}
 
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Task response processing finished")
-	agg.taskMutex.Unlock()
-
 	return nil
 }
 
