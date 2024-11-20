@@ -106,13 +106,13 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 	return nil
 }
 
-func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error) {
+func GetTaskIndexFunc(agg *Aggregator, batchIdentifierHash [32]byte) func() (uint32, error) {
 	getTaskIndex_func := func() (uint32, error) {
 		agg.taskMutex.Lock()
 		taskIndex, ok := agg.batchesIdxByIdentifierHash[batchIdentifierHash]
 		agg.taskMutex.Unlock()
 		if !ok {
-			return taskIndex, fmt.Errorf("Task not found in the internal map")
+			return taskIndex, fmt.Errorf("task not found in the internal map")
 		} else {
 			return taskIndex, nil
 		}
