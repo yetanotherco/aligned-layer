@@ -57,7 +57,7 @@ To spam transactions install spamoor:
 make install_spamoor
 ```
 
-and run:
+and run the following make targets:
 
 ```bash
 make spamoor_send_transactions  \\
@@ -68,7 +68,7 @@ make spamoor_send_transactions  \\
   TIP_FEE=<TIP_FEE_IN_GWEI>
 ```
 
-Example:
+For Example:
 ```bash
 make spamoor_send_transactions COUNT=1000 TX_CONSUME_GAS=150000 TX_PER_BLOCK=50 NUM_WALLETS=100 TIP_FEE=2
 ```
