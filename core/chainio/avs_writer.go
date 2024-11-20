@@ -130,7 +130,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			w.logger.Infof("Trying to get old sent transaction receipt before sending a new transaction", "merkle root", batchMerkleRootHashString)
 			for _, tx := range sentTxs {
 				receipt, _ := w.Client.TransactionReceipt(context.Background(), tx.Hash())
-				if receipt != nil {
+				if receipt == nil {
 					receipt, _ = w.ClientFallback.TransactionReceipt(context.Background(), tx.Hash())
 					if receipt != nil {
 						w.checkIfAggregatorHadToPaidForBatcher(tx, batchIdentifierHash)
