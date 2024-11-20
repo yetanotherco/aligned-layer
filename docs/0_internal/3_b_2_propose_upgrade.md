@@ -66,4 +66,62 @@ To propose the upgrade transaction you can follow the steps below:
     >
     > Make sure the `batcherPaymentServiceImplementation` address is the same as the one you deployed in this guide. 
 
-3. 
+3. Verify the contract bytecode running the following command:
+
+   ```
+   TODO
+   ```
+   
+4. Once the calldata and the proposed upgrade are validated, you can create the upgrade transaction on [Safe](https://app.safe.global/home)
+
+5. Click on `New transaction` -> `Transaction Builder`
+   
+   ![New transaction](./images/3_b_2_multisig_1.png)
+
+   ![Transaction Builder](./images/3_b_2_multisig_2.png)
+
+6. Enable `Custom data`
+
+7. Get the `ProxyAdmin` address, and paste it on `Enter Address or ENS Name`
+
+   To get the `ProxyAdmin` address the following command will copy the address to the clipboard:
+
+    ```bash
+    # SEPOLIA
+    jq -r ".addresses.alignedLayerProxyAdmin" contracts/script/output/sepolia/alignedlayer_deployment_output.json | pbcopy
+    ```
+
+    ```bash
+   # HOLESKY
+   jq -r ".addresses.alignedLayerProxyAdmin" contracts/script/output/holesky/alignedlayer_deployment_output.json | pbcopy
+    ```
+   
+    ```bash
+    # MAINNET
+    jq -r ".addresses.alignedLayerProxyAdmin" contracts/script/output/mainnet/alignedlayer_deployment_output.json | pbcopy
+    ```
+   
+   >    [!NOTE]
+   > 
+   >    Make sure to set the path to the correct deployment output file.
+
+8. If the ABI is not automatically filled, get the ABI and paste it on the corresponding box:
+
+    ```bash
+    jq ".abi" contracts/out/ProxyAdmin.sol/ProxyAdmin.json | pbcopy
+    ```
+
+    ![Enter Address or ENS Name](./images/3_b_2_multisig_3.png)
+
+    ![Enter ABI](./images/3_b_2_multisig_4.png)
+
+9. Set the `ETH Value` as 0
+
+    ![ETH Value](./images/3_b_2_multisig_5.png)
+
+10. Paste the calldata obtained from the deployment of the new implementation on the `Data` box and click on `+ Add new transaction`.
+
+    ![Data](./images/3_b_2_multisig_6.png)
+
+
+
