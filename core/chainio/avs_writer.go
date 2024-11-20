@@ -18,6 +18,7 @@ import (
 	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
+	"github.com/yetanotherco/aligned_layer/metrics"
 )
 
 type AvsWriter struct {
@@ -27,9 +28,10 @@ type AvsWriter struct {
 	Signer              signer.Signer
 	Client              eth.InstrumentedClient
 	ClientFallback      eth.InstrumentedClient
+	metrics             *metrics.Metrics
 }
 
-func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig) (*AvsWriter, error) {
+func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig, metrics *metrics.Metrics) (*AvsWriter, error) {
 
 	buildAllConfig := clients.BuildAllConfig{
 		EthHttpUrl:                 baseConfig.EthRpcUrl,
@@ -69,6 +71,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 		Signer:              privateKeySigner,
 		Client:              baseConfig.EthRpcClient,
 		ClientFallback:      baseConfig.EthRpcClientFallback,
+		metrics:             metrics,
 	}, nil
 }
 
@@ -78,20 +81,15 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, timeToWaitBeforeBump time.Duration, onGasPriceBumped func(*big.Int)) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
-	tx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-	if err != nil {
-		return nil, err
-	}
-
-	err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
+	simTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
 		return nil, err
 	}
 
 	// Set the nonce, as we might have to replace the transaction with a higher gas price
-	txNonce := big.NewInt(int64(tx.Nonce()))
+	txNonce := big.NewInt(int64(simTx.Nonce()))
 	txOpts.Nonce = txNonce
-	txOpts.GasPrice = tx.GasPrice()
+	txOpts.GasPrice = simTx.GasPrice()
 	txOpts.NoSend = false
 	i := 0
 
@@ -114,20 +112,23 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			onGasPriceBumped(txOpts.GasPrice)
 		}
 
-		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
+		// We compare both Aggregator funds and Batcher balance in Aligned against respondToTaskFeeLimit
+		// Both are required to have some balance, more details inside the function
+		err = w.checkAggAndBatcherHaveEnoughBalance(simTx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
 			return nil, retry.PermanentError{Inner: err}
 		}
 
 		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice)
 
-		tx, err = w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		realTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
 			return nil, err
 		}
 
-		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, tx.Hash(), timeToWaitBeforeBump)
+		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, realTx.Hash(), timeToWaitBeforeBump)
 		if receipt != nil {
+			w.checkIfAggregatorHadToPaidForBatcher(realTx, batchIdentifierHash)
 			return receipt, nil
 		}
 
@@ -145,29 +146,45 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	return retry.RetryWithData(respondToTaskV2Func, retry.MinDelay, retry.RetryFactor, 0, retry.MaxInterval, 0)
 }
 
-func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
-	aggregatorAddress := txOpts.From
-	simulatedCost := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
-	w.logger.Info("Simulated cost", "cost", simulatedCost)
-
-	// Get RespondToTaskFeeLimit
+// Calculates the transaction cost from the receipt and compares it with the batcher respondToTaskFeeLimit
+// if the tx cost was higher, then it means the aggregator has paid the difference for the batcher (txCost - respondToTaskFeeLimit) and so metrics are updated accordingly.
+// otherwise nothing is done.
+func (w *AvsWriter) checkIfAggregatorHadToPaidForBatcher(tx *types.Transaction, batchIdentifierHash [32]byte) {
 	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
 	if err != nil {
-		// Fallback also failed
-		// Proceed to check values against simulated costs
-		w.logger.Error("Failed to get batch state", "error", err)
-		w.logger.Info("Proceeding with simulated cost checks")
-		return w.compareBalances(simulatedCost, aggregatorAddress, senderAddress)
+		return
 	}
-	// At this point, batchState was successfully retrieved
-	// Proceed to check values against RespondToTaskFeeLimit
 	respondToTaskFeeLimit := batchState.RespondToTaskFeeLimit
-	w.logger.Info("Batch RespondToTaskFeeLimit", "RespondToTaskFeeLimit", respondToTaskFeeLimit)
 
-	if respondToTaskFeeLimit.Cmp(simulatedCost) < 0 {
-		return fmt.Errorf("cost of transaction is higher than Batch.RespondToTaskFeeLimit")
+	// NOTE we are not using tx.Cost() because tx.Cost() includes tx.Value()
+	txCost := new(big.Int).Mul(big.NewInt(int64(tx.Gas())), tx.GasPrice())
+
+	if respondToTaskFeeLimit.Cmp(txCost) < 0 {
+		aggregatorDifferencePaid := new(big.Int).Sub(txCost, respondToTaskFeeLimit)
+		aggregatorDifferencePaidInEth := utils.WeiToEth(aggregatorDifferencePaid)
+		w.metrics.AddAggregatorGasPaidForBatcher(aggregatorDifferencePaidInEth)
+		w.metrics.IncAggregatorPaidForBatcher()
+		w.logger.Warnf("cost of transaction was higher than Batch.RespondToTaskFeeLimit, aggregator has paid the for the difference, aprox: %vethers", aggregatorDifferencePaidInEth)
 	}
+}
 
+func (w *AvsWriter) checkAggAndBatcherHaveEnoughBalance(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
+	w.logger.Info("Checking if aggregator and batcher have enough balance for the transaction")
+	aggregatorAddress := txOpts.From
+	txCost := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), txOpts.GasPrice)
+	w.logger.Info("Transaction cost", "cost", txCost)
+
+	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
+	if err != nil {
+		w.logger.Error("Failed to get batch state", "error", err)
+		w.logger.Info("Proceeding to check balances against transaction cost")
+		return w.compareBalances(txCost, aggregatorAddress, senderAddress)
+	}
+	respondToTaskFeeLimit := batchState.RespondToTaskFeeLimit
+	w.logger.Info("Checking balance against Batch RespondToTaskFeeLimit", "RespondToTaskFeeLimit", respondToTaskFeeLimit)
+	// Note: we compare both Aggregator funds and Batcher balance in Aligned against respondToTaskFeeLimit
+		// Batcher will pay up to respondToTaskFeeLimit, for this he needs that amount of funds in Aligned
+		// Aggregator will pay any extra cost, for this he needs at least respondToTaskFeeLimit in his balance
 	return w.compareBalances(respondToTaskFeeLimit, aggregatorAddress, senderAddress)
 }
 

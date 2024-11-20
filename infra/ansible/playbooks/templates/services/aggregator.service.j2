@@ -1,0 +1,15 @@
+[Unit]
+Description=Aggregator
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/{{ ansible_user }}/repos/aggregator/aligned_layer/aggregator
+ExecStart=/home/{{ ansible_user }}/repos/aggregator/aligned_layer/build/aligned-aggregator --config /home/{{ ansible_user }}/config/config-aggregator.yaml
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+LimitNOFILE=100000
+
+[Install]
+WantedBy=multi-user.target

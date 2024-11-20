@@ -74,7 +74,12 @@ type Aggregator struct {
 	// Note: In case of a reboot it can start from 0 again
 	nextBatchIndex uint32
 
-	// Mutex to protect batchesIdentifierHashByIdx, batchesIdxByIdentifierHash and nextBatchIndex
+	// Mutex to protect:
+	// - batchesIdentifierHashByIdx
+	// - batchesIdxByIdentifierHash
+	// - batchCreatedBlockByIdx
+	// - batchDataByIdentifierHash
+	// - nextBatchIndex
 	taskMutex *sync.Mutex
 
 	// Mutex to protect ethereum wallet
@@ -93,6 +98,15 @@ type Aggregator struct {
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
 	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
+	logger := aggregatorConfig.BaseConfig.Logger
+
+	// Metrics
+	reg := prometheus.NewRegistry()
+	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
+
+	// Telemetry
+	aggregatorTelemetry := NewTelemetry(aggregatorConfig.Aggregator.TelemetryIpPortAddress, logger)
+
 	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
 		return nil, err
@@ -103,7 +117,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig, aggregatorMetrics)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +138,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 
 	aggregatorPrivateKey := aggregatorConfig.EcdsaConfig.PrivateKey
 
-	logger := aggregatorConfig.BaseConfig.Logger
 	clients, err := sdkclients.BuildAll(chainioConfig, aggregatorPrivateKey, logger)
 	if err != nil {
 		logger.Errorf("Cannot create sdk clients", "err", err)
@@ -149,13 +162,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	operatorPubkeysService := oppubkeysserv.NewOperatorsInfoServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, nil, oppubkeysserv.Opts{}, logger)
 	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.ChainReader, operatorPubkeysService, logger)
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, hashFunction, logger)
-
-	// Metrics
-	reg := prometheus.NewRegistry()
-	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
-
-	// Telemetry
-	aggregatorTelemetry := NewTelemetry(aggregatorConfig.Aggregator.TelemetryIpPortAddress, logger)
 
 	nextBatchIndex := uint32(0)
 
@@ -378,8 +384,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
-	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, agg.AggregatorConfig.Aggregator.BlsServiceTaskTimeout)
-	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
+	err := agg.InitializeNewTaskRetryable(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, agg.AggregatorConfig.Aggregator.BlsServiceTaskTimeout)
 	if err != nil {
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
 	}
@@ -393,7 +398,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 // |---RETRYABLE---|
 
 /*
-InitializeNewTask
+InitializeNewTaskRetryable
 Initialize a new task in the BLS Aggregation service
   - Errors:
     Permanent:
@@ -402,7 +407,7 @@ Initialize a new task in the BLS Aggregation service
   - All others.
   - Retry times (3 retries): 1 sec, 2 sec, 4 sec
 */
-func (agg *Aggregator) InitializeNewTask(batchIndex uint32, taskCreatedBlock uint32, quorumNums eigentypes.QuorumNums, quorumThresholdPercentages eigentypes.QuorumThresholdPercentages, timeToExpiry time.Duration) error {
+func (agg *Aggregator) InitializeNewTaskRetryable(batchIndex uint32, taskCreatedBlock uint32, quorumNums eigentypes.QuorumNums, quorumThresholdPercentages eigentypes.QuorumThresholdPercentages, timeToExpiry time.Duration) error {
 	initializeNewTask_func := func() error {
 		err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, timeToExpiry)
 		if err != nil {
@@ -443,6 +448,8 @@ func (agg *Aggregator) ClearTasksFromMaps() {
 			agg.logger.Warn("No old tasks found")
 			continue // Retry in the next iteration
 		}
+		agg.taskMutex.Lock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Cleaning finalized tasks")
 
 		taskIdxToDelete := agg.batchesIdxByIdentifierHash[*oldTaskIdHash]
 		agg.logger.Info("Old task found", "taskIndex", taskIdxToDelete)
@@ -460,6 +467,8 @@ func (agg *Aggregator) ClearTasksFromMaps() {
 			}
 		}
 		lastIdxDeleted = taskIdxToDelete
+		agg.taskMutex.Unlock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Cleaning finalized tasks")
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Done cleaning finalized tasks from maps")
 	}
 }
