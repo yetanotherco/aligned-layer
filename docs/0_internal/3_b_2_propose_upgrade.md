@@ -46,18 +46,16 @@ To propose the upgrade transaction you can follow the steps below:
 
 > [!NOTE]
 > The first 10 characters must be the same the signature hash obtained in the previous step.
->
 > Make sure the `alignedLayerServiceManager` address is the same as the one you deployed in the [Deploy Contracts Guide](./2_deploy_contracts.md).
->
 > Make sure the `alignedServiceManagerImplementation` address is the same as the one you deployed in this guide.
 
-    Else, if you are upgrading the BatcherPaymentService, you can validate the calldata by running:
-
+   Else, if you are upgrading the BatcherPaymentService, you can validate the calldata by running:
+   
     ```
     cast calldata-decode "upgradeTo(address)" <calldata>
     ```
-   
-    This will show the `batcherPaymentServiceImplementation` address.
+
+   This will show the `batcherPaymentServiceImplementation` address.
 
 > [!NOTE] 
 > The first 10 characters must be the same the signature hash obtained in the previous step.
@@ -104,40 +102,40 @@ To propose the upgrade transaction you can follow the steps below:
 
 8. Once you paste the `ProxyAdmin` address, the ABI should be automatically filled.
 
-    ![Enter Address or ENS Name](./images/3_b_2_multisig_3.png)
+      ![Enter Address or ENS Name](./images/3_b_2_multisig_3.png)
 
-    ![Enter ABI](./images/3_b_2_multisig_4.png)
+      ![Enter ABI](./images/3_b_2_multisig_4.png)
 
 9. Set the `ETH Value` as 0
 
-    ![ETH Value](./images/3_b_2_multisig_5.png)
+      ![ETH Value](./images/3_b_2_multisig_5.png)
 
 10. Paste the calldata obtained from the deployment of the new implementation on the `Data` box and click on `+ Add new transaction`.
 
-    ![Data](./images/3_b_2_multisig_6.png)
+      ![Data](./images/3_b_2_multisig_6.png)
 
-   You should see the new transaction to be executed on the right side.
+      You should see the new transaction to be executed on the right side.
 
 11. Click on `Create batch` to create the transaction.
 
-    ![Create batch](./images/3_b_2_multisig_7.png)
+      ![Create batch](./images/3_b_2_multisig_7.png)
 
 12. Review and confirm the transaction.
    
-   To make sure everything is fine, simulate the transaction by clicking on `Simulate batch`
+      To make sure everything is fine, simulate the transaction by clicking on `Simulate batch`
+   
+      Once the simulation is successful, click on `Send Batch` to send the transaction.
 
-   Once the simulation is successful, click on `Send Batch` to send the transaction.
-
-    ![Simulate batch](./images/3_b_2_multisig_8.png)
+      ![Simulate batch](./images/3_b_2_multisig_8.png)
 
 13. Confirm the transaction checking the function being called is correct and the contract address is the one you deployed.
 
-   If everything is correct, click on `Sign` to send the transaction.
+      If everything is correct, click on `Sign` to send the transaction.
 
-    ![Confirm transaction](./images/3_b_2_multisig_9.png)
+      ![Confirm transaction](./images/3_b_2_multisig_9.png)
 
 14. Now in your transactions, you should be able to see the newly created transaction.
 
-    ![New transaction](./images/3_b_2_multisig_10.png)
+      ![New transaction](./images/3_b_2_multisig_10.png)
 
 15. If the transaction is correctly created, you have to wait until the required Multisig member signs the transaction to send it.
