@@ -31,16 +31,19 @@ const (
 	NetworkRandomizationFactor float64 = 0                // Randomization (Jitter) factor used to map retry interval to a range of values around the computed interval. In precise terms (random value in range [1 - randomizationfactor, 1 + randomizationfactor]). NOTE: This is set to 0 as we do not use jitter in Aligned.
 	NetworkMultiplier          float64 = 2                // Multiplier factor computed exponential retry interval is scaled by.
 	NetworkNumRetries          uint64  = 3                // Total number of retries attempted.
+
 	// Retry Params for Sending Tx to Chain
 	ChainInitialInterval = 12 * time.Second // Initial delay for retry interval for contract calls. Corresponds to 1 ethereum block.
 	ChainMaxInterval     = 2 * time.Minute  // Maximum interval for an individual retry.
+
 	// Retry Params for WaitForTransactionReceipt in the Fee Bump
-	WaitForTxMaxInterval = 2 * time.Second
-	WaitForTxNumRetries  = 0
+	WaitForTxMaxInterval = 2 * time.Second // Maximum interval for an individual retry.
+	WaitForTxNumRetries  = 0               // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
+
 	// Retry Parameters for RespondToTaskV2 in the Fee Bump
-	RespondToTaskV2MaxInterval           = time.Millisecond * 500
-	RespondToTaskV2MaxElapsedTime        = 0
-	RespondToTaskV2NumRetries     uint64 = 0
+	RespondToTaskV2MaxInterval           = time.Millisecond * 500 // Maximum interval for an individual retry.
+	RespondToTaskV2MaxElapsedTime        = 0                      //	Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
+	RespondToTaskV2NumRetries     uint64 = 0                      // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
 )
 
 type RetryParams struct {
@@ -85,11 +88,14 @@ func RespondToTaskV2() *RetryParams {
 	}
 }
 
-func WaitForTxRetryParams() *RetryParams {
+// WaitForTxRetryParams returns the retry parameters for waiting for a transaction to be included in a block.
+// maxElapsedTime is received as parameter to allow for a custom timeout
+// These parameters are used for the bumping fees logic.
+func WaitForTxRetryParams(maxElapsedTime time.Duration) *RetryParams {
 	return &RetryParams{
 		InitialInterval:     NetworkInitialInterval,
 		MaxInterval:         WaitForTxMaxInterval,
-		MaxElapsedTime:      NetworkMaxElapsedTime,
+		MaxElapsedTime:      maxElapsedTime,
 		RandomizationFactor: NetworkRandomizationFactor,
 		Multiplier:          NetworkMultiplier,
 		NumRetries:          WaitForTxNumRetries,

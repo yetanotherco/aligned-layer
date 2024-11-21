@@ -104,10 +104,6 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts.NoSend = false
 	i := 0
 
-	// Set Retry config for WaitForTxRetryable
-	waitForTxConfig := retry.WaitForTxRetryParams()
-	waitForTxConfig.MaxElapsedTime = timeToWaitBeforeBump
-
 	var sentTxs []*types.Transaction
 
 	batchMerkleRootHashString := hex.EncodeToString(batchMerkleRoot[:])
@@ -175,7 +171,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		sentTxs = append(sentTxs, realTx)
 
 		w.logger.Infof("Transaction sent, waiting for receipt", "merkle root", batchMerkleRootHashString)
-		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, realTx.Hash(), waitForTxConfig)
+		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, realTx.Hash(), retry.WaitForTxRetryParams(timeToWaitBeforeBump))
 		if receipt != nil {
 			w.checkIfAggregatorHadToPaidForBatcher(realTx, batchIdentifierHash)
 			return receipt, nil
