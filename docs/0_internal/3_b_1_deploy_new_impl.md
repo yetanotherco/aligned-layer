@@ -55,9 +55,11 @@ You can deploy the new implementation of the following contracts:
 
    This will show two addresses. The first one is the `alignedLayerServiceManager` address, and the second one is the new implementation address of `alignedServiceManagerImplementation`.
 
-   > [!NOTE]
-   > Make sure the `alignedLayerServiceManager` address is the same as the one you deployed in the [Deploy Contracts Guide](./2_deploy_contracts.md).
-   > Make sure the `alignedServiceManagerImplementation` address is the same as the one you deployed in this guide. 
+> [!NOTE]
+> 
+> Make sure the `alignedLayerServiceManager` address is the same as the one you deployed in the [Deploy Contracts Guide](./2_deploy_contracts.md).
+> 
+> Make sure the `alignedServiceManagerImplementation` address is the same as the one you deployed in this guide. 
 
 
 ### Deploy New Implementation for BatcherPaymentService
