@@ -4,13 +4,10 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
-	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/types"
 	"net/http"
 	"net/rpc"
-	"strings"
 	"time"
 )
 
