@@ -105,11 +105,7 @@ To propose the upgrade transaction you can follow the steps below:
    > 
    >    Make sure to set the path to the correct deployment output file.
 
-8. If the ABI is not automatically filled, get the ABI and paste it on the corresponding box:
-
-    ```bash
-    jq ".abi" contracts/out/ProxyAdmin.sol/ProxyAdmin.json | pbcopy
-    ```
+8. Once you paste the `ProxyAdmin` address, the ABI should be automatically filled.
 
     ![Enter Address or ENS Name](./images/3_b_2_multisig_3.png)
 
@@ -123,5 +119,28 @@ To propose the upgrade transaction you can follow the steps below:
 
     ![Data](./images/3_b_2_multisig_6.png)
 
+   You should see the new transaction to be executed on the right side.
 
+11. Click on `Create batch` to create the transaction.
 
+    ![Create batch](./images/3_b_2_multisig_7.png)
+
+12. Review and confirm the transaction.
+   
+   To make sure everything is fine, simulate the transaction by clicking on `Simulate batch`
+
+   Once the simulation is successful, click on `Send Batch` to send the transaction.
+
+    ![Simulate batch](./images/3_b_2_multisig_8.png)
+
+13. Confirm the transaction checking the function being called is correct and the contract address is the one you deployed.
+
+   If everything is correct, click on `Sign` to send the transaction.
+
+    ![Confirm transaction](./images/3_b_2_multisig_9.png)
+
+14. Now in your transactions, you should be able to see the newly created transaction.
+
+    ![New transaction](./images/3_b_2_multisig_10.png)
+
+15. If the transaction is correctly created, you have to wait until the required Multisig member signs the transaction to send it.

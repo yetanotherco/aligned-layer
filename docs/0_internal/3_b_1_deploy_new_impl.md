@@ -144,4 +144,4 @@ You can deploy the new implementation of the following contracts:
 
 Once you have deployed the new implementation of the contract you want to upgrade, you need to propose the upgrade transaction following this [guide](./3_b_2_propose_upgrade.md).
 
-Send the new address and `calldata` to the multisig participants to propose the upgrade transaction.
+Send the contracts addresses and `calldata` to the multisig participants to propose the upgrade transaction.
