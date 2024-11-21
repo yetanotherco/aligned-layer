@@ -50,7 +50,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 	taskIndex := uint32(0)
 
-	taskIndex, err := agg.GetTaskIndex(signedTaskResponse.BatchIdentifierHash)
+	taskIndex, err := agg.GetTaskIndex(signedTaskResponse.BatchIdentifierHash, retry.EthCallRetryConfig())
 
 	if err != nil {
 		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
@@ -106,7 +106,7 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 	return nil
 }
 
-func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error) {
+func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte, config *retry.RetryConfig) (uint32, error) {
 	getTaskIndex_func := func() (uint32, error) {
 		agg.taskMutex.Lock()
 		taskIndex, ok := agg.batchesIdxByIdentifierHash[batchIdentifierHash]
@@ -118,5 +118,5 @@ func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error
 		}
 	}
 
-	return retry.RetryWithData(getTaskIndex_func, retry.EthCallRetryConfig())
+	return retry.RetryWithData(getTaskIndex_func, config)
 }
