@@ -46,7 +46,9 @@ To propose the upgrade transaction you can follow the steps below:
 
 > [!NOTE]
 > The first 10 characters must be the same the signature hash obtained in the previous step.
+> 
 > Make sure the `alignedLayerServiceManager` address is the same as the one you deployed in the [Deploy Contracts Guide](./2_deploy_contracts.md).
+> 
 > Make sure the `alignedServiceManagerImplementation` address is the same as the one you deployed in this guide.
 
    Else, if you are upgrading the BatcherPaymentService, you can validate the calldata by running:
