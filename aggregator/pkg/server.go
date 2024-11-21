@@ -118,5 +118,5 @@ func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error
 		}
 	}
 
-	return retry.RetryWithData(getTaskIndex_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(getTaskIndex_func, retry.EthCallRetryConfig())
 }
