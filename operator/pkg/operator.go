@@ -334,7 +334,10 @@ func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlign
 		hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 	)
 
-	o.aggRpcClient.SendSignedTaskResponseToAggregatorRetryable(&signedTaskResponse)
+	_, err = o.aggRpcClient.SendSignedTaskResponseToAggregatorRetryable(&signedTaskResponse)
+	if err != nil {
+		o.Logger.Infof("Failed to send signed task response %x to Aggregator. Err: %v", signedTaskResponse.BatchMerkleRoot, err)
+	}
 }
 func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) error {
 
@@ -415,7 +418,10 @@ func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlign
 		hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 	)
 
-	o.aggRpcClient.SendSignedTaskResponseToAggregatorRetryable(&signedTaskResponse)
+	_, err = o.aggRpcClient.SendSignedTaskResponseToAggregatorRetryable(&signedTaskResponse)
+	if err != nil {
+		o.Logger.Infof("Failed to send signed task response %x to Aggregator. Err: %v", signedTaskResponse.BatchMerkleRoot, err)
+	}
 }
 func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) error {
 
