@@ -55,7 +55,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	// so we make GetTaskIndex retryable, waiting for some seconds,
 	// before trying to fetch the task again from the map.
 	taskIndex, err := agg.GetTaskIndexRetryable(signedTaskResponse.BatchIdentifierHash, retry.EthCallRetryConfig())
-	taskIndex, err := agg.GetTaskIndexRetryable(signedTaskResponse.BatchIdentifierHash, retry.EthCallRetryConfig())
 
 	if err != nil {
 		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
