@@ -45,11 +45,8 @@ To propose the upgrade transaction you can follow the steps below:
     If you are upgrading the RegistryCoordinator, the first one is the `registryCoordinator` address, and the second one is the new implementation address of `registryCoordinatorImplementation`.
 
    > [!NOTE]
-   > 
    > The first 10 characters must be the same the signature hash obtained in the previous step.
-   >
    > Make sure the `alignedLayerServiceManager` address is the same as the one you deployed in the [Deploy Contracts Guide](./2_deploy_contracts.md).
-   >
    > Make sure the `alignedServiceManagerImplementation` address is the same as the one you deployed in this guide.
 
     Else, if you are upgrading the BatcherPaymentService, you can validate the calldata by running:
@@ -61,9 +58,7 @@ To propose the upgrade transaction you can follow the steps below:
     This will show the `batcherPaymentServiceImplementation` address.
 
     > [!NOTE]
-    > 
     > The first 10 characters must be the same the signature hash obtained in the previous step.
-    >
     > Make sure the `batcherPaymentServiceImplementation` address is the same as the one you deployed in this guide. 
 
 3. Verify the contract bytecode running the following command:
@@ -102,7 +97,6 @@ To propose the upgrade transaction you can follow the steps below:
     ```
    
    >    [!NOTE]
-   > 
    >    Make sure to set the path to the correct deployment output file.
 
 8. Once you paste the `ProxyAdmin` address, the ABI should be automatically filled.
