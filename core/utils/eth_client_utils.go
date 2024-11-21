@@ -19,7 +19,7 @@ import (
 // Setting a higher value will imply doing less retries across the waitTimeout, and so we might lose the receipt
 // All errors are considered Transient Errors
 // - Retry times: 0.5s, 1s, 2s, 2s, 2s, ... until it reaches waitTimeout
-func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, txHash gethcommon.Hash, config *retry.RetryConfig) (*types.Receipt, error) {
+func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, txHash gethcommon.Hash, config *retry.RetryParams) (*types.Receipt, error) {
 	receipt_func := func() (*types.Receipt, error) {
 		receipt, err := client.TransactionReceipt(context.Background(), txHash)
 		if err != nil {
@@ -86,7 +86,7 @@ Get the gas price from the client with retry logic.
 - All errors are considered Transient Errors
 - Retry times: 1 sec, 2 sec, 4 sec
 */
-func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, config *retry.RetryConfig) (*big.Int, error) {
+func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, config *retry.RetryParams) (*big.Int, error) {
 	respondToTaskV2_func := func() (*big.Int, error) {
 		gasPrice, err := client.SuggestGasPrice(context.Background())
 		if err != nil {

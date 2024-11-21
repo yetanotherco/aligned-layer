@@ -35,7 +35,7 @@ const (
 	ChainMaxInterval                   = 2 * time.Minute  // Maximum interval for an individual retry.
 )
 
-type RetryConfig struct {
+type RetryParams struct {
 	InitialInterval     time.Duration // Initial delay for retry interval.
 	MaxInterval         time.Duration // Maximum interval an individual retry may have.
 	MaxElapsedTime      time.Duration // Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
@@ -44,8 +44,8 @@ type RetryConfig struct {
 	NumRetries          uint64
 }
 
-func EthCallRetryConfig() *RetryConfig {
-	return &RetryConfig{
+func EthCallRetryParams() *RetryParams {
+	return &RetryParams{
 		InitialInterval:     EthCallInitialInterval,
 		MaxInterval:         EthCallMaxInterval,
 		MaxElapsedTime:      EthCallMaxElapsedTime,
@@ -55,8 +55,8 @@ func EthCallRetryConfig() *RetryConfig {
 	}
 }
 
-func ChainRetryConfig() *RetryConfig {
-	return &RetryConfig{
+func ChainRetryParams() *RetryParams {
+	return &RetryParams{
 		InitialInterval:     ChainInitialInterval,
 		MaxInterval:         ChainMaxInterval,
 		MaxElapsedTime:      EthCallMaxElapsedTime,
@@ -124,7 +124,7 @@ Reference: https://github.com/cenkalti/backoff/blob/v4/exponential.go#L9
 */
 
 // Same as Retry only that the functionToRetry can return a value upon correct execution
-func RetryWithData[T any](functionToRetry func() (T, error), config *RetryConfig) (T, error) {
+func RetryWithData[T any](functionToRetry func() (T, error), config *RetryParams) (T, error) {
 	f := func() (T, error) {
 		var (
 			val T
@@ -173,7 +173,7 @@ func RetryWithData[T any](functionToRetry func() (T, error), config *RetryConfig
 // from the configuration are reached, or until a `PermanentError` is returned.
 // The function to be retried should return `PermanentError` when the condition for stop retrying
 // is met.
-func Retry(functionToRetry func() error, config *RetryConfig) error {
+func Retry(functionToRetry func() error, config *RetryParams) error {
 	f := func() error {
 		var err error
 		func() {

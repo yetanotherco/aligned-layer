@@ -42,7 +42,7 @@ func TestRetryWithData(t *testing.T) {
 		x, err := DummyFunction(43)
 		return &x, err
 	}
-	config := &retry.RetryConfig{
+	config := &retry.RetryParams{
 		InitialInterval:     1000,
 		MaxInterval:         2,
 		MaxElapsedTime:      3,
@@ -61,7 +61,7 @@ func TestRetry(t *testing.T) {
 		_, err := DummyFunction(43)
 		return err
 	}
-	config := &retry.RetryConfig{
+	config := &retry.RetryParams{
 		InitialInterval:     1000,
 		MaxInterval:         2,
 		MaxElapsedTime:      3,
@@ -169,7 +169,7 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 	}
 
 	// Assert Call succeeds when Anvil running
-	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, retry.EthCallRetryConfig())
+	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, retry.EthCallRetryParams())
 	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
 	if !strings.Contains(err.Error(), "not found") {
 		t.Errorf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
@@ -181,7 +181,7 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 		return
 	}
 
-	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, retry.EthCallRetryConfig())
+	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
@@ -197,7 +197,7 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, retry.EthCallRetryConfig())
+	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "not found") {
 		t.Errorf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
@@ -310,7 +310,7 @@ func TestSubscribeToNewTasksV3(t *testing.T) {
 		t.Errorf("Error setting up Avs Service Bindings: %s\n", err)
 	}
 
-	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil, retry.EthCallRetryConfig())
+	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -318,7 +318,7 @@ func TestSubscribeToNewTasksV3(t *testing.T) {
 		return
 	}
 
-	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil, retry.EthCallRetryConfig())
+	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil, retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("SubscribeToNewTasksV3 Emitted non Transient error: %s\n", err)
@@ -334,7 +334,7 @@ func TestSubscribeToNewTasksV3(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil, retry.EthCallRetryConfig())
+	_, err = chainio.SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -360,7 +360,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		t.Errorf("Error setting up Avs Service Bindings: %s\n", err)
 	}
 
-	_, err = chainio.SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil, retry.EthCallRetryConfig())
+	_, err = chainio.SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -368,7 +368,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		return
 	}
 
-	_, err = chainio.SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil, retry.EthCallRetryConfig())
+	_, err = chainio.SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil, retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("SubscribeToNewTasksV2 Emitted non Transient error: %s\n", err)
@@ -384,7 +384,7 @@ func TestSubscribeToNewTasksV2(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = chainio.SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil, retry.EthCallRetryConfig())
+	_, err = chainio.SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.ServiceManager, channel, nil, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -405,7 +405,7 @@ func TestBlockNumber(t *testing.T) {
 	if err != nil {
 		return
 	}
-	_, err = sub.BlockNumberRetryable(context.Background(), retry.EthCallRetryConfig())
+	_, err = sub.BlockNumberRetryable(context.Background(), retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -413,7 +413,7 @@ func TestBlockNumber(t *testing.T) {
 		return
 	}
 
-	_, err = sub.BlockNumberRetryable(context.Background(), retry.EthCallRetryConfig())
+	_, err = sub.BlockNumberRetryable(context.Background(), retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("BlockNumber Emitted non Transient error: %s\n", err)
@@ -429,7 +429,7 @@ func TestBlockNumber(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = sub.BlockNumberRetryable(context.Background(), retry.EthCallRetryConfig())
+	_, err = sub.BlockNumberRetryable(context.Background(), retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -449,7 +449,7 @@ func TestFilterBatchV2(t *testing.T) {
 	if err != nil {
 		return
 	}
-	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil, retry.EthCallRetryConfig())
+	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -457,7 +457,7 @@ func TestFilterBatchV2(t *testing.T) {
 		return
 	}
 
-	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil, retry.EthCallRetryConfig())
+	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil, retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("FilterBatchV2 Emitted non Transient error: %s\n", err)
@@ -473,7 +473,7 @@ func TestFilterBatchV2(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil, retry.EthCallRetryConfig())
+	_, err = avsSubscriber.FilterBatchV2Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -493,7 +493,7 @@ func TestFilterBatchV3(t *testing.T) {
 	if err != nil {
 		return
 	}
-	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil, retry.EthCallRetryConfig())
+	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -501,7 +501,7 @@ func TestFilterBatchV3(t *testing.T) {
 		return
 	}
 
-	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil, retry.EthCallRetryConfig())
+	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil, retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("FilerBatchV3 Emitted non Transient error: %s\n", err)
@@ -517,7 +517,7 @@ func TestFilterBatchV3(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil, retry.EthCallRetryConfig())
+	_, err = avsSubscriber.FilterBatchV3Retryable(&bind.FilterOpts{Start: 0, End: nil, Context: context.Background()}, nil, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -539,7 +539,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 	}
 
 	zero_bytes := [32]byte{}
-	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes, retry.EthCallRetryConfig())
+	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -547,7 +547,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 		return
 	}
 
-	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes, retry.EthCallRetryConfig())
+	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes, retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("BatchesStateSubscriber Emitted non Transient error: %s\n", err)
@@ -563,7 +563,7 @@ func TestBatchesStateSubscriber(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes, retry.EthCallRetryConfig())
+	_, err = avsSubscriber.BatchesStateRetryable(nil, zero_bytes, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -585,7 +585,7 @@ func TestSubscribeNewHead(t *testing.T) {
 		return
 	}
 
-	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c, retry.EthCallRetryConfig())
+	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -593,7 +593,7 @@ func TestSubscribeNewHead(t *testing.T) {
 		return
 	}
 
-	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c, retry.EthCallRetryConfig())
+	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c, retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("SubscribeNewHead Emitted non Transient error: %s\n", err)
@@ -609,7 +609,7 @@ func TestSubscribeNewHead(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c, retry.EthCallRetryConfig())
+	_, err = avsSubscriber.SubscribeNewHeadRetryable(context.Background(), c, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -662,7 +662,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	zero_bytes := [32]byte{}
 
 	// NOTE: With zero bytes the tx reverts
-	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature, retry.EthCallRetryConfig())
+	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature, retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "execution reverted") {
 		t.Errorf("RespondToTaskV2 did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
@@ -672,7 +672,7 @@ func TestRespondToTaskV2(t *testing.T) {
 		t.Errorf("Error killing process: %v\n", err)
 	}
 
-	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature, retry.EthCallRetryConfig())
+	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature, retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if _, ok := err.(*backoff.PermanentError); ok {
 		t.Errorf("RespondToTaskV2 Emitted non-Transient error: %s\n", err)
@@ -687,7 +687,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	}
 
 	// NOTE: With zero bytes the tx reverts
-	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature, retry.EthCallRetryConfig())
+	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature, retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "execution reverted") {
 		t.Errorf("RespondToTaskV2 did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
@@ -715,7 +715,7 @@ func TestBatchesStateWriter(t *testing.T) {
 	var bytes [32]byte
 	num.FillBytes(bytes[:])
 
-	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes, retry.EthCallRetryConfig())
+	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -723,7 +723,8 @@ func TestBatchesStateWriter(t *testing.T) {
 		return
 	}
 
-	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes, retry.EthCallRetryConfig())
+	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes, retry.EthCallRetryParams())
+
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("BatchesStateWriter Emitted non-Transient error: %s\n", err)
@@ -739,7 +740,7 @@ func TestBatchesStateWriter(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes, retry.EthCallRetryConfig())
+	_, err = avsWriter.BatchesStateRetryable(&bind.CallOpts{}, bytes, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -762,7 +763,7 @@ func TestBalanceAt(t *testing.T) {
 	aggregator_address := common.HexToAddress("0x0")
 	blockHeight := big.NewInt(22)
 
-	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight, retry.EthCallRetryConfig())
+	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -770,7 +771,7 @@ func TestBalanceAt(t *testing.T) {
 		return
 	}
 
-	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight, retry.EthCallRetryConfig())
+	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight, retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("BalanceAt Emitted non-Transient error: %s\n", err)
@@ -786,7 +787,7 @@ func TestBalanceAt(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight, retry.EthCallRetryConfig())
+	_, err = avsWriter.BalanceAtRetryable(context.Background(), aggregator_address, blockHeight, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -808,7 +809,7 @@ func TestBatchersBalances(t *testing.T) {
 	}
 	senderAddress := common.HexToAddress("0x0")
 
-	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress, retry.EthCallRetryConfig())
+	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
@@ -816,7 +817,7 @@ func TestBatchersBalances(t *testing.T) {
 		return
 	}
 
-	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress, retry.EthCallRetryConfig())
+	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress, retry.EthCallRetryParams())
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("BatchersBalances Emitted non-Transient error: %s\n", err)
@@ -832,7 +833,7 @@ func TestBatchersBalances(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress, retry.EthCallRetryConfig())
+	_, err = avsWriter.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress, retry.EthCallRetryParams())
 	assert.Nil(t, err)
 
 	if err := cmd.Process.Kill(); err != nil {
