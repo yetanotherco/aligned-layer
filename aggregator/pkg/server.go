@@ -110,6 +110,8 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 	return nil
 }
 
+// |---RETRYABLE---|
+
 /*
 Checks Internal mapping for Signed Task Response, returns its TaskIndex.
 - All errors are considered Transient Errors
@@ -118,14 +120,11 @@ TODO: We should refactor the retry duration considering extending it to a larger
 */
 func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte, config *retry.RetryParams) (uint32, error) {
 	getTaskIndex_func := func() (uint32, error) {
-		agg.taskMutex.Lock()
-		taskIndex, ok := agg.batchesIdxByIdentifierHash[batchIdentifierHash]
-		agg.taskMutex.Unlock()
+		taskData, ok := agg.GetTaskDataByIdentifierHash(batchIdentifierHash)
 		if !ok {
-			return taskIndex, fmt.Errorf("Task not found in the internal map")
-		} else {
-			return taskIndex, nil
+			return 0, fmt.Errorf("Task not found in the internal map")
 		}
+		return taskData.Index, nil
 	}
 
 	return retry.RetryWithData(getTaskIndex_func, config)

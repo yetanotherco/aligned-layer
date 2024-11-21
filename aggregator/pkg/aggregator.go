@@ -38,6 +38,193 @@ type TaskResponses = []types.SignedTaskResponse
 type BatchData struct {
 	BatchMerkleRoot [32]byte
 	SenderAddress   [20]byte
+	// Auxiliary data for id
+	Index           uint32
+	IdentifierHash  [32]byte
+	CreatedBlock    uint64
+}
+
+type BatchDataCache struct {
+	// Mutex to protect all fields in this structure
+	// Contents are passed by copy, so only internal access needs protection
+	mx *sync.Mutex
+
+	// BLS Signature Service returns an Index
+	// Since our ID is not an idx, we build this cache
+	// Note: In case of a reboot, this doesn't need to be loaded,
+	// and can start from zero
+	identifierByIndex map[uint32][32]byte
+
+	// Stores the TaskResponse for each batch by batchIdentifierHash
+	byIdentifierHash  map[[32]byte]BatchData
+
+	// This task index is to communicate with the local BLS Service
+	// Note: In case of a reboot it can start from 0 again
+	nextIndex         uint32
+	// This is used to determine the range of tasks to delete on GC
+	lastDeletedIndex  uint32
+
+	logger logging.Logger
+}
+
+func NewBatchDataCache(logger logging.Logger) BatchDataCache {
+	return BatchDataCache{
+		identifierByIndex: make(map[uint32][32]byte),
+		byIdentifierHash: make(map[[32]byte]BatchData),
+		nextIndex: 0,
+		lastDeletedIndex: 0,
+		logger: logger,
+	}
+}
+
+// Locks the mutex, logs about it and returns a function that does the opposite to defer or call.
+func (cache *BatchDataCache) lock(routine string) func() {
+	cache.logger.Info("- Waiting for lock: " + routine)
+	cache.mx.Lock()
+	cache.logger.Info("- Locked Resources: " + routine)
+
+	return func() {
+		cache.mx.Unlock()
+		cache.logger.Info("- Unlocked Resources: " + routine)
+	}
+}
+
+func (cache *BatchDataCache) GetTaskDataByIndex(idx uint32) (BatchData, bool) {
+	unlock := cache.lock("Query by index")
+	defer unlock()
+
+	hash, ok := cache.identifierByIndex[idx]
+	if !ok {
+		return BatchData{}, false
+	}
+
+	data, ok := cache.byIdentifierHash[hash]
+	if !ok {
+		cache.logger.Warn("Dangling hash in batch data cache",
+			"batchIndex", idx,
+			"batchIdentifierHash", "0x"+hex.EncodeToString(hash[:]))
+		delete(cache.identifierByIndex, idx)
+		return BatchData{}, false
+	}
+
+	return data, ok
+}
+
+func (cache *BatchDataCache) GetTaskDataByIdentifierHash(idHash [32]byte) (BatchData, bool) {
+	unlock := cache.lock("Query by identifier task")
+	defer unlock()
+
+	data, ok := cache.byIdentifierHash[idHash]
+	if !ok {
+		return data, false
+	}
+	if idHash != data.IdentifierHash {
+		cache.logger.Error("Inconsistency detected in batch data",
+			"batchIndex", data.Index,
+			"expectedIdentifierHash", "0x"+hex.EncodeToString(idHash[:]),
+			"foundIdentifierHash", "0x"+hex.EncodeToString(data.IdentifierHash[:]))
+	}
+	hash, ok := cache.identifierByIndex[data.Index]
+	if !ok {
+		cache.logger.Warn("Missing hash entry for batch data cache entry, inserting in map",
+			"batchIndex", data.Index,
+			"batchIdentifierHash", "0x"+hex.EncodeToString(idHash[:]))
+		// NOTE: this case is more harmless because we're not breaking a different entry,
+		// just recover by correcting the map.
+		cache.identifierByIndex[data.Index] = idHash
+		return data, true
+	}
+	if hash != data.IdentifierHash {
+		cache.logger.Error("Inconsistency detected in identifier-index maps",
+			"batchIndex", data.Index,
+			"expectedIdentifierHash", "0x"+hex.EncodeToString(idHash[:]),
+			"foundIdentifierHash", "0x"+hex.EncodeToString(hash[:]))
+	}
+
+	return data, ok
+}
+
+func (cache *BatchDataCache) PopulateBatchData(merkleRoot [32]byte, senderAddr [20]byte, idHash [32]byte, createdBlock uint32) (BatchData, error) {
+	unlock := cache.lock("Add new task")
+	defer unlock()
+
+	idx := cache.nextIndex
+	_, ok := cache.identifierByIndex[idx]
+	for ok {
+		cache.logger.Error("Attempted to reuse batch index, bumping", "index", idx)
+		idx++
+		_, ok = cache.identifierByIndex[idx]
+	}
+	// If we return early, this will be the first empty index
+	cache.nextIndex = idx
+
+	newData := BatchData{
+		BatchMerkleRoot: merkleRoot,
+		SenderAddress: senderAddr,
+		IdentifierHash: idHash,
+		// FIXME: why do we use two different types for this?
+		CreatedBlock: uint64(createdBlock),
+		Index: idx,
+	}
+
+	oldData, ok := cache.byIdentifierHash[idHash]
+	if ok && (oldData.BatchMerkleRoot != merkleRoot ||
+		oldData.SenderAddress != senderAddr ||
+		oldData.IdentifierHash != idHash ||
+		oldData.CreatedBlock != uint64(createdBlock)) {
+
+		cache.logger.Error("Found different data on new hash addition, either a hash collision or a bug",
+			"oldSenderAddress", oldData.SenderAddress,
+			"oldMerkleRoot", oldData.BatchMerkleRoot,
+			"oldIdentifierHash", oldData.IdentifierHash,
+			"oldCreatedBlock", oldData.CreatedBlock,
+			"newSenderAddress", newData.SenderAddress,
+			"newMerkleRoot", newData.BatchMerkleRoot,
+			"newIdentifierHash", newData.IdentifierHash,
+			"newCreatedBlock", newData.CreatedBlock)
+
+		return oldData, fmt.Errorf("Data mismatch for hash 0x%s", hex.EncodeToString(idHash[:]))
+	}
+	if ok {
+		cache.logger.Warn("Trying to add duplicate entry to batch data cache", "identifierHash", "0x"+hex.EncodeToString(idHash[:]))
+		return oldData, nil
+	}
+
+	cache.byIdentifierHash[idHash] = newData
+	cache.identifierByIndex[idx] = idHash
+
+	cache.nextIndex += 1
+	cache.logger.Info("New task added", "batchIndex", idx, "batchIdentifierHash", "0x"+hex.EncodeToString(idHash[:]))
+
+	return newData, nil
+}
+
+func (cache *BatchDataCache) DeleteOlderByIdentifierHash(id [32]byte) {
+	unlock := cache.lock("Cleaning finalized tasks")
+	defer unlock()
+
+	data, ok := cache.byIdentifierHash[id]
+	if !ok {
+		return
+	}
+	var i uint32
+	for i = cache.lastDeletedIndex; i <= data.Index; i++ {
+		hash, ok := cache.identifierByIndex[i]
+		if !ok {
+			cache.logger.Warn("Task not found for cleanup", "taskIndex", i)
+			continue
+		}
+		delete(cache.identifierByIndex, i)
+		hashStr := "0x"+hex.EncodeToString(hash[:])
+		_, ok = cache.byIdentifierHash[hash]
+		if !ok {
+			cache.logger.Warn("Task data not found for cleanup", "taskIndex", i, "identifierHash", hashStr)
+			continue
+		}
+		delete(cache.byIdentifierHash, hash)
+		cache.logger.Info("Task deleted", "taskIndex", i, "identifierHash", hashStr)
+	}
+	cache.lastDeletedIndex = i - 1
 }
 
 type Aggregator struct {
@@ -48,37 +235,7 @@ type Aggregator struct {
 	avsWriter             *chainio.AvsWriter
 	taskSubscriber        chan error
 	blsAggregationService blsagg.BlsAggregationService
-
-	// BLS Signature Service returns an Index
-	// Since our ID is not an idx, we build this cache
-	// Note: In case of a reboot, this doesn't need to be loaded,
-	// and can start from zero
-	batchesIdentifierHashByIdx map[uint32][32]byte
-
-	// This is the counterpart,
-	// to use when we have the batch but not the index
-	// Note: In case of a reboot, this doesn't need to be loaded,
-	// and can start from zero
-	batchesIdxByIdentifierHash map[[32]byte]uint32
-
-	// Stores the taskCreatedBlock for each batch by batch index
-	batchCreatedBlockByIdx map[uint32]uint64
-
-	// Stores the TaskResponse for each batch by batchIdentifierHash
-	batchDataByIdentifierHash map[[32]byte]BatchData
-
-	// This task index is to communicate with the local BLS
-	// Service.
-	// Note: In case of a reboot it can start from 0 again
-	nextBatchIndex uint32
-
-	// Mutex to protect:
-	// - batchesIdentifierHashByIdx
-	// - batchesIdxByIdentifierHash
-	// - batchCreatedBlockByIdx
-	// - batchDataByIdentifierHash
-	// - nextBatchIndex
-	taskMutex *sync.Mutex
+	batchDataCache        BatchDataCache
 
 	// Mutex to protect ethereum wallet
 	walletMutex *sync.Mutex
@@ -120,10 +277,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	batchesIdentifierHashByIdx := make(map[uint32][32]byte)
-	batchesIdxByIdentifierHash := make(map[[32]byte]uint32)
-	batchDataByIdentifierHash := make(map[[32]byte]BatchData)
-	batchCreatedBlockByIdx := make(map[uint32]uint64)
+	batchDataCache := NewBatchDataCache(aggregatorConfig.BaseConfig.Logger)
 
 	chainioConfig := sdkclients.BuildAllConfig{
 		EthHttpUrl:                 aggregatorConfig.BaseConfig.EthRpcUrl,
@@ -161,22 +315,14 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.ChainReader, operatorPubkeysService, logger)
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, hashFunction, logger)
 
-	nextBatchIndex := uint32(0)
-
 	aggregator := Aggregator{
 		AggregatorConfig: &aggregatorConfig,
 		avsReader:        avsReader,
 		avsSubscriber:    avsSubscriber,
 		avsWriter:        avsWriter,
 		NewBatchChan:     newBatchChan,
-
-		batchesIdentifierHashByIdx: batchesIdentifierHashByIdx,
-		batchesIdxByIdentifierHash: batchesIdxByIdentifierHash,
-		batchDataByIdentifierHash:  batchDataByIdentifierHash,
-		batchCreatedBlockByIdx:     batchCreatedBlockByIdx,
-		nextBatchIndex:             nextBatchIndex,
-		taskMutex:                  &sync.Mutex{},
-		walletMutex:                &sync.Mutex{},
+		batchDataCache:   batchDataCache,
+		walletMutex:      &sync.Mutex{},
 
 		blsAggregationService: blsAggregationService,
 		logger:                logger,
@@ -230,13 +376,14 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		}
 	}()
 
-	agg.taskMutex.Lock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching task data")
-	batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
-	batchData := agg.batchDataByIdentifierHash[batchIdentifierHash]
-	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
-	agg.taskMutex.Unlock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching task data")
+	taskData, ok := agg.GetTaskDataByIndex(blsAggServiceResp.TaskIndex)
+	if !ok {
+		agg.logger.Error("Missing task", "taskIndex", blsAggServiceResp.TaskIndex)
+		return
+	}
+	batchIdentifierHash := taskData.IdentifierHash
+	batchData := taskData // FIXME
+	taskCreatedBlock := taskData.CreatedBlock
 
 	// Finish task trace once the task is processed (either successfully or not)
 	defer agg.telemetry.FinishTrace(batchData.BatchMerkleRoot)
@@ -357,55 +504,30 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 		"Sender Address", "0x"+hex.EncodeToString(senderAddress[:]),
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
-	agg.taskMutex.Lock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Adding new task")
-
-	// --- UPDATE BATCH - INDEX CACHES ---
-	batchIndex := agg.nextBatchIndex
-	if _, ok := agg.batchesIdxByIdentifierHash[batchIdentifierHash]; ok {
-		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchIdentifierHash", batchIdentifierHash)
-		agg.taskMutex.Unlock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
+	batchData, err := agg.batchDataCache.PopulateBatchData(batchMerkleRoot, senderAddress, batchIdentifierHash, taskCreatedBlock)
+	if err != nil {
+		agg.logger.Error("Failed to add task", "error", err)
 		return
 	}
-
-	// This shouldn't happen, since both maps are updated together
-	if _, ok := agg.batchesIdentifierHashByIdx[batchIndex]; ok {
-		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchIdentifierHash", batchIdentifierHash)
-		agg.taskMutex.Unlock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
-		return
-	}
-
-	agg.batchesIdxByIdentifierHash[batchIdentifierHash] = batchIndex
-	agg.batchCreatedBlockByIdx[batchIndex] = uint64(taskCreatedBlock)
-	agg.batchesIdentifierHashByIdx[batchIndex] = batchIdentifierHash
-	agg.batchDataByIdentifierHash[batchIdentifierHash] = BatchData{
-		BatchMerkleRoot: batchMerkleRoot,
-		SenderAddress:   senderAddress,
-	}
-	agg.logger.Info(
-		"Task Info added in aggregator:",
-		"Task", batchIndex,
-		"batchIdentifierHash", batchIdentifierHash,
-	)
-	agg.nextBatchIndex += 1
 
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
-	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, agg.AggregatorConfig.Aggregator.BlsServiceTaskTimeout)
+	err = agg.blsAggregationService.InitializeNewTask(batchData.Index, taskCreatedBlock, quorumNums, quorumThresholdPercentages, agg.AggregatorConfig.Aggregator.BlsServiceTaskTimeout)
 	if err != nil {
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
 	}
 
 	agg.metrics.IncAggregatorReceivedTasks()
-	agg.taskMutex.Unlock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
-	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 }
 
-// |---RETRYABLE---|
+func (agg *Aggregator) GetTaskDataByIndex(idx uint32) (BatchData, bool) {
+	return agg.batchDataCache.GetTaskDataByIndex(idx)
+}
+
+func (agg *Aggregator) GetTaskDataByIdentifierHash(idHash [32]byte) (BatchData, bool) {
+	return agg.batchDataCache.GetTaskDataByIdentifierHash(idHash)
+}
 
 // Long-lived goroutine that periodically checks and removes old Tasks from stored Maps
 // It runs every GarbageCollectorPeriod and removes all tasks older than GarbageCollectorTasksAge
@@ -419,7 +541,6 @@ func (agg *Aggregator) ClearTasksFromMaps() {
 	}()
 
 	agg.AggregatorConfig.BaseConfig.Logger.Info(fmt.Sprintf("- Removing finalized Task Infos from Maps every %v", agg.AggregatorConfig.Aggregator.GarbageCollectorPeriod))
-	lastIdxDeleted := uint32(0)
 
 	for {
 		time.Sleep(agg.AggregatorConfig.Aggregator.GarbageCollectorPeriod)
@@ -434,27 +555,6 @@ func (agg *Aggregator) ClearTasksFromMaps() {
 			agg.logger.Warn("No old tasks found")
 			continue // Retry in the next iteration
 		}
-		agg.taskMutex.Lock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Cleaning finalized tasks")
-
-		taskIdxToDelete := agg.batchesIdxByIdentifierHash[*oldTaskIdHash]
-		agg.logger.Info("Old task found", "taskIndex", taskIdxToDelete)
-		// delete from lastIdxDeleted to taskIdxToDelete
-		for i := lastIdxDeleted + 1; i <= taskIdxToDelete; i++ {
-			batchIdentifierHash, exists := agg.batchesIdentifierHashByIdx[i]
-			if exists {
-				agg.logger.Info("Cleaning up finalized task", "taskIndex", i)
-				delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
-				delete(agg.batchCreatedBlockByIdx, i)
-				delete(agg.batchesIdentifierHashByIdx, i)
-				delete(agg.batchDataByIdentifierHash, batchIdentifierHash)
-			} else {
-				agg.logger.Warn("Task not found in maps", "taskIndex", i)
-			}
-		}
-		lastIdxDeleted = taskIdxToDelete
-		agg.taskMutex.Unlock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Cleaning finalized tasks")
-		agg.AggregatorConfig.BaseConfig.Logger.Info("Done cleaning finalized tasks from maps")
+		agg.batchDataCache.DeleteOlderByIdentifierHash(*oldTaskIdHash)
 	}
 }
