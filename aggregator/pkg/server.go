@@ -54,7 +54,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	// If that's the case, we won't know about the task at this point
 	// so we make GetTaskIndex retryable, waiting for some seconds,
 	// before trying to fetch the task again from the map.
-	taskIndex, err := agg.GetTaskIndexRetryable(signedTaskResponse.BatchIdentifierHash, retry.EthCallRetryConfig())
+	taskIndex, err := agg.GetTaskIndexRetryable(signedTaskResponse.BatchIdentifierHash, retry.EthCallRetryParams())
 
 	if err != nil {
 		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
@@ -116,7 +116,7 @@ Checks Internal mapping for Signed Task Response, returns its TaskIndex.
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec
 TODO: We should refactor the retry duration considering extending it to a larger time or number of retries, at least somewhere between 1 and 2 blocks
 */
-func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte, config *retry.RetryConfig) (uint32, error) {
+func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte, config *retry.RetryParams) (uint32, error) {
 	getTaskIndex_func := func() (uint32, error) {
 		agg.taskMutex.Lock()
 		taskIndex, ok := agg.batchesIdxByIdentifierHash[batchIdentifierHash]
