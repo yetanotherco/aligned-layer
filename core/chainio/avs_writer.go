@@ -100,7 +100,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, timeToWaitBeforeBump time.Duration, onGasPriceBumped func(*big.Int)) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
-	simTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	simTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, retry.ChainRetryConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +164,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 				}
 			}
 			w.logger.Infof("Receipts for old transactions not found, will check if the batch state has been responded", "merkle root", batchMerkleRootHashString)
-			batchState, _ := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
+			batchState, _ := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash, retry.ChainRetryConfig())
 			if batchState.Responded {
 				w.logger.Infof("Batch state has been already responded", "merkle root", batchMerkleRootHashString)
 				return nil, nil
@@ -183,7 +183,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		}
 
 		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice, "merkle root", batchMerkleRootHashString)
-		realTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		realTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, retry.ChainRetryConfig())
 		if err != nil {
 			w.logger.Errorf("Respond to task transaction err, %v", err, "merkle root", batchMerkleRootHashString)
 			return nil, err
@@ -218,7 +218,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 // if the tx cost was higher, then it means the aggregator has paid the difference for the batcher (txCost - respondToTaskFeeLimit) and so metrics are updated accordingly.
 // otherwise nothing is done.
 func (w *AvsWriter) checkIfAggregatorHadToPaidForBatcher(tx *types.Transaction, batchIdentifierHash [32]byte) {
-	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
+	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash, retry.EthCallRetryConfig())
 	if err != nil {
 		return
 	}
@@ -244,7 +244,7 @@ func (w *AvsWriter) checkAggAndBatcherHaveEnoughBalance(tx *types.Transaction, t
 	txCost := new(big.Int).Mul(txGasAsBigInt, txGasPrice)
 	w.logger.Info("Transaction cost", "cost", txCost)
 
-	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash)
+	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash, retry.EthCallRetryConfig())
 	if err != nil {
 		w.logger.Error("Failed to get batch state", "error", err)
 		w.logger.Info("Proceeding to check balances against transaction cost")
@@ -272,7 +272,7 @@ func (w *AvsWriter) compareAggregatorBalance(amount *big.Int, aggregatorAddress 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	aggregatorBalance, err := w.BalanceAtRetryable(ctx, aggregatorAddress, nil)
+	aggregatorBalance, err := w.BalanceAtRetryable(ctx, aggregatorAddress, nil, retry.EthCallRetryConfig())
 	if err != nil {
 		// Ignore and continue.
 		w.logger.Error("failed to get aggregator balance: %v", err)
@@ -287,7 +287,7 @@ func (w *AvsWriter) compareAggregatorBalance(amount *big.Int, aggregatorAddress 
 
 func (w *AvsWriter) compareBatcherBalance(amount *big.Int, senderAddress [20]byte) error {
 	// Get batcher balance
-	batcherBalance, err := w.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress)
+	batcherBalance, err := w.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress, retry.EthCallRetryConfig())
 	if err != nil {
 		// Ignore and continue.
 		w.logger.Error("Failed to get batcherBalance", "error", err)
