@@ -144,7 +144,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 				}
 			}
 			w.logger.Infof("Receipts for old transactions not found, will check if the batch state has been responded", "merkle root", batchMerkleRootHashString)
-			batchState, _ := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash, retry.SendToChainRetryParams())
+			batchState, _ := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash, retry.NetworkRetryParams())
 			if batchState.Responded {
 				w.logger.Infof("Batch state has been already responded", "merkle root", batchMerkleRootHashString)
 				return nil, nil

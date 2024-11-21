@@ -169,7 +169,7 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 	}
 
 	// Assert Call succeeds when Anvil running
-	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, retry.NetworkRetryParams())
+	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, retry.SendToChainRetryParams())
 	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
 	if !strings.Contains(err.Error(), "not found") {
 		t.Errorf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
@@ -181,7 +181,7 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 		return
 	}
 
-	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, retry.NetworkRetryParams())
+	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, retry.SendToChainRetryParams())
 	assert.NotNil(t, err)
 	if _, ok := err.(retry.PermanentError); ok {
 		t.Errorf("WaitForTransactionReceipt Emitted non Transient error: %s\n", err)
@@ -197,7 +197,7 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 		t.Errorf("Error setting up Anvil: %s\n", err)
 	}
 
-	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, retry.NetworkRetryParams())
+	_, err = utils.WaitForTransactionReceiptRetryable(*client, *client, hash, retry.SendToChainRetryParams())
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "not found") {
 		t.Errorf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
@@ -662,7 +662,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	zero_bytes := [32]byte{}
 
 	// NOTE: With zero bytes the tx reverts
-	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature, retry.NetworkRetryParams())
+	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature, retry.SendToChainRetryParams())
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "execution reverted") {
 		t.Errorf("RespondToTaskV2 did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
@@ -672,7 +672,7 @@ func TestRespondToTaskV2(t *testing.T) {
 		t.Errorf("Error killing process: %v\n", err)
 	}
 
-	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature, retry.NetworkRetryParams())
+	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature, retry.SendToChainRetryParams())
 	assert.NotNil(t, err)
 	if _, ok := err.(*backoff.PermanentError); ok {
 		t.Errorf("RespondToTaskV2 Emitted non-Transient error: %s\n", err)
@@ -687,7 +687,7 @@ func TestRespondToTaskV2(t *testing.T) {
 	}
 
 	// NOTE: With zero bytes the tx reverts
-	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature, retry.NetworkRetryParams())
+	_, err = w.RespondToTaskV2Retryable(&txOpts, zero_bytes, aggregator_address, nonSignerStakesAndSignature, retry.SendToChainRetryParams())
 	assert.NotNil(t, err)
 	if !strings.Contains(err.Error(), "execution reverted") {
 		t.Errorf("RespondToTaskV2 did not emit the expected message: %q doesn't contain %q", err.Error(), "execution reverted: custom error 0x2396d34e:")
