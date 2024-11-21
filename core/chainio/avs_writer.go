@@ -22,14 +22,6 @@ import (
 	"github.com/yetanotherco/aligned_layer/metrics"
 )
 
-const (
-	waitForTxMaxInterval                 = 2 * time.Second
-	waitForTxNumRetries                  = 0
-	respondToTaskV2NumRetries     uint64 = 0
-	respondToTaskV2MaxInterval           = time.Millisecond * 500
-	respondToTaskV2MaxElapsedTime        = 0
-)
-
 type AvsWriter struct {
 	*avsregistry.ChainWriter
 	AvsContractBindings *AvsServiceBindings
@@ -100,7 +92,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, timeToWaitBeforeBump time.Duration, onGasPriceBumped func(*big.Int)) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
-	simTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, retry.ChainRetryParams())
+	simTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, retry.SendToChainRetryParams())
 	if err != nil {
 		return nil, err
 	}
@@ -112,16 +104,8 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts.NoSend = false
 	i := 0
 
-	// Set Retry config for RespondToTaskV2
-	respondToTaskV2Config := retry.EthCallRetryParams()
-	respondToTaskV2Config.NumRetries = respondToTaskV2NumRetries
-	respondToTaskV2Config.MaxInterval = respondToTaskV2MaxInterval
-	respondToTaskV2Config.MaxElapsedTime = respondToTaskV2MaxElapsedTime
-
 	// Set Retry config for WaitForTxRetryable
-	waitForTxConfig := retry.EthCallRetryParams()
-	waitForTxConfig.MaxInterval = waitForTxMaxInterval
-	waitForTxConfig.NumRetries = waitForTxNumRetries
+	waitForTxConfig := retry.WaitForTxRetryParams()
 	waitForTxConfig.MaxElapsedTime = timeToWaitBeforeBump
 
 	var sentTxs []*types.Transaction
@@ -129,7 +113,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	batchMerkleRootHashString := hex.EncodeToString(batchMerkleRoot[:])
 
 	respondToTaskV2Func := func() (*types.Receipt, error) {
-		gasPrice, err := utils.GetGasPriceRetryable(w.Client, w.ClientFallback, retry.EthCallRetryParams())
+		gasPrice, err := utils.GetGasPriceRetryable(w.Client, w.ClientFallback, retry.NetworkRetryParams())
 		if err != nil {
 			return nil, err
 		}
@@ -164,7 +148,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 				}
 			}
 			w.logger.Infof("Receipts for old transactions not found, will check if the batch state has been responded", "merkle root", batchMerkleRootHashString)
-			batchState, _ := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash, retry.ChainRetryParams())
+			batchState, _ := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash, retry.SendToChainRetryParams())
 			if batchState.Responded {
 				w.logger.Infof("Batch state has been already responded", "merkle root", batchMerkleRootHashString)
 				return nil, nil
@@ -183,7 +167,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		}
 
 		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice, "merkle root", batchMerkleRootHashString)
-		realTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, retry.ChainRetryParams())
+		realTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, retry.SendToChainRetryParams())
 		if err != nil {
 			w.logger.Errorf("Respond to task transaction err, %v", err, "merkle root", batchMerkleRootHashString)
 			return nil, err
@@ -211,14 +195,14 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	// This just retries the bump of a fee in case of a timeout
 	// The wait is done before on WaitForTransactionReceiptRetryable, and all the functions are retriable,
 	// so this retry doesn't need to wait more time
-	return retry.RetryWithData(respondToTaskV2Func, respondToTaskV2Config)
+	return retry.RetryWithData(respondToTaskV2Func, retry.RespondToTaskV2())
 }
 
 // Calculates the transaction cost from the receipt and compares it with the batcher respondToTaskFeeLimit
 // if the tx cost was higher, then it means the aggregator has paid the difference for the batcher (txCost - respondToTaskFeeLimit) and so metrics are updated accordingly.
 // otherwise nothing is done.
 func (w *AvsWriter) checkIfAggregatorHadToPaidForBatcher(tx *types.Transaction, batchIdentifierHash [32]byte) {
-	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash, retry.EthCallRetryParams())
+	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash, retry.NetworkRetryParams())
 	if err != nil {
 		return
 	}
@@ -244,7 +228,7 @@ func (w *AvsWriter) checkAggAndBatcherHaveEnoughBalance(tx *types.Transaction, t
 	txCost := new(big.Int).Mul(txGasAsBigInt, txGasPrice)
 	w.logger.Info("Transaction cost", "cost", txCost)
 
-	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash, retry.EthCallRetryParams())
+	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash, retry.NetworkRetryParams())
 	if err != nil {
 		w.logger.Error("Failed to get batch state", "error", err)
 		w.logger.Info("Proceeding to check balances against transaction cost")
@@ -272,7 +256,7 @@ func (w *AvsWriter) compareAggregatorBalance(amount *big.Int, aggregatorAddress 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	aggregatorBalance, err := w.BalanceAtRetryable(ctx, aggregatorAddress, nil, retry.EthCallRetryParams())
+	aggregatorBalance, err := w.BalanceAtRetryable(ctx, aggregatorAddress, nil, retry.NetworkRetryParams())
 	if err != nil {
 		// Ignore and continue.
 		w.logger.Error("failed to get aggregator balance: %v", err)
@@ -287,7 +271,7 @@ func (w *AvsWriter) compareAggregatorBalance(amount *big.Int, aggregatorAddress 
 
 func (w *AvsWriter) compareBatcherBalance(amount *big.Int, senderAddress [20]byte) error {
 	// Get batcher balance
-	batcherBalance, err := w.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress, retry.EthCallRetryParams())
+	batcherBalance, err := w.BatcherBalancesRetryable(&bind.CallOpts{}, senderAddress, retry.NetworkRetryParams())
 	if err != nil {
 		// Ignore and continue.
 		w.logger.Error("Failed to get batcherBalance", "error", err)

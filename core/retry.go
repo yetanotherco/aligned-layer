@@ -25,14 +25,22 @@ func (e PermanentError) Is(err error) bool {
 }
 
 const (
-	EthCallInitialInterval             = 1 * time.Second  // Initial delay for retry interval.
-	EthCallMaxInterval                 = 60 * time.Second // Maximum interval an individual retry may have.
-	EthCallMaxElapsedTime              = 0 * time.Second  // Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
-	EthCallRandomizationFactor float64 = 0                // Randomization (Jitter) factor used to map retry interval to a range of values around the computed interval. In precise terms (random value in range [1 - randomizationfactor, 1 + randomizationfactor]). NOTE: This is set to 0 as we do not use jitter in Aligned.
-	EthCallMultiplier          float64 = 2                // Multiplier factor computed exponential retry interval is scaled by.
-	EthCallNumRetries          uint64  = 3                // Total number of retries attempted.
-	ChainInitialInterval               = 12 * time.Second // Initial delay for retry interval for contract calls. Corresponds to 1 ethereum block.
-	ChainMaxInterval                   = 2 * time.Minute  // Maximum interval for an individual retry.
+	NetworkInitialInterval             = 1 * time.Second  // Initial delay for retry interval.
+	NetworkMaxInterval                 = 60 * time.Second // Maximum interval an individual retry may have.
+	NetworkMaxElapsedTime              = 0 * time.Second  // Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
+	NetworkRandomizationFactor float64 = 0                // Randomization (Jitter) factor used to map retry interval to a range of values around the computed interval. In precise terms (random value in range [1 - randomizationfactor, 1 + randomizationfactor]). NOTE: This is set to 0 as we do not use jitter in Aligned.
+	NetworkMultiplier          float64 = 2                // Multiplier factor computed exponential retry interval is scaled by.
+	NetworkNumRetries          uint64  = 3                // Total number of retries attempted.
+	// Retry Params for Sending Tx to Chain
+	ChainInitialInterval = 12 * time.Second // Initial delay for retry interval for contract calls. Corresponds to 1 ethereum block.
+	ChainMaxInterval     = 2 * time.Minute  // Maximum interval for an individual retry.
+	// Retry Params for WaitForTransactionReceipt in the Fee Bump
+	WaitForTxMaxInterval = 2 * time.Second
+	WaitForTxNumRetries  = 0
+	// Retry Parameters for RespondToTaskV2 in the Fee Bump
+	RespondToTaskV2MaxInterval           = time.Millisecond * 500
+	RespondToTaskV2MaxElapsedTime        = 0
+	RespondToTaskV2NumRetries     uint64 = 0
 )
 
 type RetryParams struct {
@@ -44,25 +52,47 @@ type RetryParams struct {
 	NumRetries          uint64
 }
 
-func EthCallRetryParams() *RetryParams {
+func NetworkRetryParams() *RetryParams {
 	return &RetryParams{
-		InitialInterval:     EthCallInitialInterval,
-		MaxInterval:         EthCallMaxInterval,
-		MaxElapsedTime:      EthCallMaxElapsedTime,
-		RandomizationFactor: EthCallRandomizationFactor,
-		Multiplier:          EthCallMultiplier,
-		NumRetries:          EthCallNumRetries,
+		InitialInterval:     NetworkInitialInterval,
+		MaxInterval:         NetworkMaxInterval,
+		MaxElapsedTime:      NetworkMaxElapsedTime,
+		RandomizationFactor: NetworkRandomizationFactor,
+		Multiplier:          NetworkMultiplier,
+		NumRetries:          NetworkNumRetries,
 	}
 }
 
-func ChainRetryParams() *RetryParams {
+func SendToChainRetryParams() *RetryParams {
 	return &RetryParams{
 		InitialInterval:     ChainInitialInterval,
 		MaxInterval:         ChainMaxInterval,
-		MaxElapsedTime:      EthCallMaxElapsedTime,
-		RandomizationFactor: EthCallRandomizationFactor,
-		Multiplier:          EthCallMultiplier,
-		NumRetries:          EthCallNumRetries,
+		MaxElapsedTime:      NetworkMaxElapsedTime,
+		RandomizationFactor: NetworkRandomizationFactor,
+		Multiplier:          NetworkMultiplier,
+		NumRetries:          NetworkNumRetries,
+	}
+}
+
+func RespondToTaskV2() *RetryParams {
+	return &RetryParams{
+		InitialInterval:     ChainInitialInterval,
+		MaxInterval:         RespondToTaskV2MaxInterval,
+		MaxElapsedTime:      RespondToTaskV2MaxElapsedTime,
+		RandomizationFactor: NetworkRandomizationFactor,
+		Multiplier:          NetworkMultiplier,
+		NumRetries:          RespondToTaskV2NumRetries,
+	}
+}
+
+func WaitForTxRetryParams() *RetryParams {
+	return &RetryParams{
+		InitialInterval:     NetworkInitialInterval,
+		MaxInterval:         WaitForTxMaxInterval,
+		MaxElapsedTime:      NetworkMaxElapsedTime,
+		RandomizationFactor: NetworkRandomizationFactor,
+		Multiplier:          NetworkMultiplier,
+		NumRetries:          WaitForTxNumRetries,
 	}
 }
 
