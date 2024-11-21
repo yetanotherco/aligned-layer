@@ -15,6 +15,7 @@
     "stakeRegistryImplementation": "0x52A9e264b98fe2d53805937Bc094a981E7eB6BeE",
     "batcherPaymentService": "0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b",
     "batcherPaymentServiceImplementation": "0x230FF8F073C188732856990b070485FD1A9b1039"
+    "pauserRegistry": "0xBCd09a605906a13F917230F82BdAC15B778A5B03"
   },
   "chainInfo": {
     "chainId": 17000,
@@ -25,7 +26,7 @@
     "alignedLayerEjector": "0xE3C695b73dbe27106aF4530b152de3e57456B385",
     "alignedLayerOwner": "0xE3C695b73dbe27106aF4530b152de3e57456B385",
     "alignedLayerUpgrader": "0xE3C695b73dbe27106aF4530b152de3e57456B385",
-    "pauserRegistry": "0x85Ef7299F8311B25642679edBF02B62FA2212F06",
-    "alignedLayerAggregator": "0x2855F89C56d3C94e98F61A3Dea5E9Ca0AA2FA946"
+    "alignedLayerAggregator": "0x2855F89C56d3C94e98F61A3Dea5E9Ca0AA2FA946",
+    "alignedLayerPauser": "0xE3C695b73dbe27106aF4530b152de3e57456B385"
   }
 }
