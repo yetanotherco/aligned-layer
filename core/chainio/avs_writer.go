@@ -22,6 +22,14 @@ import (
 	"github.com/yetanotherco/aligned_layer/metrics"
 )
 
+const (
+	waitForTxMaxInterval                 = 2 * time.Second
+	waitForTxNumRetries                  = 0
+	respondToTaskV2NumRetries     uint64 = 0
+	respondToTaskV2MaxInterval           = time.Millisecond * 500
+	respondToTaskV2MaxElapsedTime        = 0
+)
+
 type AvsWriter struct {
 	*avsregistry.ChainWriter
 	AvsContractBindings *AvsServiceBindings
@@ -104,12 +112,24 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts.NoSend = false
 	i := 0
 
+	// Set Retry config for RespondToTaskV2
+	respondToTaskV2Config := retry.EthCallRetryConfig()
+	respondToTaskV2Config.NumRetries = respondToTaskV2NumRetries
+	respondToTaskV2Config.MaxInterval = respondToTaskV2MaxInterval
+	respondToTaskV2Config.MaxElapsedTime = respondToTaskV2MaxElapsedTime
+
+	// Set Retry config for WaitForTxRetryable
+	waitForTxConfig := retry.EthCallRetryConfig()
+	waitForTxConfig.MaxInterval = waitForTxMaxInterval
+	waitForTxConfig.NumRetries = waitForTxNumRetries
+	waitForTxConfig.MaxElapsedTime = timeToWaitBeforeBump
+
 	var sentTxs []*types.Transaction
 
 	batchMerkleRootHashString := hex.EncodeToString(batchMerkleRoot[:])
 
 	respondToTaskV2Func := func() (*types.Receipt, error) {
-		gasPrice, err := utils.GetGasPriceRetryable(w.Client, w.ClientFallback)
+		gasPrice, err := utils.GetGasPriceRetryable(w.Client, w.ClientFallback, retry.EthCallRetryConfig())
 		if err != nil {
 			return nil, err
 		}
@@ -171,7 +191,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		sentTxs = append(sentTxs, realTx)
 
 		w.logger.Infof("Transaction sent, waiting for receipt", "merkle root", batchMerkleRootHashString)
-		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, realTx.Hash(), timeToWaitBeforeBump)
+		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, realTx.Hash(), waitForTxConfig)
 		if receipt != nil {
 			w.checkIfAggregatorHadToPaidForBatcher(realTx, batchIdentifierHash)
 			return receipt, nil
@@ -191,8 +211,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	// This just retries the bump of a fee in case of a timeout
 	// The wait is done before on WaitForTransactionReceiptRetryable, and all the functions are retriable,
 	// so this retry doesn't need to wait more time
-	maxInterval := time.Millisecond * 500
-	return retry.RetryWithData(respondToTaskV2Func, retry.MinDelay, retry.RetryFactor, 0, maxInterval, 0)
+	return retry.RetryWithData(respondToTaskV2Func, respondToTaskV2Config)
 }
 
 // Calculates the transaction cost from the receipt and compares it with the batcher respondToTaskFeeLimit
