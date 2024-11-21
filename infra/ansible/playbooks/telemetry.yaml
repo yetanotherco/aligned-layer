@@ -48,8 +48,7 @@
   - name: Build release for telemetry API
     shell:
       cmd: |
-        source .env
-        mix release
+        source .env && mix release
       chdir: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api
       executable: /bin/bash
       creates: repos/telemetry/aligned_layer/telemetry_api/_build/prod/rel/telemetry_api/bin/
