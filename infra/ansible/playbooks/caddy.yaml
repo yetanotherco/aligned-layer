@@ -46,4 +46,15 @@
       dest: /etc/caddy/Caddyfile
     vars:
       ansible_ssh_user: "{{ admin_user }}"
-      caddy_api_url: "{{ lookup('ini', 'caddy_api_url', file=ini_file) }}"
+      caddy_metrics_url: "{{ lookup('ini', 'caddy_metrics_url', file=ini_file) }}"
+      caddy_telemetry_url: "{{ lookup('ini', 'caddy_telemetry_url', file=ini_file) }}"
+      caddy_tailscale_url: "{{ lookup('ini', 'caddy_tailscale_url', file=ini_file) }}"
+
+  - name: Enable caddy
+    become: true
+    systemd_service:
+      name: caddy
+      enabled: true
+      state: started
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"

@@ -1,56 +1,74 @@
-- name: Run Setup playbook
-  ansible.builtin.import_playbook: setup.yaml
-  vars:
-    host: telemetry
-
-- name: Run Elixir playbook
-  ansible.builtin.import_playbook: elixir.yaml
-  vars:
-    host: telemetry
-
-- name: Run Caddy playbook
-  ansible.builtin.import_playbook: caddy.yaml
-  vars:
-    host: telemetry
-    ini_file: ini/config-telemetry.ini # add template for caddyfile for grafana (public) and Jaeger (only tailscale)
-
-- name: Run Prometheus playbook
-  ansible.builtin.import_playbook: prometheus.yaml
-  vars:
-    host: telemetry
-    prometheus_version: "2.53.2"
-    ini_file: ini/config-telemetry.ini
-
-- name: Run Grafana playbook
-  ansible.builtin.import_playbook: grafana.yaml
-  vars:
-    host: telemetry
-    ini_file: ini/config-telemetry.ini
-    TODO: add dashboards
-
-- name: Run OpenTelemetry playbook
-  ansible.builtin.import_playbook: open_telemetry.yaml
-  vars:
-    host: telemetry
-
-- name: Run Jaeger playbook
-  ansible.builtin.import_playbook: jaeger.yaml
-  vars:
-    host: telemetry
-    version: 1.63.0
-
-- name: Run Cassandra playbook
-  ansible.builtin.import_playbook: cassandra.yaml
-  vars:
-    host: telemetry
-
-- name: Run Postgres playbook
-  ansible.builtin.import_playbook: postgres.yaml
-  vars:
-    host: telemetry
-
 - name: Setup Telemetry
   hosts: telemetry
 
   tasks:
-  # install aligned Telemetry api
+  - name: Add permit to tailscale for caddy
+    become: true
+    lineinfile:
+      path: /etc/default/tailscaled
+      line: TS_PERMIT_CERT_UID=caddy
+      state: present
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+    notify:
+        - Restart caddy
+        - Restart tailscale
+      
+  - name: Clone Aligned repository
+    ansible.builtin.git:
+      repo: https://github.com/yetanotherco/aligned_layer.git
+      dest: /home/{{ ansible_user }}/repos/telemetry/aligned_layer
+      version: v0.10.2
+      recursive: false
+
+  - name: Add environment file for telemetry API
+    template:
+      src: telemetry_api/telemetry_env.j2
+      dest: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api/.env
+    vars:
+      postgresql_telemetry_db_name: "{{ lookup('ini', 'postgresql_telemetry_db_name file=ini/config-telemetry.ini') }}"
+      postgresql_telemetry_user: "{{ lookup('ini', 'postgresql_telemetry_user file=ini/config-telemetry.ini') }}"
+      postgresql_telemetry_pass: "{{ lookup('ini', 'postgresql_telemetry_pass file=ini/config-telemetry.ini') }}"
+      telemetry_aligned_rpc: "{{ lookup('ini', 'telemetry_aligned_rpc file=ini/config-telemetry.ini') }}"
+      telemetry_api_phx_host: "{{ lookup('ini', 'telemetry_api_phx_host file=ini/config-telemetry.ini') }}"
+      telemetry_api_elixir_hostname: "{{ lookup('ini', 'telemetry_api_elixir_hostname file=ini/config-telemetry.ini') }}"
+      telemetry_api_secret_key_base: "{{ lookup('ini', 'telemetry_api_secret_key_base file=ini/config-telemetry.ini') }}"
+
+  - name: Install dependencies for telemetry API
+    shell:
+      cmd: | 
+        source .env
+        mix deps.get
+        mix phx.gen.release
+      chdir: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api
+      executable: /bin/bash
+    environment:
+      MIX_ENV: prod
+
+  - name: Build release for telemetry API
+    shell:
+      cmd: |
+        source .env
+        mix release
+      chdir: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api
+      executable: /bin/bash
+      creates: repos/telemetry/aligned_layer/telemetry_api/_build/prod/rel/telemetry_api/bin/
+    environment:
+      MIX_ENV: prod
+
+  handlers:
+    - name: Restart caddy
+      become: true
+      systemd_service:
+        name: caddy
+        state: restarted
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Restart tailscale
+      become: true
+      systemd_service:
+        name: tailscaled
+        state: restarted
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"

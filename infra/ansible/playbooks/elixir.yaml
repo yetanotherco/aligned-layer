@@ -1,21 +1,19 @@
 - name: Elixir Setup
   hosts: "{{ host }}"
+
   vars:
-    erlang_version: 26.0
-    elixir_version: 1.16.2-otp-26
+    ansible_ssh_user: "{{ admin_user }}"
 
   tasks:
     # Install required packages
     - name: Update apt and install required system packages
       become: true
-      apt:
+      ansible.builtin.apt:
         pkg:
           - build-essential
           - autoconf
           - m4
           - libncurses5-dev
-          - libwxgtk3.2-dev
-          - libwxgtk-webview3.2-dev
           - libgl1-mesa-dev
           - libglu1-mesa-dev
           - libpng-dev
@@ -25,40 +23,76 @@
           - fop
           - libxml2-utils
           - libncurses-dev
-          - openjdk-17-jdk
         state: latest
         update_cache: true
-      vars:
-        ansible_ssh_user: "{{ admin_user }}"
 
-    - name: Clone asdf repository into ~/.asdf
-      ansible.builtin.git:
-        name: https://github.com/asdf-vm/asdf.git
-        dest: ~/.asdf
-        single_branch: yes
-        version: v0.14.0
+    ########## Install libssl1.1 ##########
+    - name: Check if libssl1.1 is installed
+      become: true
+      ansible.builtin.shell:
+        cmd: dpkg -l | grep libssl1.1
+      register: libssl_check
+      changed_when: false
+      failed_when: libssl_check.rc not in [0, 1]
 
-    - name: Insert lines to ~/.bashrc to source asdf
-      ansible.builtin.blockinfile:
-        path: "/home/{{ ansible_user }}/.bashrc"
-        block: |
-          . "$HOME/.asdf/asdf.sh"
-          . "$HOME/.asdf/completions/asdf.bash"
+    - name: Download libssl1.1
+      become: true
+      register: download_libssl
+      ansible.builtin.get_url:
+        url: http://ftp.de.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.1w-0+deb11u1_amd64.deb
+        dest: /root/
+      when: libssl_check.rc != 0
 
-    - name: Add Erlang plugin to asdf
-      shell: /home/{{ ansible_user }}/.asdf/bin/asdf plugin add erlang
+    - name: Install libssl1.1
+      become: true
+      ansible.builtin.apt:
+        deb: "{{ download_libssl.dest }}"
+      when: libssl_check.rc != 0
 
-    - name: Add Erlang version to asdf
-      shell: /home/{{ ansible_user }}/.asdf/bin/asdf install erlang {{ erlang_version }}
+    ########## Install Erlang 26.2.1-1 ##########
+    - name: Check if Erlang 26.2.1-1 is installed
+      become: true
+      ansible.builtin.shell:
+        cmd: dpkg -l | grep esl-erlang
+      register: erlang_check
+      changed_when: false
+      failed_when: erlang_check.rc not in [0, 1]
 
-    - name: Set Erlang version as global
-      shell: /home/{{ ansible_user }}/.asdf/bin/asdf global erlang {{ erlang_version }}
+    - name: Download Erlang 26.2.1-1
+      become: true
+      register: download_erlang
+      ansible.builtin.get_url:
+        url: https://binaries2.erlang-solutions.com/debian/pool/contrib/e/esl-erlang/esl-erlang_26.2.1-1~debian~bullseye_amd64.deb
+        dest: /root/
+      when: erlang_check.rc != 0
 
-    - name: Add Elixir plugin to asdf
-      shell: /home/{{ ansible_user }}/.asdf/bin/asdf plugin add elixir
+    - name: Install Erlang 26.2.1-1
+      become: true
+      ansible.builtin.apt:
+        deb: "{{ download_erlang.dest }}"
+      when: erlang_check.rc != 0
 
-    - name: Add Elixir version to asdf
-      shell: /home/{{ ansible_user }}/.asdf/bin/asdf install elixir {{ elixir_version }}
+    ########## Install Elixir v1.16.2-otp-26 ##########
+    - name: Check if Elixir v1.16.2 is installed
+      become: true
+      ansible.builtin.shell:
+        cmd: elixir --version | grep "Elixir 1.16.2"
+      register: elixir_check
+      changed_when: false
+      failed_when: elixir_check.rc not in [0, 1]
 
-    - name: Set Elixir version as global
-      shell: /home/{{ ansible_user }}/.asdf/bin/asdf global elixir {{ elixir_version }}
+    - name: Download Elixir v1.16.2-otp-26
+      become: true
+      register: download_elixir
+      ansible.builtin.get_url:
+        url: https://github.com/elixir-lang/elixir/releases/download/v1.16.2/elixir-otp-26.zip
+        dest: /root/
+      when: elixir_check.rc != 0
+
+    - name: Install Elixir v1.16.2-otp-26
+      become: true
+      ansible.builtin.unarchive:
+        remote_src: true
+        src: "{{ download_elixir.dest }}"
+        dest: /usr/local/
+      when: elixir_check.rc != 0

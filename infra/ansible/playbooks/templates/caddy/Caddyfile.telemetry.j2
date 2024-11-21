@@ -1,7 +1,14 @@
-{{ caddy_api_url }} {
-  # reference https://gist.github.com/vocuzi/5cb835dde177cf892e2ca1a03c2a443f
+{{ caddy_metrics_url }} {
+  reverse_proxy localhost:3000
+}
+
+{{ caddy_telemetry_url }} {
   @whitelisted {
     path /versions*
   }
   reverse_proxy @whitelisted localhost:4001
+}
+
+{{ caddy_tailscale_url }} {
+  reverse_proxy localhost:16686
 }

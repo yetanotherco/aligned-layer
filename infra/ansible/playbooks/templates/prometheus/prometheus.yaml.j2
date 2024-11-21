@@ -7,27 +7,27 @@ scrape_configs:
   - job_name: "aligned-aggregator"
     scrape_interval: 1s
     static_configs:
-      - targets: [ "{{ aligned_aggregator_prometheus_ip }}" ]
+      - targets: [ "{{ prometheus_aggregator_ip }}" ]
         labels:
           bot: "aggregator"
 
   - job_name: "aligned-operator"
     scrape_interval: 1s
     static_configs:
-      - targets: [ "{{ aligned_operator_prometheus_ip }}" ]
+      - targets: [ "{{ prometheus_operator_ip }}" ]
         labels:
           bot: "operator"
   
   - job_name: "aligned-batcher"
     scrape_interval: 1s
     static_configs:
-      - targets: [ "{{ aligned_batcher_prometheus_ip }}" ]
+      - targets: [ "{{ prometheus_batcher_ip }}" ]
         labels:
           bot: "batcher"
   
   - job_name: "aligned-tracker"
     scrape_interval: 1s
     static_configs:
-      - targets: [ "{{ aligned_tracker_prometheus_ip }}" ]
+      - targets: [ "{{ prometheus_tracker_ip }}" ]
         labels:
           bot: "tracker"
