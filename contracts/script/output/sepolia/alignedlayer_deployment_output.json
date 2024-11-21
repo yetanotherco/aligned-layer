@@ -13,7 +13,9 @@
     "registryCoordinatorImplementation": "0xf0A6F3d339bE498d04fE00cD328D0B4f3b475409",
     "serviceManagerRouter": "0x73D68e630b4aAa35f01c4735914c55c5c3181672",
     "stakeRegistry": "0xB57FA20C97235dA95Cf8e83a15865a3eb659B24a",
-    "stakeRegistryImplementation": "0x809D99a4357667203cC06fBc7046C236085be843"
+    "stakeRegistryImplementation": "0x809D99a4357667203cC06fBc7046C236085be843",
+    "batcherPaymentService": "0x206BfD26d368Fa6f4C8F9b1269bEA4A824286a5c",
+    "batcherPaymentServiceImplementation": "0x872102bA2030C0AB26427Be24de86E0dD7622C67"
   },
   "chainInfo": {
     "chainId": 11155111,
