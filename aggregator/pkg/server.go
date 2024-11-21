@@ -50,10 +50,10 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 	taskIndex := uint32(0)
 
-	// Aggregator may receive the Task Identifier after the operators.
+	// The Aggregator may receive the Task Identifier after the operators.
 	// If that's the case, we won't know about the task at this point
-	// so we make the GetTask retryabl, waiting for some seconds,
-	// before trying to fetch it again
+	// so we make GetTaskIndex retryable, waiting for some seconds,
+	// before trying to fetch the task again from the map.
 	taskIndex, err := agg.GetTaskIndexRetryable(signedTaskResponse.BatchIdentifierHash)
 
 	if err != nil {
