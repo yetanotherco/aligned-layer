@@ -96,8 +96,8 @@ To propose the upgrade transaction you can follow the steps below:
     jq -r ".addresses.alignedLayerProxyAdmin" contracts/script/output/mainnet/alignedlayer_deployment_output.json | pbcopy
     ```
    
-   >    [!NOTE]
-   >    Make sure to set the path to the correct deployment output file.
+>    [!NOTE]
+>    Make sure to set the path to the correct deployment output file.
 
 8. Once you paste the `ProxyAdmin` address, the ABI should be automatically filled.
 

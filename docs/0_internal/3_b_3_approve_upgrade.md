@@ -34,8 +34,8 @@ To approve the upgrade transaction, you can follow the steps below:
 
 6. Once you are sure everything is correct, click on `Execute` to approve the transaction.
 
-   > [!NOTE]
-   > The transaction gas usage is approximately 100,000 gas units. Make sure you have enough ETH to cover the gas fees.
+> [!NOTE]
+> The transaction gas usage is approximately 100,000 gas units. Make sure you have enough ETH to cover the gas fees.
 
 7. Wait for the transaction to be executed. You can check the transaction status on the `Transactions` tab.
 
