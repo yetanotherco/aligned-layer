@@ -110,8 +110,8 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 	return nil
 }
 
-// Checks Internal mapping for Signed Task Response, returns its TaskIndex.
 /*
+Checks Internal mapping for Signed Task Response, returns its TaskIndex.
 - All errors are considered Transient Errors
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec
 
