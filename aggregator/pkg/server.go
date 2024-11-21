@@ -115,7 +115,7 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 - All errors are considered Transient Errors
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec
 
-TODO: This should retry a bit more, at least somewhere between 1 and 2 blocks
+TODO: We should refactor the retry duration considering extending it to a larger time or number of retries, at least somewhere between 1 and 2 blocks
 */
 func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte) (uint32, error) {
 	getTaskIndex_func := func() (uint32, error) {
