@@ -198,51 +198,6 @@ func TestWaitForTransactionReceipt(t *testing.T) {
 // The originates within the eigen-sdk and as of 8/11/24 is currently working to be fixed.
 
 /*
-func TestInitializeNewTask(t *testing.T) {
-
-	_, _, err := SetupAnvil(8545)
-	if err != nil {
-		t.Errorf("Error setting up Anvil: %s\n", err)
-	}
-
-	aggregatorConfig := config.NewAggregatorConfig("../config-files/config-aggregator-test.yaml")
-	agg, err := aggregator.NewAggregator(*aggregatorConfig)
-	if err != nil {
-		aggregatorConfig.BaseConfig.Logger.Error("Cannot create aggregator", "err", err)
-		return
-	}
-	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(byte(0))}
-	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(byte(57))}
-
-	err = agg.InitializeNewTask(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
-	assert.Nil(t, err)
-
-	if err := cmd.Process.Kill(); err != nil {
-		t.Errorf("error killing process: %v\n", err)
-		return
-	}
-
-	err = agg.InitializeNewTask(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
-	assert.NotNil(t, err)
-	t.Errorf("Error setting Avs Subscriber: %s\n", err)
-
-	_, _, err = SetupAnvil(8545)
-	if err != nil {
-		t.Errorf("Error setting up Anvil: %s\n", err)
-	}
-
-	err = agg.InitializeNewTask(0, 1, quorumNums, quorumThresholdPercentages, 1*time.Second)
-	assert.Nil(t, err)
-	t.Errorf("Error setting Avs Subscriber: %s\n", err)
-
-	if err := cmd.Process.Kill(); err != nil {
-		t.Errorf("error killing process: %v\n", err)
-		return
-	}
-}
-*/
-
-/*
 func TestGetTaskIndex(t *testing.T) {
 
 	cmd, _, err := SetupAnvil(8545)
