@@ -844,35 +844,6 @@ explorer_create_env:
 	@cd explorer && \
 	cp .env.dev .env
 
-__TRACKER__:
-
-tracker_devnet_start: tracker_run_db
-	@cd operator_tracker/ && \
-		cargo run -r -- --env-file .env.dev
-
-tracker_install: tracker_build_db
-	cargo install --path ./operator_tracker
-
-tracker_build_db:
-	@cd operator_tracker && \
-		docker build -t tracker-postgres-image .
-
-tracker_run_db: tracker_build_db tracker_remove_db_container
-	@cd operator_tracker && \
-		docker run -d --name tracker-postgres-container -p 5433:5432 -v tracker-postgres-data:/var/lib/postgresql/data tracker-postgres-image
-
-tracker_remove_db_container:
-	docker stop tracker-postgres-container || true  && \
-	    docker rm tracker-postgres-container || true
-
-tracker_clean_db: tracker_remove_db_container
-	docker volume rm tracker-postgres-data || true
-
-tracker_dump_db:
-	@cd operator_tracker && \
-		docker exec -t tracker-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
-	@echo "Dumped database successfully to /operator_tracker"
-
 DOCKER_RPC_URL=http://anvil:8545
 PROOF_GENERATOR_ADDRESS=0x66f9664f97F2b50F62D13eA064982f936dE76657
 
