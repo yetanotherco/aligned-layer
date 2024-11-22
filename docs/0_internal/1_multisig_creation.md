@@ -45,4 +45,4 @@ You can create a Multisig wallet using [Safe](https://safe.global/).
 
     ![Multisig Wallet](images/1_multisig_6.png)
 
-After finishing this tutorial, you will have your Multisig wallet created. In this tutorial, we created a 
+After finishing this tutorial, you will have your Multisig wallet created.
