@@ -19,39 +19,23 @@ Also, you will be able to deploy the Batcher Payment Service contract.
     foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
     ```
   
-- Get an API KEY from Etherescan to verify the contracts. You can follow this [guide](https://docs.etherscan.io/getting-started/viewing-api-usage-statistics).
-
-- You need a hot wallet with some ETH to deploy the contracts. The deployment cost is approximately 30M gas units.
-  
-  You can create a hot wallet with cast using the following command:
-    
-  ```bash
-  cast wallet new
-  ```
-
-
 ## AlignedServiceManager Contracts
 
-This section will guide you through the deployment of the Aligned Layer contracts.
-
-After finishing the deployment, you will have the deployed contract addresses.
-
-### Set .env variables
-
-To deploy the contracts, you need to set the `PRIVATE_KEY` and `ETHERSCAN_API_KEY` variables in the `.env` file.
-
-For **Mainnet** deployment, the `env` file is available [here](../../contracts/scripts/.env.mainnet).
-
-For **Holesky** deployment, the `env` file is available [here](../../contracts/scripts/.env.holesky).
-
-For **Sepolia** deployment, the `env` file is available [here](../../contracts/scripts/.env.sepolia).
-
-### Set DEPLOY_CONFIG_PATH file
+1 You should have a keystore for the Aggregator, with the seedphrase saved on paper
+1. If you don't have an API Key on Etherscan, create one following this guide  [guide](https://docs.etherscan.io/getting-started/viewing-api-usage-statistics).
+2. If you don't have it, create a wallet to deploy Aligned with ```cast wallet new```. and keep the ```Address``` and ```Private Key```values
+3. Transfer around 35M gas to the ```Address```
+4. ```CD``` into the Aligned repo
+5. Set the ```PRIVATE_KEY``` and ```ETHERSCAN_API_KEY```on the ```.env``` used to deploy. ```contracts/scripts/.env.mainnet``` or ```contracts/scripts/.env.holesky``` or ```contracts/scripts/.env.sepolia```
+6. Set `owner`, `upgrader`, `churner`, `ejector` and `deployer` values of ```contracts/script/deploy/config/mainnet/aligned.holesky.config.json``` to the multisig controlling this processes, or the owner of the deploying address, depending on what you want
 
 You need to set the following address in the config file:
 
-- `owner`: Address that will be the owner of the contracts. This address can be a multisig or a normal wallet.
 - `aggregator`: Address that will be the aggregator of Aligned.
+
+
+
+- `owner`: Address that will be the owner of the contracts. This address can be a multisig or a normal wallet.
 - `upgrader`: Address that will be the upgrader of the contracts. This address can be a multisig or a normal wallet.
 - `churner`: Address that will be the churner of the contracts. This address can be a multisig or a normal wallet.
 - `ejector`: Address that will be the ejector of the contracts. This address can be a multisig or a normal wallet.
