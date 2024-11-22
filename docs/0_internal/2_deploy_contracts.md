@@ -27,6 +27,7 @@ These contracts are not deployed by Aligned. These are the current EigenLayer co
 
 - [Holesky Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/testnet-holesky/script/configs/holesky/eigenlayer_addresses_testnet.config.json)
 - [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/mainnet/script/configs/mainnet/mainnet-addresses.config.json)
+- Aligned has his own Eigenlayer contracts deployed in Sepolia for testing. You can find them in [Sepolia Contracts](../../contracts/script/output/sepolia/eigenlayer_deployment_output.json).
 
 ## Aligned Contracts
 
