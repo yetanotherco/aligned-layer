@@ -66,7 +66,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		}
 		agg.logger.Info("Task was found in Ethereum, adding it to the internal map")
 		agg.AddNewTask(batch.BatchMerkleRoot, batch.SenderAddress, batch.TaskCreatedBlock)
-		taskIndex, err = agg.GetTaskIndex(signedTaskResponse.BatchIdentifierHash)
+		taskIndex, err = agg.GetTaskIndexRetryable(signedTaskResponse.BatchIdentifierHash)
 		if err != nil {
 			// This shouldn't happen, since we just added the task
 			agg.logger.Error("Unexpected error trying to get taskIndex from internal map")
