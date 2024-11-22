@@ -23,11 +23,7 @@ defmodule TelemetryApi.Traces do
     with {:ok, _trace} <- set_current_trace(merkle_root),
          {:ok, total_stake} <- StakeRegistry.get_current_total_stake() do
       Tracer.with_span "Aggregator - New task event received" do
-        Tracer.set_attributes(%{
-          attributes: [
-            {:total_stake, total_stake}
-          ]
-        })
+        Tracer.set_attributes(%{total_stake: total_stake})
       end
 
       :ok
@@ -56,16 +52,14 @@ defmodule TelemetryApi.Traces do
       Tracer.with_span "Aggregator - Operator Response: " <>
                          operator.name do
         Tracer.set_attributes(%{
-          attributes: [
-            {:merkle_root, merkle_root},
-            {:operator_id, operator_id},
-            {:name, operator.name},
-            {:address, operator.address},
-            {:operator_stake, Decimal.to_string(operator_stake)},
-            {:current_stake, Decimal.to_string(new_stake)},
-            {:current_stake_fraction, Decimal.to_string(new_stake_fraction)},
-            {:operator_stake_fraction, Decimal.to_string(operator_stake_fraction)}
-          ]
+          merkle_root: merkle_root,
+          operator_id: operator_id,
+          name: operator.name,
+          address: operator.address,
+          operator_stake: Decimal.to_string(operator_stake),
+          current_stake: Decimal.to_string(new_stake),
+          current_stake_fraction: Decimal.to_string(new_stake_fraction),
+          operator_stake_fraction: Decimal.to_string(operator_stake_fraction)
         })
       end
 
@@ -78,7 +72,7 @@ defmodule TelemetryApi.Traces do
       })
 
       IO.inspect(
-        "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
+        "Operator response included. merkle_root: #{inspect(merkle_root)} operator_id: #{inspect(operator_id)}"
       )
 
       :ok
@@ -98,11 +92,7 @@ defmodule TelemetryApi.Traces do
   def batcher_task_creation_failed(merkle_root, error) do
     with {:ok, _trace} <- set_current_trace(merkle_root) do
       Tracer.with_span "Batcher - Task Creation Failed" do
-        Tracer.set_attributes(%{
-          attributes: [
-            {:error, error}
-          ]
-        })
+        Tracer.set_attributes(%{error: error})
       end
 
       :ok
@@ -140,6 +130,8 @@ defmodule TelemetryApi.Traces do
       responses: []
     })
 
+    Tracer.set_current_span(root_span_ctx)
+
     # This span ends inmediately after it's created just to set the correct title to the final task.
     Tracer.with_span "Task: #{merkle_root}" do
       Tracer.set_attributes(%{merkle_root: merkle_root})
@@ -159,9 +151,7 @@ defmodule TelemetryApi.Traces do
   def batcher_task_uploaded_to_s3(merkle_root) do
     with {:ok, _trace} <- set_current_trace(merkle_root) do
       Tracer.with_span "Batcher - Task Uploaded to S3" do
-        Tracer.set_attributes(%{
-          attributes: []
-        })
+        Tracer.set_attributes(%{merkle_root: merkle_root})
       end
 
       :ok
@@ -202,9 +192,7 @@ defmodule TelemetryApi.Traces do
       IO.inspect("fee_per_proof: #{fee_per_proof}")
 
       Tracer.with_span "Batcher - Task being created" do
-        Tracer.set_attributes(%{
-          attributes: [fee_per_proof: fee_per_proof, total_proofs: total_proofs]
-        })
+        Tracer.set_attributes(%{fee_per_proof: fee_per_proof, total_proofs: total_proofs})
       end
 
       :ok
@@ -223,9 +211,7 @@ defmodule TelemetryApi.Traces do
   def quorum_reached(merkle_root) do
     with {:ok, _trace} <- set_current_trace(merkle_root) do
       Tracer.with_span "Aggregator - Quorum Reached" do
-        Tracer.set_attributes(%{
-          attributes: []
-        })
+        Tracer.set_attributes(%{merkle_root: merkle_root})
       end
 
       IO.inspect("Reached quorum registered. merkle_root: #{merkle_root}")
@@ -247,14 +233,12 @@ defmodule TelemetryApi.Traces do
     with {:ok, _trace} <- set_current_trace(merkle_root) do
       Tracer.with_span "Aggregator - Batch verification failed" do
         Tracer.set_attributes(%{
-          attributes: [
-            {:status, "error"},
-            {:error, error}
-          ]
+          status: "error",
+          error: error
         })
       end
 
-      IO.inspect("Task error registered. merkle_root: #{IO.inspect(merkle_root)}")
+      IO.inspect("Task error registered. merkle_root: #{inspect(merkle_root)}")
       :ok
     end
   end
@@ -272,7 +256,7 @@ defmodule TelemetryApi.Traces do
   def aggregator_task_gas_price_bumped(merkle_root, bumped_gas_price) do
     with {:ok, _trace} <- set_current_trace(merkle_root) do
       Tracer.with_span "Aggregator - Task gas price bumped" do
-        Tracer.set_attributes(%{attributes: [{"bumped__gas_price", bumped_gas_price}]})
+        Tracer.set_attributes(%{bumped_gas_price: bumped_gas_price})
       end
 
       :ok
@@ -292,7 +276,7 @@ defmodule TelemetryApi.Traces do
   def aggregator_task_sent(merkle_root, tx_hash) do
     with {:ok, _trace} <- set_current_trace(merkle_root) do
       Tracer.with_span "Aggregator - Task Sent to Ethereum" do
-        Tracer.set_attributes(%{attributes: [{"tx_hash", tx_hash}]})
+        Tracer.set_attributes(%{tx_hash: tx_hash})
       end
 
       :ok
