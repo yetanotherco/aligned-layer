@@ -23,7 +23,7 @@ Also, you will be able to deploy the Batcher Payment Service contract.
 
 To deploy Aligned contracts, you need previously deployed EigenLayer contracts.
 
-These contracts are not deployed by Aligned. Current EigenLayer contracts:
+These contracts are not deployed by Aligned. These are the current EigenLayer contracts:
 
 - [Holesky Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/testnet-holesky/script/configs/holesky/eigenlayer_addresses_testnet.config.json)
 - [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/mainnet/script/configs/mainnet/mainnet-addresses.config.json)
