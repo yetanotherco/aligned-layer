@@ -1,0 +1,16 @@
+[Unit]
+Description=Cassandra
+After=network.target
+
+[Service]
+User=cassandra
+Group=cassandra
+ExecStart=/opt/cassandra/bin/cassandra
+LimitNOFILE=100000
+LimitMEMLOCK=infinity
+LimitNPROC=32768
+LimitAS=infinity
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

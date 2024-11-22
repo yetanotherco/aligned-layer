@@ -1,0 +1,14 @@
+[Unit]
+Description=Jaeger Collector daemon
+Requires=cassandra.service
+Wants=network-online.target
+After=cassandra.service
+
+[Service]
+Environment="SPAN_STORAGE=cassandra"
+ExecStart=/usr/local/bin/jaeger-all-in-one --config-file=/etc/jaeger/config.toml
+User=jaeger-collector
+Group=jaeger-collector
+
+[Install]
+WantedBy=multi-user.target

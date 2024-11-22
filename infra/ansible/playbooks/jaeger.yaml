@@ -2,6 +2,30 @@
   hosts: "{{ host }}"
 
   tasks:
+  - name: Check if Jaeger is installed
+    stat:
+      path: /usr/local/bin/jaeger-collector
+    register: jaeger_exists
+
+  - name: Create Jaeger group
+    become: true
+    when: not jaeger_exists.stat.exists
+    group:
+      name: jaeger-collector
+      system: yes
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Create Jaeger user
+    become: true
+    when: not jaeger_exists.stat.exists
+    user:
+      name: jaeger-collector
+      group: jaeger-collector
+      shell: /sbin/nologin
+      system: yes
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
 
   - name: Download Jaeger package
     get_url:
@@ -24,3 +48,11 @@
     file:
       path: /tmp/jaeger-{{ version }}-linux-amd64.tar.gz
       state: absent
+
+  - name: Create Jaeger systemd service
+    become: true
+    template:
+      src: services/jaeger.service.j2
+      dest: /etc/systemd/system/jaeger.service
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"

@@ -1,3 +1,54 @@
+- name: Run Setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: telemetry
+
+- name: Run Elixir playbook
+  ansible.builtin.import_playbook: elixir.yaml
+  vars:
+    host: telemetry
+
+- name: Run Caddy playbook
+  ansible.builtin.import_playbook: caddy.yaml
+  vars:
+    host: telemetry
+    ini_file: ini/config-telemetry.ini
+
+- name: Run Prometheus playbook
+  ansible.builtin.import_playbook: prometheus.yaml
+  vars:
+    host: telemetry
+    prometheus_version: "2.53.2"
+    ini_file: ini/config-telemetry.ini
+
+- name: Run Grafana playbook
+  ansible.builtin.import_playbook: grafana.yaml
+  vars:
+    host: telemetry
+    ini_file: ini/config-telemetry.ini
+
+- name: Run OpenTelemetry playbook
+  ansible.builtin.import_playbook: open_telemetry.yaml
+  vars:
+    host: telemetry
+
+- name: Run Jaeger playbook
+  ansible.builtin.import_playbook: jaeger.yaml
+  vars:
+    host: telemetry
+    grafana_version: 1.63.0
+
+- name: Run Cassandra playbook
+  ansible.builtin.import_playbook: cassandra.yaml
+  vars:
+    host: telemetry
+    version: 5.0.0
+
+- name: Run Postgres playbook
+  ansible.builtin.import_playbook: postgres.yaml
+  vars:
+    host: telemetry
+
 - name: Setup Telemetry
   hosts: telemetry
 
@@ -21,7 +72,7 @@
       version: v0.10.2
       recursive: false
 
-  - name: Add environment file for telemetry API
+  - name: Add environment file for Telemetry API
     template:
       src: telemetry_api/telemetry_env.j2
       dest: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api/.env
@@ -34,7 +85,7 @@
       telemetry_api_elixir_hostname: "{{ lookup('ini', 'telemetry_api_elixir_hostname file=ini/config-telemetry.ini') }}"
       telemetry_api_secret_key_base: "{{ lookup('ini', 'telemetry_api_secret_key_base file=ini/config-telemetry.ini') }}"
 
-  - name: Install dependencies for telemetry API
+  - name: Install dependencies for Telemetry API
     shell:
       cmd: | 
         source .env
@@ -45,15 +96,28 @@
     environment:
       MIX_ENV: prod
 
-  - name: Build release for telemetry API
+  - name: Build release for Telemetry API
     shell:
       cmd: |
         source .env && mix release
       chdir: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api
       executable: /bin/bash
-      creates: repos/telemetry/aligned_layer/telemetry_api/_build/prod/rel/telemetry_api/bin/
+      creates: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api/_build/prod/rel/telemetry_api/bin/
     environment:
       MIX_ENV: prod
+
+  - name: Ensure ~/.config/systemd/user/ directory exists
+    file:
+      path: /home/{{ ansible_user }}/.config/systemd/user/
+      state: directory
+
+  - name: Create .env for Telemetry API systemd service
+    shell: cat /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api/.env | sed 's/export //g' > /home/{{ ansible_user }}/config/.env.telemetry
+
+  - name: Create systemd service for Telemetry API
+    template:
+      src: services/telemetry.service.j2
+      dest: /home/{{ ansible_user }}/.config/systemd/user/telemetry.service
 
   handlers:
     - name: Restart caddy
