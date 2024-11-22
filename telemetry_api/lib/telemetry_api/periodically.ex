@@ -10,16 +10,19 @@ defmodule TelemetryApi.Periodically do
   @deregistered 2
 
   @wait_time_str System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
-    raise """
-    environment variable OPERATOR_FETCHER_WAIT_TIME_MS is missing.
-    """
+                   raise("""
+                   environment variable OPERATOR_FETCHER_WAIT_TIME_MS is missing.
+                   """)
 
-  @wait_time_ms (
-    case Integer.parse(@wait_time_str) do
-      :error -> raise("OPERATOR_FETCHER_WAIT_TIME_MS is not a number, received: #{@wait_time_str}")
-      {num, _} -> num
-    end
-  )
+  @wait_time_ms (case Integer.parse(@wait_time_str) do
+                   :error ->
+                     raise(
+                       "OPERATOR_FETCHER_WAIT_TIME_MS is not a number, received: #{@wait_time_str}"
+                     )
+
+                   {num, _} ->
+                     num
+                 end)
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, %{})
@@ -32,7 +35,8 @@ defmodule TelemetryApi.Periodically do
 
   def send_work() do
     one_second = 1000
-    :timer.send_interval(one_second * 10, :gas_price) # every 10 seconds, once per block + some margin
+    # every 10 seconds, once per block + some margin
+    :timer.send_interval(one_second * 10, :gas_price)
     :timer.send_interval(@wait_time_ms, :poll_service)
   end
 
@@ -50,8 +54,10 @@ defmodule TelemetryApi.Periodically do
       {:error, error} ->
         IO.inspect("Error fetching gas price: #{error}")
     end
-        {:noreply, %{}}
+
+    {:noreply, %{}}
   end
+
   defp fetch_operators_info() do
     case Operators.fetch_all_operators() do
       :ok -> :ok
@@ -67,9 +73,10 @@ defmodule TelemetryApi.Periodically do
           Operators.update_operator(op, %{status: string_status(status)})
 
         error ->
-          Logger.error("Error when updating status: #{error}")
+          Logger.error("Error when updating status: #{inspect(error)}")
       end
     end)
+
     :ok
   end
 

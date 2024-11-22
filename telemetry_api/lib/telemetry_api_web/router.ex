@@ -11,13 +11,13 @@ defmodule TelemetryApiWeb.Router do
     get "/operators", OperatorController, :index
     get "/operators/:id", OperatorController, :show
     post "/operators", OperatorController, :create_or_update
-    post "/initTaskTrace", TraceController, :create_task_trace
+    post "/initTaskTrace", TraceController, :aggregator_init_task
     post "/operatorResponse", TraceController, :register_operator_response
     post "/quorumReached", TraceController, :quorum_reached
     post "/taskError", TraceController, :task_error
     post "/aggregatorTaskGasPriceBump", TraceController, :aggregator_task_gas_price_bumped
     post "/aggregatorTaskSent", TraceController, :aggregator_task_sent
-    post "/finishTaskTrace", TraceController, :finish_task_trace
+    post "/finishTaskTrace", TraceController, :aggregator_finish_task
 
     post "/initBatcherTaskTrace", TraceController, :create_batcher_task_trace
     post "/batcherTaskUploadedToS3", TraceController, :batcher_task_uploaded_to_s3

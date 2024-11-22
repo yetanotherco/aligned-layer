@@ -6,11 +6,11 @@ defmodule TelemetryApiWeb.TraceController do
   action_fallback(TelemetryApiWeb.FallbackController)
 
   @doc """
-  Create a trace for a NewTask with the given merkle_root
+  Register an aggregator init task in the bls service.
   Method: POST initTaskTrace
   """
-  def create_task_trace(conn, %{"merkle_root" => merkle_root}) do
-    with :ok <- Traces.create_task_trace(merkle_root) do
+  def aggregator_init_task(conn, %{"merkle_root" => merkle_root}) do
+    with :ok <- Traces.aggregator_init_task(merkle_root) do
       conn
       |> put_status(:ok)
       |> render(:show_merkle, merkle_root: merkle_root)
@@ -153,8 +153,8 @@ defmodule TelemetryApiWeb.TraceController do
   Finish a trace for the given merkle_root
   Method: POST finishTaskTrace
   """
-  def finish_task_trace(conn, %{"merkle_root" => merkle_root}) do
-    with :ok <- Traces.finish_task_trace(merkle_root) do
+  def aggregator_finish_task(conn, %{"merkle_root" => merkle_root}) do
+    with :ok <- Traces.aggregator_finish_task(merkle_root) do
       conn
       |> put_status(:ok)
       |> render(:show_merkle, merkle_root: merkle_root)
