@@ -6,7 +6,7 @@ Also, you will be able to deploy the Batcher Payment Service contract.
 
 ## Prerequisites
 
-- You need to have installed git and make.
+- You need to have installed `git` and `make`.
 
 - Clone the repository
    ```
