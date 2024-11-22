@@ -52,7 +52,7 @@ The necessary environment variables are:
 
 You can find an example `.env` file in [.env.example.holesky](../../contracts/scripts/.env.example.holesky)
 
-> [!Warning]
+> [!WARNING]
 > All file paths must be inside the `script/` directory, as shown in `.env.example.holesky` because of `foundry`'s permissions to read and write files.
 
 ### Set DEPLOY_CONFIG_PATH file
