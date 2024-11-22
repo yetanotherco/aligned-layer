@@ -18,18 +18,12 @@ Also, you will be able to deploy the Batcher Payment Service contract.
     make install_foundry
     foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
     ```
+  
+- Get an API KEY from Etherescan to verify the contracts. You can follow this [guide](https://docs.etherscan.io/getting-started/viewing-api-usage-statistics).
 
-## Eigenlayer Contracts
+- You need a hot wallet with some ETH to deploy the contracts. The deployment cost is approximately 30M gas units.
 
-To deploy Aligned contracts, you need previously deployed EigenLayer contracts.
-
-These contracts are not deployed by Aligned. These are the current EigenLayer contracts:
-
-- [Holesky Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/testnet-holesky/script/configs/holesky/eigenlayer_addresses_testnet.config.json)
-- [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/mainnet/script/configs/mainnet/mainnet-addresses.config.json)
-- Aligned has his own Eigenlayer contracts deployed in Sepolia for testing. You can find them in [Sepolia Contracts](../../contracts/script/output/sepolia/eigenlayer_deployment_output.json).
-
-## Aligned Contracts
+## AlignedServiceManager Contracts
 
 This section will guide you through the deployment of the Aligned Layer contracts.
 
@@ -37,24 +31,13 @@ After finishing the deployment, you will have the deployed contract addresses.
 
 ### Set .env variables
 
-To deploy the AlignedLayer contracts, you will need to set environment variables in a `.env` file in the same
-directory as the deployment script (`contracts/scripts/`).
+To deploy the contracts, you need to set the `PRIVATE_KEY` and `ETHERSCAN_API_KEY` variables in the `.env` file.
 
-The necessary environment variables are:
+For **Mainnet** deployment, the `env` file is available [here](../../contracts/scripts/.env.mainnet).
 
-| Variable Name                   | Description                                                           | Sepolia                                                     | Holesky                                                     | Mainnet                             |
-|---------------------------------|-----------------------------------------------------------------------|-------------------------------------------------------------|-------------------------------------------------------------|-------------------------------------|
-| `RPC_URL`                       | The RPC URL of the network you want to deploy to.                     | https://ethereum-sepolia-rpc.publicnode.com                 | https://ethereum-holesky-rpc.publicnode.com                 | https://ethereum-rpc.publicnode.com |
-| `PRIVATE_KEY`                   | The private key of the account you want to deploy the contracts with. | <your_private_key>                                          | <your_private_key>                                          | <your_private_key>                  |
-| `EXISTING_DEPLOYMENT_INFO_PATH` | The path to the file containing the deployment info about EigenLayer. | ./script/output/sepolia/eigenlayer_deployment_output.json   | ./script/output/holesky/eigenlayer_deployment_output.json   | TBD                                 |
-| `DEPLOY_CONFIG_PATH`            | The path to the deployment config file for the Service Manager.       | ./script/deploy/config/sepolia/aligned.sepolia.config.json  | ./script/deploy/config/holesky/aligned.holesky.config.json  | TBD                                 |
-| `OUTPUT_PATH`                   | The path to the file where the deployment info will be saved.         | ./script/output/sepolia/alignedlayer_deployment_output.json | ./script/output/holesky/alignedlayer_deployment_output.json | TBD                                 |
-| `ETHERSCAN_API_KEY`             | API KEY to verify the contracts in Etherscan.                         | <your_etherscan_api_key>                                    | <your_etherscan_api_key>                                    | <your_etherscan_api_key>            |
+For **Holesky** deployment, the `env` file is available [here](../../contracts/scripts/.env.holesky).
 
-You can find an example `.env` file in [.env.example.holesky](../../contracts/scripts/.env.example.holesky)
-
-> [!WARNING]
-> All file paths must be inside the `script/` directory, as shown in `.env.example.holesky` because of `foundry`'s permissions to read and write files.
+For **Sepolia** deployment, the `env` file is available [here](../../contracts/scripts/.env.sepolia).
 
 ### Set DEPLOY_CONFIG_PATH file
 
@@ -99,8 +82,22 @@ For example, if you are using a Multisig for the `upgrader` permission, you need
 
 Once you have configured the `.env` and `DEPLOY_CONFIG_PATH` files, you can run the following command:
 
+For **Mainnet** deployment:
+
 ```bash
-make deploy_aligned_contracts
+make deploy_mainnet_aligned_contracts
+```
+
+For **Holesky** deployment:
+
+```bash
+make deploy_holesky_aligned_contracts
+```
+
+For **Sepolia** deployment:
+
+```bash
+make deploy_sepolia_aligned_contracts
 ```
 
 Once the contracts are deployed, you will see the following output at `OUTPUT_PATH` file:

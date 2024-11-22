@@ -568,6 +568,19 @@ deploy_aligned_contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
 
+deploy_mainnet_aligned_contracts: ## Deploy Aligned Contracts on Mainnet
+	@echo "Deploying Aligned Contracts on Mainnet..."
+	@. contracts/scripts/.env.mainnet && . contracts/scripts/deploy_aligned_contracts_mainnet.sh
+
+deploy_holesky_aligned_contracts: ## Deploy Aligned Contracts on Holesky
+	@echo "Deploying Aligned Contracts on Holesky..."
+	@. contracts/scripts/.env.holesky && . contracts/scripts/deploy_aligned_contracts_holesky.sh
+
+deploy_sepolia_aligned_contracts: ## Deploy Aligned Contracts on Sepolia
+	@echo "Deploying Aligned Contracts on Sepolia..."
+	@. contracts/scripts/.env.speolia && . contracts/scripts/deploy_aligned_contracts_sepolia.sh
+
+
 deploy_pauser_registry: ## Deploy Pauser Registry
 	@echo "Deploying Pauser Registry..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_pauser_registry.sh
