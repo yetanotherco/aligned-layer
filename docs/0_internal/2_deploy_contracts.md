@@ -115,13 +115,12 @@ Once the contracts are deployed, you will see the following output at `OUTPUT_PA
     "indexRegistry": "<index_registry_address>",
     "indexRegistryImplementation": "<index_registry_implementation_address>",
     "operatorStateRetriever": "<operator_state_retriever_address>",
+    "pauserRegistry": "<pauser_registry_address>",
     "registryCoordinator": "<registry_coordinator_address>",
     "registryCoordinatorImplementation": "<registry_coordinator_implementation_address>",
     "serviceManagerRouter": "<service_manager_router_address>",
     "stakeRegistry": "<stake_registry_address>",
-    "stakeRegistryImplementation": "<stake_registry_implementation_address>",
-    "batcherPaymentService": "<batcher_payment_service_address>",
-    "batcherPaymentServiceImplementation": "<batcher_payment_service_implementation_address>"
+    "stakeRegistryImplementation": "<stake_registry_implementation_address>"
   },
   "chainInfo": {
     "chainId": 17000,
@@ -132,8 +131,8 @@ Once the contracts are deployed, you will see the following output at `OUTPUT_PA
     "alignedLayerChurner": "<aligned_layer_churner_address>",
     "alignedLayerEjector": "<aligned_layer_ejector_address>",
     "alignedLayerOwner": "<aligned_layer_owner_address>",
-    "alignedLayerUpgrader": "<aligned_layer_upgrader_address>",
-    "pauserRegistry": "<pauser_registry_address>"
+    "alignedLayerPauser": "<aligned_layer_pauser_address>",
+    "alignedLayerUpgrader": "<aligned_layer_upgrader_address>"
   }
 }
 ```
@@ -209,6 +208,7 @@ Once the contracts are deployed, you will see the following output at `OUTPUT_PA
     "indexRegistry": "<index_registry_address>",
     "indexRegistryImplementation": "<index_registry_implementation_address>",
     "operatorStateRetriever": "<operator_state_retriever_address>",
+    "pauserRegistry": "<pauser_registry_address>",
     "registryCoordinator": "<registry_coordinator_address>",
     "registryCoordinatorImplementation": "<registry_coordinator_implementation_address>",
     "serviceManagerRouter": "<service_manager_router_address>",
@@ -226,8 +226,8 @@ Once the contracts are deployed, you will see the following output at `OUTPUT_PA
     "alignedLayerChurner": "<aligned_layer_churner_address>",
     "alignedLayerEjector": "<aligned_layer_ejector_address>",
     "alignedLayerOwner": "<aligned_layer_owner_address>",
-    "alignedLayerUpgrader": "<aligned_layer_upgrader_address>",
-    "pauserRegistry": "<pauser_registry_address>"
+    "alignedLayerPauser": "<aligned_layer_pauser_address>",
+    "alignedLayerUpgrader": "<aligned_layer_upgrader_address>"
   }
 }
 ```

@@ -21,6 +21,12 @@ If you deployed the contract using a Multisig wallet, you can follow the [Upgrad
     foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
     ```
 
+-  Add the following variables to the `.env` file:
+
+    ```makefile
+    MULTISIG=false
+    ```
+
 ## Upgrade Service Manager
 
 To upgrade the Service Manager Contract, run:
