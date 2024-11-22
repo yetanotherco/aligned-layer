@@ -60,5 +60,3 @@
     template:
       src: services/cassandra.service.j2
       dest: /etc/systemd/system/cassandra.service
-    vars:
-      cassandra_version: "{{ cassandra_version }}"
