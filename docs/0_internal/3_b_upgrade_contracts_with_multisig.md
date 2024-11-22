@@ -13,7 +13,7 @@
 
 This guide is for upgrading contracts deployed using a Multisig wallet. If you deployed the contract without a Multisig wallet, you can follow the [Upgrade Contracts](./3_a_upgrade_contracts.md) tutorial.
 
-In this guide we make an upgrade of Aligned Layer Service Manager contract using a multisig wallet. This is important to ensure not one party can do an upgrade, and helps ensure the team is not locked out of upgrading the network due to a loss of keys.
+In this guide we make an upgrade of Aligned Layer Service Manager contract using a multisig wallet.
 
 ## Prerequisites
 

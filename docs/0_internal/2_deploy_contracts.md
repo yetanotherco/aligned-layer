@@ -68,7 +68,7 @@ Also, you will be able to deploy the Batcher Payment Service contract.
 
 ## BatcherPaymentsService Contracts
 
-1. You should have a keystore for the Batcher, with the seedphrase saved on paper.
+1. You should have a keystore for the Batcher, with the Seedphrase saved on paper.
 
 2. If you don't have an API Key on Etherscan, create one following this [guide](https://docs.etherscan.io/getting-started/creating-an-account).
 

@@ -4,7 +4,7 @@ To deploy a new implementation, you can follow the steps below.
 
 ## Prerequisites
 
-1. Make sure you have set the `.env`, `DEPLOY_CONFIG_PATH` and `BATCHER_PAYMENT_SERVICE_CONFIG_PATH` as specified in the [Deploy Contracts Guide](./2_deploy_contracts.md).
+1. Make sure you have set variables as specified in the [Deploy Contracts Guide](./2_deploy_contracts.md).
 
 2. Add the following variables to the `.env` file:
     
