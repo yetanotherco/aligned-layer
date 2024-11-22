@@ -34,7 +34,7 @@ To propose the upgrade transaction you can follow the steps below:
 
     If you are upgrading the AlignedLayerServiceManager or the RegistryCoordinator, you can validate the calldata by running:
 
-    ```
+    ```bash
     cast calldata-decode "upgrade(address, address)" <calldata>
     ```
 
@@ -53,9 +53,9 @@ To propose the upgrade transaction you can follow the steps below:
 
    Else, if you are upgrading the BatcherPaymentService, you can validate the calldata by running:
    
-    ```
-    cast calldata-decode "upgradeTo(address)" <calldata>
-    ```
+   ```bash
+   cast calldata-decode "upgradeTo(address)" <calldata>
+   ```
 
    This will show the `batcherPaymentServiceImplementation` address.
 
