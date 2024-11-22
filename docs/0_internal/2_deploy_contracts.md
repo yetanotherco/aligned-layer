@@ -41,14 +41,14 @@ directory as the deployment script (`contracts/scripts/`).
 
 The necessary environment variables are:
 
-| Variable Name                   | Description                                                           | Holesky                                                     | Mainnet                             |
-|---------------------------------|-----------------------------------------------------------------------|-------------------------------------------------------------|-------------------------------------|
-| `RPC_URL`                       | The RPC URL of the network you want to deploy to.                     | https://ethereum-holesky-rpc.publicnode.com                 | https://ethereum-rpc.publicnode.com |
-| `PRIVATE_KEY`                   | The private key of the account you want to deploy the contracts with. | <your_private_key>                                          | <your_private_key>                  |
-| `EXISTING_DEPLOYMENT_INFO_PATH` | The path to the file containing the deployment info about EigenLayer. | ./script/output/holesky/eigenlayer_deployment_output.json   | TBD                                 |
-| `DEPLOY_CONFIG_PATH`            | The path to the deployment config file for the Service Manager.       | ./script/deploy/config/holesky/aligned.holesky.config.json  | TBD                                 |
-| `OUTPUT_PATH`                   | The path to the file where the deployment info will be saved.         | ./script/output/holesky/alignedlayer_deployment_output.json | TBD                                 |
-| `ETHERSCAN_API_KEY`             | API KEY to verify the contracts in Etherscan.                         | <your_etherscan_api_key>                                    | <your_etherscan_api_key>            |
+| Variable Name                   | Description                                                           | Sepolia                                                     | Holesky                                                     | Mainnet                             |
+|---------------------------------|-----------------------------------------------------------------------|-------------------------------------------------------------|-------------------------------------------------------------|-------------------------------------|
+| `RPC_URL`                       | The RPC URL of the network you want to deploy to.                     | https://ethereum-sepolia-rpc.publicnode.com                 | https://ethereum-holesky-rpc.publicnode.com                 | https://ethereum-rpc.publicnode.com |
+| `PRIVATE_KEY`                   | The private key of the account you want to deploy the contracts with. | <your_private_key>                                          | <your_private_key>                                          | <your_private_key>                  |
+| `EXISTING_DEPLOYMENT_INFO_PATH` | The path to the file containing the deployment info about EigenLayer. | ./script/output/sepolia/eigenlayer_deployment_output.json   | ./script/output/holesky/eigenlayer_deployment_output.json   | TBD                                 |
+| `DEPLOY_CONFIG_PATH`            | The path to the deployment config file for the Service Manager.       | ./script/deploy/config/sepolia/aligned.sepolia.config.json  | ./script/deploy/config/holesky/aligned.holesky.config.json  | TBD                                 |
+| `OUTPUT_PATH`                   | The path to the file where the deployment info will be saved.         | ./script/output/sepolia/alignedlayer_deployment_output.json | ./script/output/holesky/alignedlayer_deployment_output.json | TBD                                 |
+| `ETHERSCAN_API_KEY`             | API KEY to verify the contracts in Etherscan.                         | <your_etherscan_api_key>                                    | <your_etherscan_api_key>                                    | <your_etherscan_api_key>            |
 
 You can find an example `.env` file in [.env.example.holesky](../../contracts/scripts/.env.example.holesky)
 
@@ -150,15 +150,15 @@ directory as the deployment script (`contracts/scripts/`).
 
 The necessary environment variables are:
 
-| Variable Name                         | Description                                                             | Holesky                                                                    | Mainnet                             |
-|---------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------------|-------------------------------------|
-| `RPC_URL`                             | The RPC URL of the network you want to deploy to.                       | https://ethereum-holesky-rpc.publicnode.com                                | https://ethereum-rpc.publicnode.com |
-| `PRIVATE_KEY`                         | The private key of the account you want to deploy the contracts with.   | <your_private_key>                                                         | <your_private_key>                  |
-| `EXISTING_DEPLOYMENT_INFO_PATH`       | The path to the file containing the deployment info about EigenLayer.   | ./script/output/holesky/eigenlayer_deployment_output.json                  | TBD                                 |
-| `DEPLOY_CONFIG_PATH`                  | The path to the deployment config file for the Service Manager.         | ./script/deploy/config/holesky/batcher_payment_service.holesky.config.json | TBD                                 |
-| `BATCHER_PAYMENT_SERVICE_CONFIG_PATH` | The path to the deployment config file for the Batcher Payment Service. | ./script/deploy/config/holesky/batcher-payment-service.holesky.config.json | TBD                                 |
-| `OUTPUT_PATH`                         | The path to the file where the deployment info will be saved.           | ./script/output/holesky/alignedlayer_deployment_output.json                | TBD                                 |
-| `ETHERSCAN_API_KEY`                   | API KEY to verify the contracts in Etherscan.                           | <your_etherscan_api_key>                                                   | <your_etherscan_api_key>            |
+| Variable Name                         | Description                                                             | Sepolia                                                                    | Holesky                                                                    | Mainnet                             |
+|---------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------------|----------------------------------------------------------------------------|-------------------------------------|
+| `RPC_URL`                             | The RPC URL of the network you want to deploy to.                       | https://ethereum-sepolia-rpc.publicnode.com                                | https://ethereum-holesky-rpc.publicnode.com                                | https://ethereum-rpc.publicnode.com |
+| `PRIVATE_KEY`                         | The private key of the account you want to deploy the contracts with.   | <your_private_key>                                                         | <your_private_key>                                                         | <your_private_key>                  |
+| `EXISTING_DEPLOYMENT_INFO_PATH`       | The path to the file containing the deployment info about EigenLayer.   | ./script/output/sepolia/eigenlayer_deployment_output.json                  | ./script/output/holesky/eigenlayer_deployment_output.json                  | TBD                                 |
+| `DEPLOY_CONFIG_PATH`                  | The path to the deployment config file for the Service Manager.         | ./script/deploy/config/sepolia/aligned.sepolia.config.json                 | ./script/deploy/config/holesky/batcher_payment_service.holesky.config.json | TBD                                 |
+| `BATCHER_PAYMENT_SERVICE_CONFIG_PATH` | The path to the deployment config file for the Batcher Payment Service. | ./script/deploy/config/sepolia/batcher-payment-service.sepolia.config.json | ./script/deploy/config/holesky/batcher-payment-service.holesky.config.json | TBD                                 |
+| `OUTPUT_PATH`                         | The path to the file where the deployment info will be saved.           | ./script/output/sepolia/alignedlayer_deployment_output.json                | ./script/output/holesky/alignedlayer_deployment_output.json                | TBD                                 |
+| `ETHERSCAN_API_KEY`                   | API KEY to verify the contracts in Etherscan.                           | <your_etherscan_api_key>                                                   | <your_etherscan_api_key>                                                   | <your_etherscan_api_key>            |
 
 You can find an example `.env` file in [.env.example.holesky](../../contracts/scripts/.env.example.holesky)
 
