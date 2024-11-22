@@ -1,6 +1,8 @@
 # Upgrade Contracts
 
-This guide is for upgrading contracts deployed without a multisig wallet. If you deployed the contract using a Multisig wallet, you can follow the [Upgrade Contracts with Multisig](./3_b_upgrade_contracts_with_multisig.md) tutorial.
+This guide is for upgrading contracts with a normal wallet.
+
+If you deployed the contract using a Multisig wallet, you can follow the [Upgrade Contracts with Multisig](./3_b_upgrade_contracts_with_multisig.md) tutorial.
 
 ## Prerequisites
 
