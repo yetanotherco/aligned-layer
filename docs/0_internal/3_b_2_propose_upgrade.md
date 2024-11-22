@@ -143,4 +143,3 @@ To propose the upgrade transaction you can follow the steps below:
 15. If the transaction is correctly created, you have to wait until the required Multisig member signs the transaction to send it.
 
 A guide on how to sign the transaction can be found [here](./3_b_3_approve_upgrade.md)
-
