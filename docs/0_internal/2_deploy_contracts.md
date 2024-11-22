@@ -140,7 +140,7 @@ Once the contracts are deployed, you will see the following output at `OUTPUT_PA
 
 ## Batcher Payments Service Contracts
 
-This section will guide you through the deployment of the Aligned Layer contracts.
+This section will guide you through the deployment of the Aligned Layer Batcher Payment Service contract.
 
 After finishing the deployment, you will have the deployed contract addresses.
 
