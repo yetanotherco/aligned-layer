@@ -22,6 +22,11 @@ Also, you will be able to deploy the Batcher Payment Service contract.
 - Get an API KEY from Etherescan to verify the contracts. You can follow this [guide](https://docs.etherscan.io/getting-started/viewing-api-usage-statistics).
 
 - You need a hot wallet with some ETH to deploy the contracts. The deployment cost is approximately 30M gas units.
+  
+  You can create a hot wallet with cast using the following command:
+    
+    ```bash
+
 
 ## AlignedServiceManager Contracts
 
@@ -41,46 +46,32 @@ For **Sepolia** deployment, the `env` file is available [here](../../contracts/s
 
 ### Set DEPLOY_CONFIG_PATH file
 
-You need to complete the `DEPLOY_CONFIG_PATH` file with the following information:
+You need to set the following address in the config file:
 
-```json
-{
-  "chainInfo": {
-    "chainId": "<chain_id>"
-  },
-  "permissions": {
-    "owner": "<owner_address>",
-    "aggregator": "<aggregator_address>",
-    "upgrader": "<upgrader_address>",
-    "churner": "<churner_address>",
-    "ejector": "<ejector_address>",
-    "deployer": "<deployer_address>",
-    "initalPausedStatus": 0
-  },
-  "minimumStakes": [],
-  "strategyWeights": [],
-  "operatorSetParams": [],
-  "uri": ""
-}
-```
+- `owner`: Address that will be the owner of the contracts. This address can be a multisig or a normal wallet.
+- `aggregator`: Address that will be the aggregator of Aligned.
+- `upgrader`: Address that will be the upgrader of the contracts. This address can be a multisig or a normal wallet.
+- `churner`: Address that will be the churner of the contracts. This address can be a multisig or a normal wallet.
+- `ejector`: Address that will be the ejector of the contracts. This address can be a multisig or a normal wallet.
+- `deployer`: Address that will be the deployer of the contracts. This address can be a multisig or a normal wallet.
 
-You can find an example config file in [aligned.holesky.config.json](../../contracts/script/deploy/config/holesky/aligned.holesky.config.json).
+For **Mainnet** deployment, complete the following [config file](../../contracts/script/deploy/config/mainnet/aligned.mainnet.config.json).
+
+For **Holesky** deployment, complete the following [config file](../../contracts/script/deploy/config/holesky/aligned.holesky.config.json).
+
+For **Sepolia** deployment, complete the following [config file](../../contracts/script/deploy/config/sepolia/aligned.sepolia.config.json).
 
 > [!NOTE]
+> 
+> Strategies are already filled in the config files. Also, you can find them in the following links
 > 
 > You can find the list of Mainnet strategies for the `strategyWeights` field [here](https://github.com/Layr-Labs/eigenlayer-contracts?tab=readme-ov-file#current-mainnet-deployment)
 > 
 > You can find the list of Holesky strategies for the `strategyWeights` field [here](https://github.com/Layr-Labs/eigenlayer-contracts?tab=readme-ov-file#current-testnet-deployment)
 
-#### Multisig configuration
-
-If you are using a Multisig for the contracts management (like upgrades or pauses), you need to set the Multisig address in the `permissions` sections.
-
-For example, if you are using a Multisig for the `upgrader` permission, you need to set the Multisig address in the `upgrader` field.
-
 ### Deploy the contracts
 
-Once you have configured the `.env` and `DEPLOY_CONFIG_PATH` files, you can run the following command:
+Once you have configured the `.env` and `config` files, you can run the following command:
 
 For **Mainnet** deployment:
 
@@ -100,40 +91,12 @@ For **Sepolia** deployment:
 make deploy_sepolia_aligned_contracts
 ```
 
-Once the contracts are deployed, you will see the following output at `OUTPUT_PATH` file:
+If the deployment is correct, you will find the deployment information here:
 
-```json
-{
-  "addresses": {
-    "alignedLayerProxyAdmin": "<aligned_layer_proxy_admin_address>",
-    "alignedLayerServiceManager": "<aligned_layer_service_manager_address>",
-    "alignedLayerServiceManagerImplementation": "<aligned_layer_service_manager_implementation_address>",
-    "blsApkRegistry": "<bls_apk_registry_address>",
-    "blsApkRegistryImplementation": "<bls_apk_registry_implementation_address>",
-    "indexRegistry": "<index_registry_address>",
-    "indexRegistryImplementation": "<index_registry_implementation_address>",
-    "operatorStateRetriever": "<operator_state_retriever_address>",
-    "pauserRegistry": "<pauser_registry_address>",
-    "registryCoordinator": "<registry_coordinator_address>",
-    "registryCoordinatorImplementation": "<registry_coordinator_implementation_address>",
-    "serviceManagerRouter": "<service_manager_router_address>",
-    "stakeRegistry": "<stake_registry_address>",
-    "stakeRegistryImplementation": "<stake_registry_implementation_address>"
-  },
-  "chainInfo": {
-    "chainId": 17000,
-    "deploymentBlock": 1628199
-  },
-  "permissions": {
-    "alignedLayerAggregator": "<aligned_layer_aggregator_address>",
-    "alignedLayerChurner": "<aligned_layer_churner_address>",
-    "alignedLayerEjector": "<aligned_layer_ejector_address>",
-    "alignedLayerOwner": "<aligned_layer_owner_address>",
-    "alignedLayerPauser": "<aligned_layer_pauser_address>",
-    "alignedLayerUpgrader": "<aligned_layer_upgrader_address>"
-  }
-}
-```
+- [Mainnet deployment](../../contracts/script/output/mainnet/alignedlayer_deployment_output.json)
+- [Holesky deployment](../../contracts/script/output/holesky/alignedlayer_deployment_output.json)
+- [Sepolia deployment](../../contracts/script/output/sepolia/alignedlayer_deployment_output.json)
+
 
 ## Batcher Payments Service Contracts
 
