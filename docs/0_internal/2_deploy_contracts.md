@@ -82,7 +82,7 @@ You need to complete the `DEPLOY_CONFIG_PATH` file with the following informatio
 
 You can find an example config file in [aligned.holesky.config.json](../../contracts/script/deploy/config/holesky/aligned.holesky.config.json).
 
-> [!Note]
+> [!NOTE]
 > 
 > You can find the list of Mainnet strategies for the `strategyWeights` field [here](https://github.com/Layr-Labs/eigenlayer-contracts?tab=readme-ov-file#current-mainnet-deployment)
 > 
