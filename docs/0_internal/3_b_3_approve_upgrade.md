@@ -37,6 +37,14 @@ To approve the upgrade transaction, you can follow the steps below:
 > [!NOTE]
 > The transaction gas usage is approximately 100,000 gas units. Make sure you have enough ETH to cover the gas fees.
 
+### Notes on Trezor usages
+
+If you are using a Trezor wallet, you may encounter an issue where the transaction is not executed. This error can be fixed with the following change in the Trezor configuration https://forum.trezor.io/t/how-to-fix-error-forbidden-key-path/8642.
+
+In the Trezor screen you have to check the `safeTxHash` is the same as the shown in the Safe UI
+
+![Trezor safeTxHash](images/3_b_3_trezor_1.png)
+
 7. Wait for the transaction to be executed. You can check the transaction status on the `Transactions` tab.
 
 8. Once the multisig threshold is reached, the transaction will be executed and the contract will be upgraded.
