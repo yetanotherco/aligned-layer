@@ -2,7 +2,7 @@
 
 This guide will walk you through the deployment of the Aligned Layer contracts.
 
-Also, you will be able to deploy the Batch Payment Service contract.
+Also, you will be able to deploy the Batcher Payment Service contract.
 
 ## Prerequisites
 
