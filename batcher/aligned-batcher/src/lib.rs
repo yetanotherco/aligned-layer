@@ -1418,7 +1418,7 @@ impl Batcher {
         }
     }
 
-    /// Sends a `create_new_task` transaction to Ethereum and waits for a maximum of 3 blocks for the receipt.
+    /// Sends a `create_new_task` transaction to Ethereum and waits for a maximum of 6 blocks for the receipt.
     /// Retries up to `ETHEREUM_CALL_MAX_RETRIES` times using exponential backoff on recoverable errors while trying to send the transaction:
     /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
     /// `ReceiptNotFoundError` is treated as non-recoverable, and the transaction will be canceled using `cancel_create_new_task_tx` in that case.
@@ -1469,7 +1469,7 @@ impl Batcher {
 
     /// Sends a transaction to Ethereum with the same nonce as the previous one to override it.
     /// Retries on recoverable errors with exponential backoff.
-    /// Bumps the fee if not included in 3 blocks, using `calculate_bumped_gas_price`.
+    /// Bumps the fee if not included in 6 blocks, using `calculate_bumped_gas_price`.
     /// In the first 5 attemps, bumps the fee every 3 blocks. Then exponential backoff takes over.
     /// After 2 hours (attempt 13), retries occur hourly for 1 day (33 retries).
     pub async fn cancel_create_new_task_tx(&self, old_tx_gas_price: U256) {
