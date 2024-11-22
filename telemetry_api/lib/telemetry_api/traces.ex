@@ -30,11 +30,6 @@ defmodule TelemetryApi.Traces do
         })
       end
 
-      # TraceStore.store_trace(merkle_root, %{
-      #   trace
-      #   | subspans: Map.put(trace.subspans, :aggregator, aggregator_subspan_ctx)
-      # })
-
       :ok
     end
   end
@@ -145,30 +140,9 @@ defmodule TelemetryApi.Traces do
       responses: []
     })
 
-    # with {:ok, trace} <- set_current_trace(merkle_root) do
     # This span ends inmediately after it's created just to set the correct title to the final task.
     Tracer.with_span "Task: #{merkle_root}" do
       Tracer.set_attributes(%{merkle_root: merkle_root})
-      # end
-
-      # batcher_subspan_ctx =
-      #   Tracer.start_span(
-      #     "Batcher",
-      #     %{
-      #       attributes: [
-      #         {:merkle_root, merkle_root}
-      #       ]
-      #     }
-      #   )
-
-      # Tracer.set_current_span(batcher_subspan_ctx)
-      # Tracer.add_event("New batch", [{:merkle_root, merkle_root}])
-
-      # TraceStore.store_trace(merkle_root, %{
-      #   trace
-      #   | subspans: Map.put(trace.subspans, :batcher, batcher_subspan_ctx)
-      # })
-
       :ok
     end
   end
@@ -271,7 +245,7 @@ defmodule TelemetryApi.Traces do
   """
   def task_error(merkle_root, error) do
     with {:ok, _trace} <- set_current_trace(merkle_root) do
-      Tracer.with_span "Batcher - Verification failed" do
+      Tracer.with_span "Aggregator - Batch verification failed" do
         Tracer.set_attributes(%{
           attributes: [
             {:status, "error"},
@@ -375,14 +349,6 @@ defmodule TelemetryApi.Traces do
       {:ok, trace}
     end
   end
-
-  # defp set_current_trace_with_subspan(merkle_root, span_name) do
-  #   with {:ok, trace} <- TraceStore.get_trace(merkle_root) do
-  #     Ctx.attach(trace.context)
-  #     Tracer.set_current_span(trace.subspans[span_name])
-  #     {:ok, trace}
-  #   end
-  # end
 
   defp validate_operator_registration(operator) do
     if Operators.is_registered?(operator) do

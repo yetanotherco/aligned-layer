@@ -6,7 +6,7 @@ defmodule TelemetryApiWeb.TraceController do
   action_fallback(TelemetryApiWeb.FallbackController)
 
   @doc """
-  Register an aggregator init task in the bls service.
+  Register an aggregator init task with the given merkle_root
   Method: POST initTaskTrace
   """
   def aggregator_init_task(conn, %{"merkle_root" => merkle_root}) do
