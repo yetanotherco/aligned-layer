@@ -25,7 +25,9 @@ Also, you will be able to deploy the Batcher Payment Service contract.
   
   You can create a hot wallet with cast using the following command:
     
-    ```bash
+  ```bash
+  cast wallet new
+  ```
 
 
 ## AlignedServiceManager Contracts
