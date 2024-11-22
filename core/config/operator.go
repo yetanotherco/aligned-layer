@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 type OperatorConfig struct {
@@ -71,7 +71,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 	}
 
 	var operatorConfigFromYaml OperatorConfigFromYaml
-	err := sdkutils.ReadYamlConfig(configFilePath, &operatorConfigFromYaml)
+	err := utils.ReadYamlConfig(configFilePath, &operatorConfigFromYaml)
 
 	if err != nil {
 		log.Fatal("Error reading operator config: ", err)
