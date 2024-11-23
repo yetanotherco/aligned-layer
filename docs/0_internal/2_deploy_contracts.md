@@ -33,11 +33,11 @@ Also, you will be able to deploy the Batcher Payment Service contract.
 
 6. Set the ```PRIVATE_KEY``` and ```ETHERSCAN_API_KEY```on the ```.env``` used to deploy. ```contracts/scripts/.env.mainnet``` or ```contracts/scripts/.env.holesky``` or ```contracts/scripts/.env.sepolia```
 
-7. Set `owner`, `upgrader`, `churner`, `ejector` and `pauser` values of ```contracts/script/deploy/config/mainnet/aligned.mainnet.config.json``` or ```contracts/script/deploy/config/holesky/aligned.holesky.config.json``` or ```contracts/script/deploy/config/sepolia/aligned.sepolia.config.json``` to the multisig controlling this processes, or the owner of the deploying address, depending on what you want.
+7. Set `aggregator` value of ```contracts/script/deploy/config/mainnet/aligned.mainnet.config.json``` or ```contracts/script/deploy/config/holesky/aligned.holesky.config.json``` or ```contracts/script/deploy/config/sepolia/aligned.sepolia.config.json``` to the address from step 1.
 
-8. Set `aggregator` value of ```contracts/script/deploy/config/mainnet/aligned.mainnet.config.json``` or ```contracts/script/deploy/config/holesky/aligned.holesky.config.json``` or ```contracts/script/deploy/config/sepolia/aligned.sepolia.config.json``` to the address from step 1.
+8. Set `deployer` value of ```contracts/script/deploy/config/mainnet/aligned.mainnet.config.json``` or ```contracts/script/deploy/config/holesky/aligned.holesky.config.json``` or ```contracts/script/deploy/config/sepolia/aligned.sepolia.config.json``` to the address from step 3.
 
-9. Set `deployer` value of ```contracts/script/deploy/config/mainnet/aligned.mainnet.config.json``` or ```contracts/script/deploy/config/holesky/aligned.holesky.config.json``` or ```contracts/script/deploy/config/sepolia/aligned.sepolia.config.json``` to the address from step 3.
+9. Set `owner`, `upgrader`, `churner`, `ejector` and `pauser` values of ```contracts/script/deploy/config/mainnet/aligned.mainnet.config.json``` or ```contracts/script/deploy/config/holesky/aligned.holesky.config.json``` or ```contracts/script/deploy/config/sepolia/aligned.sepolia.config.json``` to the multisig controlling this processes, or the owner of the deploying address, depending on what you want.
 
 10. Deploy the contracts with the following command:
 

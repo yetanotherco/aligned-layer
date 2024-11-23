@@ -3,12 +3,12 @@
       "chainId": 17000
     },
     "permissions" : {
+      "aggregator": "<aggregator_address>", 
+      "deployer": "<deployer_address>",
       "owner": "<owner_address>",
-      "aggregator": "<aggregator_address>",
       "upgrader": "<upgrader_address>",
       "churner": "<churner_address>",
       "ejector": "<ejector_address>",
-      "deployer": "<deployer_address>",
       "pauser": "<pauser_address>",
       "initalPausedStatus": 0
     },
