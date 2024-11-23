@@ -7,12 +7,12 @@ To deploy a new implementation, you can follow the steps below.
 1. Make sure you have set variables as specified in the [Deploy Contracts Guide](./2_deploy_contracts.md).
 
 2. Add the following variables to the `.env` file:
-    
+
     ```makefile
     MULTISIG=true
     ```
-   
-## Deploy New Implementation
+
+## What contracts can be upgraded?
 
 You can deploy the new implementation of the following contracts:
 
@@ -23,33 +23,33 @@ You can deploy the new implementation of the following contracts:
 ### Deploy New Implementation for AlignedLayerServiceManager
 
 1. Deploy the new implementation by running:
-          
-   ```shell
+
+   ```sh
    make upgrade_aligned_contracts
    ```
-   
+
    If the new implementation is correctly deployed, the script will show the following message:
-    
-   ```
+
+   ```sh
    The new aligned layer service manager implementation is <new_aligned_layer_service_manager_implementation>
    
    You can propose the upgrade transaction with the multisig using this calldata
     <calldata>
     ```
-   
+
    You should save this `calldata` for later use.
-   
+
 2. Get the `upgrade` function signature:
 
-   ```
+   ```sh
    cast sig "upgrade(address, address)"
    ```
 
    This will show the `upgrade` signature hash: `0x99a88ec4`.
 
 3. Validate the `calldata` by running:
-   
-   ```
+
+   ```sh
    cast calldata-decode "upgrade(address, address)" <calldata>
    ```
 
@@ -57,24 +57,21 @@ You can deploy the new implementation of the following contracts:
 
 > [!NOTE]
 > Make sure the `alignedLayerServiceManager` address is the same as the one you deployed in the [Deploy Contracts Guide](./2_deploy_contracts.md).
-> 
-> Make sure the `alignedServiceManagerImplementation` address is the same as the one you deployed in this guide. 
-
+>
+> Make sure the `alignedServiceManagerImplementation` address is the same as the one you deployed in this guide.
 
 ### Deploy New Implementation for BatcherPaymentService
 
 1. Deploy the new implementation by running:
-    
+
     ```shell
     make upgrade_batcher_payment_service
     ```
 
     If the new implementation is correctly deployed, the script will show the following message:
-    
-    ```
-    You can propose the upgrade transaction with the multisig using this calldata
-    <calldata>
-    ```
+
+    `You can propose the upgrade transaction with the multisig using this calldata
+    <calldata>`
 
    You should save this `calldata` for later use.
 
@@ -88,7 +85,7 @@ You can deploy the new implementation of the following contracts:
 
 3. Validate the `calldata` by running:
 
-   ```
+   ```shell
    cast calldata-decode "upgradeTo(address)" <calldata>
    ```
 
@@ -97,21 +94,20 @@ You can deploy the new implementation of the following contracts:
 > [!NOTE]
 > Make sure the `batcherPaymentServiceImplementation` address is the same as the one you deployed in this guide.
 
-
 ### Deploy New Implementation for RegistryCoordinator
 
 1. Deploy the new implementation by running:
-    
-    ```shell
+
+    ```sh
     make upgrade_registry_coordinator
     ```
 
     If the new implementation is correctly deployed, the script will show the following message:
-    
-    ```
+
+    `
     You can propose the upgrade transaction with the multisig using this calldata
     <calldata>
-    ```
+    `
 
    You should save this `calldata` for later use.
 
@@ -125,7 +121,7 @@ You can deploy the new implementation of the following contracts:
 
 3. Validate the `calldata` by running:
 
-   ```
+   ```sh
    cast calldata-decode "upgrade(address, address)" <calldata>
    ```
 
@@ -136,7 +132,6 @@ You can deploy the new implementation of the following contracts:
 >
 > Make sure the `registryCoordinatorImplementation` address is the same as the one you deployed in this guide.
 
-   
 ## Next Steps
 
 Once you have deployed the new implementation of the contract you want to upgrade, you need to propose the upgrade transaction to the mulstisig, following this [guide](./3_b_2_propose_upgrade.md).

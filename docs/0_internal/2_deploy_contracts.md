@@ -9,11 +9,13 @@ Also, you will be able to deploy the Batcher Payment Service contract.
 - You need to have installed `git` and `make`.
 
 - Clone the repository
-   ```
+
+   ```sh
    git clone https://github.com/yetanotherco/aligned_layer.git
    ```
 
 - Install foundry
+
     ```shell
     make install_foundry
     foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
@@ -65,7 +67,6 @@ Also, you will be able to deploy the Batcher Payment Service contract.
     - Holesky: `contracts/script/output/holesky/alignedlayer_deployment_output.json`
     - Sepolia: `contracts/script/output/sepolia/alignedlayer_deployment_output.json`
 
-
 ## BatcherPaymentsService Contracts
 
 1. You should have a keystore for the Batcher, with the Seedphrase saved on paper.
@@ -78,7 +79,7 @@ Also, you will be able to deploy the Batcher Payment Service contract.
 
 5. Set the ```PRIVATE_KEY``` and ```ETHERSCAN_API_KEY```on the ```.env``` used to deploy. ```contracts/scripts/.env.mainnet``` or ```contracts/scripts/.env.holesky``` or ```contracts/scripts/.env.sepolia```
 
-6. Set `owner` value of `contracts/script/deploy/config/mainnet/batcher-payment-service.mainnet.config.json` or `contracts/script/deploy/config/holesky/batcher-payment-service.holesky.config.json` or `contracts/script/deploy/config/sepolia/batcher-payment-service.sepolia.config.json` to the multisig controlling this contract, or the owner of the deploying address, depending on what you want. 
+6. Set `owner` value of `contracts/script/deploy/config/mainnet/batcher-payment-service.mainnet.config.json` or `contracts/script/deploy/config/holesky/batcher-payment-service.holesky.config.json` or `contracts/script/deploy/config/sepolia/batcher-payment-service.sepolia.config.json` to the multisig controlling this contract, or the owner of the deploying address, depending on what you want.
 
 7. Set `batcherWallet` value of `contracts/script/deploy/config/mainnet/batcher-payment-service.mainnet.config.json` or `contracts/script/deploy/config/holesky/batcher-payment-service.holesky.config.json` or `contracts/script/deploy/config/sepolia/batcher-payment-service.sepolia.config.json` to the address from step 1.
 
