@@ -270,11 +270,9 @@ impl Batcher {
         loop {
             match listener.accept().await {
                 Ok((stream, addr)) => {
-                    self.metrics.open_connections.inc();
                     let batcher = self.clone();
                     // Let's spawn the handling of each connection in a separate task.
                     tokio::spawn(batcher.handle_connection(stream, addr));
-                    self.metrics.open_connections.dec();
                 }
                 Err(e) => error!("Couldn't accept new connection: {}", e),
             }
@@ -367,6 +365,7 @@ impl Batcher {
         addr: SocketAddr,
     ) -> Result<(), BatcherError> {
         info!("Incoming TCP connection from: {}", addr);
+        self.metrics.open_connections.inc();
 
         let ws_stream_future = tokio_tungstenite::accept_async(raw_stream);
         let ws_stream =
@@ -374,10 +373,12 @@ impl Batcher {
                 Ok(Ok(stream)) => stream,
                 Ok(Err(e)) => {
                     warn!("Error while establishing websocket connection: {}", e);
+                    self.metrics.open_connections.dec();
                     return Ok(());
                 }
                 Err(e) => {
                     warn!("Error while establishing websocket connection: {}", e);
+                    self.metrics.open_connections.dec();
                     self.metrics.user_error(&["user_timeout", ""]);
                     return Ok(());
                 }
@@ -411,14 +412,17 @@ impl Batcher {
             Err(elapsed) => {
                 warn!("[{}] {}", &addr, elapsed);
                 self.metrics.user_error(&["user_timeout", ""]);
+                self.metrics.open_connections.dec();
                 return Ok(());
             }
             Ok(Ok(None)) => {
                 info!("[{}] Connection closed by the other side", &addr);
+                self.metrics.open_connections.dec();
                 return Ok(());
             }
             Ok(Err(e)) => {
                 error!("Unexpected error: {}", e);
+                self.metrics.open_connections.dec();
                 return Ok(());
             }
         };
@@ -434,6 +438,7 @@ impl Batcher {
             Ok(_) => info!("{} disconnected", &addr),
         }
 
+        self.metrics.open_connections.dec();
         Ok(())
     }
 
