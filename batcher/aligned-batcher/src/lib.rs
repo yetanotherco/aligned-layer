@@ -6,6 +6,7 @@ use eth::service_manager::ServiceManager;
 use eth::utils::{calculate_bumped_gas_price, get_batcher_signer, get_gas_price};
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
+use reqwest::header::CONNECTION;
 use retry::batcher_retryables::{
     cancel_create_new_task_retryable, create_new_task_retryable, get_user_balance_retryable,
     get_user_nonce_from_ethereum_retryable, user_balance_is_unlocked_retryable,
@@ -20,11 +21,12 @@ use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
+use std::time::Duration;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, BUMP_BACKOFF_FACTOR,
-    BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONSTANT_GAS_COST,
-    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
+    BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONNECTION_READ_TIMEOUT,
+    CONSTANT_GAS_COST, DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
     ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
     ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
@@ -388,7 +390,7 @@ impl Batcher {
         loop {
             let future_msg = filtered_incoming.try_next();
             // timeout to prevent a DOS attack
-            match timeout(Duration::from_secs(5), future_msg).await {
+            match timeout(Duration::from_secs(CONNECTION_READ_TIMEOUT), future_msg).await {
                 Err(elapsed) => {
                     // self.metrics.timedout_connections.inc();
                     error!("Connection timed out: {}", elapsed);
@@ -405,15 +407,10 @@ impl Batcher {
                 }
                 Ok(Ok(Some(msg))) => {
                     self.clone().handle_message(msg, outgoing.clone()).await?;
-                    request += 1;
 
                     // Check if 5 seconds have elapsed
-                    if connection_start.elapsed() >= Duration::from_secs(5) {
+                    if connection_start.elapsed() >= Duration::from_secs(CONNECTION_READ_TIMEOUT) {
                         info!("5 seconds have elapsed.");
-                        break;
-                    }
-                    if request > 50 {
-                        info!("Max number of requests reached");
                         break;
                     }
                 }
