@@ -646,13 +646,12 @@ func (o *Operator) SendTelemetryData(ctx *cli.Context) error {
 	hash.Write([]byte(ctx.App.Version))
 
 	// get hash
-	version := hash.Sum(nil)
+	var version [32]byte // All zeroed initially
+	copy(version[:], hash.Sum(nil))
 
 	// sign version
-	signature, err := crypto.Sign(version[:], o.Config.EcdsaConfig.PrivateKey)
-	if err != nil {
-		return err
-	}
+	signature := o.Config.BlsConfig.KeyPair.SignMessage(version)
+
 	ethRpcUrl, err := BaseUrlOnly(o.Config.BaseConfig.EthRpcUrl)
 	if err != nil {
 		return err
