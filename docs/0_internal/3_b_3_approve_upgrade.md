@@ -2,9 +2,6 @@
 
 Once the transaction is proposed, the multisig owners must approve the transaction.
 
-## Prerequisites
-
-- One of the multisig owners must have proposed the upgrade transaction using the `calldata` obtained from the deployment of the new implementation.
 
 ## Approve the Upgrade
 
@@ -16,11 +13,11 @@ To approve the upgrade transaction, you can follow the steps below:
 
 3. Click on the transaction and validate the data is correct. 
 
-   If you are upgrading the AlignedLayerServiceManager or the RegistryCoordinator, the called function must be `upgrade(address, address)`.
+   If you are upgrading the AlignedLayerServiceManager, the called function must be `upgrade(address, address)`.
 
    Else, if you are upgrading the BatcherPaymentService, the called function must be `upgradeTo(address)`.
 
-   Also check contract addresses are the ones you received from the deployment.
+   Verify the contracts addresses are correct.
 
    ![Check details](images/3_b_3_approve_1.png)
 
