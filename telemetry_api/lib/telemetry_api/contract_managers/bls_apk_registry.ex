@@ -1,4 +1,4 @@
-defmodule BlsApkRegistry do
+defmodule BLSApkRegistry do
   require Logger
 
   @aligned_config_file System.get_env("ALIGNED_CONFIG_FILE")
@@ -34,7 +34,7 @@ defmodule BlsApkRegistry do
   end
 
   def get_operator_bls_pubkey(operator_address) do
-    case BlsApkRegistry.get_registered_pubkey(operator_address)
+    case BLSApkRegistry.get_registered_pubkey(operator_address)
          |> Ethers.call() do
       {:ok, data} ->
         data

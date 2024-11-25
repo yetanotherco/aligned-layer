@@ -1,4 +1,4 @@
-defmodule BlsSignatureVerifier do
+defmodule BLSSignatureVerifier do
   def verify(signature, public_key, message) do
     # Encode the args as hex
     args = [

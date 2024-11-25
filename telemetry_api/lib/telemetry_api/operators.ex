@@ -150,9 +150,11 @@ defmodule TelemetryApi.Operators do
         {:error, :bad_request, "Provided address does not correspond to any registered operator"}
 
       operator ->
-        with {:ok, _} <-
-               BLSSignatureVerifier.verify(signature, bls_public_key, message_hash) do
-          update_operator(operator, changes)
+        with {:ok, bls_public_key} <- BLSApkRegistry.get_operator_bls_pubkey(address) do
+          with {:ok, _} <-
+                 BLSSignatureVerifier.verify(signature, bls_public_key, message_hash) do
+            update_operator(operator, changes)
+          end
         end
     end
   end
