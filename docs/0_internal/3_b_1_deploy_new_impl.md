@@ -6,11 +6,7 @@ To deploy a new implementation, you can follow the steps below.
 
 1. Make sure you have set variables as specified in the [Deploy Contracts Guide](./2_deploy_contracts.md).
 
-2. Add the following variables to the `.env` file:
-
-    ```makefile
-    MULTISIG=true
-    ```
+2. Set ```MULTISIG=true``` on the ```.env``` used to deploy. ```contracts/scripts/.env.mainnet``` or ```contracts/scripts/.env.holesky``` or ```contracts/scripts/.env.sepolia```
 
 ## What contracts can be upgraded?
 
@@ -18,17 +14,30 @@ You can deploy the new implementation of the following contracts:
 
 - AlignedLayerServiceManager
 - BatcherPaymentService
-- RegistryCoordinator
 
-### Deploy New Implementation for AlignedLayerServiceManager
+## Deploy New Implementation for AlignedLayerServiceManager
 
 1. Deploy the new implementation by running:
 
-   ```sh
-   make upgrade_aligned_contracts
+   For **Mainnet** deployment:
+   
+   ```bash
+    make upgrade_aligned_contracts NETWORK=mainnet
    ```
 
-   If the new implementation is correctly deployed, the script will show the following message:
+    For **Holesky** deployment:
+    
+    ```bash
+     make upgrade_aligned_contracts NETWORK=holesky
+    ```
+   
+    For **Sepolia** deployment:
+    
+    ```bash
+     make upgrade_aligned_contracts NETWORK=sepolia
+    ```
+
+   If the new implementation is correctly deployed, the terminal will show the following message:
 
    ```sh
    The new aligned layer service manager implementation is <new_aligned_layer_service_manager_implementation>
@@ -60,18 +69,31 @@ You can deploy the new implementation of the following contracts:
 >
 > Make sure the `alignedServiceManagerImplementation` address is the same as the one you deployed in this guide.
 
-### Deploy New Implementation for BatcherPaymentService
+## Deploy New Implementation for BatcherPaymentService
 
 1. Deploy the new implementation by running:
 
-    ```shell
-    make upgrade_batcher_payment_service
+    For **Mainnet** deployment:
+    
+    ```bash
+    make upgrade_batcher_payment_service NETWORK=mainnet
     ```
+   
+    For **Holesky** deployment:
+     
+     ```bash
+     make upgrade_batcher_payment_service NETWORK=holesky
+     ```
+   
+    For **Sepolia** deployment:
+        
+     ```bash  
+     make upgrade_batcher_payment_service NETWORK=sepolia
+     ```
 
-    If the new implementation is correctly deployed, the script will show the following message:
+   If the new implementation is correctly deployed, the script will show the following message:
 
-    `You can propose the upgrade transaction with the multisig using this calldata
-    <calldata>`
+   `You can propose the upgrade transaction with the multisig using this calldata <calldata>`
 
    You should save this `calldata` for later use.
 
@@ -94,43 +116,6 @@ You can deploy the new implementation of the following contracts:
 > [!NOTE]
 > Make sure the `batcherPaymentServiceImplementation` address is the same as the one you deployed in this guide.
 
-### Deploy New Implementation for RegistryCoordinator
-
-1. Deploy the new implementation by running:
-
-    ```sh
-    make upgrade_registry_coordinator
-    ```
-
-    If the new implementation is correctly deployed, the script will show the following message:
-
-    `
-    You can propose the upgrade transaction with the multisig using this calldata
-    <calldata>
-    `
-
-   You should save this `calldata` for later use.
-
-2. Get the `upgrade` function signature:
-
-   ```bash
-   cast sig "upgrade(address, address)"
-   ```
-
-   This will show the `upgrade` signature hash: `0x99a88ec4`.
-
-3. Validate the `calldata` by running:
-
-   ```sh
-   cast calldata-decode "upgrade(address, address)" <calldata>
-   ```
-
-   This will show two addresses. The first one is the `registryCoordinator` address, and the second one is the new implementation address of `registryCoordinatorImplementation`.
-
-> [!NOTE]
-> Make sure the `registryCoordinator` address is the same as the one you deployed in the [Deploy Contracts Guide](./2_deploy_contracts.md).
->
-> Make sure the `registryCoordinatorImplementation` address is the same as the one you deployed in this guide.
 
 ## Next Steps
 

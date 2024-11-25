@@ -572,9 +572,9 @@ deploy_pauser_registry: ## Deploy Pauser Registry
 	@echo "Deploying Pauser Registry..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_pauser_registry.sh
 
-upgrade_aligned_contracts: ## Upgrade Aligned Contracts
-	@echo "Upgrading Aligned Contracts..."
-	@. contracts/scripts/.env && . contracts/scripts/upgrade_aligned_contracts.sh
+upgrade_aligned_contracts: ## Upgrade Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Upgrading Aligned Contracts on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_aligned_contracts.sh
 
 upgrade_pauser_aligned_contracts: ## Upgrade Aligned Contracts with Pauser initialization
 	@echo "Upgrading Aligned Contracts with Pauser initialization..."
@@ -612,9 +612,9 @@ deploy_batcher_payment_service: ## Deploy BatcherPayments contract. Parameters: 
 	@echo "Deploying BatcherPayments contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_batcher_payment_service.sh
 
-upgrade_batcher_payment_service:
-	@echo "Upgrading BatcherPayments contract..."
-	@. contracts/scripts/.env && . contracts/scripts/upgrade_batcher_payment_service.sh
+upgrade_batcher_payment_service: ## Upgrade BatcherPayments contract. Parameters: NETWORK=<mainnet|holesky|sepolia
+	@echo "Upgrading BatcherPayments Contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_batcher_payment_service.sh
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
