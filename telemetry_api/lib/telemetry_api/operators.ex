@@ -135,26 +135,25 @@ defmodule TelemetryApi.Operators do
 
   ## Examples
 
-      iex> update_operator(some_version, some_signature, %{field: value})
+      iex> update_operator(address, some_version, some_signature, %{field: value})
       {:ok, %Ecto.Changeset{}}
 
-      iex> update_operator(some_version, invalid_signature, %{field:  value})
+      iex> update_operator(address, some_version, invalid_signature, %{field:  value})
       {:error, "Some status", "Some message"}
 
   """
-  def update_operator(version, signature, changes) do
-    # Decode Base64 inputs
-    {:ok, signature} = Base.decode64(signature)
-    {:ok, message_hash} = Base.decode64(version)
-    with {:ok, bls_public_key} <- BLSSignatureVerifier.recover_public_address(signature, message_hash) do
-      case Repo.get_by(Operator, bls_public_key: bls_public_key) do
-        nil ->
-          {:error, :bad_request,
-           "Provided bls key does not correspond to any registered operator"}
+  def update_operator(address, version, signature, changes) do
+    {:ok, message_hash} = ExKeccak.hash_256(version)
 
-        operator ->
+    case Repo.get(Operator, address) do
+      nil ->
+        {:error, :bad_request, "Provided address does not correspond to any registered operator"}
+
+      operator ->
+        with {:ok, _} <-
+               BLSSignatureVerifier.verify(signature, bls_public_key, message_hash) do
           update_operator(operator, changes)
-      end
+        end
     end
   end
 
