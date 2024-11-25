@@ -2,67 +2,25 @@
 
 After deploying a new implementation candidate for the upgrade, you need to propose the upgrade transaction using the multisig wallet.
 
-## Prerequisites
-
-- You need to have deployed the new implementation following the [Deploy New Implementation Guide](./3_b_1_deploy_new_impl.md).
-
-- Upgrade `calldata` obtained from the deployment of the new implementation.
-
 ## Propose transaction
 
 To propose the upgrade transaction you can follow the steps below:
 
-1. Get the function signature
+1. If you want to upgrade the ```alignedLayerServiceManager``` get the ```alignedLayerServiceManager``` and ```alignedServiceManagerImplementation``` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```.
+    
+    If you want to upgrade the ```batcherPaymentService``` get the ```batcherPaymentServiceImplementation``` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```.
 
-    If you are upgrading the AlignedLayerServiceManager or the RegistryCoordinator, you can get the function signature by running:
-
-    ```bash
-    cast sig "upgrade(address, address)"
-    ```
-
-   This will show the `upgrade` signature hash: `0x99a88ec4`.
-
-    Else, if you are upgrading the BatcherPaymentService, you can get the function signature by running:
+2. If you want to upgrade the ```alignedLayerServiceManager``` generate the `calldata` for the upgrade transaction by running:
 
     ```bash
-    cast sig "upgradeTo(address)"
+    cast calldata "upgrade(address, address)" <alignedLayerServiceManager> <alignedLayerServiceManagerImplementation>
     ```
    
-    This will show the `upgradeTo` signature hash: `0x3659cfe6`.
-    
-2. Validate the calldata
-
-    If you are upgrading the AlignedLayerServiceManager or the RegistryCoordinator, you can validate the calldata by running:
+    If you want to upgrade the ```batcherPaymentService``` generate the `calldata` for the upgrade transaction by running:
 
     ```bash
-    cast calldata-decode "upgrade(address, address)" <calldata>
-    ```
-
-    This will show two addresses. 
-    
-    If you are upgrading the AlignmentLayerServiceManager, the first one is the `alignedLayerServiceManager` address, and the second one is the new implementation address of `alignedServiceManagerImplementation`.
-
-    If you are upgrading the RegistryCoordinator, the first one is the `registryCoordinator` address, and the second one is the new implementation address of `registryCoordinatorImplementation`.
-
-> [!NOTE]
-> The first 10 characters must be the same the signature hash obtained in the previous step.
-> 
-> Make sure the `alignedLayerServiceManager` address is the same as the one you deployed in the [Deploy Contracts Guide](./2_deploy_contracts.md).
-> 
-> Make sure the `alignedServiceManagerImplementation` address is the same as the one you deployed in this guide.
-
-   Else, if you are upgrading the BatcherPaymentService, you can validate the calldata by running:
-   
-   ```bash
-   cast calldata-decode "upgradeTo(address)" <calldata>
+   cast calldata "upgradeTo(address)" <batcherPaymentServiceImplementation>
    ```
-
-   This will show the `batcherPaymentServiceImplementation` address.
-
-> [!NOTE] 
-> The first 10 characters must be the same the signature hash obtained in the previous step.
-> 
-> Make sure the `batcherPaymentServiceImplementation` address is the same as the one you deployed in this guide. 
 
 3. Verify the contract bytecode running the following command:
 
@@ -70,7 +28,7 @@ To propose the upgrade transaction you can follow the steps below:
    TODO
    ```
    
-4. Once the calldata and the proposed upgrade are validated, you can create the upgrade transaction on [Safe](https://app.safe.global/home)
+4. Once the proposed upgrade is validated, you can create the upgrade transaction on [Safe](https://app.safe.global/home)
 
 5. Click on `New transaction` -> `Transaction Builder`
    
@@ -80,27 +38,7 @@ To propose the upgrade transaction you can follow the steps below:
 
 6. Enable `Custom data`
 
-7. Get the `ProxyAdmin` address, and paste it on `Enter Address or ENS Name`
-
-   To get the `ProxyAdmin` address the following command will copy the address to the clipboard:
-
-    ```bash
-    # SEPOLIA
-    jq -r ".addresses.alignedLayerProxyAdmin" contracts/script/output/sepolia/alignedlayer_deployment_output.json | pbcopy
-    ```
-
-    ```bash
-   # HOLESKY
-   jq -r ".addresses.alignedLayerProxyAdmin" contracts/script/output/holesky/alignedlayer_deployment_output.json | pbcopy
-    ```
-   
-    ```bash
-    # MAINNET
-    jq -r ".addresses.alignedLayerProxyAdmin" contracts/script/output/mainnet/alignedlayer_deployment_output.json | pbcopy
-    ```
-   
->    [!NOTE]
->    Make sure to set the path to the correct deployment output file.
+7. Get the `ProxyAdmin` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```, and paste it on `Enter Address or ENS Name`
 
 8. Once you paste the `ProxyAdmin` address, the ABI should be automatically filled.
 
