@@ -143,12 +143,14 @@ defmodule TelemetryApi.Operators do
 
   """
   def update_operator(version, signature, changes) do
-    with {:ok, address} <- SignatureVerifier.recover_address(version, signature) do
-      address = "0x" <> address
-      case Repo.get(Operator, address) do
+    # Decode Base64 inputs
+    {:ok, signature} = Base.decode64(signature)
+    {:ok, message_hash} = Base.decode64(version)
+    with {:ok, bls_public_key} <- BLSSignatureVerifier.recover_public_address(signature, message_hash) do
+      case Repo.get_by(Operator, bls_public_key: bls_public_key) do
         nil ->
           {:error, :bad_request,
-           "Provided address does not correspond to any registered operator"}
+           "Provided bls key does not correspond to any registered operator"}
 
         operator ->
           update_operator(operator, changes)
