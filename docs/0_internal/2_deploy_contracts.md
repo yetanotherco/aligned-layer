@@ -67,6 +67,10 @@ Also, you will be able to deploy the Batcher Payment Service contract.
     - Holesky: `contracts/script/output/holesky/alignedlayer_deployment_output.json`
     - Sepolia: `contracts/script/output/sepolia/alignedlayer_deployment_output.json`
 
+11. Upgrade the new contracts addresses in docs/3_guides/7_contract_addresses.md
+
+12. Create a PR with the new contract addresses and the updated docs.
+
 ## BatcherPaymentsService Contracts
 
 1. You should have a keystore for the Batcher, with the Seedphrase saved on paper.
@@ -110,3 +114,7 @@ Also, you will be able to deploy the Batcher Payment Service contract.
     - Mainnet: `contracts/script/output/mainnet/alignedlayer_deployment_output.json`
     - Holesky: `contracts/script/output/holesky/alignedlayer_deployment_output.json`
     - Sepolia: `contracts/script/output/sepolia/alignedlayer_deployment_output.json`
+
+10. Upgrade the new contracts addresses in docs/3_guides/7_contract_addresses.md
+
+11. Create a PR with the new contract addresses and the updated docs.
