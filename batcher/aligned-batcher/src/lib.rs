@@ -23,8 +23,8 @@ use std::time::Duration;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, BUMP_BACKOFF_FACTOR,
-    BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONSTANT_GAS_COST,
-    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
+    BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONNECTION_READ_TIMEOUT,
+    CONSTANT_GAS_COST, DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
     ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
     ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
@@ -384,7 +384,7 @@ impl Batcher {
         let mut incoming_filter = incoming.try_filter(|msg| future::ready(msg.is_binary()));
         let future_msg = incoming_filter.try_next();
         // timeout to prevent a DOS attack
-        match timeout(Duration::from_secs(5), future_msg).await {
+        match timeout(Duration::from_secs(CONNECTION_READ_TIMEOUT), future_msg).await {
             Ok(Ok(Some(msg))) => {
                 self.clone().handle_message(msg, outgoing.clone()).await?;
             }
