@@ -652,36 +652,16 @@ func (o *Operator) SendTelemetryData(ctx *cli.Context) error {
 	// sign version
 	signature := o.Config.BlsConfig.KeyPair.SignMessage(version)
 
-	ethRpcUrl, err := BaseUrlOnly(o.Config.BaseConfig.EthRpcUrl)
-	if err != nil {
-		return err
-	}
-	ethRpcUrlFallback, err := BaseUrlOnly(o.Config.BaseConfig.EthRpcUrlFallback)
-	if err != nil {
-		return err
-	}
-	ethWsUrl, err := BaseUrlOnly(o.Config.BaseConfig.EthWsUrl)
-	if err != nil {
-		return err
-	}
-	ethWsUrlFallback, err := BaseUrlOnly(o.Config.BaseConfig.EthWsUrlFallback)
-	if err != nil {
-		return err
-	}
-
 	body := map[string]interface{}{
-		"version":              ctx.App.Version,
-		"signature":            signature,
-		"eth_rpc_url":          ethRpcUrl,
-		"eth_rpc_url_fallback": ethRpcUrlFallback,
-		"eth_ws_url":           ethWsUrl,
-		"eth_ws_url_fallback":  ethWsUrlFallback,
+		"address":   o.Address,
+		"version":   ctx.App.Version,
+		"signature": signature,
 	}
 
 	bodyBuffer := new(bytes.Buffer)
 
 	bodyReader := json.NewEncoder(bodyBuffer)
-	err = bodyReader.Encode(body)
+	err := bodyReader.Encode(body)
 	if err != nil {
 		return err
 	}
