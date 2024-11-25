@@ -11,6 +11,7 @@ use retry::batcher_retryables::{
     get_user_nonce_from_ethereum_retryable, user_balance_is_unlocked_retryable,
 };
 use retry::{retry_function, RetryError};
+use tokio::time::{timeout, Instant};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
@@ -18,6 +19,7 @@ use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, BUMP_BACKOFF_FACTOR,
@@ -379,18 +381,48 @@ impl Batcher {
             .send(Message::binary(serialized_protocol_version_msg))
             .await?;
 
-        match incoming
-            .try_filter(|msg| future::ready(msg.is_binary()))
-            .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
-            .await
-        {
-            Err(e) => {
-                self.metrics.broken_ws_connections.inc();
-                error!("Unexpected error: {}", e)
-            }
-            Ok(_) => info!("{} disconnected", &addr),
+        let connection_start = Instant::now();
+        let mut request = 0;
+
+        let mut filtered_incoming = incoming.try_filter(|msg| future::ready(msg.is_binary()));
+        loop {
+            let future_msg = filtered_incoming.try_next();
+            // timeout to prevent a DOS attack
+            match timeout(Duration::from_secs(5), future_msg).await {
+                Err(elapsed) => {
+                    // self.metrics.timedout_connections.inc();
+                    error!("Connection timed out: {}", elapsed);
+                    break;
+                }
+                Ok(Err(e)) => {
+                    self.metrics.broken_ws_connections.inc();
+                    error!("Unexpected error: {}", e);
+                    break;
+                }
+                Ok(Ok(None)) => {
+                    // Connection closed by the other side.
+                    break;
+                }
+                Ok(Ok(Some(msg))) => {
+                    self.clone().handle_message(msg, outgoing.clone()).await?;
+                    request += 1;
+
+                    // Check if 5 seconds have elapsed
+                    if connection_start.elapsed() >= Duration::from_secs(5) {
+                        info!("5 seconds have elapsed.");
+                        break;
+                    }
+                    if request > 50 {
+                        info!("Max number of requests reached");
+                        break;
+                    }
+                }
+            };
         }
 
+        info!("{} throwing incoming", &addr);
+
+        // Now this metric only shows the connections that we are still listening from.
         self.metrics.open_connections.dec();
         Ok(())
     }

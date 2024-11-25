@@ -163,7 +163,6 @@ pub async fn receive(
             break;
         }
     }
-
     aligned_submitted_data
 }
 

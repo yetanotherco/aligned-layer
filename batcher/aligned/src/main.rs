@@ -346,8 +346,6 @@ async fn main() -> Result<(), AlignedError> {
                     })?,
             };
 
-            warn!("Nonce: {nonce}");
-
             let verification_data = verification_data_from_args(&submit_args)?;
 
             let verification_data_arr = vec![verification_data; repetitions];
