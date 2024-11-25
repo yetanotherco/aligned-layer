@@ -6,7 +6,6 @@ use eth::service_manager::ServiceManager;
 use eth::utils::{calculate_bumped_gas_price, get_batcher_signer, get_gas_price};
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
-use reqwest::header::CONNECTION;
 use retry::batcher_retryables::{
     cancel_create_new_task_retryable, create_new_task_retryable, get_user_balance_retryable,
     get_user_nonce_from_ethereum_retryable, user_balance_is_unlocked_retryable,
@@ -21,11 +20,10 @@ use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
-use std::time::Duration;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, BUMP_BACKOFF_FACTOR,
-    BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONNECTION_READ_TIMEOUT,
+    BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONNECTION_TIMEOUT,
     CONSTANT_GAS_COST, DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
     ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
     ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
@@ -384,13 +382,12 @@ impl Batcher {
             .await?;
 
         let connection_start = Instant::now();
-        let mut request = 0;
 
         let mut filtered_incoming = incoming.try_filter(|msg| future::ready(msg.is_binary()));
         loop {
             let future_msg = filtered_incoming.try_next();
             // timeout to prevent a DOS attack
-            match timeout(Duration::from_secs(CONNECTION_READ_TIMEOUT), future_msg).await {
+            match timeout(Duration::from_secs(CONNECTION_TIMEOUT), future_msg).await {
                 Err(elapsed) => {
                     // self.metrics.timedout_connections.inc();
                     error!("Connection timed out: {}", elapsed);
@@ -409,7 +406,7 @@ impl Batcher {
                     self.clone().handle_message(msg, outgoing.clone()).await?;
 
                     // Check if 5 seconds have elapsed
-                    if connection_start.elapsed() >= Duration::from_secs(CONNECTION_READ_TIMEOUT) {
+                    if connection_start.elapsed() >= Duration::from_secs(CONNECTION_TIMEOUT) {
                         info!("5 seconds have elapsed.");
                         break;
                     }
