@@ -56,7 +56,9 @@ You can deploy the new implementation of the following contracts:
 
    This will show the `upgrade` signature hash: `0x99a88ec4`.
 
-3. Validate the `calldata` by running:
+   Verify the first 8 digits of the `calldata` are the same as the signature hash obtained in this step. 
+
+3. Validate the contracts addresses of the `calldata` by running:
 
    ```sh
    cast calldata-decode "upgrade(address, address)" <calldata>
@@ -64,10 +66,10 @@ You can deploy the new implementation of the following contracts:
 
    This will show two addresses. The first one is the `alignedLayerServiceManager` address, and the second one is the new implementation address of `alignedServiceManagerImplementation`.
 
-> [!NOTE]
-> Make sure the `alignedLayerServiceManager` address is the same as the one you deployed in the [Deploy Contracts Guide](./2_deploy_contracts.md).
->
-> Make sure the `alignedServiceManagerImplementation` address is the same as the one you deployed in this guide.
+   Make sure the `alignedLayerServiceManager` address is the same as the one you deployed in the [Deploy Contracts Guide](./2_deploy_contracts.md).
+
+   Make sure the `alignedServiceManagerImplementation` address is the same as the one you deployed in this guide.
+
 
 ## Deploy New Implementation for BatcherPaymentService
 
@@ -105,6 +107,8 @@ You can deploy the new implementation of the following contracts:
 
    This will show the `upgradeTo` signature hash: `0x3659cfe6`.
 
+   Verify the first 8 digits of the `calldata` are the same as the signature hash obtained in this step.
+
 3. Validate the `calldata` by running:
 
    ```shell
@@ -112,9 +116,8 @@ You can deploy the new implementation of the following contracts:
    ```
 
    This will show the `batcherPaymentServiceImplementation` address.
-
-> [!NOTE]
-> Make sure the `batcherPaymentServiceImplementation` address is the same as the one you deployed in this guide.
+   
+   Make sure the `batcherPaymentServiceImplementation` address is the same as the one you deployed in this guide.
 
 
 ## Next Steps
