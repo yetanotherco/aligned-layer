@@ -13,6 +13,7 @@ defmodule TelemetryApi.Operators.Operator do
     field :eth_rpc_url_fallback, :string
     field :eth_ws_url, :string
     field :eth_ws_url_fallback, :string
+    field :bls_public_key, :string
 
     timestamps(type: :utc_datetime)
   end
@@ -30,9 +31,10 @@ defmodule TelemetryApi.Operators.Operator do
       :eth_rpc_url,
       :eth_rpc_url_fallback,
       :eth_ws_url,
-      :eth_ws_url_fallback
+      :eth_ws_url_fallback,
+      :bls_public_key
     ])
-    |> validate_required([:address, :id, :name, :stake])
+    |> validate_required([:address, :id, :name, :stake, :bls_public_key])
   end
 end
 
