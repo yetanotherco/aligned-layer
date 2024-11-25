@@ -82,21 +82,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	if err != nil {
 		log.Fatalf("Could not check if operator is registered")
 	}
-
 	if !registered {
-		log.Println("Operator is not registered with AlignedLayer AVS, registering...")
-		quorumNumbers := []byte{0}
-
-		// Generate salt and expiry
-		privateKeyBytes := []byte(configuration.BlsConfig.KeyPair.PrivKey.String())
-		salt := [32]byte{}
-
-		copy(salt[:], crypto.Keccak256([]byte("churn"), []byte(time.Now().String()), quorumNumbers, privateKeyBytes))
-
-		err = RegisterOperator(context.Background(), &configuration, salt)
-		if err != nil {
-			log.Fatalf("Could not register operator")
-		}
+		log.Fatal("Operator not registered")
 	}
 
 	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(configuration.BaseConfig)

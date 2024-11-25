@@ -11,7 +11,6 @@ import (
 
 type OperatorConfig struct {
 	BaseConfig                   *BaseConfig
-	EcdsaConfig                  *EcdsaConfig
 	BlsConfig                    *BlsConfig
 	AlignedLayerDeploymentConfig *AlignedLayerDeploymentConfig
 
@@ -60,11 +59,6 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 		log.Fatal("Error reading base config: ")
 	}
 
-	ecdsaConfig := NewEcdsaConfig(configFilePath, baseConfig.ChainId)
-	if ecdsaConfig == nil {
-		log.Fatal("Error reading ecdsa config: ")
-	}
-
 	blsConfig := NewBlsConfig(configFilePath)
 	if blsConfig == nil {
 		log.Fatal("Error reading bls config: ")
@@ -79,7 +73,6 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 
 	return &OperatorConfig{
 		BaseConfig:                   baseConfig,
-		EcdsaConfig:                  ecdsaConfig,
 		BlsConfig:                    blsConfig,
 		AlignedLayerDeploymentConfig: baseConfig.AlignedLayerDeploymentConfig,
 		Operator: struct {
