@@ -570,7 +570,7 @@ pub async fn get_nonce_from_batcher(
         GetNonceError::ConnectionFailed("Ws connection to batcher failed".to_string())
     })?;
 
-    info!("WebSocket handshake has been successfully completed");
+    debug!("WebSocket handshake has been successfully completed");
     let (mut ws_write, mut ws_read) = ws_stream.split();
     check_protocol_version(&mut ws_read)
         .map_err(|e| match e {
@@ -587,8 +587,6 @@ pub async fn get_nonce_from_batcher(
 
     let msg_bin = cbor_serialize(&msg)
         .map_err(|_| GetNonceError::SerializationError("Failed to serialize msg".to_string()))?;
-
-    info!("Sending nonce in loop!");
     ws_write
         .send(Message::Binary(msg_bin.clone()))
         .await
