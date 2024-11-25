@@ -11,6 +11,7 @@ use retry::batcher_retryables::{
     get_user_nonce_from_ethereum_retryable, user_balance_is_unlocked_retryable,
 };
 use retry::{retry_function, RetryError};
+use tokio::time::timeout;
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
@@ -18,6 +19,7 @@ use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, BUMP_BACKOFF_FACTOR,
@@ -379,8 +381,32 @@ impl Batcher {
             .send(Message::binary(serialized_protocol_version_msg))
             .await?;
 
-        match incoming
-            .try_filter(|msg| future::ready(msg.is_binary()))
+        let mut incoming_filter = incoming.try_filter(|msg| future::ready(msg.is_binary()));
+        let future_msg = incoming_filter.try_next();
+        // timeout to prevent a DOS attack
+        match timeout(Duration::from_secs(5), future_msg).await {
+            Ok(Ok(Some(msg))) => {
+                self.clone().handle_message(msg, outgoing.clone()).await?;
+            }
+            Err(elapsed) => {
+                error!("[{}] {}", &addr, elapsed);
+                self.metrics.open_connections.dec();
+                self.metrics.user_error(&["user_timeout", ""]);
+                return Ok(());
+            }
+            Ok(Ok(None)) => {
+                info!("[{}] Connection closed by the other side", &addr);
+                self.metrics.open_connections.dec();
+                return Ok(());
+            }
+            Ok(Err(e)) => {
+                error!("Unexpected error: {}", e);
+                self.metrics.open_connections.dec();
+                return Ok(());
+            }
+        };
+
+        match incoming_filter
             .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
             .await
         {
