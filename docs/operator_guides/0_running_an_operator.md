@@ -8,7 +8,13 @@
 
 ## Requirements
 
-This guide assumes you are already [registered as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation).
+This guide assumes you are already [registered as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation) and [delegated enough funds](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/restaker-delegation/delegate-to-an-operator) for it to be active.
+
+> :warning: **Make sure to use different keys for `<operator_address>` and `<earnings_receiver_address>`** :warning:  
+> The private key for `<operator_address>` needs to be accessible by the operator, which means it might be a target for stealing.  
+> :warning: If you reuse your keys **you might lose all your funds** :warning:  
+> Because of this, the recommended approach is to use delegation rather than direct funding.  
+> For more recommendations on key management, follow [EigenLayer's key management guide](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/key-management/intro).
 
 ## Hardware Requirements
 
@@ -90,6 +96,11 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 - `"<bls_key_store_password>"`
 
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
+
+> :warning: **Make sure to use different keys for `<operator_address>` and `<earnings_receiver_address>`** :warning:  
+> The private key for `<operator_address>` needs to be accessible by the operator, which means it might be a target for stealing.  
+> :warning: If you reuse your keys **you might lose all your funds** :warning:  
+
 The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, so for example `<ecdsa_key_store_location_path>` could be `/path/to/home/.eigenlayer/operator_keys/some_key.ecdsa.key.json` and for `<bls_key_store_location_path>` it could be `/path/to/home/.eigenlayer/operator_keys/some_key.bls.key.json`.
 
 Two RPCs are used, one as the main one, and the other one as a fallback in case one node is working unreliably. 
