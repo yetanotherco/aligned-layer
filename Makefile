@@ -1064,7 +1064,7 @@ docker_logs_batcher:
 
 __TELEMETRY__:
 # Collector, Jaeger and Elixir API
-telemetry_full_start: open_telemetry_start telemetry_start
+telemetry_full_start: telemetry_compile_bls_verifier open_telemetry_start telemetry_start
 
 # Collector and Jaeger
 open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
@@ -1107,6 +1107,10 @@ telemetry_dump_db:
 telemetry_create_env:
 	@cd telemetry_api && \
 		cp .env.dev .env
+
+telemetry_compile_bls_verifier:
+	@cd telemetry_api/priv && \
+	go build ../bls_verifier/bls_verify.go
 
 setup_local_aligned_all:
 	tmux kill-session -t aligned_layer || true
