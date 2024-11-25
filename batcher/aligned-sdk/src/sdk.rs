@@ -31,8 +31,8 @@ use ethers::{
     types::{Address, H160, U256},
 };
 use sha3::{Digest, Keccak256};
-use std::{str::FromStr, sync::Arc, time::Duration};
-use tokio::{net::TcpStream, sync::Mutex, time::sleep};
+use std::{str::FromStr, sync::Arc};
+use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
 use log::{debug, info};
@@ -583,26 +583,20 @@ pub async fn get_nonce_from_batcher(
         })
         .await?;
 
-    // info!("Sleeping to keep the wb blocked.");
-    // sleep(Duration::from_secs(20)).await;
-    // info!("Waking up");
-
     let msg = ClientMessage::GetNonceForAddress(address);
 
     let msg_bin = cbor_serialize(&msg)
         .map_err(|_| GetNonceError::SerializationError("Failed to serialize msg".to_string()))?;
 
-    loop {
-        info!("Sending nonce in loop!");
-        ws_write
-            .send(Message::Binary(msg_bin.clone()))
-            .await
-            .map_err(|_| {
-                GetNonceError::ConnectionFailed(
-                    "Ws connection failed to send message to batcher".to_string(),
-                )
-            })?;
-    }
+    info!("Sending nonce in loop!");
+    ws_write
+        .send(Message::Binary(msg_bin.clone()))
+        .await
+        .map_err(|_| {
+            GetNonceError::ConnectionFailed(
+                "Ws connection failed to send message to batcher".to_string(),
+            )
+        })?;
 
     let mut response_stream: ResponseStream =
         ws_read.try_filter(|msg| futures_util::future::ready(msg.is_binary()));
