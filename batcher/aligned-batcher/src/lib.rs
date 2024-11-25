@@ -389,32 +389,31 @@ impl Batcher {
             // timeout to prevent a DOS attack
             match timeout(Duration::from_secs(CONNECTION_TIMEOUT), future_msg).await {
                 Err(elapsed) => {
-                    // self.metrics.timedout_connections.inc();
-                    error!("Connection timed out: {}", elapsed);
+                    warn!("[{}] {}", &addr, elapsed);
+                    self.metrics.user_error(&["user_timeout", ""]);
                     break;
                 }
                 Ok(Err(e)) => {
                     self.metrics.broken_ws_connections.inc();
-                    error!("Unexpected error: {}", e);
+                    error!("[{}] Unexpected error: {}", &addr, e);
                     break;
                 }
                 Ok(Ok(None)) => {
-                    // Connection closed by the other side.
+                    info!("[{}] Disconnected", &addr);
                     break;
                 }
                 Ok(Ok(Some(msg))) => {
                     self.clone().handle_message(msg, outgoing.clone()).await?;
 
-                    // Check if 5 seconds have elapsed
                     if connection_start.elapsed() >= Duration::from_secs(CONNECTION_TIMEOUT) {
-                        info!("5 seconds have elapsed.");
+                        info!("{} seconds have elapsed.", CONNECTION_TIMEOUT);
                         break;
                     }
                 }
             };
         }
 
-        info!("{} throwing incoming", &addr);
+        info!("[{}] throwing incoming", &addr);
 
         // Now this metric only shows the connections that we are still listening from.
         self.metrics.open_connections.dec();
