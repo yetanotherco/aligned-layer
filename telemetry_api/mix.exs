@@ -61,8 +61,7 @@ defmodule TelemetryApi.MixProject do
       {:opentelemetry_api, "~> 1.2"},
       {:opentelemetry_exporter, "~> 1.6"},
       {:prometheus_ex, "~> 3.0"},
-      {:prometheus_plugs, "~> 1.0"},
-      {:rustler, "~> 0.35.0"}
+      {:prometheus_plugs, "~> 1.0"}
     ]
   end
 
