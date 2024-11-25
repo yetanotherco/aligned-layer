@@ -389,7 +389,7 @@ impl Batcher {
                 self.clone().handle_message(msg, outgoing.clone()).await?;
             }
             Err(elapsed) => {
-                error!("[{}] {}", &addr, elapsed);
+                warn!("[{}] {}", &addr, elapsed);
                 self.metrics.open_connections.dec();
                 self.metrics.user_error(&["user_timeout", ""]);
                 return Ok(());
