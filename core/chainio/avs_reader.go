@@ -24,7 +24,7 @@ type AvsReader struct {
 	logger                         logging.Logger
 }
 
-func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig) (*AvsReader, error) {
+func NewAvsReaderFromConfig(baseConfig *config.BaseConfig) (*AvsReader, error) {
 
 	buildAllConfig := clients.BuildAllConfig{
 		EthHttpUrl:                 baseConfig.EthRpcUrl,
@@ -35,7 +35,7 @@ func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 		PromMetricsIpPortAddress:   baseConfig.EigenMetricsIpPortAddress,
 	}
 
-	clients, err := clients.BuildAll(buildAllConfig, ecdsaConfig.PrivateKey, baseConfig.Logger)
+	clients, err := clients.BuildReadClients(buildAllConfig, baseConfig.Logger)
 	if err != nil {
 		return nil, err
 	}

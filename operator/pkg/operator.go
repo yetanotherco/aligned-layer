@@ -3,7 +3,6 @@ package operator
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -48,7 +47,6 @@ type Operator struct {
 	Address                   ethcommon.Address
 	Socket                    string
 	Timeout                   time.Duration
-	PrivKey                   *ecdsa.PrivateKey
 	KeyPair                   *bls.KeyPair
 	OperatorId                eigentypes.OperatorId
 	avsSubscriber             chainio.AvsSubscriber
@@ -75,7 +73,7 @@ const (
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
 	logger := configuration.BaseConfig.Logger
 
-	avsReader, err := chainio.NewAvsReaderFromConfig(configuration.BaseConfig, configuration.EcdsaConfig)
+	avsReader, err := chainio.NewAvsReaderFromConfig(configuration.BaseConfig)
 	if err != nil {
 		log.Fatalf("Could not create AVS reader")
 	}
