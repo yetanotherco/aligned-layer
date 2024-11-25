@@ -378,6 +378,7 @@ impl Batcher {
                 }
                 Err(e) => {
                     warn!("Error while establishing websocket connection: {}", e);
+                    self.metrics.user_error(&["user_timeout", ""]);
                     return Ok(());
                 }
             };
