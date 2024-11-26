@@ -30,7 +30,7 @@ defmodule TelemetryApi.Operators.Operator do
       :eth_rpc_url,
       :eth_rpc_url_fallback,
       :eth_ws_url,
-      :eth_ws_url_fallback,
+      :eth_ws_url_fallback
     ])
     |> validate_required([:address, :id, :name, :stake])
   end
