@@ -43,6 +43,8 @@ rm -f "$OUTPUT_PATH.temp"
 
 data=$(cast calldata "upgradeTo(address)" $batcher_payment_service_implementation)
 
+echo "The new Batcher Payment Service Implementation is $batcher_payment_service_implementation"
+
 if [ "$MULTISIG" = false ]; then
   echo "Executing upgrade transaction"
   cast send $batcher_payment_service_proxy $data \

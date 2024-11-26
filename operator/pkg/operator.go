@@ -636,7 +636,7 @@ func (o *Operator) SendTelemetryData(ctx *cli.Context) error {
 
 	// sign version
 	signature := o.Config.BlsConfig.KeyPair.SignMessage(version)
-
+	public_key_g2 := o.Config.BlsConfig.KeyPair.GetPubKeyG2()
 	ethRpcUrl, err := BaseUrlOnly(o.Config.BaseConfig.EthRpcUrl)
 	if err != nil {
 		return err
@@ -655,12 +655,14 @@ func (o *Operator) SendTelemetryData(ctx *cli.Context) error {
 	}
 
 	body := map[string]interface{}{
-		"version":              ctx.App.Version,
-		"signature":            signature,
 		"eth_rpc_url":          ethRpcUrl,
 		"eth_rpc_url_fallback": ethRpcUrlFallback,
 		"eth_ws_url":           ethWsUrl,
 		"eth_ws_url_fallback":  ethWsUrlFallback,
+		"address":              o.Address,
+		"version":              ctx.App.Version,
+		"signature":            signature.Bytes(),
+		"pub_key_g2":           public_key_g2.Bytes(),
 	}
 
 	bodyBuffer := new(bytes.Buffer)
