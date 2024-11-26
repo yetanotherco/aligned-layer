@@ -563,18 +563,18 @@ run_storage: ## Run storage using storage-docker-compose.yaml
 	@echo "Running storage..."
 	@docker compose -f storage-docker-compose.yaml up
 
-__DEPLOYMENT__:
-deploy_aligned_contracts: ## Deploy Aligned Contracts
-	@echo "Deploying Aligned Contracts..."
-	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
+__DEPLOYMENT__: ## ____
+deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Deploying Aligned Contracts on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
 
 deploy_pauser_registry: ## Deploy Pauser Registry
 	@echo "Deploying Pauser Registry..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_pauser_registry.sh
 
-upgrade_aligned_contracts: ## Upgrade Aligned Contracts
-	@echo "Upgrading Aligned Contracts..."
-	@. contracts/scripts/.env && . contracts/scripts/upgrade_aligned_contracts.sh
+upgrade_aligned_contracts: ## Upgrade Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Upgrading Aligned Contracts on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_aligned_contracts.sh
 
 upgrade_pauser_aligned_contracts: ## Upgrade Aligned Contracts with Pauser initialization
 	@echo "Upgrading Aligned Contracts with Pauser initialization..."
@@ -608,13 +608,13 @@ deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."
 	@. examples/verify/.env && . examples/verify/scripts/deploy_verify_batch_inclusion_caller.sh
 
-deploy_batcher_payment_service:
-	@echo "Deploying BatcherPayments contract..."
-	@. contracts/scripts/.env && . contracts/scripts/deploy_batcher_payment_service.sh
+deploy_batcher_payment_service: ## Deploy BatcherPayments contract. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Deploying BatcherPayments contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_batcher_payment_service.sh
 
-upgrade_batcher_payment_service:
-	@echo "Upgrading BatcherPayments contract..."
-	@. contracts/scripts/.env && . contracts/scripts/upgrade_batcher_payment_service.sh
+upgrade_batcher_payment_service: ## Upgrade BatcherPayments contract. Parameters: NETWORK=<mainnet|holesky|sepolia
+	@echo "Upgrading BatcherPayments Contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_batcher_payment_service.sh
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
