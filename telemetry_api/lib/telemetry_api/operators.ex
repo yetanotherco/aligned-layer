@@ -135,10 +135,10 @@ defmodule TelemetryApi.Operators do
 
   ## Examples
 
-      iex> update_operator(address, some_version, some_signature, %{field: value})
+      iex> update_operator(address, some_version, some_signature, pubkey_g2, %{field: value})
       {:ok, %Ecto.Changeset{}}
 
-      iex> update_operator(address, some_version, invalid_signature, %{field:  value})
+      iex> update_operator(address, some_version, invalid_signature, pubkey_g2, %{field:  value})
       {:error, "Some status", "Some message"}
 
   """
@@ -150,14 +150,16 @@ defmodule TelemetryApi.Operators do
         {:error, :bad_request, "Provided address does not correspond to any registered operator"}
 
       operator ->
-        with {:ok, [pubkey_g1_points, _]} <- BLSApkRegistry.get_operator_bls_pubkey(address) do
-          with {:ok, _} <- BLSSignatureVerifier.verify(signature, pubkey_g1_points, pubkey_g2, message_hash) do
-            update_operator(operator, changes)
-          else
-            {:error, :unauthorized, "Invalid signature"}
-          end
-        else
-          {:error, :not_found, "Failed to retrieve public key for the operator"}
+        case BLSApkRegistry.get_operator_bls_pubkey(address) do
+          {:ok, [pubkey_g1_points, _]} ->
+            case BLSSignatureVerifier.verify(signature, pubkey_g1_points, pubkey_g2, message_hash) do
+              {:ok, _} ->
+                update_operator(operator, changes)
+              {:error, _} ->
+                {:error, :unauthorized, "Signature verification failed"}
+            end
+          {:error, _} ->
+            {:error, :not_found, "Failed to retrieve public key for the operator"}
         end
     end
   end

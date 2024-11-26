@@ -1,6 +1,5 @@
 defmodule BLSSignatureVerifier do
   def verify(signature, {pubkey_g1_x, pubkey_g1_y}, bls_pubkey_g2, message) do
-    endian = :big
     pubkey_g1_x = <<pubkey_g1_x::unsigned-big-integer-size(256)>>
     pubkey_g1_y = <<pubkey_g1_y::unsigned-big-integer-size(256)>>
 
