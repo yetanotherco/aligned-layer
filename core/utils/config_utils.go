@@ -13,11 +13,7 @@ import (
 )
 
 func ReadFile(path string) ([]byte, error) {
-	b, err := os.ReadFile(filepath.Clean(path))
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
+	return os.ReadFile(filepath.Clean(path))
 }
 
 func ReadYamlConfig(path string, o interface{}) error {
