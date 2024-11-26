@@ -89,11 +89,20 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 - `"<bls_key_store_location_path>"`
 - `"<bls_key_store_password>"`
 
+
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
+
 The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, so for example `<ecdsa_key_store_location_path>` could be `/path/to/home/.eigenlayer/operator_keys/some_key.ecdsa.key.json` and for `<bls_key_store_location_path>` it could be `/path/to/home/.eigenlayer/operator_keys/some_key.bls.key.json`.
+
+{% hint style="danger" %}
+
+Don't keep the Operator Key in the Aligned Operator Node
+
+{% endhint %}
 
 The ECDSA key is only used for registration and funding of the operator and is not needed afterwards. It is recommended that you remove it after you're done, as well as the `ecdsa` section in the config file, or better yet for that data to never make it to the server (e.g., you run the registration from a machine without listening ports).  
 If you run the registration on the server, it's recommended to do this part on a RAM filesystem to ease secure removal, and only after removing the `ecdsa` section move the config file to persistent storage.
+
 If you run on a different computer, you will need to copy the BLS key store to the server.
 
 Two RPCs are used, one as the main one, and the other one as a fallback in case one node is working unreliably. 
