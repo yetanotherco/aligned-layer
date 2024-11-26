@@ -1418,7 +1418,7 @@ impl Batcher {
         }
     }
 
-    /// Sends a `create_new_task` transaction to Ethereum and waits for a maximum of 6 blocks for the receipt.
+    /// Sends a `create_new_task` transaction to Ethereum and waits for a maximum of 8 blocks for the receipt.
     /// Retries up to `ETHEREUM_CALL_MAX_RETRIES` times using exponential backoff on recoverable errors while trying to send the transaction:
     /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
     /// `ReceiptNotFoundError` is treated as non-recoverable, and the transaction will be canceled using `cancel_create_new_task_tx` in that case.
