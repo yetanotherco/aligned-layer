@@ -38,7 +38,7 @@ export ALIGNED_SERVICE_MANAGER_ADDRESS=<aligned_service_manager_address>
 ## Check the current value of `alignedAggregator` within AlignedServiceManager.sol
 
 ```
-cast call $ALIGNED_SERVICE_MANAGER_ADDRESS "alignedAggregator()(address)"
+cast call --rpc-url <RPC_URL> $ALIGNED_SERVICE_MANAGER_ADDRESS "alignedAggregator()(address)"
 ```
 
 You should see that the printed address matches the returned address matches the address from `./contracts/script/output/<DEPLOYMENT_FOLDER>/aligned_deployment_output.json` 
@@ -53,7 +53,7 @@ make set_aggregator_address
 
 ## Verify the Aligend Aggreagtor Address has changed
 ```
-cast call $ALIGNED_SERVICE_MANAGER_ADDRESS "alignedAggregator()(address)"
+cast call --rpc-url <RPC_URL> $ALIGNED_SERVICE_MANAGER_ADDRESS "alignedAggregator()(address)" 
 ```
 
 You should observe that the printed address matches the address in `AGGREGATOR_ADDRESS`.
