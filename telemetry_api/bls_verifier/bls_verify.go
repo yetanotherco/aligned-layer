@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/hex"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
@@ -11,61 +10,76 @@ import (
 )
 
 func main() {
-	signatureArg := flag.String("signature", "", "Hex-encoded BLS signature (G1 point)")
-	publicKeyArg := flag.String("publickey", "", "Hex-encoded BLS public key (G2 point)")
+	signatureArg := flag.String("signature", "", "BLS signature bytes")
+	publicKeyG1X := flag.String("public-key-g1-x", "", "BLS public key on g1 affine x coord")
+	publicKeyG1Y := flag.String("public-key-g1-y", "", "BLS public key on g1 affine y coord")
+	publicKeyG2Arg := flag.String("public-key-g2", "", "BLS public key on g2")
 	messageArg := flag.String("message", "", "Hex-encoded message")
 
 	flag.Parse()
 
-	if *signatureArg == "" || *publicKeyArg == "" || *messageArg == "" {
-		log.Fatalf("All arguments (signature, publickey, and messagehash) are required")
+	if *signatureArg == "" || *publicKeyG1X == "" || *publicKeyG1Y == "" || *publicKeyG2Arg == "" || *messageArg == "" {
+		log.Fatalf("All arguments (signature, publickey g1 hash, publickey g2, and messagehash) are required")
 	}
 
-	// Convert from hex to bytes
-	signature, err := hex.DecodeString(*signatureArg)
-	if err != nil {
-		log.Fatalf("Failed to decode signature: %v", err)
-	}
+	signature := []byte(*signatureArg)
 
-	publicKey, err := hex.DecodeString(*publicKeyArg)
+	var pubkeyG1PointsBytes [2][]byte
+	xBytes, err := hex.DecodeString(*publicKeyG1X)
 	if err != nil {
-		log.Fatalf("Failed to decode public key: %v", err)
+		log.Fatalf("Failed to decode G1 X: %v", err)
 	}
+	yBytes, err := hex.DecodeString(*publicKeyG1Y)
+	if err != nil {
+		log.Fatalf("Failed to decode G1 Y: %v", err)
+	}
+	pubkeyG1PointsBytes[0] = xBytes
+	pubkeyG1PointsBytes[1] = yBytes
+
+	pubkeyG2Bytes := []byte(*publicKeyG2Arg)
 
 	messageHash, err := hex.DecodeString(*messageArg)
 	if err != nil {
 		log.Fatalf("Failed to decode message hash: %v", err)
 	}
 
-	isValid, err := verifySignature(signature, publicKey, messageHash)
+	isValid, err := verifySignature(signature, pubkeyG1PointsBytes, pubkeyG2Bytes, messageHash)
 	if err != nil {
 		log.Fatalf("Error during verification: %v", err)
 	}
 
 	if isValid {
-		fmt.Println("valid")
 		os.Exit(0)
 	} else {
-		fmt.Println("invalid")
 		os.Exit(1)
 	}
 }
 
-func verifySignature(signature []byte, publicKey []byte, message []byte) (bool, error) {
+func verifySignature(signature []byte, pubkeyG1PointsBytes [2][]byte, pubkeyG2Bytes []byte, message []byte) (bool, error) {
+	pubkeyG1 := bls.NewZeroG1Point()
+	pubkeyG1.X.SetBytes(pubkeyG1PointsBytes[0])
+	pubkeyG1.Y.SetBytes(pubkeyG1PointsBytes[1])
+
+	pubkeyG2 := bls.NewZeroG2Point()
+	_, err := pubkeyG2.SetBytes(pubkeyG2Bytes)
+	if err != nil {
+		return false, err
+	}
+
 	var messageBytes [32]byte
 	copy(messageBytes[:], message)
 
 	sign := bls.NewZeroSignature()
-	_, err := sign.SetBytes(signature)
+	_, err = sign.SetBytes(signature)
 	if err != nil {
 		return false, err
 	}
 
-	pubkey := bls.NewZeroG2Point()
-	_, err = pubkey.SetBytes(publicKey)
-	if err != nil {
+	// verify the equivalence between the points in the generators
+	valid, err := pubkeyG1.VerifyEquivalence(pubkeyG2)
+	if err != nil || !valid {
 		return false, err
 	}
 
-	return sign.Verify(pubkey, messageBytes)
+	return sign.Verify(pubkeyG2, messageBytes)
 }
