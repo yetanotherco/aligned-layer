@@ -17,7 +17,7 @@ defmodule BLSApkRegistry do
 
     :error ->
       raise(
-        "Config file not read successfully, did you run make explorer_create_env? If you did,\n make sure Eigenlayer config file is correctly stored"
+        "Config file not read successfully, make sure your .env is correctly created, and make sure Eigenlayer config file is correctly stored"
       )
   end
 
