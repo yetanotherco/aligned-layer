@@ -17,9 +17,6 @@ func ReadFile(path string) ([]byte, error) {
 }
 
 func ReadYamlConfig(path string, o interface{}) error {
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		log.Fatal("Path ", path, " does not exist")
-	}
 	b, err := ReadFile(path)
 	if err != nil {
 		return err
