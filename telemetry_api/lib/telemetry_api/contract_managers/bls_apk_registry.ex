@@ -29,7 +29,7 @@ defmodule BLSApkRegistry do
     abi_file: "priv/abi/IBLSApkRegistry.json",
     default_address: @contract_address
 
-  def get_registry_coordinator_address() do
+  def get_bls_apk_registry_address() do
     @contract_address
   end
 
@@ -37,7 +37,7 @@ defmodule BLSApkRegistry do
     case BLSApkRegistry.get_registered_pubkey(operator_address)
          |> Ethers.call() do
       {:ok, data} ->
-        data
+        {:ok, data}
 
       error ->
         {:error, error}

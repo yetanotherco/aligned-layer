@@ -1,13 +1,20 @@
 defmodule BLSSignatureVerifier do
-  def verify(signature, public_key, message) do
-    # Encode the args as hex
+  def verify(signature, {pubkey_g1_x, pubkey_g1_y}, bls_pubkey_g2, message) do
+    endian = :big
+    pubkey_g1_x = <<pubkey_g1_x::unsigned-big-integer-size(256)>>
+    pubkey_g1_y = <<pubkey_g1_y::unsigned-big-integer-size(256)>>
+
     args = [
       "--signature",
-      Base.encode16(signature, case: :lower),
-      "--publickey",
-      Base.encode16(public_key, case: :lower),
+      :binary.list_to_bin(signature),
+      "--public-key-g1-x",
+      Base.encode16(pubkey_g1_x),
+      "--public-key-g1-y",
+      Base.encode16(pubkey_g1_y),
+      "--public-key-g2",
+      :binary.list_to_bin(bls_pubkey_g2),
       "--message",
-      Base.encode16(message, case: :lower)
+      Base.encode16(message)
     ]
 
     binary_path = Path.join(:code.priv_dir(:telemetry_api), "bls_verify")

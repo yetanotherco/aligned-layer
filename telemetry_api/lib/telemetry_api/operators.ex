@@ -142,17 +142,17 @@ defmodule TelemetryApi.Operators do
       {:error, "Some status", "Some message"}
 
   """
-  def update_operator(address, version, signature, changes) do
-    {:ok, message_hash} = ExKeccak.hash_256(version)
+  def update_operator(address, version, signature, pubkey_g2, changes) do
+    message_hash = ExKeccak.hash_256(version)
 
     case Repo.get(Operator, address) do
       nil ->
         {:error, :bad_request, "Provided address does not correspond to any registered operator"}
 
       operator ->
-        with {:ok, bls_public_key} <- BLSApkRegistry.get_operator_bls_pubkey(address) do
+        with {:ok, [pubkey_g1_points, _]} <- BLSApkRegistry.get_operator_bls_pubkey(address) do
           with {:ok, _} <-
-                 BLSSignatureVerifier.verify(signature, bls_public_key, message_hash) do
+                 BLSSignatureVerifier.verify(signature, pubkey_g1_points, pubkey_g2, message_hash) do
             update_operator(operator, changes)
           end
         end
