@@ -231,21 +231,21 @@ operator_whitelist_devnet:
 	@echo "Whitelisting operator"
 	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
 	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_remove_from_whitelist_devnet:
 	@echo "Removing operator"
 	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
 	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/remove_from_whitelist_operator.sh $(OPERATOR_ADDRESS)
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_whitelist:
 	@echo "Whitelisting operator $(OPERATOR_ADDRESS)"
-	@. contracts/scripts/.env && . contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+	@. contracts/scripts/.env && . contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_remove_from_whitelist:
 	@echo "Removing operator $(OPERATOR_ADDRESS)"
-	@. contracts/scripts/.env && . contracts/scripts/remove_from_whitelist_operator.sh $(OPERATOR_ADDRESS)
+	@. contracts/scripts/.env && . contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_deposit_into_mock_strategy:
 	@echo "Depositing into mock strategy"

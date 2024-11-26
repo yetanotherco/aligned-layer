@@ -41,14 +41,14 @@ fi
 
 if [ "$#" -gt 1 ]; then
     OPERATORS=$(echo "$@" | sed 's/ /,/g') # separate the operators with a comma
-    echo "Adding many operators to whitelist: $@"
+    echo "Removing many operators from whitelist: $@"
     cast send \
         --rpc-url=$RPC_URL \
         --private-key=$PRIVATE_KEY \
         $REGISTRY_COORDINATOR 'remove_multiple(address[])' \
         "[$OPERATORS]"
 else
-    echo "Adding operator to whitelist: $OPERATOR_ADDRESS"
+    echo "Removing operator from whitelist: $OPERATOR_ADDRESS"
     cast send \
         --rpc-url=$RPC_URL \
         --private-key=$PRIVATE_KEY \
