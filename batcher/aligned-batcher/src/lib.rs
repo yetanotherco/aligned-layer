@@ -274,7 +274,10 @@ impl Batcher {
                     // Let's spawn the handling of each connection in a separate task.
                     tokio::spawn(batcher.handle_connection(stream, addr));
                 }
-                Err(e) => error!("Couldn't accept new connection: {}", e),
+                Err(e) => {
+                    self.metrics.user_error(&["connection_accept_error", ""]);
+                    error!("Couldn't accept new connection: {}", e);
+                }
             }
         }
     }
