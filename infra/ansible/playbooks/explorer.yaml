@@ -23,35 +23,9 @@
     service: "explorer"
 
   tasks:
-    # Install required packages
-    - name: Update apt and install required system packages
-      apt:
-        pkg:
-          - unzip
-        state: latest
-        update_cache: true
 
-    # Create directories for each service
-    - name: Create directories for each service if do not exist
-      ansible.builtin.file:
-        path: /home/{{ user }}/repos/{{ item }}
-        state: directory
-        mode: '0755'
-      become_user: "{{ user }}"
-      loop:
-        - explorer
-
-    # Clone Aligned repository for each service
-    - name: Clone Aligned repository
+    - name: Clone the aligned_layer repository
       ansible.builtin.git:
-        repo: https://github.com/yetanotherco/aligned_layer.git
-        dest: /home/{{ user }}/repos/{{ item }}/aligned_layer
-        version: v0.10.2
-      become_user: "{{ user }}"
-      loop:
-        - explorer
-      register: repo_clone
-      failed_when:
-        - repo_clone.failed
-        - not 'Local modifications exist in the destination' in repo_clone.msg
-
+        repo: https://github.com/yetanotherco/aligned_layer
+        dest: "{{ ansible_env.HOME }}/aligned_layer"
+        update: yes
