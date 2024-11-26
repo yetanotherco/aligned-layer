@@ -20,7 +20,7 @@
 
 - hosts: explorer
   vars:
-    user: "{{ user }}"
+    service: "explorer"
 
   tasks:
     # Install required packages
