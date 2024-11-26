@@ -5,13 +5,13 @@ defmodule BLSSignatureVerifier do
 
     args = [
       "--signature",
-      :binary.list_to_bin(signature),
+      Base.encode16(:binary.list_to_bin(signature)),
       "--public-key-g1-x",
       Base.encode16(pubkey_g1_x),
       "--public-key-g1-y",
       Base.encode16(pubkey_g1_y),
       "--public-key-g2",
-      :binary.list_to_bin(bls_pubkey_g2),
+      Base.encode16(:binary.list_to_bin(bls_pubkey_g2)),
       "--message",
       Base.encode16(message)
     ]

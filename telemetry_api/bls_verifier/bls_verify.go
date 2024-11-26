@@ -22,7 +22,10 @@ func main() {
 		log.Fatalf("All arguments (signature, publickey g1 hash, publickey g2, and messagehash) are required")
 	}
 
-	signature := []byte(*signatureArg)
+	signature, err := hex.DecodeString(*signatureArg)
+	if err != nil {
+		log.Fatalf("Failed to decode signature: %v", err)
+	}
 
 	var pubkeyG1PointsBytes [2][]byte
 	xBytes, err := hex.DecodeString(*publicKeyG1X)
@@ -36,7 +39,10 @@ func main() {
 	pubkeyG1PointsBytes[0] = xBytes
 	pubkeyG1PointsBytes[1] = yBytes
 
-	pubkeyG2Bytes := []byte(*publicKeyG2Arg)
+	pubkeyG2Bytes, err := hex.DecodeString(*publicKeyG2Arg)
+	if err != nil {
+		log.Fatalf("Failed to decode pubkey: %v", err)
+	}
 
 	messageHash, err := hex.DecodeString(*messageArg)
 	if err != nil {
@@ -63,11 +69,12 @@ func verifySignature(signature []byte, pubkeyG1PointsBytes [2][]byte, pubkeyG2By
 	pubkeyG2 := bls.NewZeroG2Point()
 	_, err := pubkeyG2.SetBytes(pubkeyG2Bytes)
 	if err != nil {
+		log.Fatalf("ERR IS IN G2")
 		return false, err
 	}
 
 	var messageBytes [32]byte
-	copy(messageBytes[:], message)
+	copy(messageBytes[:], message[:])
 
 	sign := bls.NewZeroSignature()
 	_, err = sign.SetBytes(signature)
@@ -78,6 +85,7 @@ func verifySignature(signature []byte, pubkeyG1PointsBytes [2][]byte, pubkeyG2By
 	// verify the equivalence between the points in the generators
 	valid, err := pubkeyG1.VerifyEquivalence(pubkeyG2)
 	if err != nil || !valid {
+		log.Fatalf("ERR IS IN EQUIVALENCE")
 		return false, err
 	}
 
