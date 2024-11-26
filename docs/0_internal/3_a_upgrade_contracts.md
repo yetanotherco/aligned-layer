@@ -11,17 +11,19 @@ If you deployed the contract using a Multisig wallet, you can follow the [Upgrad
 - You need to have installed git and make.
 
 - Clone the repository
-   ```
+
+   ```sh
    git clone https://github.com/yetanotherco/aligned_layer.git
    ```
 
 - Install foundry
-    ```shell
+
+    ```sh
     make install_foundry
     foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
     ```
 
--  Add the following variables to the `.env` file:
+- Add the following variables to the `.env` file:
 
     ```makefile
     MULTISIG=false
@@ -50,4 +52,3 @@ To upgrade the Batcher Payment Service, run:
 ```bash
 make upgrade_batcher_payment_service
 ```
-
