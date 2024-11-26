@@ -69,7 +69,6 @@ func verifySignature(signature []byte, pubkeyG1PointsBytes [2][]byte, pubkeyG2By
 	pubkeyG2 := bls.NewZeroG2Point()
 	_, err := pubkeyG2.SetBytes(pubkeyG2Bytes)
 	if err != nil {
-		log.Fatalf("ERR IS IN G2")
 		return false, err
 	}
 
@@ -85,7 +84,6 @@ func verifySignature(signature []byte, pubkeyG1PointsBytes [2][]byte, pubkeyG2By
 	// verify the equivalence between the points in the generators
 	valid, err := pubkeyG1.VerifyEquivalence(pubkeyG2)
 	if err != nil || !valid {
-		log.Fatalf("ERR IS IN EQUIVALENCE")
 		return false, err
 	}
 
