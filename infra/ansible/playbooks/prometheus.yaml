@@ -9,18 +9,24 @@
     register: prometheus_exists
 
   - name: Create Prometheus group
+    become: true
     when: not prometheus_exists.stat.exists
     group:
       name: prometheus
       system: yes
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
 
   - name: Create Prometheus user
+    become: true
     when: not prometheus_exists.stat.exists
     user:
       name: prometheus
       group: prometheus
       shell: /sbin/nologin
       system: yes
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
 
   - name: Download Prometheus
     when: not prometheus_exists.stat.exists
@@ -37,6 +43,7 @@
       remote_src: yes
 
   - name: Create Prometheus directories
+    become: true
     when: not prometheus_exists.stat.exists
     file:
       path: "{{ item }}"
@@ -47,8 +54,11 @@
     loop:
       - /etc/prometheus
       - /var/lib/prometheus
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
 
   - name: Move Prometheus
+    become: true
     when: not prometheus_exists.stat.exists
     copy:
       remote_src: true
@@ -60,8 +70,11 @@
     with_items:
       - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus", dest: "/usr/local/bin/prometheus" }
       - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/promtool", dest: "/usr/local/bin/promtool" }
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
 
   - name: Move Prometheus configuration and consoles
+    become: true
     when: not prometheus_exists.stat.exists
     copy:
       remote_src: true
@@ -74,6 +87,8 @@
       - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/consoles", dest: "/etc/prometheus/consoles" }
       - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/console_libraries", dest: "/etc/prometheus/console_libraries" }
       - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus.yml", dest: "/etc/prometheus/prometheus.yml" }
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
 
   - name: Clean up Prometheus tar and extracted directory
     when: not prometheus_exists.stat.exists
@@ -108,8 +123,8 @@
     become: true
     systemd_service:
       name: prometheus
+      state: started
       enabled: true
       daemon_reload: true
-      state: started
     vars:
       ansible_ssh_user: "{{ admin_user }}"

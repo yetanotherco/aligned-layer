@@ -11,7 +11,7 @@
     become: true
     when: not jaeger_exists.stat.exists
     group:
-      name: jaeger-collector
+      name: jaeger
       system: yes
     vars:
       ansible_ssh_user: "{{ admin_user }}"
@@ -20,23 +20,25 @@
     become: true
     when: not jaeger_exists.stat.exists
     user:
-      name: jaeger-collector
-      group: jaeger-collector
+      name: jaeger
+      group: jaeger
       shell: /sbin/nologin
       system: yes
     vars:
       ansible_ssh_user: "{{ admin_user }}"
 
   - name: Download Jaeger package
+    when: not jaeger_exists.stat.exists
     get_url:
-      url: https://github.com/jaegertracing/jaeger/releases/download/v{{ version }}/jaeger-{{ version }}-linux-amd64.tar.gz
-      dest: /tmp/jaeger-{{ version }}-linux-amd64.tar.gz
+      url: https://github.com/jaegertracing/jaeger/releases/download/v{{ jaeger_version }}/jaeger-{{ jaeger_version }}-linux-amd64.tar.gz
+      dest: /tmp/jaeger-{{ jaeger_version }}-linux-amd64.tar.gz
       mode: '0644'
 
   - name: Install Jaeger package
+    when: not jaeger_exists.stat.exists
     become: true
     unarchive:
-      src: "/tmp/jaeger-{{ version }}-linux-amd64.tar.gz"
+      src: "/tmp/jaeger-{{ jaeger_version }}-linux-amd64.tar.gz"
       dest: "/usr/local/bin/"
       remote_src: yes
       extra_opts:
@@ -46,7 +48,7 @@
 
   - name: Clean up Jaeger tarball package
     file:
-      path: /tmp/jaeger-{{ version }}-linux-amd64.tar.gz
+      path: /tmp/jaeger-{{ jaeger_version }}-linux-amd64.tar.gz
       state: absent
 
   - name: Create Jaeger systemd service
@@ -54,5 +56,54 @@
     template:
       src: services/jaeger.service.j2
       dest: /etc/systemd/system/jaeger.service
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+      cassandra_telemetry_user: "{{ lookup('ini', 'cassandra_telemetry_user', file=ini_file) }}"
+      cassandra_telemetry_pass: "{{ lookup('ini', 'cassandra_telemetry_pass', file=ini_file) }}"
+
+  - name: Start Jaeger
+    become: true
+    systemd_service:
+      name: jaeger
+      state: started
+      daemon_reload: true
+      enabled: true
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Copy create jaeger schema script
+    become: true
+    copy:
+      src: cassandra/jaeger_schema.sh
+      dest: /tmp/jaeger_schema.sh
+      owner: root
+      group: root
+      mode: "0755"
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Copy schema
+    become: true
+    copy:
+      src: cassandra/v004.cql.tmpl
+      dest: /tmp/v004.cql.tmpl
+      owner: root
+      group: root
+      mode: "0755"
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Execute create jaeger schema script
+    become: true
+    shell:
+      cmd: "MODE=test /tmp/jaeger_schema.sh | /opt/cassandra/bin/cqlsh"
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Remove script
+    become: true
+    file:
+      path: /tmp/jaeger_schema.sh
+      state: absent
     vars:
       ansible_ssh_user: "{{ admin_user }}"

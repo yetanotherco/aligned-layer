@@ -45,3 +45,14 @@
           - postgresql-16
         state: latest
         update_cache: true
+
+    - name: Create PostgreSQL credentials
+      shell:
+        cmd: |
+          sudo -u postgres psql -U postgres -c "CREATE USER {{ postgresql_telemetry_user }} WITH PASSWORD '{{ postgresql_telemetry_pass }}';"
+          sudo -u postgres psql -U postgres -c "CREATE DATABASE {{ postgresql_telemetry_db_name }} OWNER {{ postgresql_telemetry_user }};"
+      vars:
+        postgresql_telemetry_user: "{{ lookup('ini', 'postgresql_telemetry_user', file=ini_file) }}"
+        postgresql_telemetry_pass: "{{ lookup('ini', 'postgresql_telemetry_pass', file=ini_file) }}"
+        postgresql_telemetry_db_name: "{{ lookup('ini', 'postgresql_telemetry_db_name', file=ini_file) }}"
+      ignore_errors: true

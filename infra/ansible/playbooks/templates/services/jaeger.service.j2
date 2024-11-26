@@ -5,7 +5,10 @@ Wants=network-online.target
 After=cassandra.service
 
 [Service]
-Environment="SPAN_STORAGE=cassandra"
+Environment="SPAN_STORAGE_TYPE=cassandra"
+Environment="CASSANDRA_SERVERS=localhost:9042"
+Environment="CASSANDRA_USER={{ cassandra_telemetry_user }}"
+Environment="CASSANDRA_PASSWORD={{ cassandra_telemetry_pass }}"
 ExecStart=/usr/local/bin/jaeger-all-in-one --config-file=/etc/jaeger/config.toml
 User=jaeger-collector
 Group=jaeger-collector

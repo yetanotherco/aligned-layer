@@ -11,19 +11,15 @@
     register: cassandra_exists
 
   - name: Install java
-    when: not cassandra_exists.stat.exists
     apt:
-      pkg:
-        - default-jre
+      pkg: openjdk-17-jre
 
   - name: Create cassandra group
-    when: not cassandra_exists.stat.exists
     group:
       name: cassandra
       system: yes
 
   - name: Create cassandra user
-    when: not cassandra_exists.stat.exists
     user:
       name: cassandra
       group: cassandra
@@ -55,8 +51,23 @@
       extra_opts:
         - --strip-components=1
 
+  - name: Add /opt/cassandra/bin to PATH
+    lineinfile:
+      path: /home/{{ ansible_user }}/.bashrc
+      line: PATH=/opt/cassandra/bin:$PATH
+      state: present
+
   - name: Create Cassandra systemd service
-    when: not cassandra_exists.stat.exists
     template:
       src: services/cassandra.service.j2
       dest: /etc/systemd/system/cassandra.service
+    vars:
+      cassandra_telemetry_user: "{{ lookup('ini', 'cassandra_telemetry_user', file=ini_file) }}"
+      cassandra_telemetry_pass: "{{ lookup('ini', 'cassandra_telemetry_pass', file=ini_file) }}"
+
+  - name: Start Cassandra
+    systemd_service:
+      name: cassandra
+      state: started
+      daemon_reload: true
+      enabled: true

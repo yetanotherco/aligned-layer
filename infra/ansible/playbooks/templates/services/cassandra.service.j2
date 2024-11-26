@@ -3,14 +3,14 @@ Description=Cassandra
 After=network.target
 
 [Service]
+Type=forking
 User=cassandra
-Group=cassandra
 ExecStart=/opt/cassandra/bin/cassandra
-LimitNOFILE=100000
-LimitMEMLOCK=infinity
-LimitNPROC=32768
-LimitAS=infinity
-Restart=always
+Environment="CASSANDRA_USER={{ cassandra_telemetry_user }}"
+Environment="CASSANDRA_PASSWORD={{ cassandra_telemetry_pass }}"
+Restart=on-failure
+ExecReload=/bin/kill -HUP
+KillSignal=SIGTERM
 
 [Install]
 WantedBy=multi-user.target

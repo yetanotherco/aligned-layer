@@ -2,7 +2,6 @@
   hosts: "{{ host }}"
 
   tasks:
-
   - name: Create keyrings directory for Grafana
     file:
       path: /etc/apt/keyrings
@@ -39,6 +38,7 @@
       state: directory
       owner: root
       group: root
+      mode: '0755'
     vars:
       ansible_ssh_user: "{{ admin_user }}"
 
@@ -47,6 +47,9 @@
     template:
       src: grafana/grafana.ini.j2
       dest: /etc/grafana/grafana.ini
+      owner: root
+      group: root
+      mode: '0755'
     vars:
       ansible_ssh_user: "{{ admin_user }}"
       grafana_http_port: "{{ lookup('ini', 'grafana_http_port', file=ini_file) }}"
@@ -65,6 +68,7 @@
       state: directory
       owner: root
       group: root
+      mode: '0755'
     vars:
       ansible_ssh_user: "{{ admin_user }}"
 
@@ -75,6 +79,7 @@
       dest: /etc/grafana/provisioning/
       owner: root
       group: root
+      mode: '0755'
       remote_src: yes
     vars:
       ansible_ssh_user: "{{ admin_user }}"
@@ -84,6 +89,7 @@
     template:
       src: grafana/datasource.yaml.j2
       dest: "/etc/grafana/provisioning/datasources/datasource.yaml"
+      mode: '0755'
     vars:
       ansible_ssh_user: "{{ admin_user }}"
       grafana_prometheus_datasource: "{{ lookup('ini', 'grafana_prometheus_datasource', file=ini_file) }}"
@@ -92,6 +98,8 @@
     become: true
     service:
       name: grafana-server
-      state: restarted
+      state: started
+      daemon_reload: true
+      enabled: true
     vars:
       ansible_ssh_user: "{{ admin_user }}"

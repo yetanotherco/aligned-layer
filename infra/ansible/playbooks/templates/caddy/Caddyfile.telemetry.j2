@@ -9,6 +9,6 @@
   reverse_proxy @whitelisted localhost:4001
 }
 
-{{ caddy_tailscale_url }} {
+{{ caddy_jaeger_url }} {
   reverse_proxy localhost:16686
 }
