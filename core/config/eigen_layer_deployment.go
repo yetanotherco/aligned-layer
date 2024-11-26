@@ -2,10 +2,11 @@ package config
 
 import (
 	"errors"
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
-	"github.com/ethereum/go-ethereum/common"
 	"log"
 	"os"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 type EigenLayerDeploymentConfig struct {
@@ -29,7 +30,7 @@ func NewEigenLayerDeploymentConfig(eigenLayerDeploymentFilePath string) *EigenLa
 	}
 
 	var eigenLayerDeploymentConfigFromJson EigenLayerDeploymentConfigFromJson
-	err := sdkutils.ReadJsonConfig(eigenLayerDeploymentFilePath, &eigenLayerDeploymentConfigFromJson)
+	err := utils.ReadJsonConfig(eigenLayerDeploymentFilePath, &eigenLayerDeploymentConfigFromJson)
 
 	if err != nil {
 		log.Fatal("Error reading eigen layer deployment config: ", err)
