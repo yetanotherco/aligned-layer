@@ -11,7 +11,6 @@ import (
 
 type OperatorConfig struct {
 	BaseConfig                   *BaseConfig
-	EcdsaConfig                  *EcdsaConfig
 	BlsConfig                    *BlsConfig
 	AlignedLayerDeploymentConfig *AlignedLayerDeploymentConfig
 
@@ -46,7 +45,6 @@ type OperatorConfigFromYaml struct {
 		MaxBatchSize                  int64          `yaml:"max_batch_size"`
 		LastProcessedBatchFilePath    string         `yaml:"last_processed_batch_filepath"`
 	} `yaml:"operator"`
-	EcdsaConfigFromYaml EcdsaConfigFromYaml `yaml:"ecdsa"`
 	BlsConfigFromYaml   BlsConfigFromYaml   `yaml:"bls"`
 }
 
@@ -58,11 +56,6 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 	baseConfig := NewBaseConfig(configFilePath)
 	if baseConfig == nil {
 		log.Fatal("Error reading base config: ")
-	}
-
-	ecdsaConfig := NewEcdsaConfig(configFilePath, baseConfig.ChainId)
-	if ecdsaConfig == nil {
-		log.Fatal("Error reading ecdsa config: ")
 	}
 
 	blsConfig := NewBlsConfig(configFilePath)
@@ -79,7 +72,6 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 
 	return &OperatorConfig{
 		BaseConfig:                   baseConfig,
-		EcdsaConfig:                  ecdsaConfig,
 		BlsConfig:                    blsConfig,
 		AlignedLayerDeploymentConfig: baseConfig.AlignedLayerDeploymentConfig,
 		Operator: struct {

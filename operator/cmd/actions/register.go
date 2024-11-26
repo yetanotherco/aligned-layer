@@ -23,19 +23,20 @@ var RegisterCommand = &cli.Command{
 }
 
 func registerOperatorMain(ctx *cli.Context) error {
-	config := config.NewOperatorConfig(ctx.String(config.ConfigFileFlag.Name))
+	operatorConfig := config.NewOperatorConfig(ctx.String(config.ConfigFileFlag.Name))
+	ecdsaConfig := config.NewEcdsaConfig(ctx.String(config.ConfigFileFlag.Name), operatorConfig.BaseConfig.ChainId)
 
 	quorumNumbers := []byte{0}
 
 	// Generate salt and expiry
-	privateKeyBytes := []byte(config.BlsConfig.KeyPair.PrivKey.String())
+	privateKeyBytes := []byte(operatorConfig.BlsConfig.KeyPair.PrivKey.String())
 	salt := [32]byte{}
 
 	copy(salt[:], crypto.Keccak256([]byte("churn"), []byte(time.Now().String()), quorumNumbers, privateKeyBytes))
 
-	err := operator.RegisterOperator(context.Background(), config, salt)
+	err := operator.RegisterOperator(context.Background(), operatorConfig, ecdsaConfig, salt)
 	if err != nil {
-		config.BaseConfig.Logger.Error("Failed to register operator", "err", err)
+		operatorConfig.BaseConfig.Logger.Error("Failed to register operator", "err", err)
 		return err
 	}
 

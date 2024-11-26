@@ -105,7 +105,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	// Telemetry
 	aggregatorTelemetry := NewTelemetry(aggregatorConfig.Aggregator.TelemetryIpPortAddress, logger)
 
-	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -134,9 +134,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		PromMetricsIpPortAddress:   ":9090",
 	}
 
-	aggregatorPrivateKey := aggregatorConfig.EcdsaConfig.PrivateKey
-
-	clients, err := sdkclients.BuildAll(chainioConfig, aggregatorPrivateKey, logger)
+	clients, err := sdkclients.BuildReadClients(chainioConfig, logger)
 	if err != nil {
 		logger.Errorf("Cannot create sdk clients", "err", err)
 		return nil, err
