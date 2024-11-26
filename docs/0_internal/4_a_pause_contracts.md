@@ -1,7 +1,7 @@
 # Pause Contracts
 This doc contains a guide on how to use the Pausable functionality of Aligned.
 
-To run the make targets specified in this guide, you must first have the relevant following env vars:
+To run the make targets specified in this guide, you must first have the relevant following env vars under `contracts/scripts/.env`:
 ```
 export RPC_URL=<rpc_url>
 export ALIGNED_SERVICE_MANAGER=<aligned_contract_address>
