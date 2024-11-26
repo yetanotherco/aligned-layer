@@ -2,14 +2,11 @@ package utils
 
 import (
 	"encoding/json"
-	"errors"
-
 	"log"
-
-	"gopkg.in/yaml.v3"
-
 	"os"
 	"path/filepath"
+
+	"gopkg.in/yaml.v3"
 )
 
 func ReadFile(path string) ([]byte, error) {
