@@ -151,10 +151,13 @@ defmodule TelemetryApi.Operators do
 
       operator ->
         with {:ok, [pubkey_g1_points, _]} <- BLSApkRegistry.get_operator_bls_pubkey(address) do
-          with {:ok, _} <-
-                 BLSSignatureVerifier.verify(signature, pubkey_g1_points, pubkey_g2, message_hash) do
+          with {:ok, _} <- BLSSignatureVerifier.verify(signature, pubkey_g1_points, pubkey_g2, message_hash) do
             update_operator(operator, changes)
+          else
+            {:error, :unauthorized, "Invalid signature"}
           end
+        else
+          {:error, :not_found, "Failed to retrieve public key for the operator"}
         end
     end
   end
