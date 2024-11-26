@@ -1,4 +1,4 @@
-# Pausable
+# Setting Aggregator Address
 This doc contains a guide on how to call `setAggregator(address)` to set the `alignedAggregator` value of the AlignedServiceManager.sol contract. 
 
 ### NOTE:
