@@ -44,4 +44,4 @@ cast send \
     --rpc-url=$RPC_URL \
     --private-key=$PRIVATE_KEY \
     $REGISTRY_COORDINATOR 'remove_multiple(address[])' \
-    "[$OPERATORS]"
+    "[$OPERATOR_ADDRESS]"
