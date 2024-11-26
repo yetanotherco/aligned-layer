@@ -19,7 +19,7 @@ make operator_whitelist OPERATOR_ADDRESS=<operator_address>
 
 To add a list of Operators:
 ```
-export contracts/scripts/.env
+source contracts/scripts/.env
 contracts/scripts/operator_whitelist.sh <operator_address_1> <operator_address_2> ... <operator_address_n>
 ```
 
@@ -34,7 +34,7 @@ make operator_remove_from_whitelist OPERATOR_ADDRESS=<operator_address>
 
 To remove a list of Operators:
 ```
-export contracts/scripts/.env
+source contracts/scripts/.env
 contracts/scripts/operator_remove_from_whitelist.sh <operator_address_1> <operator_address_2> ... <operator_address_n>
 ```
 
