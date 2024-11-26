@@ -12,22 +12,6 @@ import (
 	"path/filepath"
 )
 
-const (
-	PngMimeType = "image/png"
-
-	TextRegex = `^[a-zA-Z0-9 +.,;:?!'’"“”\-_/()\[\]~&#$—%]+$`
-
-	TextCharsLimit = 500
-)
-
-var (
-	// ImageExtensions List of common image file extensions
-	// Only support PNG for now to reduce surface area of image validation
-	// We do NOT want to support formats like SVG since they can be used for javascript injection
-	// If we get pushback on only supporting png, we can support jpg, jpeg, gif, etc. later
-	ImageExtensions = []string{".png"}
-)
-
 func ReadFile(path string) ([]byte, error) {
 	b, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
