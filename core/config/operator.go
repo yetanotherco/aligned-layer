@@ -45,7 +45,6 @@ type OperatorConfigFromYaml struct {
 		MaxBatchSize                  int64          `yaml:"max_batch_size"`
 		LastProcessedBatchFilePath    string         `yaml:"last_processed_batch_filepath"`
 	} `yaml:"operator"`
-	EcdsaConfigFromYaml EcdsaConfigFromYaml `yaml:"ecdsa"`
 	BlsConfigFromYaml   BlsConfigFromYaml   `yaml:"bls"`
 }
 
