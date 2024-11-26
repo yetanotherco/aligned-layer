@@ -27,6 +27,7 @@ type AggregatorConfig struct {
 		BlsServiceTaskTimeout         time.Duration
 		GasBaseBumpPercentage         uint
 		GasBumpIncrementalPercentage  uint
+		GasBumpPercentageLimit        uint
 		TimeToWaitBeforeBump          time.Duration
 	}
 }
@@ -45,6 +46,7 @@ type AggregatorConfigFromYaml struct {
 		BlsServiceTaskTimeout         time.Duration  `yaml:"bls_service_task_timeout"`
 		GasBaseBumpPercentage         uint           `yaml:"gas_base_bump_percentage"`
 		GasBumpIncrementalPercentage  uint           `yaml:"gas_bump_incremental_percentage"`
+		GasBumpPercentageLimit        uint           `yaml:"gas_bump_percentage_limit"`
 		TimeToWaitBeforeBump          time.Duration  `yaml:"time_to_wait_before_bump"`
 	} `yaml:"aggregator"`
 }
@@ -93,6 +95,7 @@ func NewAggregatorConfig(configFilePath string) *AggregatorConfig {
 			BlsServiceTaskTimeout         time.Duration
 			GasBaseBumpPercentage         uint
 			GasBumpIncrementalPercentage  uint
+			GasBumpPercentageLimit        uint
 			TimeToWaitBeforeBump          time.Duration
 		}(aggregatorConfigFromYaml.Aggregator),
 	}
