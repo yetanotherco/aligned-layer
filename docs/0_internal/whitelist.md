@@ -17,11 +17,11 @@ To add only 1 Operator:
 make operator_whitelist OPERATOR_ADDRESS=<operator_address>
 ```
 
-To add a list of Operators:
+To add a list of Operators: 
 ```
-source contracts/scripts/.env
-contracts/scripts/operator_whitelist.sh <operator_address_1> <operator_address_2> ... <operator_address_n>
+make operator_whitelist OPERATOR_ADDRESS=<operator_address1,operator_address2,...,operator_addressN>
 ```
+(Note how there is no spaces between the different operator addresses)
 
 ### Removing an Operator
 
@@ -34,9 +34,9 @@ make operator_remove_from_whitelist OPERATOR_ADDRESS=<operator_address>
 
 To remove a list of Operators:
 ```
-source contracts/scripts/.env
-contracts/scripts/operator_remove_from_whitelist.sh <operator_address_1> <operator_address_2> ... <operator_address_n>
+make operator_remove_from_whitelist OPERATOR_ADDRESS=<operator_address1,operator_address2,...,operator_addressN>
 ```
+(Note how there is no spaces between the different operator addresses)
 
 ### Querying the state of an Operator
 

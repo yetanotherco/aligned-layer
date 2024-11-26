@@ -9,10 +9,10 @@ cd "$parent_path"
 cd ../
 
 # Check if the number of arguments is correct
-if [ "$#" -lt 1 ]; then
+if [ "$#" -ne 1 ]; then
     echo "Usage: operator_remove_from_whitelist.sh <OPERATOR_ADDRESS>"
     echo "or"
-    echo "Usage: operator_remove_from_whitelist.sh <OPERATOR_ADDRESS_1> <OPERATOR_ADDRESS_2> ... <OPERATOR_ADDRESS_N>"
+    echo "Usage: operator_remove_from_whitelist.sh <OPERATOR_ADDRESS_1,OPERATOR_ADDRESS_2,...,OPERATOR_ADDRESS_N>"
     exit 1
 fi
 
@@ -39,19 +39,9 @@ if [ -z "$PRIVATE_KEY" ]; then
     exit 1
 fi
 
-if [ "$#" -gt 1 ]; then
-    OPERATORS=$(echo "$@" | sed 's/ /,/g') # separate the operators with a comma
-    echo "Removing many operators from whitelist: $@"
-    cast send \
-        --rpc-url=$RPC_URL \
-        --private-key=$PRIVATE_KEY \
-        $REGISTRY_COORDINATOR 'remove_multiple(address[])' \
-        "[$OPERATORS]"
-else
-    echo "Removing operator from whitelist: $OPERATOR_ADDRESS"
-    cast send \
-        --rpc-url=$RPC_URL \
-        --private-key=$PRIVATE_KEY \
-        $REGISTRY_COORDINATOR 'remove(address)' \
-        $OPERATOR_ADDRESS
-fi
+echo "Removing operators from whitelist: $@"
+cast send \
+    --rpc-url=$RPC_URL \
+    --private-key=$PRIVATE_KEY \
+    $REGISTRY_COORDINATOR 'remove_multiple(address[])' \
+    "[$OPERATORS]"
