@@ -1191,7 +1191,9 @@ impl Batcher {
         // TODO: verify i'm iterating from high to low
         for (entry, _entry_priority) in batch_queue_copy.iter() {
             if finalized_batch.contains(entry) {
-                batch_state_lock.batch_queue.remove(entry); // remove the entry from the queue
+                // Note: entry has NoncedVerificationData, which contains nonce and max_fee.
+                // This means that the entry should be unique in the queue, without needing to check the entry_priority
+                batch_state_lock.batch_queue.remove(entry);
                 finalized_batch.retain(|e| e != entry); // to ensure all values are removed, and removed only once.
             }
             // I can't do else break because there is no guarantee the queue had no insertions
