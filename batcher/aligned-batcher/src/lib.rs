@@ -1274,28 +1274,50 @@ impl Batcher {
             {
                 error!("Failed to send task status to telemetry: {:?}", e);
             }
-            for entry in finalized_batch.into_iter() {
-                if let Some(ws_sink) = entry.messaging_sink {
-                    let merkle_root = hex::encode(batch_merkle_tree.root);
-                    send_message(
-                        ws_sink.clone(),
-                        SubmitProofResponseMessage::CreateNewTaskError(
-                            merkle_root,
-                            format!("{:?}", e),
-                        ),
-                    )
-                    .await
-                } else {
-                    warn!("Websocket sink was found empty. This should only happen in tests");
+
+            match e {
+                // if the batch was canceled, push the proofs back again and don't terminate the user connection
+                BatcherError::ReceiptNotFoundError => {
+                    self.push_batch_proofs_back_to_queue(finalized_batch.clone())
+                        .await
+                }
+                _ => {
+                    for entry in finalized_batch.clone().into_iter() {
+                        if let Some(ws_sink) = entry.messaging_sink {
+                            let merkle_root = hex::encode(batch_merkle_tree.root);
+                            send_message(
+                                ws_sink.clone(),
+                                SubmitProofResponseMessage::CreateNewTaskError(
+                                    merkle_root,
+                                    format!("{:?}", e),
+                                ),
+                            )
+                            .await
+                        } else {
+                            warn!(
+                                "Websocket sink was found empty. This should only happen in tests"
+                            );
+                        }
+                    }
                 }
             }
-
-            self.flush_queue_and_clear_nonce_cache().await;
 
             return Err(e);
         };
 
         connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
+    }
+
+    async fn push_batch_proofs_back_to_queue(&self, batch: Vec<BatchQueueEntry>) {
+        let mut batch_state = self.batch_state.lock().await;
+
+        for entry in batch {
+            let max_fee = entry.nonced_verification_data.max_fee;
+            let nonce = entry.nonced_verification_data.nonce;
+            batch_state
+                .batch_queue
+                .push(entry, BatchQueueEntryPriority::new(max_fee, nonce));
+        }
     }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
