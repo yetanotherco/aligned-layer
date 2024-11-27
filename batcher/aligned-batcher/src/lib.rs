@@ -1178,7 +1178,7 @@ impl Batcher {
 
     /// Takes the submitted proofs
     /// And removes them from the queue.
-    /// This function should be called only AFTER the submition was confirmed onchain
+    /// This function should be called only AFTER the submission was confirmed onchain
     async fn remove_proofs_from_queue(
         &self,
         mut finalized_batch: Vec<BatchQueueEntry>,
