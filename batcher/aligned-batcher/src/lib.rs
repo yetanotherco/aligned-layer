@@ -1299,6 +1299,7 @@ impl Batcher {
                             );
                         }
                     }
+                    self.flush_queue_and_clear_nonce_cache();
                 }
             }
 
