@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 type AggregatorConfig struct {
@@ -73,7 +73,7 @@ func NewAggregatorConfig(configFilePath string) *AggregatorConfig {
 	}
 
 	var aggregatorConfigFromYaml AggregatorConfigFromYaml
-	err := sdkutils.ReadYamlConfig(configFilePath, &aggregatorConfigFromYaml)
+	err := utils.ReadYamlConfig(configFilePath, &aggregatorConfigFromYaml)
 	if err != nil {
 		log.Fatal("Error reading aggregator config: ", err)
 	}
