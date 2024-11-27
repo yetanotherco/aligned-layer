@@ -21,18 +21,18 @@ The address of Aligned Service Manager can be found in `./contracts/script/outpu
 ```
     "addresses": {
         ...
-        "alignedLayerServiceManager": "<ALIGNED_SERVICE_MANAGER_ADDRESS",
+        "alignedLayerServiceManager": "<ALIGNED_SERVICE_MANAGER_ADDRESS>",
         ...
     }
 ```
 
 ## 3.) Set Environment Variables
 
-To run the make targets specified in this guide, you must first set the following env vars within `./contracts/scripts/.env`:
+To run the make targets specified in this guide, you must first set the following env vars within `./contracts/scripts/.env.<NETWORK>`:
 ```
-export RPC_URL=<rpc_url>
-export PRIVATE_KEY=<aligned_service_manager_pauser_private_key>
-export ALIGNED_SERVICE_MANAGER_ADDRESS=<aligned_service_manager_address>
+RPC_URL=<rpc_url>
+PRIVATE_KEY=<aligned_service_manager_pauser_private_key>
+ALIGNED_SERVICE_MANAGER_ADDRESS=<aligned_service_manager_address>
 ```
 
 ## 4.) Check the current value of `alignedAggregator` within AlignedServiceManager.sol
