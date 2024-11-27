@@ -195,7 +195,7 @@ pub async fn simulate_create_new_task_retryable(
             fee_params.respond_to_task_fee_limit,
         )
         .gas_price(fee_params.gas_price);
-// sends an `eth_call` request to the node
+    // sends an `eth_call` request to the node
     match simulation.call().await {
         Ok(_) => Ok(()),
         Err(ContractError::Revert(err)) => {
