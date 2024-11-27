@@ -1189,17 +1189,19 @@ impl Batcher {
 
         let batch_queue_copy = batch_state_lock.batch_queue.clone();
         // TODO: verify i'm iterating from high to low
-        for (index, (entry, _entry_priority)) in batch_queue_copy.iter().enumerate() {
+        for (entry, _entry_priority) in batch_queue_copy.iter() {
             if finalized_batch.contains(entry) {
                 batch_state_lock.batch_queue.remove(entry); // remove the entry from the queue
                 finalized_batch.retain(|e| e != entry); // to ensure all values are removed, and removed only once.
             }
-            // I can't do else break because there is no guarantee the queue had no insertions 
+            // I can't do else break because there is no guarantee the queue had no insertions
         }
 
-        if finalized_batch.len() > 0 {
+        if finalized_batch.is_empty() {
             error!("Some proofs were not found in the queue. This should not happen");
-            return Err(BatcherError::QueueRemoveError("Some entries to be removed where not found in the queue".into()));
+            return Err(BatcherError::QueueRemoveError(
+                "Some entries to be removed where not found in the queue".into(),
+            ));
         }
 
         // now we calculate the new user_states
@@ -1218,15 +1220,27 @@ impl Batcher {
             // informative error.
 
             // Now we update the user states related to the batch (proof count in batch and min fee in batch)
-            batch_state_lock.update_user_proof_count(addr, *proof_count).ok_or(BatcherError::QueueRemoveError("Could not update_user_proof_count".into()))?;
-            batch_state_lock.update_user_max_fee_limit(addr, *max_fee_limit).ok_or(BatcherError::QueueRemoveError("Could not update_user_max_fee_limit".into()))?;
-            batch_state_lock.update_user_total_fees_in_queue(addr, *total_fees_in_queue).ok_or(BatcherError::QueueRemoveError("Could not update_user_total_fees_in_queue".into()))?;
+            batch_state_lock
+                .update_user_proof_count(addr, *proof_count)
+                .ok_or(BatcherError::QueueRemoveError(
+                    "Could not update_user_proof_count".into(),
+                ))?;
+            batch_state_lock
+                .update_user_max_fee_limit(addr, *max_fee_limit)
+                .ok_or(BatcherError::QueueRemoveError(
+                    "Could not update_user_max_fee_limit".into(),
+                ))?;
+            batch_state_lock
+                .update_user_total_fees_in_queue(addr, *total_fees_in_queue)
+                .ok_or(BatcherError::QueueRemoveError(
+                    "Could not update_user_total_fees_in_queue".into(),
+                ))?;
         }
 
         Ok(())
     }
 
-    /// Takes the finalized batch as input and: 
+    /// Takes the finalized batch as input and:
     ///     builds the merkle tree
     ///     posts verification data batch to s3
     ///     creates new task in Aligned contract
@@ -1332,7 +1346,7 @@ impl Batcher {
 
         // Once the submit is succesfull, we remove the submitted proofs from the queue
         // TODO handle error case:
-        self.remove_proofs_from_queue(finalized_batch.clone()).await;
+        let _ = self.remove_proofs_from_queue(finalized_batch.clone()).await;
 
         connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }

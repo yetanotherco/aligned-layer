@@ -295,8 +295,7 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let batch =
-            try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+        let batch = try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
 
         assert_eq!(batch[0].nonced_verification_data.max_fee, max_fee_3);
         assert_eq!(batch[1].nonced_verification_data.max_fee, max_fee_2);
@@ -396,8 +395,7 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let finalized_batch =
-            try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
 
         // All entries from the batch queue should be in
         // the finalized batch.
@@ -505,8 +503,7 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let finalized_batch =
-            try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
 
         // All but one entries from the batch queue should be in the finalized batch.
 
