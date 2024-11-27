@@ -8,6 +8,8 @@ cd "$parent_path"
 # At this point we are in contracts
 cd ../
 
+source scripts/.env
+
 # Deploy Batcher Payments Contract
 forge_output=$(forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
     $BATCHER_PAYMENT_SERVICE_CONFIG_PATH \
