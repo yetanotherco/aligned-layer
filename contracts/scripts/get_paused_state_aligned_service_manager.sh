@@ -5,11 +5,6 @@ if  [ -z "$ALIGNED_SERVICE_MANAGER" ]; then
     exit 1
 fi
 
-if  [ -z "$ALIGNED_SERVICE_MANAGER_PAUSER_PRIVATE_KEY" ]; then
-    echo "ALIGNED_SERVICE_MANAGER_PAUSER_PRIVATE_KEY env var is not set"
-    exit 1
-fi
-
 if  [ -z "$RPC_URL" ]; then
     echo "RPC_URL env var is not set"
     exit 1
