@@ -95,20 +95,20 @@ anvil_upgrade_add_aggregator:
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
 
 pause_all_aligned_service_manager:
-	@echo "Pausing all contracts..."
-	. contracts/scripts/pause_aligned_service_manager.sh all
+	@echo "Pausing Aligned Service Manager contract..."
+	@. contracts/scripts/.env && . contracts/scripts/pause_aligned_service_manager.sh all
 
 unpause_all_aligned_service_manager:
-	@echo "Pausing all contracts..."
-	. contracts/scripts/unpause_aligned_service_manager.sh all
+	@echo "Pausing Aligned Service Manager contract..."
+	@. contracts/scripts/.env && . contracts/scripts/unpause_aligned_service_manager.sh all
 
 get_paused_state_aligned_service_manager:
 	@echo "Getting paused state of Aligned Service Manager contract..."
-	. contracts/scripts/get_paused_state_aligned_service_manager.sh
+	@. contracts/scripts/.env && . contracts/scripts/get_paused_state_aligned_service_manager.sh
 
 pause_batcher_payment_service:
 	@echo "Pausing BatcherPayments contract..."
-	. contracts/scripts/pause_batcher_payment_service.sh
+	@. contracts/scripts/.env && . contracts/scripts/pause_batcher_payment_service.sh
 
 unpause_batcher_payment_service:
 	@echo "Unpausing BatcherPayments contract..."
@@ -116,7 +116,8 @@ unpause_batcher_payment_service:
 
 get_paused_state_batcher_payments_service:
 	@echo "Getting paused state of Batcher Payments Service contract..."
-	. contracts/scripts/get_paused_state_batcher_payments_service.sh
+	@. contracts/scripts/.env && . contracts/scripts/get_paused_state_batcher_payments_service.sh
+
 anvil_upgrade_initialize_disable_verifiers:
 	@echo "Initializing disabled verifiers..."
 	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh

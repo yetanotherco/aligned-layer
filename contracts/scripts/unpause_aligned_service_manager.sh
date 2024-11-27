@@ -7,28 +7,28 @@ if  [ -z "$1" ]; then
     exit 1
 fi
 
-if [[ "$1" == "all" ]]; then
-    echo "Unpausing whole contract"
-    cast send $ALIGNED_SERVICE_MANAGER \
-        "unpause(uint256)()" 0 \
-        --rpc-url $RPC_URL \
-        --private-key $ALIGNED_SERVICE_MANAGER_PAUSER_PRIVATE_KEY
-    return
-fi
-
 if  [ -z "$ALIGNED_SERVICE_MANAGER" ]; then
     echo "ALIGNED_SERVICE_MANAGER env var is not set"
     exit 1
 fi
 
-if  [ -z "$ALIGNED_SERVICE_MANAGER_PAUSER_PRIVATE_KEY" ]; then
-    echo "ALIGNED_SERVICE_MANAGER_PAUSER_PRIVATE_KEY env var is not set"
+if  [ -z "$PRIVATE_KEY" ]; then
+    echo "PRIVATE_KEY env var is not set"
     exit 1
 fi
 
 if  [ -z "$RPC_URL" ]; then
     echo "RPC_URL env var is not set"
     exit 1
+fi
+
+if [[ "$1" == "all" ]]; then
+    echo "Unpausing whole contract"
+    cast send $ALIGNED_SERVICE_MANAGER \
+        "unpause(uint256)()" 0 \
+        --rpc-url $RPC_URL \
+        --private-key $PRIVATE_KEY
+    return
 fi
 
 result=0
