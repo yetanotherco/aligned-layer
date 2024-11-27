@@ -117,6 +117,7 @@ unpause_batcher_payment_service:
 get_paused_state_batcher_payments_service:
 	@echo "Getting paused state of Batcher Payments Service contract..."
 	. contracts/scripts/get_paused_state_batcher_payments_service.sh
+	
 anvil_upgrade_initialize_disable_verifiers:
 	@echo "Initializing disabled verifiers..."
 	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh
@@ -229,19 +230,21 @@ operator_mint_mock_tokens:
 
 operator_whitelist_devnet:
 	@echo "Whitelisting operator"
-	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
 	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
 
-operator_remove_devnet:
+operator_remove_from_whitelist_devnet:
 	@echo "Removing operator"
-	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
 	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/remove_operator.sh $(OPERATOR_ADDRESS)
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_whitelist:
 	@echo "Whitelisting operator $(OPERATOR_ADDRESS)"
-	@. contracts/scripts/.env && . contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+	@. contracts/scripts/.env && . contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
+
+operator_remove_from_whitelist:
+	@echo "Removing operator $(OPERATOR_ADDRESS)"
+	@. contracts/scripts/.env && . contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_deposit_into_mock_strategy:
 	@echo "Depositing into mock strategy"
@@ -1064,7 +1067,7 @@ docker_logs_batcher:
 
 __TELEMETRY__:
 # Collector, Jaeger and Elixir API
-telemetry_full_start: open_telemetry_start telemetry_start
+telemetry_full_start: telemetry_compile_bls_verifier open_telemetry_start telemetry_start
 
 # Collector and Jaeger
 open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
@@ -1107,6 +1110,10 @@ telemetry_dump_db:
 telemetry_create_env:
 	@cd telemetry_api && \
 		cp .env.dev .env
+
+telemetry_compile_bls_verifier:
+	@cd telemetry_api/priv && \
+	go build ../bls_verifier/bls_verify.go
 
 setup_local_aligned_all:
 	tmux kill-session -t aligned_layer || true

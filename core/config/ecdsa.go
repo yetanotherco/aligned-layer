@@ -3,12 +3,13 @@ package config
 import (
 	"crypto/ecdsa"
 	"errors"
-	ecdsa2 "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
-	"github.com/Layr-Labs/eigensdk-go/signer"
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"log"
 	"math/big"
 	"os"
+
+	ecdsa2 "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
+	"github.com/Layr-Labs/eigensdk-go/signer"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 type EcdsaConfig struct {
@@ -29,7 +30,7 @@ func NewEcdsaConfig(ecdsaConfigFilePath string, chainId *big.Int) *EcdsaConfig {
 	}
 
 	var ecdsaConfigFromYaml EcdsaConfigFromYaml
-	err := sdkutils.ReadYamlConfig(ecdsaConfigFilePath, &ecdsaConfigFromYaml)
+	err := utils.ReadYamlConfig(ecdsaConfigFilePath, &ecdsaConfigFromYaml)
 	if err != nil {
 		log.Fatal("Error reading ecdsa config: ", err)
 	}
