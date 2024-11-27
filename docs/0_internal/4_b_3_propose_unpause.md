@@ -97,4 +97,4 @@ To propose the unpause transaction you can follow the steps below:
 
    ![Send batch](./images/4_b_1_unpause_11.png)
 
-12. If the transaction is correctly created, you have to wait until the required Multisig member signs the transaction to send it.
+12. If the transaction is correctly created, you have to wait until the required Multisig member signs the transaction to send it. For this, you can follow [the following guide](./4_b_4_approve_unpause.md)

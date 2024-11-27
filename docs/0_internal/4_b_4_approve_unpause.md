@@ -30,9 +30,9 @@ Once the transaction is proposed, the multisig owners must approve the transacti
 
    ![Sign transaction](images/4_b_2_approve_unpause_2.png)
 
-8. Once the transaction is executed, the pause will be effective.
+8. Once the transaction is executed, the unpause will be effective.
 
-## Approve the Pause for BatcherPaymentService
+## Approve the UnPause for BatcherPaymentService
 
 1. Go to [Safe](https://app.safe.global/home) and connect your wallet.
 
@@ -52,4 +52,4 @@ Once the transaction is proposed, the multisig owners must approve the transacti
 
    ![Sign transaction](images/4_b_2_approve_unpause_4.png)
 
-6. Once the transaction is executed, the pause will be effective.
+6. Once the transaction is executed, the unpause will be effective.
