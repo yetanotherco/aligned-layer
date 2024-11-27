@@ -117,6 +117,7 @@ unpause_batcher_payment_service:
 get_paused_state_batcher_payments_service:
 	@echo "Getting paused state of Batcher Payments Service contract..."
 	. contracts/scripts/get_paused_state_batcher_payments_service.sh
+	
 anvil_upgrade_initialize_disable_verifiers:
 	@echo "Initializing disabled verifiers..."
 	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh
