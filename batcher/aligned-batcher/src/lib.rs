@@ -1481,7 +1481,7 @@ impl Batcher {
         fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
         // First, we simulate the tx
-        let result = retry_function(
+        retry_function(
             || {
                 simulate_create_new_task_retryable(
                     batch_merkle_root,
@@ -1497,11 +1497,8 @@ impl Batcher {
             ETHEREUM_CALL_MAX_RETRIES,
             ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
-        .await;
-
-        if let Err(e) = result {
-            return Err(e.inner());
-        }
+        .await
+        .map_err(|e| e.inner())?;
 
         // Then, we send the real tx
         let result = retry_function(
