@@ -14,9 +14,6 @@ pub enum TransactionSendError {
     Generic(String),
 }
 
-// TODO: Here we are missing the modifiers: onlyWhenNotPaused
-// TODO: Parse parameters from error responses
-
 impl From<Bytes> for TransactionSendError {
     fn from(e: Bytes) -> Self {
         let byte_string = e.to_string();

@@ -1274,17 +1274,6 @@ impl Batcher {
             {
                 error!("Failed to send task status to telemetry: {:?}", e);
             }
-
-            // TODO: Here we have to match and handle the errors and flush the queue if necessary
-            // NoProofSubmitters
-            // NoFeePerProof
-            // InsufficientFeeForAggregator
-            // SubmissionInsufficientBalance
-            // BatchAlreadySubmitted
-            // InsufficientFunds
-            // OnlyBatcherAllowed
-            // Generic
-
             for entry in finalized_batch.into_iter() {
                 if let Some(ws_sink) = entry.messaging_sink {
                     let merkle_root = hex::encode(batch_merkle_tree.root);
