@@ -1202,7 +1202,7 @@ impl Batcher {
         if !finalized_batch.is_empty() {
             error!("Some proofs were not found in the queue. This should not happen");
             return Err(BatcherError::QueueRemoveError(
-                "Some entries to be removed where not found in the queue".into(),
+                "Some entries to be removed were not found in the queue".into(),
             ));
         }
 
