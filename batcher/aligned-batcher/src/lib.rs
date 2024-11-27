@@ -1299,7 +1299,7 @@ impl Batcher {
                             );
                         }
                     }
-                    self.flush_queue_and_clear_nonce_cache();
+                    self.flush_queue_and_clear_nonce_cache().await;
                 }
             }
 
@@ -1311,7 +1311,7 @@ impl Batcher {
 
     async fn push_batch_proofs_back_to_queue(&self, batch: Vec<BatchQueueEntry>) {
         let mut batch_state = self.batch_state.lock().await;
-
+        warn!("Pushing batch proofs back to the queue");
         for entry in batch {
             let max_fee = entry.nonced_verification_data.max_fee;
             let nonce = entry.nonced_verification_data.nonce;
