@@ -1199,7 +1199,7 @@ impl Batcher {
             // I can't do else break because there is no guarantee the queue had no insertions
         }
 
-        if finalized_batch.is_empty() {
+        if !finalized_batch.is_empty() {
             error!("Some proofs were not found in the queue. This should not happen");
             return Err(BatcherError::QueueRemoveError(
                 "Some entries to be removed where not found in the queue".into(),
