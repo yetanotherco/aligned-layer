@@ -1348,7 +1348,9 @@ impl Batcher {
 
         // Once the submit is succesfull, we remove the submitted proofs from the queue
         // TODO handle error case:
-        let _ = self.remove_proofs_from_queue(finalized_batch.clone()).await;
+        if let Err(e) = self.remove_proofs_from_queue(finalized_batch.clone()).await {
+            error!("Unexpected error while updating queue: {:?}", e);
+        }
 
         connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
