@@ -1181,30 +1181,18 @@ impl Batcher {
     /// This function should be called only AFTER the submission was confirmed onchain
     async fn remove_proofs_from_queue(
         &self,
-        mut finalized_batch: Vec<BatchQueueEntry>,
+        finalized_batch: Vec<BatchQueueEntry>,
     ) -> Result<(), BatcherError> {
         info!("Removing proofs from queue...");
         // I want to remove from batch_queue, all values that are in finalized_batch
         let mut batch_state_lock = self.batch_state.lock().await;
 
-        let batch_queue_copy = batch_state_lock.batch_queue.clone();
-        // TODO: verify i'm iterating from high to low
-        for (entry, _entry_priority) in batch_queue_copy.iter() {
-            if finalized_batch.contains(entry) {
-                // Note: entry has NoncedVerificationData, which contains nonce and max_fee.
-                // This means that the entry should be unique in the queue, without needing to check the entry_priority
-                batch_state_lock.batch_queue.remove(entry);
-                finalized_batch.retain(|e| e != entry); // to ensure all values are removed, and removed only once.
+        finalized_batch.iter().for_each(|entry| {
+            if batch_state_lock.batch_queue.remove(entry).is_none() {
+                // If this happens, we have a bug in our code
+                error!("Some proofs were not found in the queue. This should not happen.");
             }
-            // I can't do else break because there is no guarantee the queue had no insertions
-        }
-
-        if !finalized_batch.is_empty() {
-            error!("Some proofs were not found in the queue. This should not happen");
-            return Err(BatcherError::QueueRemoveError(
-                "Some entries to be removed were not found in the queue".into(),
-            ));
-        }
+        });
 
         // now we calculate the new user_states
         let new_user_states = // proofs, max_fee_limit, total_fees_in_queue
