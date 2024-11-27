@@ -1278,8 +1278,15 @@ impl Batcher {
             match e {
                 // if the batch was canceled, push the proofs back again and don't terminate the user connection
                 BatcherError::ReceiptNotFoundError => {
-                    self.push_batch_proofs_back_to_queue(finalized_batch.clone())
-                        .await
+                    let mut batch_state = self.batch_state.lock().await;
+                    warn!("Pushing batch proofs back to the queue");
+                    for entry in finalized_batch {
+                        let max_fee = entry.nonced_verification_data.max_fee;
+                        let nonce = entry.nonced_verification_data.nonce;
+                        batch_state
+                            .batch_queue
+                            .push(entry, BatchQueueEntryPriority::new(max_fee, nonce));
+                    }
                 }
                 _ => {
                     for entry in finalized_batch.clone().into_iter() {
@@ -1307,18 +1314,6 @@ impl Batcher {
         };
 
         connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
-    }
-
-    async fn push_batch_proofs_back_to_queue(&self, batch: Vec<BatchQueueEntry>) {
-        let mut batch_state = self.batch_state.lock().await;
-        warn!("Pushing batch proofs back to the queue");
-        for entry in batch {
-            let max_fee = entry.nonced_verification_data.max_fee;
-            let nonce = entry.nonced_verification_data.nonce;
-            batch_state
-                .batch_queue
-                .push(entry, BatchQueueEntryPriority::new(max_fee, nonce));
-        }
     }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
