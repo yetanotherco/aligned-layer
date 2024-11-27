@@ -35,7 +35,6 @@ impl From<Bytes> for TransactionSendError {
             "0x3102f10c" => TransactionSendError::BatchAlreadySubmitted,
             "0x5c54305e" => TransactionSendError::InsufficientFunds,
             "0x152bc288" => TransactionSendError::OnlyBatcherAllowed,
-            // flush can help if something went wrong
             _ => {
                 TransactionSendError::Generic(format!("Unknown bytestring error: {}", byte_string))
             }
