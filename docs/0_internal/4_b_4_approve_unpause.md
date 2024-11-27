@@ -11,7 +11,7 @@ Once the transaction is proposed, the multisig owners must approve the transacti
 3. Get the ```unpause(uint256)``` signature by running:
 
    ```bash
-   cast calldata "unpause(uint256) <PAUSE_STATE>" 
+   cast calldata "unpause(uint256)" <PAUSE_STATE>
    ```
 
    for ```PAUSE_STATE=3```
