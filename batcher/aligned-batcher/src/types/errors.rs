@@ -20,6 +20,7 @@ pub enum BatcherError {
     BatchCostTooHigh,
     WsSinkEmpty,
     AddressNotFoundInUserStates(Address),
+    QueueRemoveError(String),
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -97,6 +98,9 @@ impl fmt::Debug for BatcherError {
                     "Error while trying to get disabled verifiers: {}",
                     reason
                 )
+            }
+            BatcherError::QueueRemoveError(e) => {
+                write!(f, "Error while removing entry from queue: {}", e)
             }
         }
     }
