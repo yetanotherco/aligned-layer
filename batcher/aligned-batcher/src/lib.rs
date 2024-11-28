@@ -1319,7 +1319,7 @@ impl Batcher {
                 )
                 | BatcherError::TransactionSendError(TransactionSendError::Generic(_)) => {
                     self.flush_queue_and_clear_nonce_cache().await;
-                    self.send_close_messages(finalized_batch, batch_merkle_tree, &e)
+                    self.send_task_creation_error_messages(finalized_batch, batch_merkle_tree, &e)
                         .await;
                 }
                 _ => {
@@ -1339,7 +1339,7 @@ impl Batcher {
         connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
 
-    async fn send_close_messages(
+    async fn send_task_creation_error_messages(
         &self,
         finalized_batch: Vec<BatchQueueEntry>,
         batch_merkle_tree: MerkleTree<VerificationCommitmentBatch>,
