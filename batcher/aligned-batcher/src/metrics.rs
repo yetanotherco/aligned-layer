@@ -35,7 +35,7 @@ impl BatcherMetrics {
         let canceled_batches =
             register_int_counter!(opts!("canceled_batches_count", "Canceled Batches"))?;
         let user_errors = register_int_counter_vec!(
-            opts!("user_errors", "User Errors"),
+            opts!("user_errors_count", "User Errors"),
             &["error_type", "proving_system"]
         )?;
         let batcher_started =

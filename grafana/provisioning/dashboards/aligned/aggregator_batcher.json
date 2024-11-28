@@ -2579,7 +2579,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "floor(increase(user_errors{job=\"aligned-batcher\"}[10y]))",
+          "expr": "floor(increase(user_errors_count{job=\"aligned-batcher\"}[10y]))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -2643,6 +2643,6 @@
   "timezone": "browser",
   "title": "System Data",
   "uid": "aggregator",
-  "version": 9,
+  "version": 10,
   "weekStart": ""
 }
