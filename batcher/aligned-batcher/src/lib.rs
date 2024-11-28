@@ -1317,9 +1317,9 @@ impl Batcher {
                 BatcherError::TransactionSendError(
                     TransactionSendError::SubmissionInsufficientBalance,
                 ) => {
-                    self.flush_queue_and_clear_nonce_cache().await;
-                    self.send_task_creation_error_messages(finalized_batch, batch_merkle_tree, &e)
-                        .await;
+                    // TODO calling remove_proofs_from_queue here is a better solution, flushing only the failed batch
+                    // this would also need a message sent to the clients
+                    self.flush_queue_and_clear_nonce_cache().await; 
                 }
                 _ => {
                     // Add more cases here if we want in the future
@@ -1338,25 +1338,6 @@ impl Batcher {
         connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
 
-    async fn send_task_creation_error_messages(
-        &self,
-        finalized_batch: Vec<BatchQueueEntry>,
-        batch_merkle_tree: MerkleTree<VerificationCommitmentBatch>,
-        e: &BatcherError,
-    ) {
-        for entry in finalized_batch.into_iter() {
-            if let Some(ws_sink) = entry.messaging_sink {
-                let merkle_root = hex::encode(batch_merkle_tree.root);
-                send_message(
-                    ws_sink.clone(),
-                    SubmitProofResponseMessage::CreateNewTaskError(merkle_root, format!("{:?}", e)),
-                )
-                .await
-            } else {
-                warn!("Websocket sink was found empty. This should only happen in tests");
-            }
-        }
-    }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
         warn!("Resetting state... Flushing queue and nonces");
