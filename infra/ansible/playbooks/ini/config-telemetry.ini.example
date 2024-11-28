@@ -3,8 +3,14 @@ caddy_metrics_url=
 caddy_telemetry_url=
 caddy_jaeger_url=
 
+grafana_admin_password=
 grafana_prometheus_datasource=
-grafana_http_port=
+grafana_domain=
+grafana_oath_client_id=
+grafana_oath_client_secret=
+grafana_oath_auth_url=
+grafana_oath_token_url=
+grafana_oath_api_url=
 
 prometheus_aggregator_ip=
 prometheus_operator_ip=
@@ -15,10 +21,12 @@ postgresql_telemetry_db_name=
 postgresql_telemetry_user=
 postgresql_telemetry_pass=
 
-cassandra_telemetry_user=admidn
+cassandra_telemetry_user=
 cassandra_telemetry_pass=
 
 telemetry_aligned_rpc=
 telemetry_api_phx_host=
 telemetry_api_elixir_hostname=
 telemetry_api_secret_key_base=
+
+pagerduty_routing_key=

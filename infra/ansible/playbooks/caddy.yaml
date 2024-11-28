@@ -2,6 +2,17 @@
   hosts: "{{ host }}"
 
   tasks:
+  - name: Allow http/https traffic on UFW
+    become: true
+    ufw:
+      rule: allow
+      state: enabled
+      port: '{{ item }}'
+    loop:
+      - http
+      - https
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
 
   - name: Install dependencies for Caddy
     become: true

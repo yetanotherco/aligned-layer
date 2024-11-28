@@ -24,7 +24,7 @@
     become: true
     template:
       src: open_telemetry/otel-collector.yaml
-      dest: /etc/otel-collector.yaml
+      dest: /etc/otelcol/config.yaml
     vars:
       ansible_ssh_user: "{{ admin_user }}"
 

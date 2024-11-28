@@ -49,7 +49,6 @@
         deb: "{{ download_libssl.dest }}"
       when: libssl_check.rc != 0
 
-    ########## Install Erlang 26.2.1-1 ##########
     - name: Check if Erlang 26.2.1-1 is installed
       become: true
       ansible.builtin.shell:

@@ -16,6 +16,13 @@
     prometheus_version: "2.53.2"
     ini_file: ini/config-telemetry.ini
 
+- name: Run Alert Manager playbook
+  ansible.builtin.import_playbook: alert_manager.yaml
+  vars:
+    host: telemetry
+    alert_manager_version: 0.27.0
+    ini_file: ini/config-telemetry.ini
+
 - name: Run Grafana playbook
   ansible.builtin.import_playbook: grafana.yaml
   vars:
@@ -53,10 +60,23 @@
   vars:
     host: telemetry
 
+- name: Run Go playbook
+  ansible.builtin.import_playbook: go.yaml
+  vars:
+    host: telemetry
+
 - name: Setup Telemetry
   hosts: telemetry
 
   tasks:
+  - name: Make sure /etc/default/tailscaled exists
+    become: true
+    file:
+      path: /etc/default/tailscaled
+      state: touch
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
   - name: Add permit to tailscale for caddy
     become: true
     lineinfile:
@@ -73,8 +93,16 @@
     ansible.builtin.git:
       repo: https://github.com/yetanotherco/aligned_layer.git
       dest: /home/{{ ansible_user }}/repos/telemetry/aligned_layer
-      version: v0.10.2
+      #version: v0.12.0
+      version: staging
       recursive: false
+
+  - name: Run telemetry_compile_bls_verifier target
+    make:
+      target: telemetry_compile_bls_verifier
+      chdir: /home/{{ ansible_user }}/repos/telemetry/aligned_layer
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin"
 
   - name: Add environment file for Telemetry API
     template:
@@ -102,13 +130,18 @@
 
   - name: Build release for Telemetry API
     shell:
-      cmd: |
-        source .env && mix release
+      cmd: source .env && mix release
       chdir: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api
       executable: /bin/bash
       creates: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api/_build/prod/rel/telemetry_api/bin/
     environment:
       MIX_ENV: prod
+
+  - name: Run migrations for Telemetry API
+    shell:
+      cmd: source .env && _build/prod/rel/telemetry_api/bin/migrate
+      chdir: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api
+      executable: /bin/bash
 
   - name: Ensure ~/.config/systemd/user/ directory exists
     file:

@@ -2,7 +2,7 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317
+        endpoint: 127.0.0.1:4319 # 4317 is already in use by Jaeger
 processors:
 extensions:
   health_check: {}
