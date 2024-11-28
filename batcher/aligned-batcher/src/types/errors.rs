@@ -27,12 +27,13 @@ impl From<Bytes> for TransactionSendError {
             "0xa3a8658a" => TransactionSendError::NoFeePerProof,     // can't happen, don't flush
             "0x7899ec71" => TransactionSendError::InsufficientFeeForAggregator, // shouldn't happen, don't flush
             // returning the proofs and retrying later may help
-            "0x4f779ceb" => TransactionSendError::SubmissionInsufficientBalance, // shouldn't happen,
-            // flush can help if something went wrong
             "0x3102f10c" => TransactionSendError::BatchAlreadySubmitted, // can happen, don't flush
             "0x5c54305e" => TransactionSendError::InsufficientFunds, // shouldn't happen, don't flush
             "0x152bc288" => TransactionSendError::OnlyBatcherAllowed, // won't happen, don't flush
+            "0x4f779ceb" => TransactionSendError::SubmissionInsufficientBalance, // shouldn't happen,
+            // flush can help if something went wrong
             _ => {
+                // flush because unkown error
                 TransactionSendError::Generic(format!("Unknown bytestring error: {}", byte_string))
             }
         }

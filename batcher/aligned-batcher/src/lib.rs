@@ -47,7 +47,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
-use types::errors::BatcherError;
+use types::errors::{BatcherError, TransactionSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::telemetry::sender::TelemetrySender;
@@ -1274,28 +1274,46 @@ impl Batcher {
             {
                 error!("Failed to send task status to telemetry: {:?}", e);
             }
-            for entry in finalized_batch.into_iter() {
-                if let Some(ws_sink) = entry.messaging_sink {
-                    let merkle_root = hex::encode(batch_merkle_tree.root);
-                    send_message(
-                        ws_sink.clone(),
-                        SubmitProofResponseMessage::CreateNewTaskError(
-                            merkle_root,
-                            format!("{:?}", e),
-                        ),
-                    )
-                    .await
-                } else {
-                    warn!("Websocket sink was found empty. This should only happen in tests");
+
+            // decide if i want to flush the queue:
+            match e {
+                BatcherError::TransactionSendError(
+                    TransactionSendError::SubmissionInsufficientBalance,
+                )
+                | BatcherError::TransactionSendError(TransactionSendError::Generic(_)) => {
+                    self.flush_queue_and_clear_nonce_cache().await;
+                    self.send_close_messages(finalized_batch, batch_merkle_tree, &e)
+                        .await;
+                }
+                _ => {
+                    // Maybe flush the queue in other cases
                 }
             }
-
-            self.flush_queue_and_clear_nonce_cache().await;
 
             return Err(e);
         };
 
         connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
+    }
+
+    async fn send_close_messages(
+        &self,
+        finalized_batch: Vec<BatchQueueEntry>,
+        batch_merkle_tree: MerkleTree<VerificationCommitmentBatch>,
+        e: &BatcherError,
+    ) {
+        for entry in finalized_batch.into_iter() {
+            if let Some(ws_sink) = entry.messaging_sink {
+                let merkle_root = hex::encode(batch_merkle_tree.root);
+                send_message(
+                    ws_sink.clone(),
+                    SubmitProofResponseMessage::CreateNewTaskError(merkle_root, format!("{:?}", e)),
+                )
+                .await
+            } else {
+                warn!("Websocket sink was found empty. This should only happen in tests");
+            }
+        }
     }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
