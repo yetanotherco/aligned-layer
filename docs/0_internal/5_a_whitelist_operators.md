@@ -13,12 +13,12 @@ export OUTPUT_PATH=<aligned_deployment_output_file_path>
 
 You can whitelist a single Operator as following:
 ```
-make operator_whitelist OPERATOR_ADDRESS=<opreator_address>
+make operator_whitelist OPERATOR_ADDRESS=<operator_address>
 ```
 
 Or you can whitelist multiple Operators as following:
 ```
-make operator_whitelist OPERATOR_ADDRESS=<opreator_address1,operator_address2,...,operator_addressN>
+make operator_whitelist OPERATOR_ADDRESS=<operator_address1,operator_address2,...,operator_addressN>
 ```
 
 Note how there are no spaces between the commas that separate each Operator address.
@@ -32,12 +32,12 @@ make operator_whitelist OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc7
 
 You can remove from whitelist a single Operator as following:
 ```
-make operator_remove_from_whitelist OPERATOR_ADDRESS=<opreator_address>
+make operator_remove_from_whitelist OPERATOR_ADDRESS=<operator_address>
 ```
 
-Or you can whitelist multiple Operators as following:
+Or you can remove from whitelist multiple Operators as following:
 ```
-make operator_remove_from_whitelist OPERATOR_ADDRESS=<opreator_address1,operator_address2,...,operator_addressN>
+make operator_remove_from_whitelist OPERATOR_ADDRESS=<operator_address1,operator_address2,...,operator_addressN>
 ```
 
 Note how there are no spaces between the commas that separate each Operator address.
@@ -49,8 +49,11 @@ make operator_remove_from_whitelist OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d0
 
 ### Viewing Operator Whitelist status 
 
-TODO
+```bash
+cast call <REGISTRY_COORDINATOR_ADDRESS> "getOperatorStatus(address)" <OPERATOR_ADDRESS>
+```
+
 
 ## With Multisig
 
-To add or remove Operators from the Whitelist using a Multisig, you can follow the next guide
+To add or remove Operators from the Whitelist using a Multisig, you can follow the [next guide](./5_b_whitelist_operators_with_multisig.md).
