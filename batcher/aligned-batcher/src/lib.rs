@@ -1115,7 +1115,7 @@ impl Batcher {
     /// an empty batch, even if the block interval has been reached.
     /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
     /// `finalize_batch` function.
-    /// THIS FUNCTION SHOULD NOT REMOVE THE PROOFS FROM THE QUEUE
+    /// This function doesn't remove the proofs from the queue.
     async fn is_batch_ready(
         &self,
         block_number: u64,
@@ -1176,15 +1176,13 @@ impl Batcher {
         Some(finalized_batch)
     }
 
-    /// Takes the submitted proofs
-    /// And removes them from the queue.
+    /// Takes the submitted proofs and removes them from the queue.
     /// This function should be called only AFTER the submission was confirmed onchain
     async fn remove_proofs_from_queue(
         &self,
         finalized_batch: Vec<BatchQueueEntry>,
     ) -> Result<(), BatcherError> {
         info!("Removing proofs from queue...");
-        // I want to remove from batch_queue, all values that are in finalized_batch
         let mut batch_state_lock = self.batch_state.lock().await;
 
         finalized_batch.iter().for_each(|entry| {
