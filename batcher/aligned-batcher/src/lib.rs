@@ -1183,7 +1183,6 @@ impl Batcher {
         finalized_batch: Vec<BatchQueueEntry>,
     ) -> Result<(), BatcherError> {
         info!("Removing proofs from queue...");
-        // I want to remove from batch_queue, all values that are in finalized_batch
         let mut batch_state_lock = self.batch_state.lock().await;
 
         finalized_batch.iter().for_each(|entry| {
