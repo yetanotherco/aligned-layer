@@ -1,4 +1,4 @@
-# Pause Contracts
+# Whitelist Operators
 This doc contains a guide on how to Whitelist Operators in Aligned.
 
 To run the make targets specified in this guide, you must first have the relevant following env vars under `contracts/scripts/.env`:
