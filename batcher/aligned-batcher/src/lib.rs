@@ -8,7 +8,8 @@ use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use retry::batcher_retryables::{
     cancel_create_new_task_retryable, create_new_task_retryable, get_user_balance_retryable,
-    get_user_nonce_from_ethereum_retryable, user_balance_is_unlocked_retryable,
+    get_user_nonce_from_ethereum_retryable, simulate_create_new_task_retryable,
+    user_balance_is_unlocked_retryable,
 };
 use retry::{retry_function, RetryError};
 use tokio::time::timeout;
@@ -1479,6 +1480,27 @@ impl Batcher {
         proof_submitters: Vec<Address>,
         fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
+        // First, we simulate the tx
+        retry_function(
+            || {
+                simulate_create_new_task_retryable(
+                    batch_merkle_root,
+                    batch_data_pointer.clone(),
+                    proof_submitters.clone(),
+                    fee_params.clone(),
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+        .map_err(|e| e.inner())?;
+
+        // Then, we send the real tx
         let result = retry_function(
             || {
                 create_new_task_retryable(
