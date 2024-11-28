@@ -1320,7 +1320,7 @@ impl Batcher {
                 ) => {
                     // TODO calling remove_proofs_from_queue here is a better solution, flushing only the failed batch
                     // this would also need a message sent to the clients
-                    self.flush_queue_and_clear_nonce_cache().await; 
+                    self.flush_queue_and_clear_nonce_cache().await;
                 }
                 _ => {
                     // Add more cases here if we want in the future
@@ -1338,7 +1338,6 @@ impl Batcher {
 
         connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
-
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
         warn!("Resetting state... Flushing queue and nonces");
