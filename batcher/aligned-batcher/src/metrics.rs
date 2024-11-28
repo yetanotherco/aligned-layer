@@ -25,22 +25,22 @@ impl BatcherMetrics {
     pub fn start(metrics_port: u16) -> anyhow::Result<Self> {
         let registry = prometheus::Registry::new();
 
-        let open_connections = register_int_gauge!(opts!("open_connections", "Open Connections"))?;
-        let received_proofs = register_int_counter!(opts!("received_proofs", "Received Proofs"))?;
-        let sent_batches = register_int_counter!(opts!("sent_batches", "Sent Batches"))?;
+        let open_connections = register_int_gauge!(opts!("open_connections_count", "Open Connections"))?;
+        let received_proofs = register_int_counter!(opts!("received_proofs_count", "Received Proofs"))?;
+        let sent_batches = register_int_counter!(opts!("sent_batches_count", "Sent Batches"))?;
         let reverted_batches =
-            register_int_counter!(opts!("reverted_batches", "Reverted Batches"))?;
+            register_int_counter!(opts!("reverted_batches_count", "Reverted Batches"))?;
         let canceled_batches =
-            register_int_counter!(opts!("canceled_batches", "Canceled Batches"))?;
+            register_int_counter!(opts!("canceled_batches_count", "Canceled Batches"))?;
         let user_errors = register_int_counter_vec!(
             opts!("user_errors", "User Errors"),
             &["error_type", "proving_system"]
         )?;
-        let batcher_started = register_int_counter!(opts!("batcher_started", "Batcher Started"))?;
+        let batcher_started = register_int_counter!(opts!("batcher_started_count", "Batcher Started"))?;
         let gas_price_used_on_latest_batch =
             register_int_gauge!(opts!("gas_price_used_on_latest_batch", "Gas Price"))?;
         let broken_ws_connections = register_int_counter!(opts!(
-            "broken_ws_connections",
+            "broken_ws_connections_count",
             "Broken websocket connections"
         ))?;
 
