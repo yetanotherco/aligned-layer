@@ -6,7 +6,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.11.3
+OPERATOR_VERSION=v0.12.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -117,6 +117,7 @@ unpause_batcher_payment_service:
 get_paused_state_batcher_payments_service:
 	@echo "Getting paused state of Batcher Payments Service contract..."
 	. contracts/scripts/get_paused_state_batcher_payments_service.sh
+	
 anvil_upgrade_initialize_disable_verifiers:
 	@echo "Initializing disabled verifiers..."
 	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh

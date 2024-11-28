@@ -81,7 +81,7 @@ pub struct Batcher {
     service_manager: ServiceManager,
     service_manager_fallback: ServiceManager,
     batch_state: Mutex<BatchState>,
-    max_block_interval: u64,
+    min_block_interval: u64,
     transaction_wait_timeout: u64,
     max_proof_size: usize,
     max_batch_byte_size: usize,
@@ -244,7 +244,7 @@ impl Batcher {
             payment_service_fallback,
             service_manager,
             service_manager_fallback,
-            max_block_interval: config.batcher.block_interval,
+            min_block_interval: config.batcher.block_interval,
             transaction_wait_timeout: config.batcher.transaction_wait_timeout,
             max_proof_size: config.batcher.max_proof_size,
             max_batch_byte_size: config.batcher.max_batch_byte_size,
@@ -1132,9 +1132,9 @@ impl Batcher {
             return None;
         }
 
-        if block_number < *last_uploaded_batch_block_lock + self.max_block_interval {
+        if block_number < *last_uploaded_batch_block_lock + self.min_block_interval {
             info!(
-                "Current batch not ready to be posted. Minimium amount of {} blocks have not passed. Block passed: {}", self.max_block_interval,
+                "Current batch not ready to be posted. Minimium amount of {} blocks have not passed. Block passed: {}", self.min_block_interval,
                 block_number - *last_uploaded_batch_block_lock,
             );
             return None;
@@ -1253,7 +1253,7 @@ impl Batcher {
             .init_task_trace(&hex::encode(batch_merkle_tree.root))
             .await
         {
-            error!("Failed to initialize task trace on telemetry: {:?}", e);
+            warn!("Failed to initialize task trace on telemetry: {:?}", e);
         }
 
         if let Err(e) = self
@@ -1272,7 +1272,7 @@ impl Batcher {
                 .task_creation_failed(&hex::encode(batch_merkle_tree.root), &reason)
                 .await
             {
-                error!("Failed to send task status to telemetry: {:?}", e);
+                warn!("Failed to send task status to telemetry: {:?}", e);
             }
 
             // decide if i want to flush the queue:
@@ -1414,7 +1414,7 @@ impl Batcher {
             .task_uploaded_to_s3(&batch_merkle_root_hex)
             .await
         {
-            error!("Failed to send task status to telemetry: {:?}", e);
+            warn!("Failed to send task status to telemetry: {:?}", e);
         };
         info!("Batch sent to S3 with name: {}", file_name);
 
@@ -1457,7 +1457,7 @@ impl Batcher {
             )
             .await
         {
-            error!("Failed to send task status to telemetry: {:?}", e);
+            warn!("Failed to send task status to telemetry: {:?}", e);
         };
 
         match self
@@ -1522,7 +1522,7 @@ impl Batcher {
                     .task_sent(&hex::encode(batch_merkle_root), receipt.transaction_hash)
                     .await
                 {
-                    error!("Failed to send task status to telemetry: {:?}", e);
+                    warn!("Failed to send task status to telemetry: {:?}", e);
                 }
                 Ok(receipt)
             }
