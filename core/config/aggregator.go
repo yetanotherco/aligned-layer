@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 type AggregatorConfig struct {
@@ -27,6 +27,7 @@ type AggregatorConfig struct {
 		BlsServiceTaskTimeout         time.Duration
 		GasBaseBumpPercentage         uint
 		GasBumpIncrementalPercentage  uint
+		GasBumpPercentageLimit        uint
 		TimeToWaitBeforeBump          time.Duration
 	}
 }
@@ -45,6 +46,7 @@ type AggregatorConfigFromYaml struct {
 		BlsServiceTaskTimeout         time.Duration  `yaml:"bls_service_task_timeout"`
 		GasBaseBumpPercentage         uint           `yaml:"gas_base_bump_percentage"`
 		GasBumpIncrementalPercentage  uint           `yaml:"gas_bump_incremental_percentage"`
+		GasBumpPercentageLimit        uint           `yaml:"gas_bump_percentage_limit"`
 		TimeToWaitBeforeBump          time.Duration  `yaml:"time_to_wait_before_bump"`
 	} `yaml:"aggregator"`
 }
@@ -71,7 +73,7 @@ func NewAggregatorConfig(configFilePath string) *AggregatorConfig {
 	}
 
 	var aggregatorConfigFromYaml AggregatorConfigFromYaml
-	err := sdkutils.ReadYamlConfig(configFilePath, &aggregatorConfigFromYaml)
+	err := utils.ReadYamlConfig(configFilePath, &aggregatorConfigFromYaml)
 	if err != nil {
 		log.Fatal("Error reading aggregator config: ", err)
 	}
@@ -93,6 +95,7 @@ func NewAggregatorConfig(configFilePath string) *AggregatorConfig {
 			BlsServiceTaskTimeout         time.Duration
 			GasBaseBumpPercentage         uint
 			GasBumpIncrementalPercentage  uint
+			GasBumpPercentageLimit        uint
 			TimeToWaitBeforeBump          time.Duration
 		}(aggregatorConfigFromYaml.Aggregator),
 	}

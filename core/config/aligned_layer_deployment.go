@@ -2,10 +2,11 @@ package config
 
 import (
 	"errors"
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
-	"github.com/ethereum/go-ethereum/common"
 	"log"
 	"os"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 type AlignedLayerDeploymentConfig struct {
@@ -29,7 +30,7 @@ func NewAlignedLayerDeploymentConfig(alignedLayerDeploymentFilePath string) *Ali
 	}
 
 	var alignedLayerDeploymentConfigFromJson AlignedLayerDeploymentConfigFromJson
-	err := sdkutils.ReadJsonConfig(alignedLayerDeploymentFilePath, &alignedLayerDeploymentConfigFromJson)
+	err := utils.ReadJsonConfig(alignedLayerDeploymentFilePath, &alignedLayerDeploymentConfigFromJson)
 
 	if err != nil {
 		log.Fatal("Error reading aligned layer deployment config: ", err)

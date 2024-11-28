@@ -6,7 +6,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.10.3
+OPERATOR_VERSION=v0.12.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -117,6 +117,7 @@ unpause_batcher_payment_service:
 get_paused_state_batcher_payments_service:
 	@echo "Getting paused state of Batcher Payments Service contract..."
 	. contracts/scripts/get_paused_state_batcher_payments_service.sh
+	
 anvil_upgrade_initialize_disable_verifiers:
 	@echo "Initializing disabled verifiers..."
 	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh
@@ -229,19 +230,21 @@ operator_mint_mock_tokens:
 
 operator_whitelist_devnet:
 	@echo "Whitelisting operator"
-	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
 	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
 
-operator_remove_devnet:
+operator_remove_from_whitelist_devnet:
 	@echo "Removing operator"
-	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
 	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/remove_operator.sh $(OPERATOR_ADDRESS)
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_whitelist:
 	@echo "Whitelisting operator $(OPERATOR_ADDRESS)"
-	@. contracts/scripts/.env && . contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+	@. contracts/scripts/.env && . contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
+
+operator_remove_from_whitelist:
+	@echo "Removing operator $(OPERATOR_ADDRESS)"
+	@. contracts/scripts/.env && . contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_deposit_into_mock_strategy:
 	@echo "Depositing into mock strategy"
@@ -410,7 +413,7 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--repetitions 4 \
+		--repetitions $(BURST_SIZE) \
 		--network $(NETWORK)
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
@@ -563,18 +566,18 @@ run_storage: ## Run storage using storage-docker-compose.yaml
 	@echo "Running storage..."
 	@docker compose -f storage-docker-compose.yaml up
 
-__DEPLOYMENT__:
-deploy_aligned_contracts: ## Deploy Aligned Contracts
-	@echo "Deploying Aligned Contracts..."
-	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
+__DEPLOYMENT__: ## ____
+deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Deploying Aligned Contracts on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
 
 deploy_pauser_registry: ## Deploy Pauser Registry
 	@echo "Deploying Pauser Registry..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_pauser_registry.sh
 
-upgrade_aligned_contracts: ## Upgrade Aligned Contracts
-	@echo "Upgrading Aligned Contracts..."
-	@. contracts/scripts/.env && . contracts/scripts/upgrade_aligned_contracts.sh
+upgrade_aligned_contracts: ## Upgrade Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Upgrading Aligned Contracts on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_aligned_contracts.sh
 
 upgrade_pauser_aligned_contracts: ## Upgrade Aligned Contracts with Pauser initialization
 	@echo "Upgrading Aligned Contracts with Pauser initialization..."
@@ -608,13 +611,13 @@ deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."
 	@. examples/verify/.env && . examples/verify/scripts/deploy_verify_batch_inclusion_caller.sh
 
-deploy_batcher_payment_service:
-	@echo "Deploying BatcherPayments contract..."
-	@. contracts/scripts/.env && . contracts/scripts/deploy_batcher_payment_service.sh
+deploy_batcher_payment_service: ## Deploy BatcherPayments contract. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Deploying BatcherPayments contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_batcher_payment_service.sh
 
-upgrade_batcher_payment_service:
-	@echo "Upgrading BatcherPayments contract..."
-	@. contracts/scripts/.env && . contracts/scripts/upgrade_batcher_payment_service.sh
+upgrade_batcher_payment_service: ## Upgrade BatcherPayments contract. Parameters: NETWORK=<mainnet|holesky|sepolia
+	@echo "Upgrading BatcherPayments Contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_batcher_payment_service.sh
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
@@ -844,35 +847,6 @@ explorer_create_env:
 	@cd explorer && \
 	cp .env.dev .env
 
-__TRACKER__:
-
-tracker_devnet_start: tracker_run_db
-	@cd operator_tracker/ && \
-		cargo run -r -- --env-file .env.dev
-
-tracker_install: tracker_build_db
-	cargo install --path ./operator_tracker
-
-tracker_build_db:
-	@cd operator_tracker && \
-		docker build -t tracker-postgres-image .
-
-tracker_run_db: tracker_build_db tracker_remove_db_container
-	@cd operator_tracker && \
-		docker run -d --name tracker-postgres-container -p 5433:5432 -v tracker-postgres-data:/var/lib/postgresql/data tracker-postgres-image
-
-tracker_remove_db_container:
-	docker stop tracker-postgres-container || true  && \
-	    docker rm tracker-postgres-container || true
-
-tracker_clean_db: tracker_remove_db_container
-	docker volume rm tracker-postgres-data || true
-
-tracker_dump_db:
-	@cd operator_tracker && \
-		docker exec -t tracker-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
-	@echo "Dumped database successfully to /operator_tracker"
-
 DOCKER_RPC_URL=http://anvil:8545
 PROOF_GENERATOR_ADDRESS=0x66f9664f97F2b50F62D13eA064982f936dE76657
 
@@ -1093,7 +1067,7 @@ docker_logs_batcher:
 
 __TELEMETRY__:
 # Collector, Jaeger and Elixir API
-telemetry_full_start: open_telemetry_start telemetry_start
+telemetry_full_start: telemetry_compile_bls_verifier open_telemetry_start telemetry_start
 
 # Collector and Jaeger
 open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
@@ -1137,6 +1111,10 @@ telemetry_create_env:
 	@cd telemetry_api && \
 		cp .env.dev .env
 
+telemetry_compile_bls_verifier:
+	@cd telemetry_api/priv && \
+	go build ../bls_verifier/bls_verify.go
+
 setup_local_aligned_all:
 	tmux kill-session -t aligned_layer || true
 	tmux new-session -d -s aligned_layer
@@ -1177,6 +1155,20 @@ ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
 		-i $(INVENTORY) \
 		-e "keystore_path=$(KEYSTORE)"
 
+ansible_aggregator_create_env: ## Create empty variables files for the Aggregator deploy
+	@cp -n infra/ansible/playbooks/ini/config-aggregator.ini.example infra/ansible/playbooks/ini/config-aggregator.ini
+	@echo "Config files for the Aggregator created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_aggregator_deploy"
+
+ansible_aggregator_deploy: ## Deploy the Operator. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ] || [ -z "$(ECDSA_KEYSTORE)" ] || [ -z "$(BLS_KEYSTORE)" ]; then \
+		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/aggregator.yaml \
+		-i $(INVENTORY) \
+		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
+		-e "bls_keystore_path=$(BLS_KEYSTORE)"
 
 ansible_operator_create_env: ## Create empty variables files for the Operator deploy
 	@cp -n infra/ansible/playbooks/ini/config-operator.ini.example infra/ansible/playbooks/ini/config-operator.ini

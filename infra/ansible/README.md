@@ -137,7 +137,6 @@ This will create the following file in `infra/ansible/playbooks/ini`:
 ```shell
 make ansible_aggregator_create_env
 ```
-
 - `config-aggregator.ini`
 
 The `config-aggregator.ini` contains the variables to run the Operator in Aligned:

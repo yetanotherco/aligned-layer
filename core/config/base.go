@@ -10,9 +10,9 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 	rpccalls "github.com/Layr-Labs/eigensdk-go/metrics/collectors/rpc_calls"
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/urfave/cli/v2"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 var (
@@ -58,7 +58,7 @@ func NewBaseConfig(configFilePath string) *BaseConfig {
 
 	var baseConfigFromYaml BaseConfigFromYaml
 
-	err := sdkutils.ReadYamlConfig(configFilePath, &baseConfigFromYaml)
+	err := utils.ReadYamlConfig(configFilePath, &baseConfigFromYaml)
 	if err != nil {
 		log.Fatal("Error reading setup config: ", err)
 	}
