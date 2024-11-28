@@ -1316,14 +1316,13 @@ impl Batcher {
             match e {
                 BatcherError::TransactionSendError(
                     TransactionSendError::SubmissionInsufficientBalance,
-                )
-                | BatcherError::TransactionSendError(TransactionSendError::Generic(_)) => {
+                ) => {
                     self.flush_queue_and_clear_nonce_cache().await;
                     self.send_task_creation_error_messages(finalized_batch, batch_merkle_tree, &e)
                         .await;
                 }
                 _ => {
-                    // Maybe flush the queue in other cases
+                    // Add more cases here if we want in the future
                 }
             }
 
