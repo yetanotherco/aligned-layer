@@ -2,23 +2,29 @@
 
 Once the transaction is proposed, the multisig owners must approve the transaction.
 
-## Approve the Whitelist for AlignedLayerServiceManager
+## Approve the Whitelist for registryCoordinator
 
 1. Go to [Safe](https://app.safe.global/home) and connect your wallet.
 
 2. Go to the `Transactions` tab and find the transaction that was proposed.
 
-3. Get the ```pauseAll()``` signature by running:
+3. Get the ```add_multiple(address[])``` signature by running:
    
    ```bash
-   cast calldata "pauseAll()"
+   cast calldata "add_multiple(address[])" "[<OPERATOR_ADDRESS>, ...]"
    ```
    
-   It must show you ```0x595c6a67```.
+   For example:
+   ```bash
+   cast calldata "add_multiple(address[])" "[0x0000000000000000000000000000000000000009, 0x0000000000000000000000000000000000000003]"
+   ```
+   will display ```0x6c7089040000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000090000000000000000000000000000000000000000000000000000000000000003```
+
+   Confirm the calldata starts with the correct function identifier ```0x6c708904```.
    
 4. Click on the transaction, and then click on ```Advanced Details```.
 
-    ![Check details](images/4_b_2_approve_1.png)
+    ![Check details](images/5_b_2_whitelist_operator_1.png)
 
 5. Copy the ```Raw Data```, paste it in a text editor and verify it is the same value as the one you got in step 3.
 
@@ -26,29 +32,6 @@ Once the transaction is proposed, the multisig owners must approve the transacti
 
 7. Simulate the transaction. If everything is correct, click on the `Sign` button.
 
-   ![Sign transaction](images/4_b_2_approve_3.png)
+   ![Sign transaction](images/5_b_2_whitelist_operator_2.png)
 
-8. Once the transaction is executed, the pause will be effective.
-
-## Approve the Pause for BatcherPaymentService
-
-1. Go to [Safe](https://app.safe.global/home) and connect your wallet.
-
-2. Go to the `Transactions` tab and find the transaction that was proposed.
-
-3. Click on the transaction and validate the data is correct. 
-
-    The called function must be `pause` and the contract address must be the `BatcherPaymentService` address.
-
-   ![Check details](images/4_b_2_approve_2.png)
-
-   Get the `BatcherPaymentService` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
-
-4. If the data is correct, click on the `Confirm` button.
-
-5. Simulate the transaction. If everything is correct, click on the `Sign` button.
-
-   ![Sign transaction](images/4_b_2_approve_3.png)
-
-6. Once the transaction is executed, the pause will be effective.
-   
+8. Once the transaction is executed, the operator will be whitelisted within the `registryCoordinator` contract.
