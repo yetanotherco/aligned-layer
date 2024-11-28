@@ -1176,8 +1176,7 @@ impl Batcher {
         Some(finalized_batch)
     }
 
-    /// Takes the submitted proofs
-    /// And removes them from the queue.
+    /// Takes the submitted proofs and removes them from the queue.
     /// This function should be called only AFTER the submission was confirmed onchain
     async fn remove_proofs_from_queue(
         &self,
