@@ -202,7 +202,7 @@ pub async fn simulate_create_new_task_retryable(
             // Since transaction was reverted, we don't want to retry with fallback.
             warn!("Simulated transaction reverted {:?}", err);
             Err(RetryError::Permanent(BatcherError::TransactionSendError(
-                err.to_string(),
+                TransactionSendError::from(err),
             )))
         }
         _ => {
@@ -221,11 +221,11 @@ pub async fn simulate_create_new_task_retryable(
                 Err(ContractError::Revert(err)) => {
                     warn!("Simulated transaction reverted {:?}", err);
                     Err(RetryError::Permanent(BatcherError::TransactionSendError(
-                        err.to_string(),
+                        TransactionSendError::from(err),
                     )))
                 }
                 Err(err) => Err(RetryError::Transient(BatcherError::TransactionSendError(
-                    err.to_string(),
+                    TransactionSendError::Generic(err.to_string()),
                 ))),
             }
         }
