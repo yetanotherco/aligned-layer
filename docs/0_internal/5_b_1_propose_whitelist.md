@@ -1,6 +1,6 @@
-# Propose the Transaction for Pause using Multisig
+# Propose the Transaction for Whitelisting Operators using Multisig
 
-If you want to Whitelist Operators, you can propose the pause transaction using the multisig wallet.
+If you want to Whitelist Operators, you can propose the whitelist operator transaction using the multisig wallet.
 
 ## Prerequisites
 
@@ -14,39 +14,39 @@ To propose the pause transaction you can follow the steps below:
 
 2. Click on `New transaction` -> `Transaction Builder`
 
-   ![New transaction](./images/4_b_1_pause_1.png)
+   ![New transaction](./images/5_b_1_whitelist_operator_1.png)
 
-   ![Transaction Builder](./images/4_b_1_pause_2.png)
+   ![Transaction Builder](./images/5_b_1_whitelist_operator_2.png)
 
 3. . Get the `registryCoordinator` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
 
 4. Paste the `registryCoordinator` address on `Enter Address or ENS Name` , and turn on the `Custom Data` flag.
 
-   ![alt text](image.png)
+   ![alt text](5_b_1_whitelist_operator_3.png)
 
 5. In `Data` field paste the Data generated previously. Also check the `To Address` is the correct `registryCoordinator` address, and the `ETH value`
 
-   ![alt text](image-1.png) 
+   ![alt text](5_b_1_whitelist_operator_4.png) 
 
 7. Click on `+ Add new transaction`
 
    You should see the new transaction to be executed
 
-   ![alt text](image-3.png)
+   ![alt text](images/5_b_1_whitelist_operator_4.png)
 
 8. Click on `Create batch` to create the transaction.
 
-   ![alt text](image-4.png)
+   ![alt text](images/5_b_1_whitelist_operator_5.png)
 
 9.  Simulate the transaction by clicking on `Simulate`
 
-   ![alt text](image-5.png)
+   ![alt text](images/5_b_1_whitelist_operator_6.png)
 
 10. If everything is correct, click on `Send batch` to send the transaction.
 
 11. Simulate the transaction, and if everything is correct, click on `Sign`.
 
-   ![alt text](image-6.png)
+   ![alt text](images/5_b_1_whitelist_operator_7.png)
 
 > [!NOTE]
 > In the `call` field, you will see `fallback`.
