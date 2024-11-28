@@ -29,8 +29,7 @@ impl BatcherMetrics {
             register_int_gauge!(opts!("open_connections_count", "Open Connections"))?;
         let received_proofs =
             register_int_counter!(opts!("received_proofs_count", "Received Proofs"))?;
-        let sent_batches =
-            register_int_counter!(opts!("sent_batches_count", "Sent Batches"))?;
+        let sent_batches = register_int_counter!(opts!("sent_batches_count", "Sent Batches"))?;
         let reverted_batches =
             register_int_counter!(opts!("reverted_batches_count", "Reverted Batches"))?;
         let canceled_batches =
