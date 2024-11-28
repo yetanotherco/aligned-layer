@@ -134,27 +134,25 @@ pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, Ba
 }
 
 /// This function tries to build a batch to be submitted to Aligned.
-/// Given a copy of the current batch queue, , and applyies an algorithm to find the biggest batch
+/// Given a COPY of the current batch queue, , and applyies an algorithm to find the biggest batch
 /// of proofs from users that are willing to pay for it:
 /// 1. Traverse each batch priority queue, starting from the one with minimum max fee.
 /// 2. Calculate the `fee_per_proof` for the whole batch and compare with the `max_fee` of the entry.
 /// 3. If `fee_per_proof` is less than the `max_fee` of the current entry, submit the batch. If not, pop this entry
-///     from the queue and push it to `resulting_priority_queue`, then repeat step 1.
+///     from the queue. then repeat step 1.
 ///
-/// `resulting_priority_queue` will be the batch queue composed of all entries that were not willing to pay for the batch.
-/// This is outputted in along with the finalized batch.
+/// Returns the finalized batch.
 pub(crate) fn try_build_batch(
     batch_queue: BatchQueue,
     gas_price: U256,
     max_batch_byte_size: usize,
     max_batch_proof_qty: usize,
-) -> Result<(BatchQueue, Vec<BatchQueueEntry>), BatcherError> {
-    let mut batch_queue = batch_queue;
-    let mut batch_size = calculate_batch_size(&batch_queue)?;
-    let mut resulting_priority_queue = BatchQueue::new();
+) -> Result<Vec<BatchQueueEntry>, BatcherError> {
+    let mut finalized_batch = batch_queue;
+    let mut batch_size = calculate_batch_size(&finalized_batch)?;
 
-    while let Some((entry, _)) = batch_queue.peek() {
-        let batch_len = batch_queue.len();
+    while let Some((entry, _)) = finalized_batch.peek() {
+        let batch_len = finalized_batch.len();
         let fee_per_proof = calculate_fee_per_proof(batch_len, gas_price);
 
         if batch_size > max_batch_byte_size
@@ -173,8 +171,7 @@ pub(crate) fn try_build_batch(
                     .len();
             batch_size -= verification_data_size;
 
-            let (not_working_entry, not_working_priority) = batch_queue.pop().unwrap();
-            resulting_priority_queue.push(not_working_entry, not_working_priority);
+            finalized_batch.pop();
 
             continue;
         }
@@ -183,16 +180,13 @@ pub(crate) fn try_build_batch(
         break;
     }
 
-    // If `batch_queue_copy` is empty, this means that all the batch queue was traversed and we didn't find
+    // If `finalized_batch` is empty, this means that all the batch queue was traversed and we didn't find
     // any user willing to pay fot the fee per proof.
-    if batch_queue.is_empty() {
+    if finalized_batch.is_empty() {
         return Err(BatcherError::BatchCostTooHigh);
     }
 
-    Ok((
-        resulting_priority_queue,
-        batch_queue.clone().into_sorted_vec(),
-    ))
+    Ok(finalized_batch.clone().into_sorted_vec())
 }
 
 fn calculate_fee_per_proof(batch_len: usize, gas_price: U256) -> U256 {
@@ -301,10 +295,7 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let (resulting_batch_queue, batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
-
-        assert!(resulting_batch_queue.is_empty());
+        let batch = try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
 
         assert_eq!(batch[0].nonced_verification_data.max_fee, max_fee_3);
         assert_eq!(batch[1].nonced_verification_data.max_fee, max_fee_2);
@@ -404,13 +395,10 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let (resulting_batch_queue, finalized_batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
 
-        // The resulting batch queue (entries from the old batch queue that were not willing to pay
-        // in this batch), should be empty and hence, all entries from the batch queue should be in
+        // All entries from the batch queue should be in
         // the finalized batch.
-        assert!(resulting_batch_queue.is_empty());
         assert_eq!(finalized_batch.len(), 3);
         assert_eq!(
             finalized_batch[0].nonced_verification_data.max_fee,
@@ -515,14 +503,10 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let (resulting_batch_queue, finalized_batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
 
-        // The resulting batch queue (entries from the old batch queue that were not willing to pay
-        // in this batch), should be empty and hence, all entries from the batch queue should be in
-        // the finalized batch.
+        // All but one entries from the batch queue should be in the finalized batch.
 
-        assert_eq!(resulting_batch_queue.len(), 1);
         assert_eq!(finalized_batch.len(), 2);
         assert_eq!(
             finalized_batch[0].nonced_verification_data.max_fee,
@@ -628,10 +612,9 @@ mod test {
         // The max batch len is 2, so the algorithm should stop at the second entry.
         let max_batch_proof_qty = 2;
 
-        let (resulting_batch_queue, finalized_batch) =
+        let finalized_batch =
             try_build_batch(batch_queue, gas_price, 5000000, max_batch_proof_qty).unwrap();
 
-        assert_eq!(resulting_batch_queue.len(), 1);
         assert_eq!(finalized_batch.len(), 2);
         assert_eq!(
             finalized_batch[0].nonced_verification_data.max_fee,
