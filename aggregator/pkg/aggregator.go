@@ -105,7 +105,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	// Telemetry
 	aggregatorTelemetry := NewTelemetry(aggregatorConfig.Aggregator.TelemetryIpPortAddress, logger)
 
-	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -134,9 +134,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		PromMetricsIpPortAddress:   ":9090",
 	}
 
-	aggregatorPrivateKey := aggregatorConfig.EcdsaConfig.PrivateKey
-
-	clients, err := sdkclients.BuildAll(chainioConfig, aggregatorPrivateKey, logger)
+	clients, err := sdkclients.BuildReadClients(chainioConfig, logger)
 	if err != nil {
 		logger.Errorf("Cannot create sdk clients", "err", err)
 		return nil, err
@@ -329,6 +327,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 		nonSignerStakesAndSignature,
 		agg.AggregatorConfig.Aggregator.GasBaseBumpPercentage,
 		agg.AggregatorConfig.Aggregator.GasBumpIncrementalPercentage,
+		agg.AggregatorConfig.Aggregator.GasBumpPercentageLimit,
 		agg.AggregatorConfig.Aggregator.TimeToWaitBeforeBump,
 		onGasPriceBumped,
 	)
@@ -394,7 +393,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
-	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, agg.AggregatorConfig.Aggregator.BlsServiceTaskTimeout)
+	err := agg.blsAggregationService.InitializeNewTaskWithWindow(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, agg.AggregatorConfig.Aggregator.BlsServiceTaskTimeout, 15*time.Second)
 	if err != nil {
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
 	}

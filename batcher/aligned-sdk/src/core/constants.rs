@@ -8,6 +8,7 @@ pub const CONSTANT_GAS_COST: u128 =
         + BATCHER_SUBMISSION_BASE_GAS_COST;
 pub const DEFAULT_MAX_FEE_PER_PROOF: u128 =
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // gas_price = 100 Gwei = 0.0000001 ether (high gas price)
+pub const CONNECTION_TIMEOUT: u64 = 5; // 5 secs
 
 // % modifiers: (100% is x1, 10% is x0.1, 1000% is x10)
 pub const RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER: u128 = 250; // fee_for_aggregator -> respondToTaskFeeLimit modifier

@@ -1,5 +1,5 @@
 use aligned_sdk::core::types::{Network, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{deposit_to_aligned, get_nonce_from_ethereum, submit_multiple};
+use aligned_sdk::sdk::{deposit_to_aligned, get_nonce_from_batcher, submit_multiple};
 use ethers::prelude::*;
 use ethers::utils::parse_ether;
 use futures_util::StreamExt;
@@ -317,15 +317,15 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
     info!("Starting senders!");
     for (i, sender) in senders.iter().enumerate() {
         // this is necessary because of the move
-        let eth_rpc_url = args.eth_rpc_url.clone();
         let batcher_url = args.batcher_url.clone();
         let wallet = sender.wallet.clone();
         let verification_data = verification_data.clone();
 
         // a thread to send tasks from each loaded wallet:
         let handle = tokio::spawn(async move {
-            let mut nonce =
-                get_nonce_from_ethereum(&eth_rpc_url, wallet.address(), args.network.into())
+            loop {
+                let mut result = Vec::with_capacity(args.burst_size);
+                let nonce = get_nonce_from_batcher(&batcher_url, wallet.address())
                     .await
                     .inspect_err(|e| {
                         error!(
@@ -335,9 +335,6 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                         )
                     })
                     .unwrap();
-
-            loop {
-                let mut result = Vec::with_capacity(args.burst_size);
                 while result.len() < args.burst_size {
                     let samples = verification_data
                         .choose_multiple(&mut thread_rng(), args.burst_size - result.len());
@@ -365,7 +362,6 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                     match aligned_verification_data {
                         Ok(_) => {
                             debug!("Response received for sender {}", i);
-                            nonce += U256::from(1);
                         }
                         Err(e) => {
                             error!(

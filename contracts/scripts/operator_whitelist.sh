@@ -10,7 +10,9 @@ cd ../
 
 # Check if the number of arguments is correct
 if [ "$#" -ne 1 ]; then
-    echo "Usage: add_operator_to_whitelist.sh <OPERATOR_ADDRESS>"
+    echo "Usage: operator_whitelist.sh <OPERATOR_ADDRESS>"
+    echo "or"
+    echo "Usage: operator_whitelist.sh <OPERATOR_ADDRESS_1,OPERATOR_ADDRESS_2,...,OPERATOR_ADDRESS_N>"
     exit 1
 fi
 
@@ -37,9 +39,9 @@ if [ -z "$PRIVATE_KEY" ]; then
     exit 1
 fi
 
-# Call the add function on the contract
+echo "Adding operators to whitelist: $@"
 cast send \
-  --rpc-url=$RPC_URL \
-  --private-key=$PRIVATE_KEY \
-  $REGISTRY_COORDINATOR 'remove(address)' \
-  $OPERATOR_ADDRESS
+    --rpc-url=$RPC_URL \
+    --private-key=$PRIVATE_KEY \
+    $REGISTRY_COORDINATOR 'add_multiple(address[])' \
+    "[$OPERATOR_ADDRESS]"
