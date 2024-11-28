@@ -1,5 +1,7 @@
 use aligned_sdk::core::types::{Network, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{deposit_to_aligned, get_nonce_from_batcher, submit_multiple};
+use aligned_sdk::sdk::{
+    compute_max_fee, deposit_to_aligned, get_nonce_from_batcher, submit_multiple,
+};
 use ethers::prelude::*;
 use ethers::utils::parse_ether;
 use futures_util::StreamExt;
@@ -249,12 +251,9 @@ struct Sender {
     wallet: Wallet<SigningKey>,
 }
 
-pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
-    if matches!(args.network.into(), Network::Holesky) {
-        error!("Network not supported this infinite proof sender");
-        return;
-    }
+pub const HOLESKY_PUBLIC_RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
 
+pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
     info!("Loading wallets");
     let mut senders = vec![];
     let Ok(eth_rpc_provider) = Provider::<Http>::try_from(args.eth_rpc_url.clone()) else {
@@ -315,6 +314,10 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
 
     let mut handles = vec![];
     info!("Starting senders!");
+    let max_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 1, 250)
+        .await
+        .unwrap();
+
     for (i, sender) in senders.iter().enumerate() {
         // this is necessary because of the move
         let batcher_url = args.batcher_url.clone();

@@ -500,8 +500,8 @@ task_sender_test_connections_devnet:
 task_sender_generate_and_fund_wallets_holesky_stage:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- generate-and-fund-wallets \
-	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
-	--network holesky-stage \
+	--eth-rpc-url https://aligned-holesky-rpc.tail665ae.ts.net \
+	--network holesky \
 	--funding-wallet-private-key $(FUNDING_WALLET_PRIVATE_KEY) \
 	--number-wallets $(NUM_WALLETS) \
 	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) \
@@ -512,9 +512,9 @@ task_sender_send_infinite_proofs_holesky_stage:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
-	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
-	--batcher-url wss://stage.batcher.alignedlayer.com  \
-	--network holesky-stage \
+	--eth-rpc-url https://aligned-holesky-rpc.tail665ae.ts.net \
+	--batcher-url wss://batcher.alignedlayer.com  \
+	--network holesky \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
 	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
 
