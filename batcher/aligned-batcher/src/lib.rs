@@ -1115,7 +1115,7 @@ impl Batcher {
     /// an empty batch, even if the block interval has been reached.
     /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
     /// `finalize_batch` function.
-    /// THIS FUNCTION SHOULD NOT REMOVE THE PROOFS FROM THE QUEUE
+    /// This function doesn't remove the proofs from the queue.
     async fn is_batch_ready(
         &self,
         block_number: u64,
