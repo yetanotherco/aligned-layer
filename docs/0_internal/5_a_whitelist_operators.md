@@ -5,6 +5,7 @@ To run the make targets specified in this guide, you must first have the relevan
 ```
 export RPC_URL=<rpc_url>
 export OUTPUT_PATH=<aligned_deployment_output_file_path>
+export PRIVATE_KEY=<registry_coordinator_owner_private_key>
 ```
 
 ## Without Multisig
@@ -50,7 +51,7 @@ make operator_remove_from_whitelist OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d0
 ### Viewing Operator Whitelist status 
 
 ```bash
-cast call --rpc-url <RPC_URL> <REGISTRY_COORDINATOR_ADDRESS> "getOperatorStatus(address)" <OPERATOR_ADDRESS>
+cast call --rpc-url <RPC_URL> <REGISTRY_COORDINATOR_ADDRESS> "isWhitelisted(address)" <OPERATOR_ADDRESS>
 ```
 
 
