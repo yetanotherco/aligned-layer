@@ -582,7 +582,9 @@ run_storage: ## Run storage using storage-docker-compose.yaml
 
 __DEPLOYMENT__: ## ____
 deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
-	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
+	@echo "Deploying Aligned Contracts on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
+
 
 deploy_pauser_registry: ## Deploy Pauser Registry
 	@echo "Deploying Pauser Registry..."
@@ -625,7 +627,8 @@ deploy_verify_batch_inclusion_caller:
 	@. examples/verify/.env && . examples/verify/scripts/deploy_verify_batch_inclusion_caller.sh
 
 deploy_batcher_payment_service: ## Deploy BatcherPayments contract. Parameters: NETWORK=<mainnet|holesky|sepolia>
-	@. contracts/scripts/.env && . contracts/scripts/deploy_batcher_payment_service.sh
+	@echo "Deploying BatcherPayments contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_batcher_payment_service.sh
 
 upgrade_batcher_payment_service: ## Upgrade BatcherPayments contract. Parameters: NETWORK=<mainnet|holesky|sepolia
 	@echo "Upgrading BatcherPayments Contract on $(NETWORK) network..."
