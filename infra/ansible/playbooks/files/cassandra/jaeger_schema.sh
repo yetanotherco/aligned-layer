@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# https://github.com/jaegertracing/jaeger/blob/main/plugin/storage/cassandra/schema/create.sh
 
 # Copyright (c) 2024 The Jaeger Authors.
 # SPDX-License-Identifier: Apache-2.0
