@@ -1,5 +1,5 @@
 # Modify Strategy Weight Multipliers Contracts
-This doc contains a guide on how to use the modify the strategy weight multipliers on Aligned.
+This doc contains a guide on how to modify the strategy weight multipliers on Aligned.
 
 To run the make targets specified in this guide, you must first have the relevant following env vars under `contracts/scripts/.env`:
 ```
