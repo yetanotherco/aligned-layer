@@ -127,7 +127,7 @@ eth_ws_url_fallback: "wss://<RPC_2>"
 
 ## Step 4 - Register Operator on AlignedLayer
 
-Then you must register as an Operator on AlignedLayer. For this run:
+Then you must register as an Operator on AlignedLayer. To do this, you must run:
 
 ```bash
 make operator_register_with_aligned_layer CONFIG_FILE=./config-files/config-operator-mainnet.yaml
