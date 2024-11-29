@@ -41,7 +41,7 @@ ALIGNED_SERVICE_MANAGER_ADDRESS=<aligned_service_manager_address>
 cast call --rpc-url <RPC_URL> $ALIGNED_SERVICE_MANAGER_ADDRESS "alignedAggregator()(address)"
 ```
 
-You should see that the returned address matches the returned address matches the address from `./contracts/script/output/<DEPLOYMENT_FOLDER>/aligned_deployment_output.json` 
+You should see that the returned address matches the address from `./contracts/script/output/<DEPLOYMENT_FOLDER>/aligned_deployment_output.json` 
 
 ## 5. Change the value of `alignedAggregator` within AlignedServiceManager.sol
 
