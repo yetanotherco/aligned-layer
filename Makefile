@@ -289,6 +289,19 @@ verifier_disable:
 	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
 	@. contracts/scripts/.env && . contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
 
+TODO finish:
+strategies_get_weight:
+	@echo "Getting strategy weight"
+	@. contracts/scripts/.env && . contracts/scripts/get_strategy_weight.sh
+
+strategies_update_weight:
+	@echo "Updating strategy weight: "
+	@. contracts/scripts/.env && . contracts/scripts/update_strategy_weight.sh
+
+strategies_remove:
+	@echo "Removing strategy with ID: $(STRATEGY_ID)"
+	@. contracts/scripts/.env && ./contracts/scripts/remove_strategy.sh
+
 __BATCHER__:
 
 BURST_SIZE ?= 5
@@ -568,8 +581,7 @@ run_storage: ## Run storage using storage-docker-compose.yaml
 
 __DEPLOYMENT__: ## ____
 deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
-	@echo "Deploying Aligned Contracts on $(NETWORK) network..."
-	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
+	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
 
 deploy_pauser_registry: ## Deploy Pauser Registry
 	@echo "Deploying Pauser Registry..."
@@ -612,8 +624,7 @@ deploy_verify_batch_inclusion_caller:
 	@. examples/verify/.env && . examples/verify/scripts/deploy_verify_batch_inclusion_caller.sh
 
 deploy_batcher_payment_service: ## Deploy BatcherPayments contract. Parameters: NETWORK=<mainnet|holesky|sepolia>
-	@echo "Deploying BatcherPayments contract on $(NETWORK) network..."
-	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_batcher_payment_service.sh
+	@. contracts/scripts/.env && . contracts/scripts/deploy_batcher_payment_service.sh
 
 upgrade_batcher_payment_service: ## Upgrade BatcherPayments contract. Parameters: NETWORK=<mainnet|holesky|sepolia
 	@echo "Upgrading BatcherPayments Contract on $(NETWORK) network..."
