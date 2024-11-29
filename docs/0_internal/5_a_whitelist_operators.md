@@ -56,4 +56,4 @@ cast call <REGISTRY_COORDINATOR_ADDRESS> "getOperatorStatus(address)" <OPERATOR_
 
 ## With Multisig
 
-To add or remove Operators from the Whitelist using a Multisig, you can follow the [next guide](./5_b_whitelist_operators_with_multisig.md).
+To add or remove Operators from the Whitelist using a Multisig, you can follow the next [guide](./5_b_1_propose_whitelist.md)
