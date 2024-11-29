@@ -1,14 +1,14 @@
-# Propose the Transaction for Whitelisting Operators using Multisig
+# Propose the Transaction for Removing Operators using Multisig
 
-If you want to Whitelist Operators, you can propose the whitelist operator transaction using the multisig wallet.
+If you want to Removing Operators, you can propose the remove operator transaction using the multisig wallet.
 
 ## Prerequisites
 
 - You need to have deployed the contracts following the [Deploy Contracts Guide](./2_deploy_contracts.md).
 
-## Propose transaction for Whitelist Operators
+## Propose transaction for Removing Operators
 
-To propose the whitelist transaction you can follow the steps below:
+To propose a remove operator from whitelist transaction you can follow the steps below:
 
 1. Go to [Safe](https://app.safe.global/home)
 
@@ -28,9 +28,9 @@ To propose the whitelist transaction you can follow the steps below:
 
    ![Use Implementation ABI](./images/5_b_3_remove_operator_4.png)
 
-If `Use Implementation ABI`, did not show up you will need to submit the call via raw calldata. Consult this this alternative [guide](./5_b_1b_propose_remove_operator_with_call_data.md)
+If `Use Implementation ABI`, did not show up you will need to submit the call via raw calldata. Consult this this alternative [guide](./5_b_3b_propose_remove_operator_with_call_data.md)
    
-6. In `contract method selector` choose `add_multiple()` in the `_addresses(address[])` field, enter the operator addresses in the following format `[<OPERATOR_ADDRESS>, ..., <OPERATOR_ADDRESS>]` for example, `[0000000000000000000000000000000000000009, 0000000000000000000000000000000000000003]`
+6. In `contract method selector` choose `remove_multiple()` in the `_addresses(address[])` field, enter the operator addresses in the following format `[<OPERATOR_ADDRESS>, ..., <OPERATOR_ADDRESS>]` for example, `[0000000000000000000000000000000000000009, 0000000000000000000000000000000000000003]`
 
    ![Choose the add_multiple()](./images/5_b_3_remove_operator_5.png)
 
@@ -40,7 +40,7 @@ If `Use Implementation ABI`, did not show up you will need to submit the call vi
 
    ![alt text](./images/5_b_3_remove_operator_6.png)
 
-8. Click on `Create batch` to create the transaction.
+8. Click on `Create Batch` to create the transaction.
 
    ![alt text](./images/5_b_3_remove_operator_7.png)
 
