@@ -180,12 +180,12 @@ The `config-telemetry.ini` contains the variables to run the Telemetry in Aligne
 
 | Variable                      | Description                                       | Testnet                                       | Stage                                              | Mainnet
 |-------------------------------|---------------------------------------------------|-----------------------------------------------|----------------------------------------------------|------------------------------------|
-| caddy_metrics_url             | Public URL for Grafana Metrics                    | `holesky.metrics.alignedlayer.com`            | `stage1.metrics.alignedlayer.com`                  | mainnet.metrics.alignedlayer.com
-| caddy_telemetry_url           | Public URL for Telemetry API                      | `holesky.metrics.alignedlayer.com`            | `stage1.telemetry.alignedlayer.com`                | mainnet.telemetry.alignedlayer.com
-| caddy_jaeger_url              | Tailscale URL for Jaeger                          | `aligned-holesky-metrics.tail665ae.ts.net`    | `aligned-holesky-stage-1-metrics.tail665ae.ts.net` | aligned-mainnet-telemetry.tail665ae.ts.net
+| caddy_metrics_url             | Public URL for Grafana Metrics                    | `holesky.metrics.alignedlayer.com`            | `stage1.metrics.alignedlayer.com`                  | `mainnet.metrics.alignedlayer.com`
+| caddy_telemetry_url           | Public URL for Telemetry API                      | `holesky.metrics.alignedlayer.com`            | `stage1.telemetry.alignedlayer.com`                | `mainnet.telemetry.alignedlayer.com`
+| caddy_jaeger_url              | Tailscale URL for Jaeger                          | `aligned-holesky-metrics.tail665ae.ts.net`    | `aligned-holesky-stage-1-metrics.tail665ae.ts.net` | `aligned-mainnet-telemetry.tail665ae.ts.net`
 | grafana_admin_password        | Password for Grafana's admin user                 | <your_grafana_admin_password>                 | <your_grafana_admin_password>                      | <your_grafana_admin_password>
 | grafana_prometheus_datasource | Prometheus location for Grafana to pull data from | localhost                                     | localhost                                          | localhost
-| grafana_domain                | Public URL for Grafana Metrics                    | `holesky.metrics.alignedlayer.com`            | `stage1.metrics.alignedlayer.com`                  | mainnet.metrics.alignedlayer.com
+| grafana_domain                | Public URL for Grafana Metrics                    | `holesky.metrics.alignedlayer.com`            | `stage1.metrics.alignedlayer.com`                  | `mainnet.metrics.alignedlayer.com`
 | grafana_oath_client_id        | Generic OAuth Client ID                           | <your_oauth_client_id>                        | <your_oauth_client_id>                             | <your_oauth_client_id>
 | grafana_oath_client_secret    | Generic OAuth Client Secret                       | <your_oauth_client_secret>                    | <your_oauth_client_secret>                         | <your_oauth_client_secret>
 | grafana_oath_auth_url         | Generic OAuth Auth URL                            | <your_oauth_auth_url>                         | <your_oauth_auth_url>                              | <your_oauth_auth_url>        
@@ -200,9 +200,9 @@ The `config-telemetry.ini` contains the variables to run the Telemetry in Aligne
 | postgresql_telemetry_pass     | Postgres Username's Password                      | <your_postgres_db_password>                   | <your_postgres_db_password>                        | <your_postgres_db_password>
 | cassandra_telemetry_user      | Cassandra Username                                | <your_cassandra_db_name>                      | <your_cassandra_db_name>                           | <your_cassandra_db_name>
 | cassandra_telemetry_pass      | Cassandra Username's Password                     | <your_cassandra_db_password>                  | <your_cassandra_db_password>                       | <your_cassandra_db_password>
-| telemetry_aligned_rpc         | HTTP ETH RPC URL                                  | `https://aligned-rpc-node-2.tail665ae.ts.net` | `https://aligned-rpc-node-2.tail665ae.ts.net`      | https://aligned-mainnet-rpc-1.tail665ae.ts.net
-| telemetry_api_phx_host        | Telemetry API Elixir's Phoenix host for           | `holesky.telemetry.alignedlayer.com`          | `stage1.telemetry.alignedlayer.com`                | mainnet.metrics.alignedlayer.com
-| telemetry_api_elixir_hostname | Telemetry API Server's Hostname                   | `aligned-holesky-metrics`                     | `aligned-holesky-stage-1-telemetry`                | aligned-mainnet-telemetry
+| telemetry_aligned_rpc         | HTTP ETH RPC URL                                  | `https://aligned-rpc-node-2.tail665ae.ts.net` | `https://aligned-rpc-node-2.tail665ae.ts.net`      | `https://aligned-mainnet-rpc-1.tail665ae.ts.net`
+| telemetry_api_phx_host        | Telemetry API Elixir's Phoenix host for           | `holesky.telemetry.alignedlayer.com`          | `stage1.telemetry.alignedlayer.com`                | `mainnet.metrics.alignedlayer.com`
+| telemetry_api_elixir_hostname | Telemetry API Server's Hostname                   | `aligned-holesky-metrics`                     | `aligned-holesky-stage-1-telemetry`                | `aligned-mainnet-telemetry`
 | telemetry_api_secret_key_base | Telemetry API Secret Key Base                     | <your_secret_key_base>                        | <your_secret_key_base>                             | <your_secret_key_base>
 | pagerduty_routing_key         | Pagerduty Routing Key                             | <your_pagerduty_routing_key>                  | <your_pagerduty_routing_key>                       | <your_pagerduty_routing_key>
 
