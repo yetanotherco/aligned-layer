@@ -271,6 +271,11 @@ operator_register_with_aligned_layer:
 
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
+operator_register_with_aligned_layer:
+	@echo "Registering operator with AlignedLayer"
+	@go run operator/cmd/main.go register \
+       --config $(CONFIG_FILE)
+
 
 # The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.
 verifier_enable_devnet:
