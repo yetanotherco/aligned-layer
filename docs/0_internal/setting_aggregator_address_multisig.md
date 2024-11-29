@@ -1,6 +1,6 @@
 # Propose the Transaction for Setting Aggregator Address using Multisig
 
-If you want to unpause the contracts, you can propose the unpause transaction using the multisig wallet.
+If you want to set the Aggregator Address, you can propose the set Aggregator Address transaction using the multisig wallet.
 
 ## Prerequisites
 
