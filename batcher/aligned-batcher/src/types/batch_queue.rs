@@ -134,7 +134,7 @@ pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, Ba
 }
 
 /// This function tries to build a batch to be submitted to Aligned.
-/// Given a COPY of the current batch queue, , and applyies an algorithm to find the biggest batch
+/// Given the current batch queue applies the following algorithm to find the biggest batch
 /// of proofs from users that are willing to pay for it:
 /// 1. Traverse each batch priority queue, starting from the one with minimum max fee.
 /// 2. Calculate the `fee_per_proof` for the whole batch and compare with the `max_fee` of the entry.
@@ -295,11 +295,20 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let batch = try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
 
-        assert_eq!(batch[0].nonced_verification_data.max_fee, max_fee_3);
-        assert_eq!(batch[1].nonced_verification_data.max_fee, max_fee_2);
-        assert_eq!(batch[2].nonced_verification_data.max_fee, max_fee_1);
+        assert_eq!(
+            finalized_batch[0].nonced_verification_data.max_fee,
+            max_fee_3
+        );
+        assert_eq!(
+            finalized_batch[1].nonced_verification_data.max_fee,
+            max_fee_2
+        );
+        assert_eq!(
+            finalized_batch[2].nonced_verification_data.max_fee,
+            max_fee_1
+        );
     }
 
     #[test]
@@ -395,10 +404,11 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let finalized_batch = try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(batch_queue.clone(), gas_price, 5000000, 50).unwrap();
 
         // All entries from the batch queue should be in
         // the finalized batch.
+        assert_eq!(batch_queue.len(), 3);
         assert_eq!(finalized_batch.len(), 3);
         assert_eq!(
             finalized_batch[0].nonced_verification_data.max_fee,
@@ -503,10 +513,10 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let finalized_batch = try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(batch_queue.clone(), gas_price, 5000000, 50).unwrap();
 
         // All but one entries from the batch queue should be in the finalized batch.
-
+        assert_eq!(batch_queue.len(), 3);
         assert_eq!(finalized_batch.len(), 2);
         assert_eq!(
             finalized_batch[0].nonced_verification_data.max_fee,
@@ -613,8 +623,9 @@ mod test {
         let max_batch_proof_qty = 2;
 
         let finalized_batch =
-            try_build_batch(batch_queue, gas_price, 5000000, max_batch_proof_qty).unwrap();
+            try_build_batch(batch_queue.clone(), gas_price, 5000000, max_batch_proof_qty).unwrap();
 
+        assert_eq!(batch_queue.len(), 3);
         assert_eq!(finalized_batch.len(), 2);
         assert_eq!(
             finalized_batch[0].nonced_verification_data.max_fee,
