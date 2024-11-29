@@ -18,7 +18,7 @@ To propose the set aggregator address transaction you can follow the steps below
 
    ![Transaction Builder](./images/set_aggregator_address_2.png)
 
-3. . Get the `AlignedLayerServiceManager` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
+3. Get the `AlignedLayerServiceManager` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
 
 4. Paste the `AlignedLayerServiceManager` address on `Enter Address or ENS Name`
 
@@ -28,7 +28,7 @@ To propose the set aggregator address transaction you can follow the steps below
 
    ![Use Implementation ABI](./images/set_aggregator_address_4.png)
 
-6. In `contract method selector` choose `setAggregator()` and within `_alignedAggregator(address)` enter the ethereum address of the aggregator.
+6. In `contract method selector` choose `setAggregator()` and within `_alignedAggregator(address)` enter the ethereum new address of the aggregator.
 
    ![Choose set_aggregator](./images/set_aggregator_address_5.png)
 
