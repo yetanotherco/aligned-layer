@@ -3,9 +3,9 @@ This doc contains a guide on how to Whitelist Operators in Aligned.
 
 To run the make targets specified in this guide, you must first have the relevant following env vars under `contracts/scripts/.env`:
 ```
-export RPC_URL=<rpc_url>
-export OUTPUT_PATH=<aligned_deployment_output_file_path>
-export PRIVATE_KEY=<registry_coordinator_owner_private_key>
+RPC_URL=<rpc_url>
+OUTPUT_PATH=<aligned_deployment_output_file_path>
+PRIVATE_KEY=<registry_coordinator_owner_private_key>
 ```
 
 ## Without Multisig
