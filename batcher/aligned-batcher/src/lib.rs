@@ -1124,7 +1124,7 @@ impl Batcher {
         let mut batch_state_lock = self.batch_state.lock().await;
         let current_batch_len = batch_state_lock.batch_queue.len();
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
-        let min_len = 1;
+        let min_len = 2;
 
         if current_batch_len < min_len {
             info!(
