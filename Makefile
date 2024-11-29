@@ -602,7 +602,7 @@ upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
 
-set_aggregator_address: ## Add Aggregator to Aligned Contracts
+set_aggregator_address:
 	@echo "Setting Aggregator Address in Aligned Service Manager Contract on $(NETWORK) network..."
 	@echo "Aggregator address: $(AGGREGATOR_ADDRESS)"
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/set_aggregator_address.sh $(AGGREGATOR_ADDRESS)
