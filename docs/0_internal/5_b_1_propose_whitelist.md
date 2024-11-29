@@ -8,7 +8,7 @@ If you want to Whitelist Operators, you can propose the whitelist operator trans
 
 ## Propose transaction for Whitelist Operators
 
-To propose the pause transaction you can follow the steps below:
+To propose the whitelist transaction you can follow the steps below:
 
 1. Go to [Safe](https://app.safe.global/home)
 
