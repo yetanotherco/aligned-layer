@@ -1125,11 +1125,8 @@ impl Batcher {
         let current_batch_len = batch_state_lock.batch_queue.len();
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
-        if current_batch_len < 1 {
-            info!(
-                "Current batch has {} proofs. Waiting for more proofs...",
-                current_batch_len
-            );
+        if current_batch_len == 0 {
+            info!("Batch queue is empty. Waiting for more proofs...",);
             return None;
         }
 
