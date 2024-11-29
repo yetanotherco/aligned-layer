@@ -22,10 +22,35 @@
   vars:
     service: "explorer"
 
-  tasks:
+  pre_tasks:
+
+    - name: Install pnpm
+      ansible.builtin.shell:
+        cmd: npm install -g pnpm
 
     - name: Clone the aligned_layer repository
+      register: clone_repo
       ansible.builtin.git:
         repo: https://github.com/yetanotherco/aligned_layer
         dest: "{{ ansible_env.HOME }}/aligned_layer"
         update: yes
+
+
+  tasks:
+
+    - name: Build the explorer release
+      args:
+        chdir: "{{ clone_repo.git_dir_now }}"
+      environment:
+        MIX_ENV: prod
+      ansible.builtin.shell:
+        cmd: |
+          set -ex
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get --only $MIX_ENV
+          mix compile
+          pnpm --prefix=assets/ install
+          mix phx.digest
+          mix assets.deploy
+          mix release
