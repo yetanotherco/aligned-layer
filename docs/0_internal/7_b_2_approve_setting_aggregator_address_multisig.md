@@ -14,16 +14,16 @@ Once the transaction is proposed, the multisig owners must approve the transacti
 cast calldata "setAggregator(address)()" <NEW_AGGREGATOR_ADDRESS>
 ```
    
-1. Click on the transaction, and then click on ```Advanced Details```.
+4. Click on the transaction, and then click on ```Advanced Details```.
 
     ![Check details](images/7_b_2_set_aggregator_address_1.png)
 
-2. Copy the ```Raw Data```, paste it in a text editor and verify it is the same value as the one you got in step 3.
+5. Copy the ```Raw Data```, paste it in a text editor and verify it is the same value as the one you got in step 3.
 
-3. If the data is correct, click on the `Confirm` button.
+6. If the data is correct, click on the `Confirm` button.
 
-4. Simulate the transaction. If everything is correct, click on the `Sign` button (or `Execute`, if you are the last one signing the transaction).
+7. Simulate the transaction. If everything is correct, click on the `Sign` button (or `Execute`, if you are the last one signing the transaction).
 
    ![Sign transaction](images/7_b_2_set_aggregator_address_2.png)
 
-5. Once the transaction is executed, the change will be effective.
+8. Once the transaction is executed, the change will be effective.
