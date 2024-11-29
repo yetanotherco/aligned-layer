@@ -28,9 +28,9 @@ To propose the whitelist transaction you can follow the steps below:
 
    ![Use Implementation ABI](./images/5_b_1_whitelist_operator_4.png)
 
-If `Use Implementation ABI`, did not show up you will need to submit the call via raw calldata. Consult this this alternative [guide](./5_b_1b_propose_whitelist_with_call_data.md)
+If `Use Implementation ABI`, did not show up you will need to submit the call via raw calldata. Consult this alternative [guide](./5_b_1b_propose_whitelist_with_call_data.md)
    
-6. In `contract method selector` choose `add_multiple()` in the `_addresses(address[])` field, enter the operator addresses in the following format `[<OPERATOR_ADDRESS>, ..., <OPERATOR_ADDRESS>]` for example, `[0000000000000000000000000000000000000009, 0000000000000000000000000000000000000003]`
+6. In `Contract Method Selector` choose `add_multiple()` in the `_addresses(address[])` field, enter the operator addresses in the following format `[<OPERATOR_ADDRESS>, ..., <OPERATOR_ADDRESS>]` for example, `[0000000000000000000000000000000000000009, 0000000000000000000000000000000000000003]`
 
    ![Choose the add_multiple()](./images/5_b_1_whitelist_operator_5.png)
 

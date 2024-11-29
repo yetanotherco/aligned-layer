@@ -34,13 +34,13 @@ In this guide we add and remove Operators from Aligned's Whitelist using a multi
     foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
     ```
 
-## Steps for Pausing
+## Steps for Whitelisting an Operator
 
 1. Propose the transaction with the multisig following the [Propose Whitelist Guide](./5_b_1_propose_whitelist.md).
 
 2. After the Whitelist is proposed, multisig participants can approve the whitelist transaction following the [Approve Whitelist Guide](./5_b_2_approve_whitelist.md).
 
-## Steps for Unpausing
+## Steps for Removing an Operator
 
 1. Propose the transaction with the multisig following the [Propose Remove Whitelist Guide](./5_b_3_propose_remove_whitelist.md).
 
