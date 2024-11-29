@@ -607,7 +607,7 @@ set_aggregator_address:
 	@echo "Aggregator address: $(AGGREGATOR_ADDRESS)"
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/set_aggregator_address.sh $(AGGREGATOR_ADDRESS)
 
-set_aggregator_address_devnet: ## Add Aggregator to Aligned Contracts
+set_aggregator_address_devnet:
 	@echo "Setting Aggregator Address in Aligned Service Manager Contract..."
 	@echo "Aggregator address: $(AGGREGATOR_ADDRESS)"
 	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/set_aggregator_address.sh $(AGGREGATOR_ADDRESS)
