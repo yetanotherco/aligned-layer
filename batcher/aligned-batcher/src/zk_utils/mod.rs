@@ -34,11 +34,7 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
 
             let mut image_id = [0u8; 32];
             image_id.copy_from_slice(image_id_slice.as_slice());
-            verify_risc_zero_proof(
-                verification_data.proof.as_slice(),
-                &image_id,
-                &pub_input,
-            )
+            verify_risc_zero_proof(verification_data.proof.as_slice(), &image_id, &pub_input)
         }
         ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
