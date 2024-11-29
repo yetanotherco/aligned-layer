@@ -31,7 +31,7 @@ The address of Aligned Service Manager can be found in `./contracts/script/outpu
 To run the make targets specified in this guide, you must first set the following env vars within `./contracts/scripts/.env.<NETWORK>`:
 ```
 RPC_URL=<rpc_url>
-PRIVATE_KEY=<aligned_service_manager_pauser_private_key>
+PRIVATE_KEY=<aligned_service_manager_owner_private_key>
 ALIGNED_SERVICE_MANAGER_ADDRESS=<aligned_service_manager_address>
 ```
 
