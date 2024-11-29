@@ -48,7 +48,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
-use types::errors::BatcherError;
+use types::errors::{BatcherError, TransactionSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::telemetry::sender::TelemetrySender;
@@ -1116,12 +1116,13 @@ impl Batcher {
     /// an empty batch, even if the block interval has been reached.
     /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
     /// `finalize_batch` function.
+    /// This function doesn't remove the proofs from the queue.
     async fn is_batch_ready(
         &self,
         block_number: u64,
         gas_price: U256,
     ) -> Option<Vec<BatchQueueEntry>> {
-        let mut batch_state_lock = self.batch_state.lock().await;
+        let batch_state_lock = self.batch_state.lock().await;
         let current_batch_len = batch_state_lock.batch_queue.len();
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
@@ -1153,7 +1154,7 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
         let batch_queue_copy = batch_state_lock.batch_queue.clone();
-        let (resulting_batch_queue, finalized_batch) = batch_queue::try_build_batch(
+        let finalized_batch = batch_queue::try_build_batch(
             batch_queue_copy,
             gas_price,
             self.max_batch_byte_size,
@@ -1173,7 +1174,26 @@ impl Batcher {
         })
         .ok()?;
 
-        batch_state_lock.batch_queue = resulting_batch_queue;
+        Some(finalized_batch)
+    }
+
+    /// Takes the submitted proofs and removes them from the queue.
+    /// This function should be called only AFTER the submission was confirmed onchain
+    async fn remove_proofs_from_queue(
+        &self,
+        finalized_batch: Vec<BatchQueueEntry>,
+    ) -> Result<(), BatcherError> {
+        info!("Removing proofs from queue...");
+        let mut batch_state_lock = self.batch_state.lock().await;
+
+        finalized_batch.iter().for_each(|entry| {
+            if batch_state_lock.batch_queue.remove(entry).is_none() {
+                // If this happens, we have a bug in our code
+                error!("Some proofs were not found in the queue. This should not happen.");
+            }
+        });
+
+        // now we calculate the new user_states
         let new_user_states = // proofs, max_fee_limit, total_fees_in_queue
             batch_state_lock.calculate_new_user_states_data();
 
@@ -1189,17 +1209,33 @@ impl Batcher {
             // informative error.
 
             // Now we update the user states related to the batch (proof count in batch and min fee in batch)
-            batch_state_lock.update_user_proof_count(addr, *proof_count)?;
-            batch_state_lock.update_user_max_fee_limit(addr, *max_fee_limit)?;
-            batch_state_lock.update_user_total_fees_in_queue(addr, *total_fees_in_queue)?;
+            batch_state_lock
+                .update_user_proof_count(addr, *proof_count)
+                .ok_or(BatcherError::QueueRemoveError(
+                    "Could not update_user_proof_count".into(),
+                ))?;
+            batch_state_lock
+                .update_user_max_fee_limit(addr, *max_fee_limit)
+                .ok_or(BatcherError::QueueRemoveError(
+                    "Could not update_user_max_fee_limit".into(),
+                ))?;
+            batch_state_lock
+                .update_user_total_fees_in_queue(addr, *total_fees_in_queue)
+                .ok_or(BatcherError::QueueRemoveError(
+                    "Could not update_user_total_fees_in_queue".into(),
+                ))?;
         }
 
-        Some(finalized_batch)
+        Ok(())
     }
 
-    /// Takes the finalized batch as input and builds the merkle tree, posts verification data batch
-    /// to s3, creates new task in Aligned contract and sends responses to all clients that added proofs
-    /// to the batch. The last uploaded batch block is updated once the task is created in Aligned.
+    /// Takes the finalized batch as input and:
+    ///     builds the merkle tree
+    ///     posts verification data batch to s3
+    ///     creates new task in Aligned contract
+    ///     removes the proofs from the queue, once they are succesfully submitted on-chain
+    ///     sends responses to all clients that added proofs to the batch.
+    /// The last uploaded batch block is updated once the task is created in Aligned.
     async fn finalize_batch(
         &self,
         block_number: u64,
@@ -1257,6 +1293,7 @@ impl Batcher {
             warn!("Failed to initialize task trace on telemetry: {:?}", e);
         }
 
+        // Here we submit the batch on-chain
         if let Err(e) = self
             .submit_batch(
                 &batch_bytes,
@@ -1275,26 +1312,29 @@ impl Batcher {
             {
                 warn!("Failed to send task status to telemetry: {:?}", e);
             }
-            for entry in finalized_batch.into_iter() {
-                if let Some(ws_sink) = entry.messaging_sink {
-                    let merkle_root = hex::encode(batch_merkle_tree.root);
-                    send_message(
-                        ws_sink.clone(),
-                        SubmitProofResponseMessage::CreateNewTaskError(
-                            merkle_root,
-                            format!("{:?}", e),
-                        ),
-                    )
-                    .await
-                } else {
-                    warn!("Websocket sink was found empty. This should only happen in tests");
+
+            // decide if i want to flush the queue:
+            match e {
+                BatcherError::TransactionSendError(
+                    TransactionSendError::SubmissionInsufficientBalance,
+                ) => {
+                    // TODO calling remove_proofs_from_queue here is a better solution, flushing only the failed batch
+                    // this would also need a message sent to the clients
+                    self.flush_queue_and_clear_nonce_cache().await;
+                }
+                _ => {
+                    // Add more cases here if we want in the future
                 }
             }
 
-            self.flush_queue_and_clear_nonce_cache().await;
-
             return Err(e);
         };
+
+        // Once the submit is succesfull, we remove the submitted proofs from the queue
+        // TODO handle error case:
+        if let Err(e) = self.remove_proofs_from_queue(finalized_batch.clone()).await {
+            error!("Unexpected error while updating queue: {:?}", e);
+        }
 
         connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
