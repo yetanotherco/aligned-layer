@@ -53,3 +53,10 @@ To propose the set aggregator address transaction you can follow the steps below
 > [!NOTE]
 > In the `call` field, you will see `fallback`.
 12. Wait for the transaction to be executed. You can check the transaction status on the `Transactions` tab.
+
+13. Verify the Aligned Aggreagtor Address has changed
+```
+cast call --rpc-url <RPC_URL> $ALIGNED_SERVICE_MANAGER_ADDRESS "alignedAggregator()(address)" 
+```
+
+You should observe that the printed address matches the address in `AGGREGATOR_ADDRESS`.
