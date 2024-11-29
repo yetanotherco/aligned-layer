@@ -43,8 +43,6 @@ STAKE_REGISTRY=$(jq -r '.addresses.stakeRegistry' "$OUTPUT_PATH")
 
 QUORUM_NUMER=0x0 #Aligned has only 1 quorum for now
 
-echo $STAKE_REGISTRY
-
 cast call $STAKE_REGISTRY "strategyParamsByIndex(uint8,uint256)((address,uint96))" $QUORUM_NUMER $STRATEGY_INDEX --rpc-url $RPC_URL
 
 # Expected output:

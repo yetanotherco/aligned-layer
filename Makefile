@@ -303,6 +303,10 @@ strategies_remove:
 	@echo "Removing strategies: $(INDICES_TO_REMOVE)"
 	@. contracts/scripts/.env && . contracts/scripts/remove_strategy.sh $(INDICES_TO_REMOVE)
 
+strategies_get_addresses:
+	@echo "Getting strategy addresses"
+	@. contracts/scripts/.env && . contracts/scripts/get_restakeable_strategies.sh
+
 __BATCHER__:
 
 BURST_SIZE ?= 5
@@ -584,7 +588,6 @@ __DEPLOYMENT__: ## ____
 deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
 	@echo "Deploying Aligned Contracts on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
-
 
 deploy_pauser_registry: ## Deploy Pauser Registry
 	@echo "Deploying Pauser Registry..."
