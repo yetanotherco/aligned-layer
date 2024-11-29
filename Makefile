@@ -4,7 +4,6 @@ SHELL := /bin/bash
 OS := $(shell uname -s)
 
 CONFIG_FILE?=config-files/config.yaml
-OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
 OPERATOR_VERSION=v0.12.0
@@ -160,7 +159,7 @@ operator_start:
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
-operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
+operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet_default operator_register_with_aligned_layer
 
 operator_register_and_start: operator_full_registration operator_start
 
@@ -229,10 +228,16 @@ operator_mint_mock_tokens:
 	@echo "Minting tokens"
 	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 100000000000000000
 
+operator_whitelist_devnet_default:
+	@echo "Whitelisting operator"
+	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
+	@echo "Operator address: $(OPERATOR_ADDRESS)"
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
+
 operator_whitelist_devnet:
 	@echo "Whitelisting operator"
 	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
+    RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
 
 operator_remove_from_whitelist_devnet:
 	@echo "Removing operator"
