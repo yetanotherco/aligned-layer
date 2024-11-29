@@ -38,7 +38,7 @@ To propose the set aggregator address transaction you can follow the steps below
 
 8. Click on `Create batch` to create the transaction.
 
-   ![Choose pause](./images/set_aggregator_address_6.png)
+   ![Set Aggregator](./images/set_aggregator_address_6.png)
 
 9. Simulate the transaction by clicking on `Simulate`
 
