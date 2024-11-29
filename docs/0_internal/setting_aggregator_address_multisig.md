@@ -30,7 +30,7 @@ To propose the set aggregator address transaction you can follow the steps below
 
 6. In `contract method selector` choose `setAggregator()` and within `_alignedAggregator(address)` enter the ethereum address of the aggregator.
 
-   ![Choose pause](./images/set_aggregator_address_5.png)
+   ![Choose set_aggregator](./images/set_aggregator_address_5.png)
 
 7. Click on `+ Add new transaction`
 
@@ -38,7 +38,7 @@ To propose the set aggregator address transaction you can follow the steps below
 
 8. Click on `Create batch` to create the transaction.
 
-   ![Set Aggregator](./images/set_aggregator_address_6.png)
+   ![create batch](./images/set_aggregator_address_6.png)
 
 9. Simulate the transaction by clicking on `Simulate`
 
