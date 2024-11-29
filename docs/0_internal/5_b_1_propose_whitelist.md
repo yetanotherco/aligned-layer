@@ -20,31 +20,19 @@ To propose the pause transaction you can follow the steps below:
 
 3. Get the `registryCoordinator` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
 
-4. Generate the call data for function to white list an operator ```add_multiple(address[])``` by running:
+4. Paste the `registryCoordinator` address on `Enter Address or ENS Name`
+
+   ![](./images/5_b_1_whitelist_operator_3.png)
+
+5. As this is a Proxy contract, choose `Use Implementation ABI`
+
+   ![Use Implementation ABI](./images/5_b_1_whitelist_operator_4.png)
+
+If `Use Implementation ABI`, did not show up you will need to submit the call via raw calldata. Consult this this alternative [guide](./5_b_1b_propose_whitelist_with_call_data.md)
    
-   ```bash
-   cast calldata "add_multiple(address[])" "[<OPERATOR_ADDRESS>, ...]"
-   ```
-   
-   For example:
-   ```bash
-   cast calldata "add_multiple(address[])" "[0x0000000000000000000000000000000000000009, 0x0000000000000000000000000000000000000003]"
-   ```
-   will display ```0x6c7089040000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000090000000000000000000000000000000000000000000000000000000000000003```
+6. In `contract method selector` choose `add_multiple()` in the `_addresses(address[])` field, enter the operator addresses in the following format `[<OPERATOR_ADDRESS>, ..., <OPERATOR_ADDRESS>]` for example, `[0000000000000000000000000000000000000009, 0000000000000000000000000000000000000003]`
 
-   Confirm the calldata starts with the correct function identifier ```0x6c708904```.
-
-5. Paste the `registryCoordinator` address on `Enter Address or ENS Name`
-
-   ![alt text](./images/5_b_1_whitelist_operator_3.png)
-
- , and turn on the `Custom Data` flag.
-
-   ![alt text](./images/5_b_1_whitelist_operator_4.png)
-
-6. In `Data` field paste the previously generated call data from step 4. Also check the `To Address` is the correct `registryCoordinator` address, and the `ETH value` should be set to `0`.
-
-   ![alt text](./images/5_b_1_whitelist_operator_5.png) 
+   ![Choose the add_multiple()](./images/5_b_1_whitelist_operator_5.png)
 
 7. Click on `+ Add new transaction`
 
