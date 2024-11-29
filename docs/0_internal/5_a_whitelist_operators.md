@@ -50,7 +50,7 @@ make operator_remove_from_whitelist OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d0
 ### Viewing Operator Whitelist status 
 
 ```bash
-cast call <REGISTRY_COORDINATOR_ADDRESS> "getOperatorStatus(address)" <OPERATOR_ADDRESS>
+cast call --rpc-url <RPC_URL> <REGISTRY_COORDINATOR_ADDRESS> "getOperatorStatus(address)" <OPERATOR_ADDRESS>
 ```
 
 
