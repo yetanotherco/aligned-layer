@@ -18,38 +18,53 @@ To propose the pause transaction you can follow the steps below:
 
    ![Transaction Builder](./images/5_b_1_whitelist_operator_2.png)
 
-3. . Get the `registryCoordinator` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
+3. Get the `registryCoordinator` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
 
-4. Paste the `registryCoordinator` address on `Enter Address or ENS Name` , and turn on the `Custom Data` flag.
+4. Generate the call data for function to white list an operator ```add_multiple(address[])``` by running:
+   
+   ```bash
+   cast calldata "add_multiple(address[])" "[<OPERATOR_ADDRESS>, ...]"
+   ```
+   
+   For example:
+   ```bash
+   cast calldata "add_multiple(address[])" "[0x0000000000000000000000000000000000000009, 0x0000000000000000000000000000000000000003]"
+   ```
+   will display ```0x6c7089040000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000090000000000000000000000000000000000000000000000000000000000000003```
 
-   ![alt text](5_b_1_whitelist_operator_3.png)
+   Confirm the calldata starts with the correct function identifier ```0x6c708904```.
 
-5. In `Data` field paste the Data generated previously. Also check the `To Address` is the correct `registryCoordinator` address, and the `ETH value`
+5. Paste the `registryCoordinator` address on `Enter Address or ENS Name`
 
-   ![alt text](5_b_1_whitelist_operator_4.png) 
+   ![alt text](./images/5_b_1_whitelist_operator_3.png)
+
+ , and turn on the `Custom Data` flag.
+
+   ![alt text](./images/5_b_1_whitelist_operator_4.png)
+
+6. In `Data` field paste the previously generated call data from step 4. Also check the `To Address` is the correct `registryCoordinator` address, and the `ETH value` should be set to `0`.
+
+   ![alt text](./images/5_b_1_whitelist_operator_5.png) 
 
 7. Click on `+ Add new transaction`
 
    You should see the new transaction to be executed
 
-   ![alt text](images/5_b_1_whitelist_operator_4.png)
+   ![alt text](./images/5_b_1_whitelist_operator_6.png)
 
 8. Click on `Create batch` to create the transaction.
 
-   ![alt text](images/5_b_1_whitelist_operator_5.png)
+   ![alt text](./images/5_b_1_whitelist_operator_7.png)
 
 9.  Simulate the transaction by clicking on `Simulate`
 
-   ![alt text](images/5_b_1_whitelist_operator_6.png)
+   ![alt text](./images/5_b_1_whitelist_operator_8.png)
 
 10. If everything is correct, click on `Send batch` to send the transaction.
 
 11. Simulate the transaction, and if everything is correct, click on `Sign`.
 
-   ![alt text](images/5_b_1_whitelist_operator_7.png)
-
-> [!NOTE]
-> In the `call` field, you will see `fallback`.
+   ![alt text](./images/5_b_1_whitelist_operator_9.png)
 
 12. Wait for the transaction to be executed. You can check the transaction status on the `Transactions` tab.
 
