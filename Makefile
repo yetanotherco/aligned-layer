@@ -301,7 +301,7 @@ strategies_update_weight:
 
 strategies_remove:
 	@echo "Removing strategies: $(INDICES_TO_REMOVE)"
-	@. contracts/scripts/.env && ./contracts/scripts/remove_strategy.sh $(INDICES_TO_REMOVE)
+	@. contracts/scripts/.env && . contracts/scripts/remove_strategy.sh $(INDICES_TO_REMOVE)
 
 __BATCHER__:
 
