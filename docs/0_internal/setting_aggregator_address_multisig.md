@@ -6,7 +6,7 @@ If you want to set the Aggregator Address, you can propose the set Aggregator Ad
 
 - You need to have deployed the contracts following the [Deploy Contracts Guide](./2_deploy_contracts.md).
 
-## Propose transaction for UnPause AlignedLayerServiceManager
+## Propose transaction for Set Aggregator Address
 
 To propose the set aggregator address transaction you can follow the steps below:
 
