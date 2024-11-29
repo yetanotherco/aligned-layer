@@ -93,8 +93,7 @@
     ansible.builtin.git:
       repo: https://github.com/yetanotherco/aligned_layer.git
       dest: /home/{{ ansible_user }}/repos/telemetry/aligned_layer
-      #version: v0.12.0
-      version: staging
+      version: v0.12.1
       recursive: false
 
   - name: Run telemetry_compile_bls_verifier target
