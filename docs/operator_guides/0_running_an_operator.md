@@ -95,7 +95,7 @@ The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, 
 
 {% hint style="danger" %}
 
-Don't keep the Operator Key in the Aligned Operator Node
+Don't keep the Operator Key in the Aligned Operator Node. If you already registered, don't use it. If you need to register, delete it after step 4.
 
 {% endhint %}
 
@@ -132,6 +132,11 @@ Then you must register as an Operator on AlignedLayer. To do this, you must run:
 ```bash
 make operator_register_with_aligned_layer CONFIG_FILE=./config-files/config-operator-mainnet.yaml
 ```
+
+{% hint style="danger" %}
+If you are going to run the server in this machine, 
+delete the operator key
+{% endhint %}
 
 ## Step 5 - Start the operator
 
