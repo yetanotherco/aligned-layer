@@ -53,4 +53,4 @@ Note: Aligned currently only has `quorumNumber: 0`, and you will replace `strate
 
 12. Wait for the transaction to be executed. You can check the transaction status on the `Transactions` tab.
 
-If the transaction is correctly created, you have to wait until the required Multisig member signs the transaction to send it. For this, you can follow [the following guide](./4_b_2_approve_pause.md)
+If the transaction is correctly created, you have to wait until the required Multisig member signs the transaction to send it. For this, you can follow [the following guide](./6_b_2_approve_modify_strategies.md)
