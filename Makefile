@@ -289,18 +289,19 @@ verifier_disable:
 	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
 	@. contracts/scripts/.env && . contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
 
-TODO finish:
 strategies_get_weight:
-	@echo "Getting strategy weight"
-	@. contracts/scripts/.env && . contracts/scripts/get_strategy_weight.sh
+	@echo "Getting weight of strategy: $(STRATEGY_INDEX)"
+	@. contracts/scripts/.env && . contracts/scripts/get_strategy_weight.sh $(STRATEGY_INDEX)
 
 strategies_update_weight:
-	@echo "Updating strategy weight: "
-	@. contracts/scripts/.env && . contracts/scripts/update_strategy_weight.sh
+	@echo "Updating strategy weights: "
+	@echo "STRATEGY_INDICES: $(STRATEGY_INDICES)"
+	@echo "NEW_MULTIPLIERS: $(NEW_MULTIPLIERS)"
+	@. contracts/scripts/.env && . contracts/scripts/update_strategy_weight.sh $(STRATEGY_INDICES) $(NEW_MULTIPLIERS)
 
 strategies_remove:
-	@echo "Removing strategy with ID: $(STRATEGY_ID)"
-	@. contracts/scripts/.env && ./contracts/scripts/remove_strategy.sh
+	@echo "Removing strategies: $(INDICES_TO_REMOVE)"
+	@. contracts/scripts/.env && ./contracts/scripts/remove_strategy.sh $(INDICES_TO_REMOVE)
 
 __BATCHER__:
 

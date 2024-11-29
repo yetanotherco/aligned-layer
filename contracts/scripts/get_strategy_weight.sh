@@ -1,5 +1,20 @@
 #!/bin/bash
 
+# cd to the directory of this script so that this can be run from anywhere
+parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+# At this point we are in contracts/scripts
+cd "$parent_path"
+
+# At this point we are in contracts
+cd ../
+
+if [ "$#" -ne 1 ]; then
+  echo "Error: 1 arguments is required, STRATEGY_INDEX"
+  exit 1
+fi
+
+STRATEGY_INDEX=$1
+
 if [ -z "$OUTPUT_PATH" ]; then
     echo "OUTPUT_PATH env var is not set"
     exit 1
@@ -27,11 +42,10 @@ STAKE_REGISTRY=$(jq -r '.addresses.stakeRegistry' "$OUTPUT_PATH")
 #
 
 QUORUM_NUMER=0x0 #Aligned has only 1 quorum for now
-INDEX=$1
 
 echo $STAKE_REGISTRY
 
-cast call $STAKE_REGISTRY "strategyParamsByIndex(uint8,uint256)((address,uint96))" $QUORUM_NUMER $INDEX #--rpc-url $RPC_URL
+cast call $STAKE_REGISTRY "strategyParamsByIndex(uint8,uint256)((address,uint96))" $QUORUM_NUMER $STRATEGY_INDEX --rpc-url $RPC_URL
 
 # Expected output:
 # (strategy_address, multiplier)

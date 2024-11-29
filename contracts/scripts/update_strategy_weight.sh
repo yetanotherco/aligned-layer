@@ -1,24 +1,22 @@
 #!/bin/bash
 
-if [ -z "$OUTPUT_PATH" ]; then
-    echo "OUTPUT_PATH env var is not set"
-    exit 1
+# cd to the directory of this script so that this can be run from anywhere
+parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+# At this point we are in contracts/scripts
+cd "$parent_path"
+
+# At this point we are in contracts
+cd ../
+
+if [ "$#" -ne 2 ]; then
+  echo "Error: 2 arguments are required, STRATEGY_INDICES and NEW_MULTIPLIERS"
+  exit 1
 fi
 
-if  [ -z "$RPC_URL" ]; then
-    echo "RPC_URL env var is not set"
-    exit 1
-fi
+STRATEGY_INDICES=$1
+NEW_MULTIPLIERS=$2
 
-if [ -z "$PRIVATE_KEY" ]; then
-    echo "PRIVATE_KEY env var is not set"
-    exit 1
-fi
 
-if [ -z "$STRATEGY_INDICES" ]; then
-    echo "STRATEGY_INDICES env var is not set"
-    exit 1
-fi
 if [[ ! "$STRATEGY_INDICES" =~ ^\[[0-9]+(,[0-9]+)*\]$ ]]; then
   echo "The STRATEGY_INDICES doesn't match the required format: [0,1,...,n]"
   exit 1
@@ -49,7 +47,27 @@ if [[ $count1 -ne $count2 ]]; then
     exit 1
 fi
 
-STAKE_REGISTRY=$(jq -r '.addresses.stakeRegistry' "$OUTPUT_PATH")
+
+if [ -z "$MULTISIG" ]; then
+    echo "MULTISIG env var is not set"
+    exit 1
+fi
+if [ "$MULTISIG" = false ]; then
+  if [ -z "$PRIVATE_KEY" ]; then
+      echo "PRIVATE_KEY env var is not set"
+      exit 1
+  fi
+  if  [ -z "$RPC_URL" ]; then
+    echo "RPC_URL env var is not set"
+    exit 1
+  fi
+  if [ -z "$OUTPUT_PATH" ]; then
+    echo "OUTPUT_PATH env var is not set"
+    exit 1
+  fi
+  STAKE_REGISTRY=$(jq -r '.addresses.stakeRegistry' "$OUTPUT_PATH")
+fi
+
 
 ## Using in this cast call:
 
@@ -68,8 +86,15 @@ STAKE_REGISTRY=$(jq -r '.addresses.stakeRegistry' "$OUTPUT_PATH")
 
 QUORUM_NUMBER=0 #Aligned has only 1 quorum for now
 
-echo $QUORUM_NUMBER
+data=$(cast calldata "modifyStrategyParams(uint8, uint256[], uint96[])()" $QUORUM_NUMBER $STRATEGY_INDICES $NEW_MULTIPLIERS)
 
-echo $STAKE_REGISTRY
+if [ "$MULTISIG" = false ]; then
+  echo "Executing modify strategy params transaction"
 
-cast send $STAKE_REGISTRY "modifyStrategyParams(uint8, uint256[], uint96[])()" $QUORUM_NUMBER $STRATEGY_INDICES $NEW_MULTIPLIERS --private-key $PRIVATE_KEY --rpc-url $RPC_URL
+  cast send $STAKE_REGISTRY $data \
+    --rpc-url $RPC_URL \
+    --private-key $PRIVATE_KEY
+else
+  echo "You can propose the modify strategy params transaction with the multisig using this calldata:"
+  echo $data
+fi
