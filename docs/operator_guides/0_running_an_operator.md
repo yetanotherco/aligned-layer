@@ -1,7 +1,7 @@
 # Register as an Aligned operator in testnet
 
 > **CURRENT VERSION:**
-> Aligned Operator [v0.12.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.12.0)
+> Aligned Operator [v0.12.1](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.12.1)
 
 > **IMPORTANT:** 
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
@@ -26,7 +26,7 @@ Minimum hardware requirements:
 To start with, clone the Aligned repository and move inside it
 
 ```bash
-git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.12.0
+git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.12.1
 cd aligned_layer
 ```
 
@@ -80,7 +80,7 @@ This will display the current version of the operator binary.
 
 ## Step 3 - Update the configuration for your specific Operator
 
-Update the following placeholders in `./config-files/config-operator.yaml`:
+Update the following placeholders in `./config-files/config-operator-mainnet.yaml`:
 
 - `"<operator_address>"`
 - `"<earnings_receiver_address>"`
@@ -95,7 +95,7 @@ The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, 
 
 {% hint style="danger" %}
 
-Don't keep the Operator Key in the Aligned Operator Node
+Don't keep the Operator Key in the Aligned Operator Node. If you already registered, don't use it. If you need to register, delete it after step 4.
 
 {% endhint %}
 
@@ -125,53 +125,23 @@ eth_ws_url: "wss://<RPC_1>"
 eth_ws_url_fallback: "wss://<RPC_2>"
 ```
 
-## Step 4 - Deposit Strategy Tokens
+## Step 4 - Register Operator on AlignedLayer
 
-We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
-
-To do so, there are two options, either doing it through EigenLayer's website, and following their guide, or running the commands specified by us below.
-
-You will need to stake a minimum of 1000 WEI in WETH. We recommend to stake a maximum amount of 10 WETH. If you are staking more than 10 WETH please unstake any surplus over 10.
-
-### Option 1
-
-EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts).
-
-### Option 2
-
-If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 ETH to WETH.
-Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) already installed.
-Change the parameter in ```---value``` if you want to wrap a different amount:
+Then you must register as an Operator on AlignedLayer. To do this, you must run:
 
 ```bash
-cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1ether
+make operator_register_with_aligned_layer CONFIG_FILE=./config-files/config-operator-mainnet.yaml
 ```
 
-Here `<private_key>` is the placeholder for the ECDSA key specified in the output when generating your keys with the EigenLayer CLI.
-
-Finally, to end the staking process, you need to deposit into the WETH strategy,
-as shown in the EigenLayer guide.
-
-<details>
-  <summary>An alternative using the CLI</summary>
-
-  Run the following command to deposit one WETH
-
-  ```bash
-  ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
-  ```
-
-</details>
-
-If you don't have Holesky ETH, these are some useful faucets:
-
-- [Google Cloud for Web3 Holesky Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
-- [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)
+{% hint style="danger" %}
+If you are going to run the server in this machine, 
+delete the operator key
+{% endhint %}
 
 ## Step 5 - Start the operator
 
 ```bash
-./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
+./operator/build/aligned-operator start --config ./config-files/config-operator-mainnet.yaml
 ```
 
 ### Run Operator using Systemd
@@ -243,3 +213,48 @@ cast send --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <p
  ```
 
  `<private_key>` is the one specified in the output when generating your keys with the EigenLayer CLI.
+
+
+##   Deposit Strategy Tokens in Testnet
+
+We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
+
+To do so, there are two options, either doing it through EigenLayer's website, and following their guide, or running the commands specified by us below.
+
+You will need to stake a minimum of 1000 WEI in WETH. We recommend to stake a maximum amount of 10 WETH. If you are staking more than 10 WETH please unstake any surplus over 10.
+
+### Option 1
+
+EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts).
+
+### Option 2
+
+If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 ETH to WETH.
+Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) already installed.
+Change the parameter in ```---value``` if you want to wrap a different amount:
+
+```bash
+cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1ether
+```
+
+Here `<private_key>` is the placeholder for the ECDSA key specified in the output when generating your keys with the EigenLayer CLI.
+
+Finally, to end the staking process, you need to deposit into the WETH strategy,
+as shown in the EigenLayer guide.
+
+<details>
+  <summary>An alternative using the CLI</summary>
+
+Run the following command to deposit one WETH
+
+  ```bash
+  ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
+  ```
+
+</details>
+
+If you don't have Holesky ETH, these are some useful faucets:
+
+- [Google Cloud for Web3 Holesky Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
+- [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)
+
