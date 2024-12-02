@@ -113,10 +113,13 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		if err != nil {
 			return nil, err
 		}
+		w.logger.Infof("Getted gas price from RPC: %v", gasPrice)
+
 		previousTxGasPrice := txOpts.GasPrice
 		// in order to avoid replacement transaction underpriced
 		// the bumped gas price has to be at least 10% higher than the previous one.
 		minimumGasPriceBump := utils.CalculateGasPriceBumpBasedOnRetry(previousTxGasPrice, 10, 0, gasBumpPercentageLimit, 0)
+		w.logger.Infof("Minimum gas price bump: %v", minimumGasPriceBump)
 		suggestedBumpedGasPrice := utils.CalculateGasPriceBumpBasedOnRetry(
 			gasPrice,
 			gasBumpPercentage,
@@ -124,6 +127,8 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			gasBumpPercentageLimit,
 			i,
 		)
+		w.logger.Infof("Suggested bumped gas price: %v", suggestedBumpedGasPrice)
+
 		// check the new gas price is sufficiently bumped.
 		// if the suggested bump does not meet the minimum threshold, use a fallback calculation to slightly increment the previous gas price.
 		if suggestedBumpedGasPrice.Cmp(minimumGasPriceBump) > 0 {
@@ -131,6 +136,8 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		} else {
 			txOpts.GasPrice = minimumGasPriceBump
 		}
+
+		w.logger.Infof("Bumping gas price to %v", txOpts.GasPrice)
 
 		if i > 0 {
 			w.logger.Infof("Trying to get old sent transaction receipt before sending a new transaction", "merkle root", batchMerkleRootHashString)
