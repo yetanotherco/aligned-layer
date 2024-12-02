@@ -12,6 +12,7 @@ use aligned_sdk::core::{
 };
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_nonce_from_batcher;
+use aligned_sdk::sdk::get_nonce_from_ethereum;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
 use clap::Parser;
@@ -29,6 +30,7 @@ use transaction::eip2718::TypedTransaction;
 use crate::AlignedCommands::DepositToBatcher;
 use crate::AlignedCommands::GetUserBalance;
 use crate::AlignedCommands::GetUserNonce;
+use crate::AlignedCommands::GetUserFirstNonce;
 use crate::AlignedCommands::GetVkCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -58,6 +60,8 @@ pub enum AlignedCommands {
     GetUserBalance(GetUserBalanceArgs),
     #[clap(about = "Get user nonce from the batcher", name = "get-user-nonce")]
     GetUserNonce(GetUserNonceArgs),
+    #[clap(about = "Get the first user nonce from ethereum", name = "get-user-first-nonce")]
+    GetUserFirstNonce(GetUserFirstNonceArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -216,6 +220,29 @@ pub struct GetUserNonceArgs {
         required = true
     )]
     address: String,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct GetUserFirstNonceArgs {
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc_url",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[arg(
+        name = "The user's Ethereum address",
+        long = "user_addr",
+        required = true
+    )]
+    address: String,
+    #[arg(
+        name = "The working network's name",
+        long = "network",
+        default_value = "devnet"
+    )]
+    network: NetworkArg,
 }
 
 #[derive(Debug, Clone, ValueEnum, Copy)]
@@ -521,6 +548,20 @@ async fn main() -> Result<(), AlignedError> {
             match get_nonce_from_batcher(&args.batcher_url, address).await {
                 Ok(nonce) => {
                     info!("Nonce for address {} is {}", address, nonce);
+                }
+                Err(e) => {
+                    error!("Error while getting nonce: {:?}", e);
+                    return Ok(());
+                }
+            }
+        }
+        GetUserFirstNonce(args) => {
+            let address = H160::from_str(&args.address).unwrap();
+            let network = args.network.into();
+            match get_nonce_from_ethereum(&args.eth_rpc_url, address, network).await {
+                Ok(nonce) => {
+                    let first_nonce = nonce + 1;
+                    info!("Nonce for address {} is {}", address, first_nonce);
                 }
                 Err(e) => {
                     error!("Error while getting nonce: {:?}", e);
