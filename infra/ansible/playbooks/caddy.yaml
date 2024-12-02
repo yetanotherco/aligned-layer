@@ -1,3 +1,8 @@
+- name: Run Go playbook
+  ansible.builtin.import_playbook: go.yaml
+  vars:
+    host: "{{ host }}"
+
 - name: Caddy Setup
   hosts: "{{ host }}"
 
@@ -41,14 +46,41 @@
     vars:
       ansible_ssh_user: "{{ admin_user }}"
 
-  - name: Install Caddy
+  - name: Download and install XCaddy GPG key
+    shell: 
+      cmd: curl -1sLf 'https://dl.cloudsmith.io/public/caddy/xcaddy/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-xcaddy-archive-keyring.gpg
+      creates: /usr/share/keyrings/caddy-xcaddy-archive-keyring.gpg
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Add XCaddy repository
+    shell:
+      cmd: curl -1sLf 'https://dl.cloudsmith.io/public/caddy/xcaddy/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-xcaddy.list
+      creates: /etc/apt/sources.list.d/caddy-xcaddy.list
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Install Caddy and XCaddy
     become: true
     apt:
       update_cache: yes
-      name: caddy
+      name: 
+        - caddy
+        - xcaddy
       state: present
     vars:
       ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Build Cloudflare DNS module for caddy
+    shell:
+      cmd: |
+        xcaddy build --with github.com/caddy-dns/cloudflare
+        sudo mv /home/{{ ansible_ssh_user }}/caddy /usr/bin/caddy
+      chdir: /home/{{ ansible_ssh_user }}/
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin"
 
   - name: Enable caddy
     become: true

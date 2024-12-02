@@ -6,7 +6,7 @@
   - name: Add reverse proxy configuration to Caddyfile
     become: true
     blockinfile:
-      path: /etc/caddy/Caddyfile.test
+      path: /etc/caddy/Caddyfile
       block: |
         {{ caddy_metrics_url }} {
           reverse_proxy localhost:{{ caddy_metrics_port }}
