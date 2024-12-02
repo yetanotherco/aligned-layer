@@ -50,17 +50,6 @@
     vars:
       ansible_ssh_user: "{{ admin_user }}"
 
-  - name: Add caddyfile config
-    become: true
-    template:
-      src: caddy/Caddyfile.{{ host }}.j2
-      dest: /etc/caddy/Caddyfile
-    vars:
-      ansible_ssh_user: "{{ admin_user }}"
-      caddy_metrics_url: "{{ lookup('ini', 'caddy_metrics_url', file=ini_file) }}"
-      caddy_telemetry_url: "{{ lookup('ini', 'caddy_telemetry_url', file=ini_file) }}"
-      caddy_jaeger_url: "{{ lookup('ini', 'caddy_jaeger_url', file=ini_file) }}"
-
   - name: Enable caddy
     become: true
     systemd_service:
