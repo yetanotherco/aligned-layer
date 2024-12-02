@@ -1,0 +1,4 @@
+[global]
+caddy_explorer_url=
+caddy_explorer_port=
+caddy_cloudflare_token=
