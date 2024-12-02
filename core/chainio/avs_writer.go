@@ -97,6 +97,8 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		return nil, err
 	}
 
+	w.logger.Info("Simulated RespondToTask transaction", "gasPrice", simTx.GasPrice())
+
 	// Set the nonce, as we might have to replace the transaction with a higher gas price
 	txNonce := big.NewInt(int64(simTx.Nonce()))
 	txOpts.Nonce = txNonce
