@@ -839,9 +839,9 @@ explorer_fetch_old_batches:
 	@cd explorer && \
 	./scripts/fetch_old_batches.sh 1728056 1729806
 
-explorer_fetch_old_operators_strategies_restakes:
+explorer_fetch_old_operators_strategies_restakes: # recommended for prod: 19000000
 	@cd explorer && \
-	./scripts/fetch_old_operators_strategies_restakes.sh 0
+	./scripts/fetch_old_operators_strategies_restakes.sh $(FROM_BLOCK)
 
 explorer_create_env:
 	@cd explorer && \
