@@ -837,7 +837,7 @@ explorer_recover_db: explorer_run_db
 
 explorer_fetch_old_batches:
 	@cd explorer && \
-	./scripts/fetch_old_batches.sh 1728056 1729806
+	./scripts/fetch_old_batches.sh $(FROM_BLOCK) $(TO_BLOCK)
 
 explorer_fetch_old_operators_strategies_restakes: # recommended for prod: 19000000
 	@cd explorer && \
