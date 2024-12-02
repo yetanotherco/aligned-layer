@@ -100,6 +100,9 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	// Set the nonce, as we might have to replace the transaction with a higher gas price
 	txNonce := big.NewInt(int64(simTx.Nonce()))
 	txOpts.Nonce = txNonce
+	// set it to zero
+	// so we use the fetched gas price in the first iteration
+	txOpts.GasPrice = big.NewInt(int64(0))
 	txOpts.NoSend = false
 	i := 0
 
@@ -113,7 +116,6 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			return nil, err
 		}
 		// if txOpts.GasPrice wasn't previously set use the fetched gasPrice
-		// this should happen only in the first iteration
 		previousTxGasPrice := txOpts.GasPrice.Or(txOpts.GasPrice, gasPrice)
 		// in order to avoid replacement transaction underpriced
 		// the bumped gas price has to be at least 10% higher than the previous one.
