@@ -120,7 +120,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		if txOpts.GasPrice == nil {
 			previousTxGasPrice = gasPrice
 		} else {
-			previousTxGasPrice = gasPrice
+			previousTxGasPrice = txOpts.GasPrice
 		}
 
 		// in order to avoid replacement transaction underpriced
