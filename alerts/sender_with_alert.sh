@@ -41,9 +41,9 @@ go run ../scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $x
 submit=$(aligned submit \
 	--proving_system Groth16Bn254 \
 	--repetitions $REPETITIONS \
-	--proof "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.proof" \
-	--public_input "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.pub" \
-	--vk "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.vk" \
+	--proof "../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.proof" \
+	--public_input "../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.pub" \
+	--vk "../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.vk" \
 	--proof_generator_addr $SENDER_ADDRESS \
 	--keystore_path $KEYSTORE_PATH \
 	--rpc_url $RPC_URL \
