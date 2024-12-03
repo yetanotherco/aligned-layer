@@ -120,7 +120,7 @@ That will generate the state output in `contracts/scripts/anvil/state/alignedlay
 2. Filter the contracts' state:
 
 ```bash
-jq '.accounts | to_entries | map(select(.value.code != "0x"))' contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json > contracts.json
+jq '.accounts | to_entries | map(select(.value.code != "0x")) | from_entries' contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json > contracts.json
 ```
 
 3. Open the `network_params.yaml` file and replace the `additional_preloaded_contracts` section with the content of `contracts.json`.
