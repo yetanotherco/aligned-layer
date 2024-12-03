@@ -745,17 +745,6 @@ impl Batcher {
             return Ok(());
         };
 
-        if !self.verify_user_has_enough_balance(user_balance, user_accumulated_fee, msg_max_fee) {
-            std::mem::drop(batch_state_lock);
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(addr),
-            )
-            .await;
-            self.metrics.user_error(&["insufficient_balance", ""]);
-            return Ok(());
-        }
-
         let cached_user_nonce = batch_state_lock.get_user_nonce(&addr).await;
         let Some(expected_nonce) = cached_user_nonce else {
             error!("Failed to get cached user nonce: User not found in user states, but it should have been already inserted");
@@ -791,9 +780,23 @@ impl Batcher {
                 ws_conn_sink.clone(),
                 client_msg.signature,
                 addr,
+                user_balance,
+                user_accumulated_fee,
+                msg_max_fee
             )
             .await;
 
+            return Ok(());
+        }
+
+        if !self.verify_user_has_enough_balance(user_balance, user_accumulated_fee, msg_max_fee) {
+            std::mem::drop(batch_state_lock);
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InsufficientBalance(addr),
+            )
+            .await;
+            self.metrics.user_error(&["insufficient_balance", ""]);
             return Ok(());
         }
 
@@ -863,6 +866,9 @@ impl Batcher {
         ws_conn_sink: WsMessageSink,
         signature: Signature,
         addr: Address,
+        user_balance: U256,
+        user_accumulated_fee: U256,
+        msg_max_fee: U256,
     ) {
         let replacement_max_fee = nonced_verification_data.max_fee;
         let nonce = nonced_verification_data.nonce;
@@ -889,6 +895,18 @@ impl Batcher {
             .await;
             self.metrics
                 .user_error(&["invalid_replacement_message", ""]);
+            return;
+        }
+
+        // For a replacement msg we must subtract the original_max_fee of the message from the user's accumulated max fee. 
+        if !self.verify_user_has_enough_balance(user_balance, user_accumulated_fee - original_max_fee, msg_max_fee) {
+            std::mem::drop(batch_state_lock);
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InsufficientBalance(addr),
+            )
+            .await;
+            self.metrics.user_error(&["insufficient_balance", ""]);
             return;
         }
 
