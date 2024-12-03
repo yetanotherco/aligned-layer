@@ -2,10 +2,11 @@ package config
 
 import (
 	"errors"
-	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"log"
 	"os"
+
+	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 type BlsConfig struct {
@@ -25,7 +26,7 @@ func NewBlsConfig(blsConfigFilePath string) *BlsConfig {
 	}
 
 	var blsConfigFromYaml BlsConfigFromYaml
-	err := sdkutils.ReadYamlConfig(blsConfigFilePath, &blsConfigFromYaml)
+	err := utils.ReadYamlConfig(blsConfigFilePath, &blsConfigFromYaml)
 	if err != nil {
 		log.Fatal("Error reading bls config: ", err)
 	}

@@ -4,9 +4,9 @@ import (
 	"context"
 	"log"
 
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
 )
 
@@ -24,7 +24,7 @@ var StartCommand = &cli.Command{
 func operatorMain(ctx *cli.Context) error {
 	operatorConfigFilePath := ctx.String("config")
 	operatorConfig := config.NewOperatorConfig(operatorConfigFilePath)
-	err := sdkutils.ReadYamlConfig(operatorConfigFilePath, &operatorConfig)
+	err := utils.ReadYamlConfig(operatorConfigFilePath, &operatorConfig)
 	if err != nil {
 		return err
 	}

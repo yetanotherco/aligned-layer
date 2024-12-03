@@ -5,13 +5,12 @@ import (
 	"log"
 	"os"
 
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 type OperatorConfig struct {
 	BaseConfig                   *BaseConfig
-	EcdsaConfig                  *EcdsaConfig
 	BlsConfig                    *BlsConfig
 	AlignedLayerDeploymentConfig *AlignedLayerDeploymentConfig
 
@@ -46,7 +45,6 @@ type OperatorConfigFromYaml struct {
 		MaxBatchSize                  int64          `yaml:"max_batch_size"`
 		LastProcessedBatchFilePath    string         `yaml:"last_processed_batch_filepath"`
 	} `yaml:"operator"`
-	EcdsaConfigFromYaml EcdsaConfigFromYaml `yaml:"ecdsa"`
 	BlsConfigFromYaml   BlsConfigFromYaml   `yaml:"bls"`
 }
 
@@ -60,18 +58,13 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 		log.Fatal("Error reading base config: ")
 	}
 
-	ecdsaConfig := NewEcdsaConfig(configFilePath, baseConfig.ChainId)
-	if ecdsaConfig == nil {
-		log.Fatal("Error reading ecdsa config: ")
-	}
-
 	blsConfig := NewBlsConfig(configFilePath)
 	if blsConfig == nil {
 		log.Fatal("Error reading bls config: ")
 	}
 
 	var operatorConfigFromYaml OperatorConfigFromYaml
-	err := sdkutils.ReadYamlConfig(configFilePath, &operatorConfigFromYaml)
+	err := utils.ReadYamlConfig(configFilePath, &operatorConfigFromYaml)
 
 	if err != nil {
 		log.Fatal("Error reading operator config: ", err)
@@ -79,7 +72,6 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 
 	return &OperatorConfig{
 		BaseConfig:                   baseConfig,
-		EcdsaConfig:                  ecdsaConfig,
 		BlsConfig:                    blsConfig,
 		AlignedLayerDeploymentConfig: baseConfig.AlignedLayerDeploymentConfig,
 		Operator: struct {

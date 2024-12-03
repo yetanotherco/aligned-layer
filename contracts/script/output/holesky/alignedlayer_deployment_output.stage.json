@@ -14,7 +14,7 @@
     "stakeRegistry": "0x1b0C9b87b094d821911500F91914B1A1D2856F14",
     "stakeRegistryImplementation": "0x52A9e264b98fe2d53805937Bc094a981E7eB6BeE",
     "batcherPaymentService": "0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b",
-    "batcherPaymentServiceImplementation": "0x230FF8F073C188732856990b070485FD1A9b1039"
+    "batcherPaymentServiceImplementation": "0x230FF8F073C188732856990b070485FD1A9b1039",
     "pauserRegistry": "0xBCd09a605906a13F917230F82BdAC15B778A5B03"
   },
   "chainInfo": {

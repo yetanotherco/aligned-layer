@@ -8,9 +8,11 @@ use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use retry::batcher_retryables::{
     cancel_create_new_task_retryable, create_new_task_retryable, get_user_balance_retryable,
-    get_user_nonce_from_ethereum_retryable, user_balance_is_unlocked_retryable,
+    get_user_nonce_from_ethereum_retryable, simulate_create_new_task_retryable,
+    user_balance_is_unlocked_retryable,
 };
 use retry::{retry_function, RetryError};
+use tokio::time::timeout;
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
@@ -18,11 +20,12 @@ use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, BUMP_BACKOFF_FACTOR,
-    BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONSTANT_GAS_COST,
-    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
+    BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONNECTION_TIMEOUT,
+    CONSTANT_GAS_COST, DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
     ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
     ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
@@ -45,7 +48,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
-use types::errors::BatcherError;
+use types::errors::{BatcherError, TransactionSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::telemetry::sender::TelemetrySender;
@@ -79,7 +82,7 @@ pub struct Batcher {
     service_manager: ServiceManager,
     service_manager_fallback: ServiceManager,
     batch_state: Mutex<BatchState>,
-    max_block_interval: u64,
+    min_block_interval: u64,
     transaction_wait_timeout: u64,
     max_proof_size: usize,
     max_batch_byte_size: usize,
@@ -242,7 +245,7 @@ impl Batcher {
             payment_service_fallback,
             service_manager,
             service_manager_fallback,
-            max_block_interval: config.batcher.block_interval,
+            min_block_interval: config.batcher.block_interval,
             transaction_wait_timeout: config.batcher.transaction_wait_timeout,
             max_proof_size: config.batcher.max_proof_size,
             max_batch_byte_size: config.batcher.max_batch_byte_size,
@@ -265,13 +268,19 @@ impl Batcher {
             .map_err(|e| BatcherError::TcpListenerError(e.to_string()))?;
         info!("Listening on: {}", address);
 
-        // Let's spawn the handling of each connection in a separate task.
-        while let Ok((stream, addr)) = listener.accept().await {
-            self.metrics.open_connections.inc();
-            let batcher = self.clone();
-            tokio::spawn(batcher.handle_connection(stream, addr));
+        loop {
+            match listener.accept().await {
+                Ok((stream, addr)) => {
+                    let batcher = self.clone();
+                    // Let's spawn the handling of each connection in a separate task.
+                    tokio::spawn(batcher.handle_connection(stream, addr));
+                }
+                Err(e) => {
+                    self.metrics.user_error(&["connection_accept_error", ""]);
+                    error!("Couldn't accept new connection: {}", e);
+                }
+            }
         }
-        Ok(())
     }
 
     /// Listen for Ethereum new blocks.
@@ -360,7 +369,24 @@ impl Batcher {
         addr: SocketAddr,
     ) -> Result<(), BatcherError> {
         info!("Incoming TCP connection from: {}", addr);
-        let ws_stream = tokio_tungstenite::accept_async(raw_stream).await?;
+        self.metrics.open_connections.inc();
+
+        let ws_stream_future = tokio_tungstenite::accept_async(raw_stream);
+        let ws_stream =
+            match timeout(Duration::from_secs(CONNECTION_TIMEOUT), ws_stream_future).await {
+                Ok(Ok(stream)) => stream,
+                Ok(Err(e)) => {
+                    warn!("Error while establishing websocket connection: {}", e);
+                    self.metrics.open_connections.dec();
+                    return Ok(());
+                }
+                Err(e) => {
+                    warn!("Error while establishing websocket connection: {}", e);
+                    self.metrics.open_connections.dec();
+                    self.metrics.user_error(&["user_timeout", ""]);
+                    return Ok(());
+                }
+            };
 
         debug!("WebSocket connection established: {}", addr);
         let (outgoing, incoming) = ws_stream.split();
@@ -379,8 +405,33 @@ impl Batcher {
             .send(Message::binary(serialized_protocol_version_msg))
             .await?;
 
-        match incoming
-            .try_filter(|msg| future::ready(msg.is_binary()))
+        let mut incoming_filter = incoming.try_filter(|msg| future::ready(msg.is_binary()));
+        let future_msg = incoming_filter.try_next();
+
+        // timeout to prevent a DOS attack
+        match timeout(Duration::from_secs(CONNECTION_TIMEOUT), future_msg).await {
+            Ok(Ok(Some(msg))) => {
+                self.clone().handle_message(msg, outgoing.clone()).await?;
+            }
+            Err(elapsed) => {
+                warn!("[{}] {}", &addr, elapsed);
+                self.metrics.user_error(&["user_timeout", ""]);
+                self.metrics.open_connections.dec();
+                return Ok(());
+            }
+            Ok(Ok(None)) => {
+                info!("[{}] Connection closed by the other side", &addr);
+                self.metrics.open_connections.dec();
+                return Ok(());
+            }
+            Ok(Err(e)) => {
+                error!("Unexpected error: {}", e);
+                self.metrics.open_connections.dec();
+                return Ok(());
+            }
+        };
+
+        match incoming_filter
             .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
             .await
         {
@@ -1065,16 +1116,17 @@ impl Batcher {
     /// an empty batch, even if the block interval has been reached.
     /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
     /// `finalize_batch` function.
+    /// This function doesn't remove the proofs from the queue.
     async fn is_batch_ready(
         &self,
         block_number: u64,
         gas_price: U256,
     ) -> Option<Vec<BatchQueueEntry>> {
-        let mut batch_state_lock = self.batch_state.lock().await;
+        let batch_state_lock = self.batch_state.lock().await;
         let current_batch_len = batch_state_lock.batch_queue.len();
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
-        if current_batch_len < 2 {
+        if current_batch_len < 1 {
             info!(
                 "Current batch has {} proofs. Waiting for more proofs...",
                 current_batch_len
@@ -1082,9 +1134,9 @@ impl Batcher {
             return None;
         }
 
-        if block_number < *last_uploaded_batch_block_lock + self.max_block_interval {
+        if block_number < *last_uploaded_batch_block_lock + self.min_block_interval {
             info!(
-                "Current batch not ready to be posted. Minimium amount of {} blocks have not passed. Block passed: {}", self.max_block_interval,
+                "Current batch not ready to be posted. Minimium amount of {} blocks have not passed. Block passed: {}", self.min_block_interval,
                 block_number - *last_uploaded_batch_block_lock,
             );
             return None;
@@ -1102,7 +1154,7 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
         let batch_queue_copy = batch_state_lock.batch_queue.clone();
-        let (resulting_batch_queue, finalized_batch) = batch_queue::try_build_batch(
+        let finalized_batch = batch_queue::try_build_batch(
             batch_queue_copy,
             gas_price,
             self.max_batch_byte_size,
@@ -1122,7 +1174,26 @@ impl Batcher {
         })
         .ok()?;
 
-        batch_state_lock.batch_queue = resulting_batch_queue;
+        Some(finalized_batch)
+    }
+
+    /// Takes the submitted proofs and removes them from the queue.
+    /// This function should be called only AFTER the submission was confirmed onchain
+    async fn remove_proofs_from_queue(
+        &self,
+        finalized_batch: Vec<BatchQueueEntry>,
+    ) -> Result<(), BatcherError> {
+        info!("Removing proofs from queue...");
+        let mut batch_state_lock = self.batch_state.lock().await;
+
+        finalized_batch.iter().for_each(|entry| {
+            if batch_state_lock.batch_queue.remove(entry).is_none() {
+                // If this happens, we have a bug in our code
+                error!("Some proofs were not found in the queue. This should not happen.");
+            }
+        });
+
+        // now we calculate the new user_states
         let new_user_states = // proofs, max_fee_limit, total_fees_in_queue
             batch_state_lock.calculate_new_user_states_data();
 
@@ -1138,17 +1209,33 @@ impl Batcher {
             // informative error.
 
             // Now we update the user states related to the batch (proof count in batch and min fee in batch)
-            batch_state_lock.update_user_proof_count(addr, *proof_count)?;
-            batch_state_lock.update_user_max_fee_limit(addr, *max_fee_limit)?;
-            batch_state_lock.update_user_total_fees_in_queue(addr, *total_fees_in_queue)?;
+            batch_state_lock
+                .update_user_proof_count(addr, *proof_count)
+                .ok_or(BatcherError::QueueRemoveError(
+                    "Could not update_user_proof_count".into(),
+                ))?;
+            batch_state_lock
+                .update_user_max_fee_limit(addr, *max_fee_limit)
+                .ok_or(BatcherError::QueueRemoveError(
+                    "Could not update_user_max_fee_limit".into(),
+                ))?;
+            batch_state_lock
+                .update_user_total_fees_in_queue(addr, *total_fees_in_queue)
+                .ok_or(BatcherError::QueueRemoveError(
+                    "Could not update_user_total_fees_in_queue".into(),
+                ))?;
         }
 
-        Some(finalized_batch)
+        Ok(())
     }
 
-    /// Takes the finalized batch as input and builds the merkle tree, posts verification data batch
-    /// to s3, creates new task in Aligned contract and sends responses to all clients that added proofs
-    /// to the batch. The last uploaded batch block is updated once the task is created in Aligned.
+    /// Takes the finalized batch as input and:
+    ///     builds the merkle tree
+    ///     posts verification data batch to s3
+    ///     creates new task in Aligned contract
+    ///     removes the proofs from the queue, once they are succesfully submitted on-chain
+    ///     sends responses to all clients that added proofs to the batch.
+    /// The last uploaded batch block is updated once the task is created in Aligned.
     async fn finalize_batch(
         &self,
         block_number: u64,
@@ -1203,9 +1290,10 @@ impl Batcher {
             .init_task_trace(&hex::encode(batch_merkle_tree.root))
             .await
         {
-            error!("Failed to initialize task trace on telemetry: {:?}", e);
+            warn!("Failed to initialize task trace on telemetry: {:?}", e);
         }
 
+        // Here we submit the batch on-chain
         if let Err(e) = self
             .submit_batch(
                 &batch_bytes,
@@ -1222,28 +1310,31 @@ impl Batcher {
                 .task_creation_failed(&hex::encode(batch_merkle_tree.root), &reason)
                 .await
             {
-                error!("Failed to send task status to telemetry: {:?}", e);
+                warn!("Failed to send task status to telemetry: {:?}", e);
             }
-            for entry in finalized_batch.into_iter() {
-                if let Some(ws_sink) = entry.messaging_sink {
-                    let merkle_root = hex::encode(batch_merkle_tree.root);
-                    send_message(
-                        ws_sink.clone(),
-                        SubmitProofResponseMessage::CreateNewTaskError(
-                            merkle_root,
-                            format!("{:?}", e),
-                        ),
-                    )
-                    .await
-                } else {
-                    warn!("Websocket sink was found empty. This should only happen in tests");
+
+            // decide if i want to flush the queue:
+            match e {
+                BatcherError::TransactionSendError(
+                    TransactionSendError::SubmissionInsufficientBalance,
+                ) => {
+                    // TODO calling remove_proofs_from_queue here is a better solution, flushing only the failed batch
+                    // this would also need a message sent to the clients
+                    self.flush_queue_and_clear_nonce_cache().await;
+                }
+                _ => {
+                    // Add more cases here if we want in the future
                 }
             }
 
-            self.flush_queue_and_clear_nonce_cache().await;
-
             return Err(e);
         };
+
+        // Once the submit is succesfull, we remove the submitted proofs from the queue
+        // TODO handle error case:
+        if let Err(e) = self.remove_proofs_from_queue(finalized_batch.clone()).await {
+            error!("Unexpected error while updating queue: {:?}", e);
+        }
 
         connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
@@ -1346,7 +1437,7 @@ impl Batcher {
             .task_uploaded_to_s3(&batch_merkle_root_hex)
             .await
         {
-            error!("Failed to send task status to telemetry: {:?}", e);
+            warn!("Failed to send task status to telemetry: {:?}", e);
         };
         info!("Batch sent to S3 with name: {}", file_name);
 
@@ -1389,7 +1480,7 @@ impl Batcher {
             )
             .await
         {
-            error!("Failed to send task status to telemetry: {:?}", e);
+            warn!("Failed to send task status to telemetry: {:?}", e);
         };
 
         match self
@@ -1418,7 +1509,7 @@ impl Batcher {
         }
     }
 
-    /// Sends a `create_new_task` transaction to Ethereum and waits for a maximum of 3 blocks for the receipt.
+    /// Sends a `create_new_task` transaction to Ethereum and waits for a maximum of 8 blocks for the receipt.
     /// Retries up to `ETHEREUM_CALL_MAX_RETRIES` times using exponential backoff on recoverable errors while trying to send the transaction:
     /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
     /// `ReceiptNotFoundError` is treated as non-recoverable, and the transaction will be canceled using `cancel_create_new_task_tx` in that case.
@@ -1429,6 +1520,27 @@ impl Batcher {
         proof_submitters: Vec<Address>,
         fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
+        // First, we simulate the tx
+        retry_function(
+            || {
+                simulate_create_new_task_retryable(
+                    batch_merkle_root,
+                    batch_data_pointer.clone(),
+                    proof_submitters.clone(),
+                    fee_params.clone(),
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+        .map_err(|e| e.inner())?;
+
+        // Then, we send the real tx
         let result = retry_function(
             || {
                 create_new_task_retryable(
@@ -1454,7 +1566,7 @@ impl Batcher {
                     .task_sent(&hex::encode(batch_merkle_root), receipt.transaction_hash)
                     .await
                 {
-                    error!("Failed to send task status to telemetry: {:?}", e);
+                    warn!("Failed to send task status to telemetry: {:?}", e);
                 }
                 Ok(receipt)
             }
@@ -1469,7 +1581,7 @@ impl Batcher {
 
     /// Sends a transaction to Ethereum with the same nonce as the previous one to override it.
     /// Retries on recoverable errors with exponential backoff.
-    /// Bumps the fee if not included in 3 blocks, using `calculate_bumped_gas_price`.
+    /// Bumps the fee if not included in 6 blocks, using `calculate_bumped_gas_price`.
     /// In the first 5 attemps, bumps the fee every 3 blocks. Then exponential backoff takes over.
     /// After 2 hours (attempt 13), retries occur hourly for 1 day (33 retries).
     pub async fn cancel_create_new_task_tx(&self, old_tx_gas_price: U256) {

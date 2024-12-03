@@ -25,14 +25,82 @@ func (e PermanentError) Is(err error) bool {
 }
 
 const (
-	MinDelay                 = 1 * time.Second  // Initial delay for retry interval.
-	MaxInterval              = 60 * time.Second // Maximum interval an individual retry may have.
-	MaxElapsedTime           = 0 * time.Second  // Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
-	RetryFactor      float64 = 2                // Multiplier factor computed exponential retry interval is scaled by.
-	NumRetries       uint64  = 3                // Total number of retries attempted.
-	MinDelayChain            = 12 * time.Second // Initial delay for retry interval for contract calls. Corresponds to 1 ethereum block.
-	MaxIntervalChain         = 2 * time.Minute  // Maximum interval for an individual retry.
+	NetworkInitialInterval             = 1 * time.Second  // Initial delay for retry interval.
+	NetworkMaxInterval                 = 60 * time.Second // Maximum interval an individual retry may have.
+	NetworkMaxElapsedTime              = 0 * time.Second  // Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
+	NetworkRandomizationFactor float64 = 0                // Randomization (Jitter) factor used to map retry interval to a range of values around the computed interval. In precise terms (random value in range [1 - randomizationfactor, 1 + randomizationfactor]). NOTE: This is set to 0 as we do not use jitter in Aligned.
+	NetworkMultiplier          float64 = 2                // Multiplier factor computed exponential retry interval is scaled by.
+	NetworkNumRetries          uint64  = 3                // Total number of retries attempted.
+
+	// Retry Params for Sending Tx to Chain
+	ChainInitialInterval = 12 * time.Second // Initial delay for retry interval for contract calls. Corresponds to 1 ethereum block.
+	ChainMaxInterval     = 2 * time.Minute  // Maximum interval for an individual retry.
+
+	// Retry Params for WaitForTransactionReceipt in the Fee Bump
+	WaitForTxMaxInterval = 2 * time.Second // Maximum interval for an individual retry.
+	WaitForTxNumRetries  = 0               // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
+
+	// Retry Parameters for RespondToTaskV2 in the Fee Bump
+	RespondToTaskV2MaxInterval           = time.Millisecond * 500 // Maximum interval for an individual retry.
+	RespondToTaskV2MaxElapsedTime        = 0                      //	Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
+	RespondToTaskV2NumRetries     uint64 = 0                      // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
 )
+
+type RetryParams struct {
+	InitialInterval     time.Duration // Initial delay for retry interval.
+	MaxInterval         time.Duration // Maximum interval an individual retry may have.
+	MaxElapsedTime      time.Duration // Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
+	RandomizationFactor float64
+	Multiplier          float64
+	NumRetries          uint64
+}
+
+func NetworkRetryParams() *RetryParams {
+	return &RetryParams{
+		InitialInterval:     NetworkInitialInterval,
+		MaxInterval:         NetworkMaxInterval,
+		MaxElapsedTime:      NetworkMaxElapsedTime,
+		RandomizationFactor: NetworkRandomizationFactor,
+		Multiplier:          NetworkMultiplier,
+		NumRetries:          NetworkNumRetries,
+	}
+}
+
+func SendToChainRetryParams() *RetryParams {
+	return &RetryParams{
+		InitialInterval:     ChainInitialInterval,
+		MaxInterval:         ChainMaxInterval,
+		MaxElapsedTime:      NetworkMaxElapsedTime,
+		RandomizationFactor: NetworkRandomizationFactor,
+		Multiplier:          NetworkMultiplier,
+		NumRetries:          NetworkNumRetries,
+	}
+}
+
+func RespondToTaskV2() *RetryParams {
+	return &RetryParams{
+		InitialInterval:     ChainInitialInterval,
+		MaxInterval:         RespondToTaskV2MaxInterval,
+		MaxElapsedTime:      RespondToTaskV2MaxElapsedTime,
+		RandomizationFactor: NetworkRandomizationFactor,
+		Multiplier:          NetworkMultiplier,
+		NumRetries:          RespondToTaskV2NumRetries,
+	}
+}
+
+// WaitForTxRetryParams returns the retry parameters for waiting for a transaction to be included in a block.
+// maxElapsedTime is received as parameter to allow for a custom timeout
+// These parameters are used for the bumping fees logic.
+func WaitForTxRetryParams(maxElapsedTime time.Duration) *RetryParams {
+	return &RetryParams{
+		InitialInterval:     NetworkInitialInterval,
+		MaxInterval:         WaitForTxMaxInterval,
+		MaxElapsedTime:      maxElapsedTime,
+		RandomizationFactor: NetworkRandomizationFactor,
+		Multiplier:          NetworkMultiplier,
+		NumRetries:          WaitForTxNumRetries,
+	}
+}
 
 /*
 Retry and RetryWithData are custom retry functions used in Aligned's aggregator and operator to facilitate consistent retry logic across the system.
@@ -92,7 +160,7 @@ Reference: https://github.com/cenkalti/backoff/blob/v4/exponential.go#L9
 */
 
 // Same as Retry only that the functionToRetry can return a value upon correct execution
-func RetryWithData[T any](functionToRetry func() (T, error), minDelay time.Duration, factor float64, maxTries uint64, maxInterval time.Duration, maxElapsedTime time.Duration) (T, error) {
+func RetryWithData[T any](functionToRetry func() (T, error), config *RetryParams) (T, error) {
 	f := func() (T, error) {
 		var (
 			val T
@@ -118,17 +186,16 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay time.Durat
 		return val, err
 	}
 
-	randomOption := backoff.WithRandomizationFactor(0)
-
-	initialRetryOption := backoff.WithInitialInterval(minDelay)
-	multiplierOption := backoff.WithMultiplier(factor)
-	maxIntervalOption := backoff.WithMaxInterval(maxInterval)
-	maxElapsedTimeOption := backoff.WithMaxElapsedTime(maxElapsedTime)
+	initialRetryOption := backoff.WithInitialInterval(config.InitialInterval)
+	multiplierOption := backoff.WithMultiplier(config.Multiplier)
+	maxIntervalOption := backoff.WithMaxInterval(config.MaxInterval)
+	maxElapsedTimeOption := backoff.WithMaxElapsedTime(config.MaxElapsedTime)
+	randomOption := backoff.WithRandomizationFactor(config.RandomizationFactor)
 	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption, maxElapsedTimeOption)
 	var maxRetriesBackoff backoff.BackOff
 
-	if maxTries > 0 {
-		maxRetriesBackoff = backoff.WithMaxRetries(expBackoff, maxTries)
+	if config.NumRetries > 0 {
+		maxRetriesBackoff = backoff.WithMaxRetries(expBackoff, config.NumRetries)
 	} else {
 		maxRetriesBackoff = expBackoff
 	}
@@ -142,7 +209,7 @@ func RetryWithData[T any](functionToRetry func() (T, error), minDelay time.Durat
 // from the configuration are reached, or until a `PermanentError` is returned.
 // The function to be retried should return `PermanentError` when the condition for stop retrying
 // is met.
-func Retry(functionToRetry func() error, minDelay time.Duration, factor float64, maxTries uint64, maxInterval time.Duration, maxElapsedTime time.Duration) error {
+func Retry(functionToRetry func() error, config *RetryParams) error {
 	f := func() error {
 		var err error
 		func() {
@@ -165,17 +232,16 @@ func Retry(functionToRetry func() error, minDelay time.Duration, factor float64,
 		return err
 	}
 
-	randomOption := backoff.WithRandomizationFactor(0)
-
-	initialRetryOption := backoff.WithInitialInterval(minDelay)
-	multiplierOption := backoff.WithMultiplier(factor)
-	maxIntervalOption := backoff.WithMaxInterval(maxInterval)
-	maxElapsedTimeOption := backoff.WithMaxElapsedTime(maxElapsedTime)
+	initialRetryOption := backoff.WithInitialInterval(config.InitialInterval)
+	multiplierOption := backoff.WithMultiplier(config.Multiplier)
+	maxIntervalOption := backoff.WithMaxInterval(config.MaxInterval)
+	maxElapsedTimeOption := backoff.WithMaxElapsedTime(config.MaxElapsedTime)
+	randomOption := backoff.WithRandomizationFactor(config.RandomizationFactor)
 	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption, maxIntervalOption, maxElapsedTimeOption)
 	var maxRetriesBackoff backoff.BackOff
 
-	if maxTries > 0 {
-		maxRetriesBackoff = backoff.WithMaxRetries(expBackoff, maxTries)
+	if config.NumRetries > 0 {
+		maxRetriesBackoff = backoff.WithMaxRetries(expBackoff, config.NumRetries)
 	} else {
 		maxRetriesBackoff = expBackoff
 	}
