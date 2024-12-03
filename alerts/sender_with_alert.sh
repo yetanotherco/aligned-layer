@@ -56,8 +56,8 @@ echo "$submit"
 explorer_link=$(echo "$submit" | grep alignedlayer.com | awk '{print $4}')
 sleep 60
 
-for proof in ./aligned_verification_data/*.cbor; do
-## Validate Proof on Chain
+for proof in ../aligned_verification_data/*.cbor; do
+  ## Validate Proof on Chain
   verification=$(aligned verify-proof-onchain \
     --aligned-verification-data ./aligned_verification_data/*.cbor \
     --rpc_url $RPC_URL \
@@ -71,7 +71,7 @@ for proof in ./aligned_verification_data/*.cbor; do
     send_pagerduty_alert "$message"
     break
   elif echo "$verification" | grep -q verified; then
-    echo echo "Proof verification succeeded for $proof"
+    echo "Proof verification succeeded for $proof"
   fi
 done
 
