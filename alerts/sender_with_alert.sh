@@ -1,11 +1,13 @@
 #!/bin/bash
 
 # ENV VARIABLES:
+# - REPETITIONS
+# - SLEEP
 # - RPC_URL
 # - SENDER_ADDRESS
 # - BATCHER_URL
 # - NETWORK
-# - KEYSTORE_PATH
+# - PRIVATE_KEY
 # - PAGER_DUTY_KEY
 # - PAGER_DUTY_EMAIL
 # - PAGER_DUTY_SERVICE_ID
@@ -41,6 +43,7 @@ do
   go run ./scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $x
 
   ## Send Proof
+  echo "Submitting $repetitions proofs $x != 0"
   submit=$(aligned submit \
     --proving_system Groth16Bn254 \
     --repetitions $REPETITIONS \
@@ -48,7 +51,7 @@ do
     --public_input "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.pub" \
     --vk "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.vk" \
     --proof_generator_addr $SENDER_ADDRESS \
-    --keystore_path $KEYSTORE_PATH \
+    --private_key $PRIVATE_KEY \
     --rpc_url $RPC_URL \
     --batcher_url $BATCHER_URL \
     --network $NETWORK \
@@ -59,6 +62,7 @@ do
   explorer_link=$(echo "$submit" | grep alignedlayer.com | awk '{print $4}')
   sleep 60
 
+  echo "Verifying $repetitions proofs $x != 0"
   for proof in ./aligned_verification_data/*.cbor; do
     ## Validate Proof on Chain
     verification=$(aligned verify-proof-onchain \
@@ -83,5 +87,5 @@ do
   rm -rf ./aligned_verification_data/*
 
   sleep $SLEEP
-  counter=$((counter + 1))
+  x=$((x + 1))
 done
