@@ -37,3 +37,9 @@ pub const BUMP_MIN_RETRY_DELAY: u64 = 500; // milliseconds
 pub const BUMP_MAX_RETRIES: usize = 33; // ~ 1 day
 pub const BUMP_BACKOFF_FACTOR: f32 = 2.0;
 pub const BUMP_MAX_RETRY_DELAY: u64 = 3600; // seconds
+
+/// Batcher URL's
+pub const BATCHER_URL_DEVNET: &str = "ws://localhost:8080";
+pub const BATCHER_URL_HOLESKY: &str = "wss://holesky.batcher.alignedlayer.com";
+pub const BATCHER_URL_HOLESKY_STAGE: &str = "wss://stage.batcher.alignedlayer.com";
+pub const BATCHER_URL_MAINNET: &str = "wss://batcher.alignedlayer.com";

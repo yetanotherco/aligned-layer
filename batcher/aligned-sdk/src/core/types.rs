@@ -18,6 +18,8 @@ use lambdaworks_crypto::merkle_tree::{
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
+use super::constants::{BATCHER_URL_HOLESKY, BATCHER_URL_HOLESKY_STAGE, BATCHER_URL_DEVNET};
+
 use super::errors::VerifySignatureError;
 
 // VerificationData is a bytes32 instead of a VerificationData struct because in the BatcherPaymentService contract
@@ -418,6 +420,18 @@ impl FromStr for Network {
         }
     }
 }
+
+impl Network {
+
+    pub fn get_batcher_url(&self) -> &str {
+        match self {
+            Self::Devnet => BATCHER_URL_DEVNET,
+            Self::Holesky => BATCHER_URL_HOLESKY,
+            Self::HoleskyStage => BATCHER_URL_HOLESKY_STAGE,
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

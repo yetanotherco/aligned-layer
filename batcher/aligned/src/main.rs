@@ -66,9 +66,10 @@ pub struct SubmitArgs {
     #[arg(
         name = "Batcher connection address",
         long = "batcher_url",
+        required = false,
         default_value = "ws://localhost:8080"
     )]
-    batcher_url: String,
+    batcher_url: Option<String>,
     #[arg(
         name = "Ethereum RPC provider connection address",
         long = "rpc_url",
@@ -207,15 +208,23 @@ pub struct GetUserNonceArgs {
     #[arg(
         name = "Batcher connection address",
         long = "batcher_url",
+        required = false,
         default_value = "ws://localhost:8080"
     )]
-    batcher_url: String,
+    batcher_url: Option<String>,
     #[arg(
         name = "The user's Ethereum address",
         long = "user_addr",
         required = true
     )]
     address: String,
+    #[arg(
+        name = "The working network's name",
+        long = "network",
+        required = true,
+        default_value = "devnet"
+    )]
+    network: NetworkArg,
 }
 
 #[derive(Debug, Clone, ValueEnum, Copy)]
@@ -279,9 +288,10 @@ async fn main() -> Result<(), AlignedError> {
 
             let max_fee =
                 U256::from_dec_str(&submit_args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
+            let network: Network = submit_args.network.into();
 
             let repetitions = submit_args.repetitions;
-            let connect_addr = submit_args.batcher_url.clone();
+            let batcher_url = submit_args.batcher_url.clone().unwrap_or(network.get_batcher_url().into());
 
             let keystore_path = &submit_args.keystore_path;
             let private_key = &submit_args.private_key;
@@ -321,7 +331,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let nonce = match &submit_args.nonce {
                 Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
-                None => get_nonce_from_batcher(&connect_addr, wallet.address())
+                None => get_nonce_from_batcher(&batcher_url, wallet.address())
                     .await
                     .map_err(|e| match e {
                         aligned_sdk::core::errors::GetNonceError::EthRpcError(e) => {
@@ -355,7 +365,7 @@ async fn main() -> Result<(), AlignedError> {
             info!("Submitting proofs to the Aligned batcher...");
 
             let aligned_verification_data_vec = submit_multiple(
-                &connect_addr,
+                &batcher_url,
                 submit_args.network.into(),
                 &verification_data_arr,
                 max_fee,
@@ -518,7 +528,9 @@ async fn main() -> Result<(), AlignedError> {
         }
         GetUserNonce(args) => {
             let address = H160::from_str(&args.address).unwrap();
-            match get_nonce_from_batcher(&args.batcher_url, address).await {
+            let network: Network = args.network.into();
+            let batcher_url = args.batcher_url.unwrap_or(network.get_batcher_url().into());
+            match get_nonce_from_batcher(&batcher_url, address).await {
                 Ok(nonce) => {
                     info!("Nonce for address {} is {}", address, nonce);
                 }
