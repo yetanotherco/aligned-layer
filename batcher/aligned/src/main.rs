@@ -29,8 +29,8 @@ use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
 use crate::AlignedCommands::GetUserBalance;
-use crate::AlignedCommands::GetUserNonce;
 use crate::AlignedCommands::GetUserFirstNonce;
+use crate::AlignedCommands::GetUserNonce;
 use crate::AlignedCommands::GetVkCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -60,7 +60,10 @@ pub enum AlignedCommands {
     GetUserBalance(GetUserBalanceArgs),
     #[clap(about = "Get user nonce from the batcher", name = "get-user-nonce")]
     GetUserNonce(GetUserNonceArgs),
-    #[clap(about = "Get the first user nonce from ethereum", name = "get-user-first-nonce")]
+    #[clap(
+        about = "Get the first user nonce from ethereum",
+        name = "get-user-first-nonce"
+    )]
     GetUserFirstNonce(GetUserFirstNonceArgs),
 }
 
