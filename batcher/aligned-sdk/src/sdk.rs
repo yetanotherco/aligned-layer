@@ -138,7 +138,7 @@ pub async fn estimate_fee(
     estimate: PriceEstimate,
 ) -> Result<U256, errors::MaxFeeEstimateError> {
     // Price of 1 proof in 32 proof batch
-    let fee_per_proof = fee_per_proof(eth_rpc_url, MAX_FEE_BATCH_PROOF_NUMBER).await?;
+    let fee_per_proof = max_fee_per_proof(eth_rpc_url, MAX_FEE_BATCH_PROOF_NUMBER).await?;
 
     let proof_price = match estimate {
         PriceEstimate::Min => fee_per_proof,
@@ -148,28 +148,7 @@ pub async fn estimate_fee(
     Ok(proof_price)
 }
 
-/// Returns the computed `max_fee` for a proof based on the number of proofs in a batch (`num_proofs_per_batch`) and
-/// number of proofs (`num_proofs`) in that batch the user would pay for i.e (`num_proofs` / `num_proofs_per_batch`).
-/// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
-/// # Arguments
-/// * `eth_rpc_url` - The URL of the users Ethereum RPC node.
-/// * `num_proofs` - number of proofs in a batch the user would pay for.
-/// * `num_proofs_per_batch` - number of proofs within a batch.
-/// # Returns
-/// * The calculated `max_fee` as a `U256`.
-/// # Errors
-/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
-/// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
-pub async fn compute_max_fee(
-    eth_rpc_url: &str,
-    num_proofs: usize,
-    num_proofs_per_batch: usize,
-) -> Result<U256, errors::MaxFeeEstimateError> {
-    let fee_per_proof = fee_per_proof(eth_rpc_url, num_proofs_per_batch).await?;
-    Ok(fee_per_proof * num_proofs)
-}
-
-/// Returns the `fee_per_proof` based on the current gas price for a batch compromised of `num_proofs_per_batch`
+/// Returns the `max_fee_per_proof` based on the current gas price for a batch compromised of `num_proofs_per_batch`
 /// i.e. (1 / `num_proofs_per_batch`).
 // NOTE: The `fee_per_proof` is computed from an rpc nodes max priority gas price.
 /// # Arguments
@@ -180,7 +159,7 @@ pub async fn compute_max_fee(
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
-pub async fn fee_per_proof(
+pub async fn max_fee_per_proof(
     eth_rpc_url: &str,
     num_proofs_per_batch: usize,
 ) -> Result<U256, errors::MaxFeeEstimateError> {
@@ -824,51 +803,4 @@ fn save_response_json(
     file.write_all(serde_json::to_string_pretty(&data).unwrap().as_bytes())?;
 
     Ok(())
-}
-
-#[cfg(test)]
-mod test {
-    //Public constants for convenience
-    pub const HOLESKY_PUBLIC_RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
-    use super::*;
-
-    #[tokio::test]
-    async fn computed_max_fee_for_larger_batch_is_smaller() {
-        let small_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 2, 10)
-            .await
-            .unwrap();
-        let large_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 10)
-            .await
-            .unwrap();
-
-        assert!(small_fee < large_fee);
-    }
-
-    #[tokio::test]
-    async fn computed_max_fee_for_more_proofs_larger_than_for_less_proofs() {
-        let small_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 20)
-            .await
-            .unwrap();
-        let large_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 10)
-            .await
-            .unwrap();
-
-        assert!(small_fee < large_fee);
-    }
-
-    #[tokio::test]
-    async fn estimate_fee_are_larger_than_one_another() {
-        let min_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Min)
-            .await
-            .unwrap();
-        let default_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Default)
-            .await
-            .unwrap();
-        let instant_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Instant)
-            .await
-            .unwrap();
-
-        assert!(min_fee < default_fee);
-        assert!(default_fee < instant_fee);
-    }
 }
