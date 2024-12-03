@@ -43,7 +43,7 @@ do
   go run ./scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $x
 
   ## Send Proof
-  echo "Submitting $repetitions proofs $x != 0"
+  echo "Submitting $REPETITIONS proofs $x != 0"
   submit=$(aligned submit \
     --proving_system Groth16Bn254 \
     --repetitions $REPETITIONS \
@@ -62,7 +62,7 @@ do
   explorer_link=$(echo "$submit" | grep alignedlayer.com | awk '{print $4}')
   sleep 60
 
-  echo "Verifying $repetitions proofs $x != 0"
+  echo "Verifying $REPETITIONS proofs $x != 0"
   for proof in ./aligned_verification_data/*.cbor; do
     ## Validate Proof on Chain
     verification=$(aligned verify-proof-onchain \
