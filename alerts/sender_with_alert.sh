@@ -60,7 +60,7 @@ do
   echo "$submit"
 
   explorer_link=$(echo "$submit" | grep alignedlayer.com | awk '{print $4}')
-  sleep 60
+  sleep 90
 
   echo "Verifying $REPETITIONS proofs $x != 0"
   for proof in ./aligned_verification_data/*.cbor; do
@@ -75,7 +75,7 @@ do
     if echo "$verification" | grep -q not; then
       message="Proof verification failed for $proof [ $explorer_link ]"
       echo "$message"
-      #send_pagerduty_alert "$message"
+      send_pagerduty_alert "$message"
       break
     elif echo "$verification" | grep -q verified; then
       echo "Proof verification succeeded for $proof"
