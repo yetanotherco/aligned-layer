@@ -108,9 +108,9 @@ pub struct SubmitArgs {
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
     #[arg(
-        name = "Max Fee",
+        name = "Max Fee (ether)",
         long = "max_fee",
-        default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
+        default_value = "0.013ether" // 13_000 gas per proof * 100 gwei gas price (upper bound)
     )]
     max_fee: String, // String because U256 expects hex
     #[arg(name = "Nonce", long = "nonce")]
@@ -277,8 +277,16 @@ async fn main() -> Result<(), AlignedError> {
                 SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
             })?;
 
-            let max_fee =
-                U256::from_dec_str(&submit_args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
+            if !submit_args.max_fee.ends_with("ether") {
+                error!("Amount should be in the format XX.XXether");
+                return Ok(());
+            }
+
+            let max_fee = submit_args.max_fee.replace("ether", "");
+
+            let max_fee_ether = parse_ether(&max_fee).map_err(|e| {
+                SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
+            })?;
 
             let repetitions = submit_args.repetitions;
             let connect_addr = submit_args.batcher_url.clone();
@@ -358,7 +366,7 @@ async fn main() -> Result<(), AlignedError> {
                 &connect_addr,
                 submit_args.network.into(),
                 &verification_data_arr,
-                max_fee,
+                max_fee_ether,
                 wallet.clone(),
                 nonce,
             )
