@@ -19,6 +19,9 @@ pub struct BatcherMetrics {
     pub batcher_started: IntCounter,
     pub gas_price_used_on_latest_batch: IntGauge,
     pub broken_ws_connections: IntCounter,
+    pub s3_latency: IntGauge,
+    pub create_new_task_latency: IntGauge,
+    pub cancel_create_new_task_latency: IntGauge,
 }
 
 impl BatcherMetrics {
@@ -44,6 +47,24 @@ impl BatcherMetrics {
             "Broken websocket connections"
         ))?;
 
+        let s3_latency = register_int_gauge!(opts!("s3_latency", "S3 Latency"))?;
+        let create_new_task_latency =
+            register_int_gauge!(opts!("create_new_task_latency", "Create New Task Latency"))?;
+        let cancel_create_new_task_latency = register_int_gauge!(opts!(
+            "cancel_create_new_task_latency",
+            "Cancel create New Task Latency"
+        ))?;
+        // let s3_latency = register_histogram!(histogram_opts!("s3_latency","S3 Latency",linear_buckets(1.0, 0.5, 4).unwrap()))?;
+
+        // let histogram_opts = HistogramOpts::new("function_latency", "Latency of the function")
+        //     .namespace("your_namespace") // Optional: Add namespace
+        //     .subsystem("your_subsystem") // Optional: Add subsystem
+        //     .buckets(vec![0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5]); // Custom buckets
+
+        // let histogram = Histogram::with_opts(histogram_opts).unwrap();
+        // registry.register(Box::new(histogram.clone())).unwrap();
+        // (registry, histogram)
+
         registry.register(Box::new(open_connections.clone()))?;
         registry.register(Box::new(received_proofs.clone()))?;
         registry.register(Box::new(sent_batches.clone()))?;
@@ -53,6 +74,9 @@ impl BatcherMetrics {
         registry.register(Box::new(gas_price_used_on_latest_batch.clone()))?;
         registry.register(Box::new(batcher_started.clone()))?;
         registry.register(Box::new(broken_ws_connections.clone()))?;
+        registry.register(Box::new(s3_latency.clone()))?;
+        registry.register(Box::new(create_new_task_latency.clone()))?;
+        registry.register(Box::new(cancel_create_new_task_latency.clone()))?;
 
         let metrics_route = warp::path!("metrics")
             .and(warp::any().map(move || registry.clone()))
@@ -74,6 +98,9 @@ impl BatcherMetrics {
             batcher_started,
             gas_price_used_on_latest_batch,
             broken_ws_connections,
+            s3_latency,
+            create_new_task_latency,
+            cancel_create_new_task_latency,
         })
     }
 
