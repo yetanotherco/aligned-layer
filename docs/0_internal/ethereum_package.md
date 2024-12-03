@@ -106,3 +106,21 @@ make spamoor_send_transactions COUNT=1000000000  TX_CONSUME_GAS=150000 TX_PER_BL
 ```bash
 make spamoor_send_transactions COUNT=1000000000 TX_CONSUME_GAS=150000 TX_PER_BLOCK=210 NUM_WALLETS=1000 TIP_FEE=<new_tip_fee>
 ```
+
+## How to update preloaded contracts
+
+1. First, deploy the new contracts in Anvil:
+
+```bash
+make anvil_deploy_aligned_contracts
+```
+
+That will generate the state output in `contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json`
+
+2. Filter the contracts' state:
+
+```bash
+jq '.accounts | to_entries | map(select(.value.code != "0x"))' contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json > contracts.json
+```
+
+3. Open the `network_params.yaml` file and replace the `additional_preloaded_contracts` section with the content of `contracts.json`.
