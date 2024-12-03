@@ -27,6 +27,7 @@ function send_pagerduty_alert() {
 }
 
 #################
+x=100
 
 while true
 do
@@ -38,7 +39,6 @@ do
   mkdir -p ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 
   ## Generate Proof
-  x=1
   echo "Generating proof $x != 0"
   go run ./scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $x
 
@@ -55,12 +55,13 @@ do
     --rpc_url $RPC_URL \
     --batcher_url $BATCHER_URL \
     --network $NETWORK \
+    --max_fee 4000000000000000 \
     2>&1)
 
   echo "$submit"
 
   explorer_link=$(echo "$submit" | grep alignedlayer.com | awk '{print $4}')
-  sleep 90
+  sleep 600
 
   echo "Verifying $REPETITIONS proofs $x != 0"
   for proof in ./aligned_verification_data/*.cbor; do
@@ -86,6 +87,7 @@ do
   rm -rf ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/*
   rm -rf ./aligned_verification_data/*
 
+  echo "Sleeping $SLEEP seconds"
   sleep $SLEEP
   x=$((x + 1))
 done
