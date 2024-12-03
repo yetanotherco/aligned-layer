@@ -147,6 +147,8 @@ pub struct DepositToBatcherArgs {
     network: NetworkArg,
     #[arg(name = "Amount to deposit", long = "amount", required = true)]
     amount: String,
+    #[arg(name = "Private key", long = "private_key")]
+    private_key: Option<String>,
 }
 
 #[derive(Parser, Debug)]
@@ -479,6 +481,10 @@ async fn main() -> Result<(), AlignedError> {
                 let password = rpassword::prompt_password("Please enter your keystore password:")
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?;
                 Wallet::decrypt_keystore(keystore_path, password)
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
+            } else if let Some(private_key) = private_key {
+                private_key
+                    .parse::<LocalWallet>()
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
                 warn!("Missing keystore used for payment.");
