@@ -9,12 +9,10 @@
     node_install_dir: "/usr/local/"
     node_bin_path: "/usr/local/bin/node"
 
-
   tasks:
-
     - name: Check if Node.js is already installed
       ansible.builtin.shell:
-        cmd: "{{ node_bin_path }} --version"
+        cmd: "which {{ node_bin_path }}"
       register: node_check
       changed_when: false
       failed_when: node_check.rc not in [0, 1]

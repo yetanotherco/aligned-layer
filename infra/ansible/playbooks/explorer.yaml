@@ -29,8 +29,11 @@
 
   pre_tasks:
     - name: Install pnpm
+      become: true
       ansible.builtin.shell:
         cmd: npm install -g pnpm
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
 
     - name: Clone the aligned_layer repository
       register: clone_repo
