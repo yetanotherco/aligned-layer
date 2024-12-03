@@ -401,6 +401,7 @@ pub enum Network {
     Devnet,
     Holesky,
     HoleskyStage,
+    Mainnet,
 }
 
 impl FromStr for Network {
@@ -411,8 +412,9 @@ impl FromStr for Network {
             "holesky" => Ok(Network::Holesky),
             "holesky-stage" => Ok(Network::HoleskyStage),
             "devnet" => Ok(Network::Devnet),
+            "mainnet" => Ok(Network::Mainnet),
             _ => Err(
-                "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\""
+                "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\", \"mainnet\""
                     .to_string(),
             ),
         }
