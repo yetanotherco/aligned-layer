@@ -859,6 +859,7 @@ impl Batcher {
     /// If the max fee is lower, sends an error message to the client
     /// If the message is not in the batch, sends an error message to the client
     /// Returns true if the message was replaced in the batch, false otherwise
+    #[allow(clippy::too_many_arguments)]
     async fn handle_replacement_message(
         &self,
         mut batch_state_lock: MutexGuard<'_, BatchState>,
