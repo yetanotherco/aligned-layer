@@ -99,7 +99,6 @@ impl TryFrom<String> for PriceEstimate {
     
     fn try_from(value: String) -> Result<Self, Self::Error> {
         let val = match value.as_str() {
-            // TODO remove the InvalidMaxFee error...
             "default" => Self::Default,
             "instant" => Self::Instant,
             s if s.starts_with("custom") => {
