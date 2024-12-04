@@ -1453,7 +1453,7 @@ impl Batcher {
             finalized_batch.iter().map(|entry| entry.sender).collect();
 
         self.simulate_create_new_task(
-            batch_merkle_root.clone(),
+            *batch_merkle_root,
             batch_data_pointer.clone(),
             proof_submitters.clone(),
             fee_params.clone(),
@@ -1574,7 +1574,7 @@ impl Batcher {
         retry_function(
             || {
                 simulate_create_new_task_retryable(
-                    batch_merkle_root.clone(),
+                    batch_merkle_root,
                     batch_data_pointer.clone(),
                     proof_submitters.clone(),
                     fee_params.clone(),
