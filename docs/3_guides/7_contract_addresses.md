@@ -14,6 +14,8 @@
 
 ### Strategies
 
+Below is the list of supported strategies available on Aligned Mainnet:
+
 | Name                                                       | Address                                                                                                               |
 |------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
 | [Beacon Chain ETH](https://app.eigenlayer.xyz/restake/ETH) | [0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0](https://etherscan.io/address/0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0) |  
@@ -29,6 +31,9 @@
 | [sfrxETH](https://app.eigenlayer.xyz/restake/sfrxETH)      | [0x8CA7A5d6f3acd3A7A8bC468a8CD0FB14B6BD28b6](https://etherscan.io/address/0x8CA7A5d6f3acd3A7A8bC468a8CD0FB14B6BD28b6) |
 | [lsETH](https://app.eigenlayer.xyz/restake/lsETH)          | [0xAe60d8180437b5C34bB956822ac2710972584473](https://etherscan.io/address/0xAe60d8180437b5C34bB956822ac2710972584473) |
 | [mETH](https://app.eigenlayer.xyz/restake/mETH)            | [0x298aFB19A105D59E74658C4C334Ff360BadE6dd2](https://etherscan.io/address/0x298aFB19A105D59E74658C4C334Ff360BadE6dd2) |
+
+For additional details, refer to the [official EigenLayer documentation](https://github.com/Layr-Labs/eigenlayer-contracts/tree/testnet-holesky?tab=readme-ov-file#strategies)
+
 
 ## Holesky Deployments
 
