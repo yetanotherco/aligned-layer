@@ -317,7 +317,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
     info!("Starting senders!");
     for (i, sender) in senders.iter().enumerate() {
         // this is necessary because of the move
-        let batcher_url = args.batcher_url.clone();
+        let network = args.network.into();
         let wallet = sender.wallet.clone();
         let verification_data = verification_data.clone();
 
@@ -325,7 +325,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
         let handle = tokio::spawn(async move {
             loop {
                 let mut result = Vec::with_capacity(args.burst_size);
-                let nonce = get_nonce_from_batcher(&batcher_url, wallet.address())
+                let nonce = get_nonce_from_batcher(wallet.address(), network)
                     .await
                     .inspect_err(|e| {
                         error!(
@@ -346,11 +346,9 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                     "Sending {:?} Proofs to Aligned Batcher on {:?} from sender {}, nonce: {}, address: {:?}",
                     args.burst_size, args.network, i, nonce, wallet.address(),
                 );
-                let batcher_url = batcher_url.clone();
 
                 let aligned_verification_data = submit_multiple(
-                    &batcher_url.clone(),
-                    args.network.into(),
+                    network,
                     &verification_data_to_send.clone(),
                     max_fee,
                     wallet.clone(),
