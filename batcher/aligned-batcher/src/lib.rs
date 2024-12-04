@@ -782,7 +782,7 @@ impl Batcher {
                 addr,
                 user_balance,
                 user_accumulated_fee,
-                msg_max_fee
+                msg_max_fee,
             )
             .await;
 
@@ -898,8 +898,12 @@ impl Batcher {
             return;
         }
 
-        // For a replacement msg we must subtract the original_max_fee of the message from the user's accumulated max fee. 
-        if !self.verify_user_has_enough_balance(user_balance, user_accumulated_fee - original_max_fee, msg_max_fee) {
+        // For a replacement msg we must subtract the original_max_fee of the message from the user's accumulated max fee.
+        if !self.verify_user_has_enough_balance(
+            user_balance,
+            user_accumulated_fee - original_max_fee,
+            msg_max_fee,
+        ) {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
