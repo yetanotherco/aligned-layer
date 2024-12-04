@@ -29,8 +29,6 @@ struct Args {
         default_value = "https://ethereum-holesky-rpc.publicnode.com"
     )]
     rpc_url: String,
-    #[arg(short, long, default_value = "wss://batcher.alignedlayer.com")]
-    batcher_url: String,
     #[arg(short, long, default_value = "holesky")]
     network: Network,
     #[arg(short, long)]
@@ -139,7 +137,6 @@ async fn main() {
         println!("Submitting your proof...");
 
     let aligned_verification_data = submit_and_wait_verification(
-        &args.batcher_url,
         &rpc_url,
         args.network,
         &verification_data,

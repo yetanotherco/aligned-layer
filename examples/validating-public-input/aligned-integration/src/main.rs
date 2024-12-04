@@ -43,8 +43,6 @@ pub enum ProvingSystemArg {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(short, long, default_value = "wss://batcher.alignedlayer.com")]
-    batcher_url: String,
     #[arg(short, long, default_value = "holesky")]
     network: Network,
     #[arg(short, long)]
@@ -134,7 +132,6 @@ async fn main() -> Result<(), SubmitError> {
 
     info!("Submitting Fibonacci proof to Aligned and waiting for verification...");
     let aligned_verification_data = submit_and_wait_verification(
-        &args.batcher_url,
         &args.rpc_url,
         network,
         &verification_data,
