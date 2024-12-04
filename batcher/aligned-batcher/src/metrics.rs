@@ -19,6 +19,9 @@ pub struct BatcherMetrics {
     pub batcher_started: IntCounter,
     pub gas_price_used_on_latest_batch: IntGauge,
     pub broken_ws_connections: IntCounter,
+    pub s3_latency: IntGauge,
+    pub create_new_task_latency: IntGauge,
+    pub cancel_create_new_task_latency: IntGauge,
 }
 
 impl BatcherMetrics {
@@ -46,6 +49,13 @@ impl BatcherMetrics {
             "broken_ws_connections_count",
             "Broken websocket connections"
         ))?;
+        let s3_latency = register_int_gauge!(opts!("s3_latency", "S3 Latency"))?;
+        let create_new_task_latency =
+            register_int_gauge!(opts!("create_new_task_latency", "Create New Task Latency"))?;
+        let cancel_create_new_task_latency = register_int_gauge!(opts!(
+            "cancel_create_new_task_latency",
+            "Cancel create New Task Latency"
+        ))?;
 
         registry.register(Box::new(open_connections.clone()))?;
         registry.register(Box::new(received_proofs.clone()))?;
@@ -56,6 +66,9 @@ impl BatcherMetrics {
         registry.register(Box::new(gas_price_used_on_latest_batch.clone()))?;
         registry.register(Box::new(batcher_started.clone()))?;
         registry.register(Box::new(broken_ws_connections.clone()))?;
+        registry.register(Box::new(s3_latency.clone()))?;
+        registry.register(Box::new(create_new_task_latency.clone()))?;
+        registry.register(Box::new(cancel_create_new_task_latency.clone()))?;
 
         let metrics_route = warp::path!("metrics")
             .and(warp::any().map(move || registry.clone()))
@@ -77,6 +90,9 @@ impl BatcherMetrics {
             batcher_started,
             gas_price_used_on_latest_batch,
             broken_ws_connections,
+            s3_latency,
+            create_new_task_latency,
+            cancel_create_new_task_latency,
         })
     }
 
