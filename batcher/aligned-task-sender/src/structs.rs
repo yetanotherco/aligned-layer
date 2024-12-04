@@ -89,11 +89,11 @@ pub struct GenerateAndFundWalletsArgs {
 #[command(version, about, long_about = None)]
 pub struct TestConnectionsArgs {
     #[arg(
-        name = "Batcher connection address",
-        long = "batcher-url",
-        default_value = "ws://localhost:8080"
+        name = "The Ethereum network's name",
+        long = "network",
+        default_value = "devnet"
     )]
-    pub batcher_url: String,
+    pub network: NetworkArg,
     #[arg(
         name = "Number of spawned sockets",
         long = "num-senders",
@@ -111,12 +111,6 @@ pub struct SendInfiniteProofsArgs {
         default_value = "http://localhost:8545"
     )]
     pub eth_rpc_url: String,
-    #[arg(
-        name = "Batcher connection address",
-        long = "batcher-url",
-        default_value = "ws://localhost:8080"
-    )]
-    pub batcher_url: String,
     #[arg(
         name = "Number of proofs per burst",
         long = "burst-size",

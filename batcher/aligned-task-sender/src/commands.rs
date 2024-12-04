@@ -211,16 +211,13 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
 
 /// infinitely hangs connections
 pub async fn test_connection(args: TestConnectionsArgs) {
-    if args.batcher_url == "wss://batcher.alignedlayer.com" {
-        error!("Network not supported by the connection tester");
-        return;
-    }
     info!("Going to only open a connection");
     let mut handlers = vec![];
 
     for i in 0..args.num_senders {
-        let ws_url = args.batcher_url.clone();
+        let network: Network = args.network.into();
         let handle = tokio::spawn(async move {
+            let ws_url = network.get_batcher_url();
             let conn = connect_async(ws_url).await;
             if let Ok((mut ws_stream, _)) = conn {
                 info!("Opened connection for {}", i);
