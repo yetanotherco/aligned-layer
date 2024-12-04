@@ -21,6 +21,10 @@ Minimum hardware requirements:
 | **Bandwidth** | 1 Gbps            |
 | **Storage**   | 256 GB disk space |
 
+## Supported Strategies
+
+The list of supported strategies can be found [here](../3_guides/7_contract_addresses.md).
+
 ## Step 1 - Clone the repo
 
 To start with, clone the Aligned repository and move inside it
