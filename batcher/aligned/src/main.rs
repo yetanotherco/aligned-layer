@@ -64,13 +64,6 @@ pub enum AlignedCommands {
 #[command(version, about, long_about = None)]
 pub struct SubmitArgs {
     #[arg(
-        name = "Batcher connection address",
-        long = "batcher_url",
-        required = false,
-        default_value = "ws://localhost:8080"
-    )]
-    batcher_url: Option<String>,
-    #[arg(
         name = "Ethereum RPC provider connection address",
         long = "rpc_url",
         default_value = "http://localhost:8545"
@@ -127,11 +120,7 @@ pub struct SubmitArgs {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct DepositToBatcherArgs {
-    #[arg(
-        name = "Path to local keystore",
-        long = "keystore_path",
-        required = true
-    )]
+    #[arg(name = "Path to local keystore", long = "keystore_path")]
     keystore_path: Option<PathBuf>,
     #[arg(
         name = "Ethereum RPC provider address",
@@ -207,13 +196,6 @@ pub struct GetUserBalanceArgs {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct GetUserNonceArgs {
-    #[arg(
-        name = "Batcher connection address",
-        long = "batcher_url",
-        required = false,
-        default_value = "ws://localhost:8080"
-    )]
-    batcher_url: Option<String>,
     #[arg(
         name = "The user's Ethereum address",
         long = "user_addr",
@@ -293,10 +275,7 @@ async fn main() -> Result<(), AlignedError> {
             let network: Network = submit_args.network.into();
 
             let repetitions = submit_args.repetitions;
-            let batcher_url = submit_args
-                .batcher_url
-                .clone()
-                .unwrap_or(network.get_batcher_url().into());
+            let batcher_url = network.get_batcher_url();
 
             let keystore_path = &submit_args.keystore_path;
             let private_key = &submit_args.private_key;
@@ -482,6 +461,10 @@ async fn main() -> Result<(), AlignedError> {
             let private_key = &deposit_to_batcher_args.private_key;
 
             let mut wallet = if let Some(keystore_path) = keystore_path {
+                if private_key.is_some() {
+                    error!("Conflicting inputs detected: Both a keystore and a private key were provided. Provide only one option to proceed.");
+                    return Ok(());
+                }
                 let password = rpassword::prompt_password("Please enter your keystore password:")
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?;
                 Wallet::decrypt_keystore(keystore_path, password)
@@ -491,7 +474,7 @@ async fn main() -> Result<(), AlignedError> {
                     .parse::<LocalWallet>()
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
-                warn!("Missing keystore used for payment.");
+                warn!("Missing keystore or private key used for payment.");
                 return Ok(());
             };
 
@@ -539,7 +522,7 @@ async fn main() -> Result<(), AlignedError> {
         GetUserNonce(args) => {
             let address = H160::from_str(&args.address).unwrap();
             let network: Network = args.network.into();
-            let batcher_url = args.batcher_url.unwrap_or(network.get_batcher_url().into());
+            let batcher_url = network.get_batcher_url();
             match get_nonce_from_batcher(&batcher_url, address).await {
                 Ok(nonce) => {
                     info!("Nonce for address {} is {}", address, nonce);
