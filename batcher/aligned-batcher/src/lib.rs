@@ -1560,9 +1560,12 @@ impl Batcher {
             ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
         .await;
+        self.metrics
+            .create_new_task_latency
+            .set(start.elapsed().as_millis() as i64);
         // Set to zero since it is not always executed
         self.metrics.cancel_create_new_task_latency.set(0);
-        let result = match retry_result {
+        match retry_result {
             Ok(receipt) => {
                 if let Err(e) = self
                     .telemetry
@@ -1579,11 +1582,7 @@ impl Batcher {
                 Err(BatcherError::ReceiptNotFoundError)
             }
             Err(RetryError::Permanent(e)) | Err(RetryError::Transient(e)) => Err(e),
-        };
-        self.metrics
-            .create_new_task_latency
-            .set(start.elapsed().as_millis() as i64);
-        result
+        }
     }
 
     /// Sends a transaction to Ethereum with the same nonce as the previous one to override it.
