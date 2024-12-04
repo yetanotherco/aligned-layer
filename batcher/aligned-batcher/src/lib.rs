@@ -1486,7 +1486,7 @@ impl Batcher {
             warn!("Failed to send task status to telemetry: {:?}", e);
         };
 
-        info!("Uploading batch to contract");
+        info!("Submitting batch to contract");
         match self
             .create_new_task(
                 *batch_merkle_root,
