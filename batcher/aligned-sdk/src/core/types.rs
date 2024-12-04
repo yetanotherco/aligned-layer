@@ -18,7 +18,7 @@ use lambdaworks_crypto::merkle_tree::{
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
-use super::constants::{BATCHER_URL_HOLESKY, BATCHER_URL_HOLESKY_STAGE, BATCHER_URL_DEVNET};
+use super::constants::{BATCHER_URL_DEVNET, BATCHER_URL_HOLESKY, BATCHER_URL_HOLESKY_STAGE};
 
 use super::errors::VerifySignatureError;
 
@@ -422,7 +422,6 @@ impl FromStr for Network {
 }
 
 impl Network {
-
     pub fn get_batcher_url(&self) -> &str {
         match self {
             Self::Devnet => BATCHER_URL_DEVNET,
@@ -431,7 +430,6 @@ impl Network {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

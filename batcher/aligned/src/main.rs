@@ -293,7 +293,10 @@ async fn main() -> Result<(), AlignedError> {
             let network: Network = submit_args.network.into();
 
             let repetitions = submit_args.repetitions;
-            let batcher_url = submit_args.batcher_url.clone().unwrap_or(network.get_batcher_url().into());
+            let batcher_url = submit_args
+                .batcher_url
+                .clone()
+                .unwrap_or(network.get_batcher_url().into());
 
             let keystore_path = &submit_args.keystore_path;
             let private_key = &submit_args.private_key;
@@ -476,6 +479,7 @@ async fn main() -> Result<(), AlignedError> {
                 })?;
 
             let keystore_path = &deposit_to_batcher_args.keystore_path;
+            let private_key = &deposit_to_batcher_args.private_key;
 
             let mut wallet = if let Some(keystore_path) = keystore_path {
                 let password = rpassword::prompt_password("Please enter your keystore password:")
