@@ -39,7 +39,6 @@ aligned submit \
 --proving_system SP1 \
 --proof <proof_path> \
 --vm_program <vm_program_path> \
---batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr> \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
@@ -88,7 +87,6 @@ aligned submit \
 --proof <proof_path> \
 --public_input <public_input_path>
 --vk <verification_key_path> \
---batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr> \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
@@ -166,7 +164,6 @@ aligned submit \
   --proof <proof_file_path> \
   --vm_program <method_id_file_path> \
   --public_input <pub_input_file_path> \
-  --batcher_url wss://batcher.alignedlayer.com \
   --proof_generator_addr <proof_generator_addr> \
   --rpc_url https://ethereum-holesky-rpc.publicnode.com \
   --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
