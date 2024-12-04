@@ -33,7 +33,6 @@ do
         --vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
         --proof_generator_addr "$random_address" \
         --network "$NETWORK" \
-        --batcher_url "$BATCHER_CONN" \
         --repetitions "2" \
         --rpc_url "$RPC"
 

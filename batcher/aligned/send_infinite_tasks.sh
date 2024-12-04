@@ -35,7 +35,6 @@ do
     --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
     --repetitions "2" \
     --rpc_url "$RPC" \
-    --batcher_url "$BATCHER_CONN" \
     --network "$NETWORK"
 
     cd ../..
