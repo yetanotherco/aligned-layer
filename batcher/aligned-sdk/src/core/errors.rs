@@ -352,3 +352,12 @@ impl fmt::Display for FileError {
         }
     }
 }
+
+pub enum BumpError {
+    WebSocketConnectionError(tokio_tungstenite::tungstenite::Error),
+    InvalidBumpUnit,
+    SerializationError(String),
+    ConnectionFailed(String),
+    EthRpcError(String),
+    InvalidRequest(String),
+}

@@ -231,6 +231,7 @@ pub enum ClientMessage {
     // Needs to be wrapped in box as the message is 3x bigger than the others
     // see https://rust-lang.github.io/rust-clippy/master/index.html#large_enum_variant
     SubmitProof(Box<SubmitProofMessage>),
+    BumpFee(BumpUnit, U256, usize), // BumpUnit, value, proof_qty
 }
 
 impl Display for ClientMessage {
@@ -239,6 +240,7 @@ impl Display for ClientMessage {
         match self {
             ClientMessage::GetNonceForAddress(_) => write!(f, "GetNonceForAddress"),
             ClientMessage::SubmitProof(_) => write!(f, "SubmitProof"),
+            ClientMessage::BumpFee(_, _, _) => write!(f, "BumpFee"),
         }
     }
 }
@@ -394,6 +396,23 @@ pub enum GetNonceResponseMessage {
     Nonce(U256),
     EthRpcError(String),
     InvalidRequest(String),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum BumpFeeResponseMessage {
+    Ok(),
+    EthRpcError(String),
+    InvalidRequest(String),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum BumpUnit {
+    Percentage,
+    Wei,
+    Gwei,
+    Eth,
+    NewMaxFee,
+    BatchSize,
 }
 
 #[derive(Debug, Clone, Copy)]

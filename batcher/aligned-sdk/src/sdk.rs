@@ -10,10 +10,10 @@ use crate::{
             ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
             MAX_FEE_BATCH_PROOF_NUMBER, MAX_FEE_DEFAULT_PROOF_NUMBER,
         },
-        errors::{self, GetNonceError},
+        errors::{self, BumpError, GetNonceError},
         types::{
-            AlignedVerificationData, ClientMessage, GetNonceResponseMessage, Network,
-            PriceEstimate, ProvingSystemId, VerificationData,
+            AlignedVerificationData, BumpFeeResponseMessage, BumpUnit, ClientMessage,
+            GetNonceResponseMessage, Network, PriceEstimate, ProvingSystemId, VerificationData,
         },
     },
     eth::{
@@ -462,6 +462,64 @@ pub async fn submit(
         Some(Err(e)) => Err(errors::SubmitError::GenericError(e.to_string())),
         None => Err(errors::SubmitError::GenericError(
             "No response from the batcher".to_string(),
+        )),
+    }
+}
+
+pub async fn bump_user_fees(
+    network: Network,
+    bump_unit: BumpUnit,
+    bump_amount: U256,
+    proof_qty: usize, // Number of proofs to bump fees, from oldest to newest
+                      // maybe also i will need a signature here
+) -> Result<(), errors::BumpError> {
+    // let batcher_url = network.get_batcher_url(); // This is in a PR
+    let batcher_url = "network.get_batcher_url()";
+    // let (ws_stream, _) = match connect_async(batcher_url).await {
+    //     Ok((ws_stream, response)) => (ws_stream, response),
+    //     Err(e) => return Err(BumpError::WebSocketConnectionError(e)),
+    // };
+    let (ws_stream, _) = connect_async(batcher_url)
+        .await
+        .map_err(|e| BumpError::WebSocketConnectionError(e))?;
+    debug!("WebSocket handshake has been successfully completed");
+    let (mut ws_write, ws_read) = ws_stream.split();
+
+    let msg = ClientMessage::BumpFee(bump_unit, bump_amount, proof_qty);
+
+    let msg_bin = cbor_serialize(&msg)
+        .map_err(|_| BumpError::SerializationError("Failed to serialize msg".to_string()))?;
+
+    ws_write
+        .send(Message::Binary(msg_bin.clone()))
+        .await
+        .map_err(|_| {
+            BumpError::ConnectionFailed(
+                "Ws connection failed to send message to batcher".to_string(),
+            )
+        })?;
+
+    let mut response_stream: ResponseStream =
+        ws_read.try_filter(|msg| futures_util::future::ready(msg.is_binary()));
+
+    let response_msg = match response_stream.next().await {
+        Some(Ok(msg)) => msg,
+        _ => {
+            return Err(BumpError::ConnectionFailed(
+                "Connection was closed without close message before receiving all messages"
+                    .to_string(),
+            ));
+        }
+    };
+
+    let _ = ws_write.close().await;
+
+    match cbor_deserialize(response_msg.into_data().as_slice()) {
+        Ok(BumpFeeResponseMessage::Ok()) => Ok(()),
+        Ok(BumpFeeResponseMessage::EthRpcError(e)) => Err(BumpError::EthRpcError(e)),
+        Ok(BumpFeeResponseMessage::InvalidRequest(e)) => Err(BumpError::InvalidRequest(e)),
+        Err(_) => Err(BumpError::SerializationError(
+            "Failed to deserialize batcher response message".to_string(),
         )),
     }
 }
