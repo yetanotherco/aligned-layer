@@ -2655,6 +2655,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2704,22 +2705,10 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "s"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{bot=\"aggregator\", instance=\"host.docker.internal:9091\", job=\"aligned-aggregator\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Latency"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -2733,7 +2722,7 @@
         "legend": {
           "calcs": [],
           "displayMode": "list",
-          "placement": "bottom",
+          "placement": "right",
           "showLegend": false
         },
         "tooltip": {
@@ -2747,35 +2736,16 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "disableTextWrap": false,
           "editorMode": "code",
-          "exemplar": false,
-          "expr": "quantile_over_time(0.95, aligned_aggregator_respond_to_task_latency{bot=\"aggregator\"}[1m])",
-          "format": "time_series",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{label_name}}",
-          "range": true,
-          "refId": "Latency q95",
-          "useBackend": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "expr": "quantile_over_time(0.50, aligned_aggregator_respond_to_task_latency{bot=\"aggregator\"}[1m])",
+          "expr": "aligned_aggregator_respond_to_task_latency{bot=\"aggregator\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "Latest latency",
           "range": true,
-          "refId": "Latency q50"
+          "refId": "Latency"
         }
       ],
-      "title": "Respond to task latency",
+      "title": "Latest respond to task latency",
       "type": "timeseries"
     },
     {
@@ -2834,20 +2804,7 @@
             ]
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{bot=\"aggregator\", instance=\"host.docker.internal:9091\", job=\"aligned-aggregator\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Latency"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -2861,7 +2818,7 @@
         "legend": {
           "calcs": [],
           "displayMode": "list",
-          "placement": "bottom",
+          "placement": "right",
           "showLegend": false
         },
         "tooltip": {
@@ -2875,39 +2832,20 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "disableTextWrap": false,
           "editorMode": "code",
-          "exemplar": false,
-          "expr": "quantile_over_time(0.95, aligned_aggregator_task_quorum_reached_latency{bot=\"aggregator\"}[1m])",
-          "format": "time_series",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{label_name}}",
-          "range": true,
-          "refId": "Latency q95",
-          "useBackend": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "expr": "quantile_over_time(0.50, aligned_aggregator_task_quorum_reached_latency{bot=\"aggregator\"}[1m])",
+          "expr": "aligned_aggregator_task_quorum_reached_latency{bot=\"aggregator\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "Latest latency",
           "range": true,
-          "refId": "Latency q50"
+          "refId": "A"
         }
       ],
-      "title": "Quorum reached latency",
+      "title": "Latest quorum reached latency",
       "type": "timeseries"
     }
   ],
-  "refresh": "5s",
+  "refresh": "",
   "schemaVersion": 38,
   "style": "dark",
   "tags": [],
@@ -2915,13 +2853,13 @@
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-30m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "System Data",
   "uid": "aggregator",
-  "version": 14,
+  "version": 19,
   "weekStart": ""
 }
