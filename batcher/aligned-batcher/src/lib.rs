@@ -15,10 +15,11 @@ use retry::{retry_function, RetryError};
 use tokio::time::{timeout, Instant};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
-
+use boring::ssl::{SslMethod, SslAcceptor, SslStream, SslFiletype};
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -261,7 +262,14 @@ impl Batcher {
         }
     }
 
-    pub async fn listen_connections(self: Arc<Self>, address: &str) -> Result<(), BatcherError> {
+    pub async fn listen_connections(self: Arc<Self>, address: &str, cert: PathBuf, key: PathBuf) -> Result<(), BatcherError> {
+        let mut acceptor;
+        let mut acceptor_builder = SslAcceptor::mozilla_intermediate_v5(SslMethod::tls()).unwrap();
+        acceptor_builder.set_private_key_file(key, SslFiletype::PEM).unwrap();
+        acceptor_builder.set_certificate_chain_file(cert).unwrap();
+        acceptor_builder.check_private_key().unwrap();
+        acceptor = Arc::new(acceptor_builder.build());
+
         // Create the event loop and TCP listener we'll accept connections on.
         let listener = TcpListener::bind(address)
             .await
@@ -273,7 +281,7 @@ impl Batcher {
                 Ok((stream, addr)) => {
                     let batcher = self.clone();
                     // Let's spawn the handling of each connection in a separate task.
-                    tokio::spawn(batcher.handle_connection(stream, addr));
+                    tokio::spawn(batcher.handle_connection(stream, addr, acceptor.clone()));
                 }
                 Err(e) => {
                     self.metrics.user_error(&["connection_accept_error", ""]);
@@ -367,11 +375,14 @@ impl Batcher {
         self: Arc<Self>,
         raw_stream: TcpStream,
         addr: SocketAddr,
+        acceptor: Arc<SslAcceptor>,
     ) -> Result<(), BatcherError> {
         info!("Incoming TCP connection from: {}", addr);
         self.metrics.open_connections.inc();
-
-        let ws_stream_future = tokio_tungstenite::accept_async(raw_stream);
+        let tls_stream = tokio_boring::accept(&acceptor, raw_stream)
+            .await
+            .map_err(|e | BatcherError::TlsError(e.to_string()))?;
+        let ws_stream_future = tokio_tungstenite::accept_async(tls_stream);
         let ws_stream =
             match timeout(Duration::from_secs(CONNECTION_TIMEOUT), ws_stream_future).await {
                 Ok(Ok(stream)) => stream,

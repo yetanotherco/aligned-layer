@@ -41,6 +41,7 @@ impl From<Bytes> for TransactionSendError {
 }
 
 pub enum BatcherError {
+    TlsError(String),
     TcpListenerError(String),
     ConnectionError(tungstenite::Error),
     BatchVerifiedEventStreamError(String),
@@ -75,6 +76,9 @@ impl From<SignatureError> for BatcherError {
 impl fmt::Debug for BatcherError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            BatcherError::TlsError(e) => {
+                write!(f, "TLS Handshake error: {}", e)
+            }
             BatcherError::TcpListenerError(e) => {
                 write!(f, "TCP Listener error: {}", e)
             }

@@ -1,7 +1,7 @@
 extern crate dotenvy;
 
+use std::path::PathBuf;
 use std::sync::Arc;
-
 use clap::Parser;
 use env_logger::Env;
 
@@ -24,6 +24,12 @@ struct Cli {
     env_file: Option<String>,
     #[arg(short, long)]
     port: Option<u16>,
+    /// cert file
+    #[argh(option, short = 'c')]
+    cert: PathBuf,
+    /// key file
+    #[argh(option, short = 'k')]
+    key: PathBuf,
 }
 
 #[tokio::main]
@@ -40,8 +46,6 @@ async fn main() -> Result<(), BatcherError> {
     let batcher = Batcher::new(cli.config).await;
     let batcher = Arc::new(batcher);
 
-    let addr = format!("localhost:{}", port);
-
     // spawn task to listening for incoming blocks
     tokio::spawn({
         let app = batcher.clone();
@@ -54,7 +58,8 @@ async fn main() -> Result<(), BatcherError> {
 
     batcher.metrics.inc_batcher_restart();
 
-    batcher.listen_connections(&addr).await?;
+    let addr = format!("localhost:{}", port);
+    batcher.listen_connections(&addr, cli.cert, cli.key).await?;
 
     Ok(())
 }

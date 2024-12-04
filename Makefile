@@ -304,10 +304,15 @@ batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
 	@echo "Starting Batcher..."
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
 
-batcher_start_local: user_fund_payment_service
+batcher_create_self_signed_cert:
+	@echo "Creating TLS certificate for localhost"
+	@openssl req -x509 -days 1825 -newkey rsa:2048 -keyout rootCA.key -out rootCA.crt -nodes -subj '/CN=localhost'
+	@echo "TLS certificate created"
+
+batcher_start_local: user_fund_payment_service batcher_create_self_signed_cert
 	@echo "Starting Batcher..."
 	@$(MAKE) run_storage &
-	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev --cert ./rootCA.crt --key ./rootCA.key
 
 batcher_start_local_no_fund:
 	@echo "Starting Batcher..."

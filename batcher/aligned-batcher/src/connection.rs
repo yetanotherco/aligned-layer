@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use boring::ssl::{SslStream};
 
 use crate::types::{batch_queue::BatchQueueEntry, errors::BatcherError};
 use aligned_sdk::{
@@ -15,7 +16,7 @@ use tokio_tungstenite::{
     WebSocketStream,
 };
 
-pub(crate) type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
+pub(crate) type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<SslStream<TcpStream>>, Message>>>;
 
 pub(crate) async fn send_batch_inclusion_data_responses(
     finalized_batch: Vec<BatchQueueEntry>,
