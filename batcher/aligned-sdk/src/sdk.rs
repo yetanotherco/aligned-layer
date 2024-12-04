@@ -8,7 +8,7 @@ use crate::{
     core::{
         constants::{
             ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
-            MAX_FEE_BATCH_PROOF_NUMBER, MAX_FEE_DEFAULT_PROOF_NUMBER,
+            DEFAULT_MAX_FEE_PROOF_NUMBER, INSTANT_MAX_FEE_PROOF_NUMBER,
         },
         errors::{self, GetNonceError},
         types::{
@@ -136,37 +136,17 @@ pub async fn submit_multiple_and_wait_verification(
 pub async fn estimate_fee(
     eth_rpc_url: &str,
     estimate: PriceEstimate,
-) -> Result<U256, errors::MaxFeeEstimateError> {
+) -> Result<U256, errors::FeeEstimateError> {
     // Price of 1 proof in 32 proof batch
-    let fee_per_proof = fee_per_proof(eth_rpc_url, MAX_FEE_BATCH_PROOF_NUMBER).await?;
-
-    let proof_price = match estimate {
-        PriceEstimate::Min => fee_per_proof,
-        PriceEstimate::Default => U256::from(MAX_FEE_DEFAULT_PROOF_NUMBER) * fee_per_proof,
-        PriceEstimate::Instant => U256::from(MAX_FEE_BATCH_PROOF_NUMBER) * fee_per_proof,
-    };
-    Ok(proof_price)
-}
-
-/// Returns the computed `max_fee` for a proof based on the number of proofs in a batch (`num_proofs_per_batch`) and
-/// number of proofs (`num_proofs`) in that batch the user would pay for i.e (`num_proofs` / `num_proofs_per_batch`).
-/// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
-/// # Arguments
-/// * `eth_rpc_url` - The URL of the users Ethereum RPC node.
-/// * `num_proofs` - number of proofs in a batch the user would pay for.
-/// * `num_proofs_per_batch` - number of proofs within a batch.
-/// # Returns
-/// * The calculated `max_fee` as a `U256`.
-/// # Errors
-/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
-/// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
-pub async fn compute_max_fee(
-    eth_rpc_url: &str,
-    num_proofs: usize,
-    num_proofs_per_batch: usize,
-) -> Result<U256, errors::MaxFeeEstimateError> {
-    let fee_per_proof = fee_per_proof(eth_rpc_url, num_proofs_per_batch).await?;
-    Ok(fee_per_proof * num_proofs)
+    match estimate {
+        PriceEstimate::Default => {
+            max_fee_per_proof_in_batch(eth_rpc_url, DEFAULT_MAX_FEE_PROOF_NUMBER).await
+        }
+        PriceEstimate::Instant => {
+            max_fee_per_proof_in_batch(eth_rpc_url, INSTANT_MAX_FEE_PROOF_NUMBER).await
+        }
+        PriceEstimate::Custom(n) => max_fee_per_proof_in_batch(eth_rpc_url, n).await,
+    }
 }
 
 /// Returns the `fee_per_proof` based on the current gas price for a batch compromised of `num_proofs_per_batch`
@@ -180,22 +160,22 @@ pub async fn compute_max_fee(
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
-pub async fn fee_per_proof(
+pub async fn max_fee_per_proof_in_batch(
     eth_rpc_url: &str,
-    num_proofs_per_batch: usize,
-) -> Result<U256, errors::MaxFeeEstimateError> {
+    num_proofs_in_batch: usize,
+) -> Result<U256, errors::FeeEstimateError> {
     let eth_rpc_provider =
         Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
-            errors::MaxFeeEstimateError::EthereumProviderError(e.to_string())
+            errors::FeeEstimateError::EthereumProviderError(e.to_string())
         })?;
     let gas_price = fetch_gas_price(&eth_rpc_provider).await?;
 
     // Cost for estimate `num_proofs_per_batch` proofs
     let estimated_gas_per_proof = (CONSTANT_GAS_COST
-        + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_per_batch as u128)
-        / num_proofs_per_batch as u128;
+        + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
+        / num_proofs_in_batch as u128;
 
-    // Price of 1 proof in 32 proof batch
+    // Price of 1 / `num_proofs_in_batch` proof batch
     let fee_per_proof = U256::from(estimated_gas_per_proof) * gas_price;
 
     Ok(fee_per_proof)
@@ -203,11 +183,11 @@ pub async fn fee_per_proof(
 
 async fn fetch_gas_price(
     eth_rpc_provider: &Provider<Http>,
-) -> Result<U256, errors::MaxFeeEstimateError> {
+) -> Result<U256, errors::FeeEstimateError> {
     let gas_price = match eth_rpc_provider.get_gas_price().await {
         Ok(price) => price,
         Err(e) => {
-            return Err(errors::MaxFeeEstimateError::EthereumGasPriceError(
+            return Err(errors::FeeEstimateError::EthereumGasPriceError(
                 e.to_string(),
             ))
         }
@@ -822,51 +802,4 @@ fn save_response_json(
     file.write_all(serde_json::to_string_pretty(&data).unwrap().as_bytes())?;
 
     Ok(())
-}
-
-#[cfg(test)]
-mod test {
-    //Public constants for convenience
-    pub const HOLESKY_PUBLIC_RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
-    use super::*;
-
-    #[tokio::test]
-    async fn computed_max_fee_for_larger_batch_is_smaller() {
-        let small_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 2, 10)
-            .await
-            .unwrap();
-        let large_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 10)
-            .await
-            .unwrap();
-
-        assert!(small_fee < large_fee);
-    }
-
-    #[tokio::test]
-    async fn computed_max_fee_for_more_proofs_larger_than_for_less_proofs() {
-        let small_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 20)
-            .await
-            .unwrap();
-        let large_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 10)
-            .await
-            .unwrap();
-
-        assert!(small_fee < large_fee);
-    }
-
-    #[tokio::test]
-    async fn estimate_fee_are_larger_than_one_another() {
-        let min_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Min)
-            .await
-            .unwrap();
-        let default_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Default)
-            .await
-            .unwrap();
-        let instant_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Instant)
-            .await
-            .unwrap();
-
-        assert!(min_fee < default_fee);
-        assert!(default_fee < instant_fee);
-    }
 }

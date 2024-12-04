@@ -89,9 +89,34 @@ impl NoncedVerificationData {
 // Defines an estimate price preference for the user.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum PriceEstimate {
-    Min,
     Default,
     Instant,
+    Custom(usize),
+}
+
+impl TryFrom<String> for PriceEstimate {
+    type Error = String;
+    
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let val = match value.as_str() {
+            // TODO remove the InvalidMaxFee error...
+            "default" => Self::Default,
+            "instant" => Self::Instant,
+            s if s.starts_with("custom") => {
+                println!("{s}");
+                let n = s.split_whitespace()
+                    .nth(1)
+                    .ok_or("Failed to Parse: `number_proofs_per_batch` not supplied")?
+                    .parse()
+                    .map_err(|_| "Failed to Parse: Value of `number_proofs_per_batch` invalid")?;
+                PriceEstimate::Custom(n)
+            },
+            _ => 
+                return Err("Invalid network, possible values are: \"default\", \"instant\", \"custom\""
+                    .to_string()),
+        };
+        Ok(val)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

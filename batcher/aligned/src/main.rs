@@ -6,10 +6,12 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use aligned_sdk::communication::serialization::cbor_deserialize;
+use aligned_sdk::core::types::PriceEstimate;
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
+use aligned_sdk::sdk::estimate_fee;
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_nonce_from_batcher;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
@@ -107,12 +109,15 @@ pub struct SubmitArgs {
     keystore_path: Option<PathBuf>,
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
+    #[arg(name = "Max Fee", long = "max_fee")]
+    max_fee: Option<String>, // String because U256 expects hex
     #[arg(
-        name = "Max Fee",
-        long = "max_fee",
-        default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
+        name = "Price Estimate",
+        long = "price_estimate",
+        default_value = "default",
+        allow_hyphen_values = true
     )]
-    max_fee: String, // String because U256 expects hex
+    price_estimate: Option<String>,
     #[arg(name = "Nonce", long = "nonce")]
     nonce: Option<String>, // String because U256 expects hex
     #[arg(
@@ -120,7 +125,34 @@ pub struct SubmitArgs {
         long = "network",
         default_value = "devnet"
     )]
-    network: NetworkArg,
+    network: Network,
+}
+
+impl SubmitArgs {
+    async fn get_max_fee(&self) -> Result<U256, AlignedError> {
+        // If max_fee is explicitly provided it is used first
+        if let Some(max_fee) = &self.max_fee {
+            // We explicitly tell the user that using both is invalid
+            if self.price_estimate.is_some() {
+                warn!("`max_fee` and `price_estimate` are both present using `max_fee`");
+            }
+            return Ok(
+                U256::from_str(max_fee).map_err(|e| SubmitError::GenericError(e.to_string()))?
+            );
+        }
+
+        if let Some(price_est) = &self.price_estimate {
+            let estimate = PriceEstimate::try_from(price_est.clone())
+                .map_err(|e| SubmitError::GenericError(e.to_string()))?;
+            return estimate_fee(&self.eth_rpc_url, estimate)
+                .await
+                .map_err(AlignedError::FeeEstimateError);
+        }
+
+        // Fallback to default value
+        Ok(U256::from_str("1300000000000000")
+            .map_err(|e| SubmitError::GenericError(e.to_string()))?)
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -277,9 +309,9 @@ async fn main() -> Result<(), AlignedError> {
                 SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
             })?;
 
-            let max_fee =
-                U256::from_dec_str(&submit_args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
-
+            let eth_rpc_url = submit_args.eth_rpc_url.clone();
+            // `max_fee` is required unless `price_estimate` is present.
+            let max_fee = submit_args.get_max_fee().await?;
             let repetitions = submit_args.repetitions;
             let connect_addr = submit_args.batcher_url.clone();
 
@@ -313,8 +345,6 @@ async fn main() -> Result<(), AlignedError> {
                     }
                 }
             };
-
-            let eth_rpc_url = submit_args.eth_rpc_url.clone();
 
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
             wallet = wallet.with_chain_id(chain_id);
@@ -356,7 +386,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let aligned_verification_data_vec = submit_multiple(
                 &connect_addr,
-                submit_args.network.into(),
+                submit_args.network,
                 &verification_data_arr,
                 max_fee,
                 wallet.clone(),

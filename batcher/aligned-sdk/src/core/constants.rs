@@ -21,10 +21,10 @@ pub const PERCENTAGE_DIVIDER: u128 = 100;
 /// Number of proofs we a batch for estimation.
 /// This is the number of proofs in a batch of size n, where we set n = 32.
 /// i.e. the user pays for the entire batch and his proof is instantly submitted.
-pub const MAX_FEE_BATCH_PROOF_NUMBER: usize = 32;
+pub const INSTANT_MAX_FEE_PROOF_NUMBER: usize = 1;
 /// Estimated number of proofs for batch submission.
 /// This corresponds to the number of proofs to compute for a default max_fee.
-pub const MAX_FEE_DEFAULT_PROOF_NUMBER: usize = 10;
+pub const DEFAULT_MAX_FEE_PROOF_NUMBER: usize = 10;
 
 /// Ethereum calls retry constants
 pub const ETHEREUM_CALL_MIN_RETRY_DELAY: u64 = 500; // milliseconds
