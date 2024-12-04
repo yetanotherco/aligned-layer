@@ -615,7 +615,7 @@ async fn handle_submit_err(err: SubmitError) {
             error!("Invalid nonce. try again");
         }
         SubmitError::ProofQueueFlushed => {
-            error!("Batch was reset. try resubmitting the proof");
+            error!("Batch was reset, user funds have not been spent, try resubmitting the proof");
         }
         SubmitError::InvalidProof(reason) => error!("Submitted proof is invalid: {}", reason),
         SubmitError::InsufficientBalance(sender_address) => {
