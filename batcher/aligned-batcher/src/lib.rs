@@ -31,9 +31,7 @@ use aligned_sdk::core::constants::{
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
-    ClientMessage, GetNonceResponseMessage, NoncedVerificationData, ProofInvalidReason,
-    ProvingSystemId, SubmitProofMessage, SubmitProofResponseMessage, VerificationCommitmentBatch,
-    VerificationData, VerificationDataCommitment,
+    BumpFeeResponseMessage, BumpUnit, ClientMessage, GetNonceResponseMessage, NoncedVerificationData, ProofInvalidReason, ProvingSystemId, SubmitProofMessage, SubmitProofResponseMessage, VerificationCommitmentBatch, VerificationData, VerificationDataCommitment
 };
 
 use aws_sdk_s3::client::Client as S3Client;
@@ -473,6 +471,11 @@ impl Batcher {
                     .handle_submit_proof_msg(msg, ws_conn_sink)
                     .await
             }
+            ClientMessage::BumpFee(bump_unit, amout, proof_qty) => {
+                self.clone()
+                    .handle_bump_fee_msg(bump_unit, amout, proof_qty, ws_conn_sink)
+                    .await
+            }
         }
     }
 
@@ -783,6 +786,9 @@ impl Batcher {
 
         // In this case, the message might be a replacement one. If it is valid,
         // we replace the old entry with the new from the replacement message.
+
+        // TODO DISABLE THIS FUNCTIONALITY
+        // IT IS BEING REPLACED WITH BumpFee()
         if expected_nonce > msg_nonce {
             info!("Possible replacement message received: Expected nonce {expected_nonce:?} - message nonce: {msg_nonce:?}");
             self.handle_replacement_message(
@@ -831,6 +837,84 @@ impl Batcher {
 
         info!("Verification data message handled");
         Ok(())
+    }
+
+
+    // TODO add signature
+    async fn handle_bump_fee_msg(
+        bump_unit: BumpUnit,
+        amount: U256,
+        proof_qty: usize,
+        signature: Signature, //TODO add this
+        signature_content: Vec<u8>, //TODO add this
+        ws_conn_sink: WsMessageSink,
+    ) -> Result<(), Error> {
+
+    //         /// The signature of the message is verified, and when it correct, the
+    // /// recovered address from the signature is returned.
+    // pub fn verify_signature(&self) -> Result<Address, VerifySignatureError> {
+    //     // Recovers the address from the signed data
+    //     let recovered = self.signature.recover_typed_data(&self.verification_data)?;
+
+    //     let hashed_data = self.verification_data.encode_eip712()?;
+
+    //     self.signature.verify(hashed_data, recovered)?;
+    //     Ok(recovered)
+    // }
+
+        info!("Verifying Bump Fee signature...");
+        let Ok(addr) = verify_bump_signature(signature, signature_content) else {
+            error!("Signature verification error");
+            send_message(
+                ws_conn_sink.clone(),
+                BumpFeeResponseMessage::InvalidSignature,
+            )
+            .await;
+            self.metrics.user_error(&["invalid_bump_fee_signature", ""]);
+            return Ok(());
+        };
+        info!("Bump Fee signature verified");
+
+
+        let from_proof_nonce = self.get_first_proof();
+        let to_proof_nonce = from_proof_nonce + proof_qty; // exclusive
+
+        let batch_state_lock = self.batch_state.lock().await;
+        let batch_queue_copy = batch_state_lock.batch_queue.clone();
+    
+        // TODO check if user has enough funds
+        while let Some((entry, _)) = batch_state_lock.batch_queue.peek() {
+            let entry_nonce = entry.nonced_verification_data.nonce;
+            if entry_nonce >= from_proof_nonce && entry_nonce < to_proof_nonce {
+                if let Err(bumped_fee) = calculate_bumped_proof_cost(entry.nonced_verification_data.max_fee, bump_unit, amount) {
+                    send_message(
+                        ws_conn_sink.clone(),
+                        BumpFeeResponseMessage::InvalidBumpUnit,
+                    )
+                    .await;
+                    self.metrics.user_error(&["invalid_bump_fee_unit", ""]);
+                    return Ok(());
+                }
+                let new_entry = entry.clone();
+                new_entry.nonced_verification_data.max_fee = bumped_fee;
+
+                batch_state_lock.update_user_total_fees_in_queue_of_replacement_message(sender_address, entry_nonce.clone(), bumped_fee).await?;
+                batch_state_lock.replace_entry(entry, new_entry);
+            }
+        };
+        return;
+
+    }
+
+    fn verify_bump_signature(
+        &self,
+        signature: Signature,
+        bump_unit: BumpUnit,
+        amount: U256,
+        proof_qty: usize,
+    ) -> bool {
+        // TODO
+        true
     }
 
     async fn is_verifier_disabled(&self, verifier: ProvingSystemId) -> bool {
