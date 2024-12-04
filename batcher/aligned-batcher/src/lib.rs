@@ -1542,7 +1542,7 @@ impl Batcher {
         .map_err(|e| e.inner())?;
 
         // Then, we send the real tx
-        let retry_result = retry_function(
+        let result = retry_function(
             || {
                 create_new_task_retryable(
                     batch_merkle_root,
@@ -1565,7 +1565,7 @@ impl Batcher {
             .set(start.elapsed().as_millis() as i64);
         // Set to zero since it is not always executed
         self.metrics.cancel_create_new_task_latency.set(0);
-        match retry_result {
+        match result {
             Ok(receipt) => {
                 if let Err(e) = self
                     .telemetry
