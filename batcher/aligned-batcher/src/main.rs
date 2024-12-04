@@ -25,10 +25,10 @@ struct Cli {
     #[arg(short, long)]
     port: Option<u16>,
     /// cert file
-    #[argh(option, short = 'c')]
+    #[arg(long, short = 'c')]
     cert: PathBuf,
     /// key file
-    #[argh(option, short = 'k')]
+    #[arg(long, short = 'k')]
     key: PathBuf,
 }
 

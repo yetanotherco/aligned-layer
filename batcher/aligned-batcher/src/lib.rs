@@ -15,7 +15,7 @@ use retry::{retry_function, RetryError};
 use tokio::time::{timeout, Instant};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
-use boring::ssl::{SslMethod, SslAcceptor, SslStream, SslFiletype};
+use boring::ssl::{SslMethod, SslAcceptor, SslFiletype};
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
@@ -263,12 +263,11 @@ impl Batcher {
     }
 
     pub async fn listen_connections(self: Arc<Self>, address: &str, cert: PathBuf, key: PathBuf) -> Result<(), BatcherError> {
-        let mut acceptor;
         let mut acceptor_builder = SslAcceptor::mozilla_intermediate_v5(SslMethod::tls()).unwrap();
         acceptor_builder.set_private_key_file(key, SslFiletype::PEM).unwrap();
         acceptor_builder.set_certificate_chain_file(cert).unwrap();
         acceptor_builder.check_private_key().unwrap();
-        acceptor = Arc::new(acceptor_builder.build());
+        let acceptor = Arc::new(acceptor_builder.build());
 
         // Create the event loop and TCP listener we'll accept connections on.
         let listener = TcpListener::bind(address)

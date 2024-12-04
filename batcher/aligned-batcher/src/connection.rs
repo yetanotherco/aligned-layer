@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use boring::ssl::{SslStream};
 
 use crate::types::{batch_queue::BatchQueueEntry, errors::BatcherError};
 use aligned_sdk::{
@@ -11,6 +10,7 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use log::{debug, error};
 use serde::Serialize;
 use tokio::{net::TcpStream, sync::RwLock};
+use tokio_boring::SslStream;
 use tokio_tungstenite::{
     tungstenite::{Error, Message},
     WebSocketStream,
