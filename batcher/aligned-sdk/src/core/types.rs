@@ -96,23 +96,27 @@ pub enum PriceEstimate {
 
 impl TryFrom<String> for PriceEstimate {
     type Error = String;
-    
+
     fn try_from(value: String) -> Result<Self, Self::Error> {
         let val = match value.as_str() {
             "default" => Self::Default,
             "instant" => Self::Instant,
             s if s.starts_with("custom") => {
                 println!("{s}");
-                let n = s.split_whitespace()
+                let n = s
+                    .split_whitespace()
                     .nth(1)
                     .ok_or("Failed to Parse: `number_proofs_per_batch` not supplied")?
                     .parse()
                     .map_err(|_| "Failed to Parse: Value of `number_proofs_per_batch` invalid")?;
                 PriceEstimate::Custom(n)
-            },
-            _ => 
-                return Err("Invalid network, possible values are: \"default\", \"instant\", \"custom\""
-                    .to_string()),
+            }
+            _ => {
+                return Err(
+                    "Invalid network, possible values are: \"default\", \"instant\", \"custom\""
+                        .to_string(),
+                )
+            }
         };
         Ok(val)
     }
