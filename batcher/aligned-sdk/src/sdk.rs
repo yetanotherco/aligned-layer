@@ -140,12 +140,12 @@ pub async fn estimate_fee(
     // Price of 1 proof in 32 proof batch
     match estimate {
         PriceEstimate::Default => {
-            max_fee_per_proof_in_batch(eth_rpc_url, DEFAULT_MAX_FEE_PROOF_NUMBER).await
+            suggest_fee_per_proof(eth_rpc_url, DEFAULT_MAX_FEE_PROOF_NUMBER).await
         }
         PriceEstimate::Instant => {
-            max_fee_per_proof_in_batch(eth_rpc_url, INSTANT_MAX_FEE_PROOF_NUMBER).await
+            suggest_fee_per_proof(eth_rpc_url, INSTANT_MAX_FEE_PROOF_NUMBER).await
         }
-        PriceEstimate::Custom(n) => max_fee_per_proof_in_batch(eth_rpc_url, n).await,
+        PriceEstimate::Custom(n) => suggest_fee_per_proof(eth_rpc_url, n).await,
     }
 }
 
@@ -160,7 +160,7 @@ pub async fn estimate_fee(
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
-pub async fn max_fee_per_proof_in_batch(
+pub async fn suggest_fee_per_proof(
     eth_rpc_url: &str,
     num_proofs_in_batch: usize,
 ) -> Result<U256, errors::FeeEstimateError> {
