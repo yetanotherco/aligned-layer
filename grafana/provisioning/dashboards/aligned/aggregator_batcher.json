@@ -2631,6 +2631,31 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "gridPos": {
+        "h": 2,
+        "w": 12,
+        "x": 0,
+        "y": 69
+      },
+      "id": 46,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<h1 style=\"background-color: #00A86B; color: white; padding: 10px; border-radius: 0px; text-align: center;\">\n  Latency\n</h1>",
+        "mode": "html"
+      },
+      "pluginVersion": "10.1.10",
+      "transparent": true,
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2685,7 +2710,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 69
+        "y": 71
       },
       "id": 43,
       "options": {
@@ -2718,7 +2743,7 @@
           "useBackend": false
         }
       ],
-      "title": "S3 Latency",
+      "title": "Upload Batch to S3 Duration",
       "type": "timeseries"
     },
     {
@@ -2784,7 +2809,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 77
+        "y": 79
       },
       "id": 45,
       "options": {
@@ -2834,7 +2859,7 @@
           "useBackend": false
         }
       ],
-      "title": "CreateNewTask Latency",
+      "title": "CreateNewTask Duration",
       "transformations": [
         {
           "id": "calculateField",
@@ -2854,7 +2879,7 @@
       "type": "timeseries"
     }
   ],
-  "refresh": false,
+  "refresh": "",
   "schemaVersion": 38,
   "style": "dark",
   "tags": [],
@@ -2862,13 +2887,13 @@
     "list": []
   },
   "time": {
-    "from": "2024-12-04T20:38:45.381Z",
-    "to": "2024-12-04T20:42:55.440Z"
+    "from": "now-5m",
+    "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "System Data",
   "uid": "aggregator",
-  "version": 13,
+  "version": 2,
   "weekStart": ""
 }
