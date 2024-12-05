@@ -1780,7 +1780,7 @@ impl Batcher {
         file_name: &str,
     ) -> Result<(), BatcherError> {
         let start = Instant::now();
-        retry_function(
+        let result = retry_function(
             || {
                 Self::upload_batch_to_s3_retryable(
                     batch_bytes,
@@ -1795,12 +1795,13 @@ impl Batcher {
             ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
         .await
-        .map_err(|e| BatcherError::BatchUploadError(e.to_string()))?;
+        .map_err(|e| BatcherError::BatchUploadError(e.to_string()));
 
         self.metrics
             .s3_latency
             .set(start.elapsed().as_micros() as i64);
-        Ok(())
+
+        result
     }
 
     async fn upload_batch_to_s3_retryable(
