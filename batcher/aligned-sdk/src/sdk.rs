@@ -8,7 +8,8 @@ use crate::{
     core::{
         constants::{
             ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
-            DEFAULT_MAX_FEE_PROOF_NUMBER, INSTANT_MAX_FEE_PROOF_NUMBER,
+            DEFAULT_MAX_FEE_PROOF_NUMBER, GAS_PRICE_PERCENTAGE_MULTIPLIER,
+            INSTANT_MAX_FEE_PROOF_NUMBER, PERCENTAGE_DIVIDER,
         },
         errors::{self, GetNonceError},
         types::{
@@ -175,7 +176,10 @@ pub async fn suggest_fee_per_proof(
         / num_proofs_in_batch as u128;
 
     // Price of 1 / `num_proofs_in_batch` proof batch
-    let fee_per_proof = U256::from(estimated_gas_per_proof) * gas_price;
+    let fee_per_proof = (U256::from(estimated_gas_per_proof)
+        * gas_price
+        * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER))
+        / U256::from(PERCENTAGE_DIVIDER);
 
     Ok(fee_per_proof)
 }

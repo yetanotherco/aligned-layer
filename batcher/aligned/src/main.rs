@@ -109,7 +109,11 @@ pub struct SubmitArgs {
     keystore_path: Option<PathBuf>,
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
-    #[arg(name = "Max Fee", help = "Specifies the `max_fee` the user of the submitted proof in `ether`" , long = "max_fee")]
+    #[arg(
+        name = "Max Fee",
+        help = "Specifies the `max_fee` the user of the submitted proof in `ether`",
+        long = "max_fee"
+    )]
     max_fee: Option<String>, // String because U256 expects hex
     #[arg(
         name = "Price Estimate",
@@ -135,7 +139,7 @@ impl SubmitArgs {
         if let Some(max_fee) = &self.max_fee {
             // Inform the user if both are declared that `max_fee` is used.
             if self.price_estimate.is_some() {
-                return Err(SubmitError::GenericError("`max_fee` and `price_estimate` are both present please specify one or the other".to_string()))?
+                return Err(SubmitError::GenericError("`max_fee` and `price_estimate` are both present please specify one or the other".to_string()))?;
             }
             return Ok(
                 U256::from_str(max_fee).map_err(|e| SubmitError::GenericError(e.to_string()))?
