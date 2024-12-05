@@ -566,10 +566,9 @@ async fn main() -> Result<(), AlignedError> {
             let network = args.network.into();
             match get_nonce_from_ethereum(&args.eth_rpc_url, address, network).await {
                 Ok(nonce) => {
-                    let first_nonce = nonce;
                     info!(
                         "Nonce for address {} in BatcherPaymentService contract is {}",
-                        address, first_nonce
+                        address, nonce
                     );
                 }
                 Err(e) => {
