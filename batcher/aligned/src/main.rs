@@ -109,7 +109,7 @@ pub struct SubmitArgs {
     keystore_path: Option<PathBuf>,
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
-    #[arg(name = "Max Fee", help = "Specifies the `max_fee` the user of the submitted proof in ether" , long = "max_fee")]
+    #[arg(name = "Max Fee", help = "Specifies the `max_fee` the user of the submitted proof in `ether`" , long = "max_fee")]
     max_fee: Option<String>, // String because U256 expects hex
     #[arg(
         name = "Price Estimate",
