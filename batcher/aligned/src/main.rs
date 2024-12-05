@@ -278,7 +278,7 @@ async fn main() -> Result<(), AlignedError> {
             })?;
 
             if !submit_args.max_fee.ends_with("ether") {
-                error!("Amount should be in the format XX.XXether");
+                error!("`max_fee` should be in the format XX.XXether");
                 return Ok(());
             }
 
@@ -451,7 +451,7 @@ async fn main() -> Result<(), AlignedError> {
         }
         DepositToBatcher(deposit_to_batcher_args) => {
             if !deposit_to_batcher_args.amount.ends_with("ether") {
-                error!("Amount should be in the format XX.XXether");
+                error!("`amount` should be in the format XX.XXether");
                 return Ok(());
             }
 
