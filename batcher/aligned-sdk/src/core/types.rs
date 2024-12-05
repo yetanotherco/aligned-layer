@@ -112,7 +112,7 @@ impl TryFrom<String> for PriceEstimate {
             }
             _ => {
                 return Err(
-                    "Invalid network, possible values are: \"default\", \"instant\", \"custom <NUM_PROOFS_IN_BATCH>\""
+                    "Invalid price estimate, possible values are: \"default\", \"instant\", \"custom <NUM_PROOFS_IN_BATCH>\""
                         .to_string(),
                 )
             }
