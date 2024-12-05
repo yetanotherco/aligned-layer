@@ -102,7 +102,6 @@ impl TryFrom<String> for PriceEstimate {
             "default" => Self::Default,
             "instant" => Self::Instant,
             s if s.starts_with("custom") => {
-                println!("{s}");
                 let n = s
                     .split_whitespace()
                     .nth(1)
