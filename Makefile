@@ -906,7 +906,7 @@ docker_down:
 	@echo "Everything down"
 	docker ps
 
-DOCKER_BURST_SIZE=2
+DOCKER_BURST_SIZE=1
 DOCKER_PROOFS_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
 docker_batcher_send_sp1_burst:
@@ -1010,7 +1010,7 @@ docker_verify_proofs_onchain:
 	    done \
 	  '
 
-DOCKER_PROOFS_WAIT_TIME=30
+DOCKER_PROOFS_WAIT_TIME=60
 
 docker_verify_proof_submission_success: 
 	@echo "Verifying proofs were successfully submitted..."
