@@ -10,7 +10,7 @@ use crate::{
         utils::get_current_nonce,
     },
     retry::RetryError,
-    types::errors::BatcherError,
+    types::errors::{BatcherError, TransactionSendError},
 };
 
 pub async fn get_user_balance_retryable(
@@ -130,7 +130,7 @@ pub async fn create_new_task_retryable(
             // Since transaction was reverted, we don't want to retry with fallback.
             warn!("Transaction reverted {:?}", err);
             return Err(RetryError::Permanent(BatcherError::TransactionSendError(
-                err.to_string(),
+                TransactionSendError::from(err),
             )));
         }
         _ => {
@@ -149,12 +149,12 @@ pub async fn create_new_task_retryable(
                 Err(ContractError::Revert(err)) => {
                     warn!("Transaction reverted {:?}", err);
                     return Err(RetryError::Permanent(BatcherError::TransactionSendError(
-                        err.to_string(),
+                        TransactionSendError::from(err),
                     )));
                 }
                 Err(err) => {
                     return Err(RetryError::Transient(BatcherError::TransactionSendError(
-                        err.to_string(),
+                        TransactionSendError::Generic(err.to_string()),
                     )))
                 }
             }
@@ -173,6 +173,63 @@ pub async fn create_new_task_retryable(
             RetryError::Permanent(BatcherError::ReceiptNotFoundError)
         })?
         .ok_or(RetryError::Permanent(BatcherError::ReceiptNotFoundError))
+}
+
+pub async fn simulate_create_new_task_retryable(
+    batch_merkle_root: [u8; 32],
+    batch_data_pointer: String,
+    proofs_submitters: Vec<Address>,
+    fee_params: CreateNewTaskFeeParams,
+    payment_service: &BatcherPaymentService,
+    payment_service_fallback: &BatcherPaymentService,
+) -> Result<(), RetryError<BatcherError>> {
+    info!("Simulating task for: 0x{}", hex::encode(batch_merkle_root));
+    let simulation_fallback;
+    let simulation = payment_service
+        .create_new_task(
+            batch_merkle_root,
+            batch_data_pointer.clone(),
+            proofs_submitters.clone(),
+            fee_params.fee_for_aggregator,
+            fee_params.fee_per_proof,
+            fee_params.respond_to_task_fee_limit,
+        )
+        .gas_price(fee_params.gas_price);
+    // sends an `eth_call` request to the node
+    match simulation.call().await {
+        Ok(_) => Ok(()),
+        Err(ContractError::Revert(err)) => {
+            // Since transaction was reverted, we don't want to retry with fallback.
+            warn!("Simulated transaction reverted {:?}", err);
+            Err(RetryError::Permanent(BatcherError::TransactionSendError(
+                TransactionSendError::from(err),
+            )))
+        }
+        _ => {
+            simulation_fallback = payment_service_fallback
+                .create_new_task(
+                    batch_merkle_root,
+                    batch_data_pointer,
+                    proofs_submitters,
+                    fee_params.fee_for_aggregator,
+                    fee_params.fee_per_proof,
+                    fee_params.respond_to_task_fee_limit,
+                )
+                .gas_price(fee_params.gas_price);
+            match simulation_fallback.call().await {
+                Ok(_) => Ok(()),
+                Err(ContractError::Revert(err)) => {
+                    warn!("Simulated transaction reverted {:?}", err);
+                    Err(RetryError::Permanent(BatcherError::TransactionSendError(
+                        TransactionSendError::from(err),
+                    )))
+                }
+                Err(err) => Err(RetryError::Transient(BatcherError::TransactionSendError(
+                    TransactionSendError::Generic(err.to_string()),
+                ))),
+            }
+        }
+    }
 }
 
 pub async fn cancel_create_new_task_retryable(

@@ -4,9 +4,10 @@ SHELL := /bin/bash
 OS := $(shell uname -s)
 
 CONFIG_FILE?=config-files/config.yaml
+export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.11.3
+OPERATOR_VERSION=v0.12.1
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -837,11 +838,11 @@ explorer_recover_db: explorer_run_db
 
 explorer_fetch_old_batches:
 	@cd explorer && \
-	./scripts/fetch_old_batches.sh 1728056 1729806
+	./scripts/fetch_old_batches.sh $(FROM_BLOCK) $(TO_BLOCK)
 
-explorer_fetch_old_operators_strategies_restakes:
+explorer_fetch_old_operators_strategies_restakes: # recommended for prod: 19000000
 	@cd explorer && \
-	./scripts/fetch_old_operators_strategies_restakes.sh 0
+	./scripts/fetch_old_operators_strategies_restakes.sh $(FROM_BLOCK)
 
 explorer_create_env:
 	@cd explorer && \
