@@ -1561,10 +1561,10 @@ impl Batcher {
         )
         .await;
         self.metrics
-            .create_new_task_latency
+            .create_new_task_duration
             .set(start.elapsed().as_millis() as i64);
         // Set to zero since it is not always executed
-        self.metrics.cancel_create_new_task_latency.set(0);
+        self.metrics.cancel_create_new_task_duration.set(0);
         match result {
             Ok(receipt) => {
                 if let Err(e) = self
@@ -1636,7 +1636,7 @@ impl Batcher {
             Err(e) => error!("Could not cancel createNewTask transaction: {e}"),
         };
         self.metrics
-            .cancel_create_new_task_latency
+            .cancel_create_new_task_duration
             .set(start.elapsed().as_millis() as i64);
     }
 
@@ -1798,7 +1798,7 @@ impl Batcher {
         .map_err(|e| BatcherError::BatchUploadError(e.to_string()));
 
         self.metrics
-            .s3_latency
+            .s3_duration
             .set(start.elapsed().as_micros() as i64);
 
         result
