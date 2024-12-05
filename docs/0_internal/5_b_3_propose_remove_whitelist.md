@@ -10,27 +10,27 @@ If you want to Removing Operators, you can propose the remove operator transacti
 
 To propose a remove operator from whitelist transaction you can follow the steps below:
 
-1. Go to [Safe](https://app.safe.global/home)
+#### 1. Go to [Safe](https://app.safe.global/home)
 
-2. Click on `New transaction` -> `Transaction Builder`
+#### 2. Click on `New transaction` -> `Transaction Builder`
 
    ![New transaction](./images/5_b_3_remove_operator_1.png)
 
    ![Transaction Builder](./images/5_b_3_remove_operator_2.png)
 
-3. Get the `registryCoordinator` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
+#### 3. Get the `registryCoordinator` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
 
-4. Paste the `registryCoordinator` address on `Enter Address or ENS Name`
+#### 4. Paste the `registryCoordinator` address on `Enter Address or ENS Name`
 
    ![](./images/5_b_3_remove_operator_3.png)
 
-5. As this is a Proxy contract, choose `Use Implementation ABI`
+#### 5. As this is a Proxy contract, choose `Use Implementation ABI`
 
    ![Use Implementation ABI](./images/5_b_3_remove_operator_4.png)
 
 If `Use Implementation ABI`, did not show up you will need to submit the call via raw calldata. Consult this this alternative [guide](./5_b_3b_propose_remove_operator_with_call_data.md)
    
-6. In `contract method selector` choose `remove_multiple()` in the `_addresses(address[])` field, enter the operator addresses in the following format `[<OPERATOR_ADDRESS>, ..., <OPERATOR_ADDRESS>]` for example, `[0000000000000000000000000000000000000009, 0000000000000000000000000000000000000003]`
+#### 6. In `contract method selector` choose `remove_multiple()` in the `_addresses(address[])` field, enter the operator addresses in the following format `[<OPERATOR_ADDRESS>, ..., <OPERATOR_ADDRESS>]` for example, `[0000000000000000000000000000000000000009, 0000000000000000000000000000000000000003]`
 
    ![Choose the add_multiple()](./images/5_b_3_remove_operator_5.png)
 
