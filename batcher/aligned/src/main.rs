@@ -109,13 +109,13 @@ pub struct SubmitArgs {
     keystore_path: Option<PathBuf>,
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
-    #[arg(name = "Max Fee", long = "max_fee")]
+    #[arg(name = "Max Fee", help = "Specifies the `max_fee` the user of the submitted proof in ether" , long = "max_fee")]
     max_fee: Option<String>, // String because U256 expects hex
     #[arg(
         name = "Price Estimate",
         long = "price_estimate",
         default_value = "default",
-        help = "`price_estimate` allows for a user to use the aligned_sdk `estimate_fee` function to compute there `max_fee`.\n Usage: `default,`, `instant`, \"custom <NUM_PROOFS_IN_BATCH>\"",
+        help = "Specifies the aligned_sdk `estimate_fee` function should be used to compute the `max_fee` of the submitted proof based on the number of proofs in a batch and the current gas price from the node specified by `eth_rpc_url`.\n Usage: `default,`, `instant`, \"custom <NUM_PROOFS_IN_BATCH>\"",
         allow_hyphen_values = true
     )]
     price_estimate: Option<String>,
@@ -313,6 +313,7 @@ async fn main() -> Result<(), AlignedError> {
             let eth_rpc_url = submit_args.eth_rpc_url.clone();
             // `max_fee` is required unless `price_estimate` is present.
             let max_fee = submit_args.get_max_fee().await?;
+            info!("max_fee: {} ether", format_ether(max_fee));
             let repetitions = submit_args.repetitions;
             let connect_addr = submit_args.batcher_url.clone();
 
