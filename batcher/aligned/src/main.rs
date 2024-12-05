@@ -28,11 +28,11 @@ use log::{error, info};
 use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
+use crate::AlignedCommands::GetAmountOfProofsInBatcherQueue;
 use crate::AlignedCommands::GetUserBalance;
 use crate::AlignedCommands::GetUserNonce;
 use crate::AlignedCommands::GetUserNonceFromEthereum;
 use crate::AlignedCommands::GetVkCommitment;
-use crate::AlignedCommands::GetAmountOfProofsInBatcherQueue;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
 
@@ -615,19 +615,16 @@ async fn main() -> Result<(), AlignedError> {
         GetAmountOfProofsInBatcherQueue(args) => {
             let address = H160::from_str(&args.address).unwrap();
             let network = args.network.into();
-            let ethereum_nonce = match get_nonce_from_ethereum(&args.eth_rpc_url, address, network).await {
-                Ok(nonce) => {
-                    nonce
-                }
-                Err(e) => {
-                    error!("Error while getting nonce: {:?}", e);
-                    return Ok(());
-                }
-            };
+            let ethereum_nonce =
+                match get_nonce_from_ethereum(&args.eth_rpc_url, address, network).await {
+                    Ok(nonce) => nonce,
+                    Err(e) => {
+                        error!("Error while getting nonce: {:?}", e);
+                        return Ok(());
+                    }
+                };
             let batcher_nonce = match get_nonce_from_batcher(&args.batcher_url, address).await {
-                Ok(nonce) => {
-                    nonce
-                }
+                Ok(nonce) => nonce,
                 Err(e) => {
                     error!("Error while getting nonce: {:?}", e);
                     return Ok(());
@@ -636,7 +633,11 @@ async fn main() -> Result<(), AlignedError> {
             if ethereum_nonce > batcher_nonce {
                 error!("User {} is in an invalid state.", address);
             } else {
-                info!("User {} has {} proofs in the batcher queue", address, batcher_nonce - ethereum_nonce);
+                info!(
+                    "User {} has {} proofs in the batcher queue",
+                    address,
+                    batcher_nonce - ethereum_nonce
+                );
             }
             return Ok(());
         }
