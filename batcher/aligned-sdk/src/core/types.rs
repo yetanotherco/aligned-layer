@@ -94,33 +94,6 @@ pub enum PriceEstimate {
     Custom(usize),
 }
 
-impl TryFrom<String> for PriceEstimate {
-    type Error = String;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let val = match value.as_str() {
-            "default" => Self::Default,
-            "instant" => Self::Instant,
-            s if s.starts_with("custom") => {
-                let n = s
-                    .split_whitespace()
-                    .nth(1)
-                    .ok_or("Failed to Parse: `number_proofs_per_batch` not supplied, correct usage \"custom <NUM_PROOFS_IN_BATCH>\" (note quotations)")?
-                    .parse()
-                    .map_err(|_| "Failed to Parse: Value of `number_proofs_per_batch` invalid , correct usage \"custom <NUM_PROOFS_IN_BATCH>\" (note quotations)")?;
-                PriceEstimate::Custom(n)
-            }
-            _ => {
-                return Err(
-                    "Invalid price estimate, possible values are: \"default\", \"instant\", \"custom <NUM_PROOFS_IN_BATCH>\""
-                        .to_string(),
-                )
-            }
-        };
-        Ok(val)
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct VerificationDataCommitment {
     pub proof_commitment: [u8; 32],
