@@ -636,7 +636,7 @@ async fn main() -> Result<(), AlignedError> {
             if ethereum_nonce > batcher_nonce {
                 error!("User {} is in an invalid state.", address);
             } else {
-                info!("User {} has {} proofs in the batcher queue", address, ethereum_nonce - batcher_nonce);
+                info!("User {} has {} proofs in the batcher queue", address, batcher_nonce - ethereum_nonce);
             }
             return Ok(());
         }
