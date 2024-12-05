@@ -782,7 +782,6 @@ impl Batcher {
                 addr,
                 user_balance,
                 user_accumulated_fee,
-                msg_max_fee,
             )
             .await;
 
@@ -869,7 +868,6 @@ impl Batcher {
         addr: Address,
         user_balance: U256,
         user_accumulated_fee: U256,
-        msg_max_fee: U256,
     ) {
         let replacement_max_fee = nonced_verification_data.max_fee;
         let nonce = nonced_verification_data.nonce;
@@ -900,10 +898,11 @@ impl Batcher {
         }
 
         // For a replacement msg we must subtract the original_max_fee of the message from the user's accumulated max fee.
+        // Because we calculate user has enough balance for the difference of the bumping fee.
         if !self.verify_user_has_enough_balance(
             user_balance,
             user_accumulated_fee - original_max_fee,
-            msg_max_fee,
+            replacement_max_fee,
         ) {
             std::mem::drop(batch_state_lock);
             send_message(
