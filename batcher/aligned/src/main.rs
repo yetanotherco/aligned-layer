@@ -32,6 +32,7 @@ use crate::AlignedCommands::GetUserBalance;
 use crate::AlignedCommands::GetUserNonce;
 use crate::AlignedCommands::GetUserNonceFromEthereum;
 use crate::AlignedCommands::GetVkCommitment;
+use crate::AlignedCommands::GetAmountOfProofsInBatcherQueue;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
 
@@ -64,10 +65,15 @@ pub enum AlignedCommands {
     )]
     GetUserNonce(GetUserNonceArgs),
     #[clap(
-        about = "Gets the user nonce directly from the Ethereum blockchain's BatcherPaymentService contract. Useful for validating the on-chain state and check if your transactions are pending in the batcher.",
+        about = "Gets the user nonce directly from the BatcherPaymentService contract. Useful for validating the on-chain state and check if your transactions are pending in the batcher.",
         name = "get-user-nonce-from-ethereum"
     )]
     GetUserNonceFromEthereum(GetUserNonceFromEthereumArgs),
+    #[clap(
+        about = "Gets the amount of proofs a user has queued in the Batcher.",
+        name = "get-amount-of-proofs-in-batcher-queue"
+    )]
+    GetAmountOfProofsInBatcherQueue(GetAmountOfProofsInBatcherQueueArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -249,6 +255,35 @@ pub struct GetUserNonceFromEthereumArgs {
         default_value = "devnet"
     )]
     network: NetworkArg,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct GetAmountOfProofsInBatcherQueueArgs {
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc_url",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[arg(
+        name = "The user's Ethereum address",
+        long = "user_addr",
+        required = true
+    )]
+    address: String,
+    #[arg(
+        name = "The working network's name",
+        long = "network",
+        default_value = "devnet"
+    )]
+    network: NetworkArg,
+    #[arg(
+        name = "Batcher connection address",
+        long = "batcher_url",
+        default_value = "ws://localhost:8080"
+    )]
+    batcher_url: String,
 }
 
 #[derive(Debug, Clone, ValueEnum, Copy)]
@@ -576,6 +611,34 @@ async fn main() -> Result<(), AlignedError> {
                     return Ok(());
                 }
             }
+        }
+        GetAmountOfProofsInBatcherQueue(args) => {
+            let address = H160::from_str(&args.address).unwrap();
+            let network = args.network.into();
+            let ethereum_nonce = match get_nonce_from_ethereum(&args.eth_rpc_url, address, network).await {
+                Ok(nonce) => {
+                    nonce
+                }
+                Err(e) => {
+                    error!("Error while getting nonce: {:?}", e);
+                    return Ok(());
+                }
+            };
+            let batcher_nonce = match get_nonce_from_batcher(&args.batcher_url, address).await {
+                Ok(nonce) => {
+                    nonce
+                }
+                Err(e) => {
+                    error!("Error while getting nonce: {:?}", e);
+                    return Ok(());
+                }
+            };
+            if ethereum_nonce > batcher_nonce {
+                error!("User {} is in an invalid state.", address);
+            } else {
+                info!("User {} has {} proofs in the batcher queue", address, ethereum_nonce - batcher_nonce);
+            }
+            return Ok(());
         }
     }
 
