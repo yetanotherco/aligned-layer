@@ -44,7 +44,6 @@ cmd=(
     --rpc_url "$RPC"
     --batcher_url "$BATCHER_CONN"
     --network "$NETWORK"
-    --max_fee 10000000000000000000000000000000
 )
 
 # If PRIVATE_KEY is set then add private key argument
