@@ -55,10 +55,10 @@ async fn main() -> Result<(), BatcherError> {
                 .expect("Error listening for new blocks exiting")
         }
     });
-
+    
     batcher.metrics.inc_batcher_restart();
-
-    let addr = format!("localhost:{}", port);
+    
+    let addr = format!("0.0.0.0:{}", port);
     batcher.listen_connections(&addr, cli.cert, cli.key).await?;
 
     Ok(())
