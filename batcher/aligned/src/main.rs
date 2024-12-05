@@ -110,7 +110,7 @@ pub struct SubmitArgs {
     #[arg(
         name = "Max Fee (ether)",
         long = "max_fee",
-        default_value = "0.0013ether" // 0.0000013ether per proof * 0.000001 gwei gas price (upper bound)
+        default_value = "0.0013ether" // 13_000 gas per proof * 100 gwei gas price (upper bound)
     )]
     max_fee: String, // String because U256 expects hex
     #[arg(name = "Nonce", long = "nonce")]
