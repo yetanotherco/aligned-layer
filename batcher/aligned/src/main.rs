@@ -282,9 +282,9 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let max_fee = submit_args.max_fee.replace("ether", "");
+            let max_fee_ether = submit_args.max_fee.replace("ether", "");
 
-            let max_fee_ether = parse_ether(&max_fee).map_err(|e| {
+            let max_fee_wei: U256 = parse_ether(&max_fee_ether).map_err(|e| {
                 SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
             })?;
 
@@ -366,7 +366,7 @@ async fn main() -> Result<(), AlignedError> {
                 &connect_addr,
                 submit_args.network.into(),
                 &verification_data_arr,
-                max_fee_ether,
+                max_fee_wei,
                 wallet.clone(),
                 nonce,
             )
@@ -455,9 +455,9 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let amount = deposit_to_batcher_args.amount.replace("ether", "");
+            let amount_ether = deposit_to_batcher_args.amount.replace("ether", "");
 
-            let amount_ether = parse_ether(&amount).map_err(|e| {
+            let amount_wei = parse_ether(&amount_ether).map_err(|e| {
                 SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
             })?;
 
@@ -488,7 +488,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            match deposit_to_aligned(amount_ether, client, deposit_to_batcher_args.network.into())
+            match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network.into())
                 .await
             {
                 Ok(receipt) => {
