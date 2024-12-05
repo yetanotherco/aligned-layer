@@ -16,6 +16,7 @@ use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_nonce_from_batcher;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
+use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -63,7 +64,6 @@ pub enum AlignedCommands {
 }
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
 pub struct SubmitArgs {
     #[arg(
         name = "Batcher connection address",
@@ -109,20 +109,8 @@ pub struct SubmitArgs {
     keystore_path: Option<PathBuf>,
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
-    #[arg(
-        name = "Max Fee",
-        help = "Specifies the `max_fee` the user of the submitted proof in `ether`",
-        long = "max_fee"
-    )]
-    max_fee: Option<String>, // String because U256 expects hex
-    #[arg(
-        name = "Price Estimate",
-        long = "price_estimate",
-        default_value = "default",
-        help = "Specifies the aligned_sdk `estimate_fee` function should be used to compute the `max_fee` of the submitted proof based on the number of proofs in a batch and the current gas price from the node specified by `eth_rpc_url`.\n Usage: `default,`, `instant`, \"custom <NUM_PROOFS_IN_BATCH>\"",
-        allow_hyphen_values = true
-    )]
-    price_estimate: Option<String>,
+    #[command(flatten)]
+    price_estimate: PriceEstimateArgs,
     #[arg(name = "Nonce", long = "nonce")]
     nonce: Option<String>, // String because U256 expects hex
     #[arg(
@@ -133,30 +121,78 @@ pub struct SubmitArgs {
     network: Network,
 }
 
+#[derive(Args, Debug)]
+#[group(required = false, multiple = false)]
+pub struct PriceEstimateArgs {
+    #[arg(
+        name = "Max Fee",
+        long = "max_fee",
+        help = "Specifies the `max_fee` the user of the submitted proof in `ether`."
+    )]
+    max_fee: Option<String>, // String because U256 expects hex
+    #[arg(
+        name = "Price Estimate: Custom",
+        long = "custom_fee_estimate",
+        help = "Specifies a `max_fee` equivalent to the cost of paying 1 proof / `num_proofs_in_batch` allowing the user a user to estimate there `max_fee` precisely based on the `number_proofs_in_batch`."
+    )]
+    custom_fee_estimate: Option<usize>,
+    #[arg(
+        name = "Price Estimate: Instant",
+        long = "instant_fee_estimate",
+        help = "Specifies a `max_fee` equivalent to the cost of paying for an entire batch ensuring the user's proof is included instantly."
+    )]
+    instant_fee_estimate: bool,
+    #[arg(
+        name = "Price Estimate: Default",
+        long = "default_fee_estimate",
+        help = "Specifies a `max_fee` equivalent to the cost of paying for one proof within a batch of 10 proofs ie. 1 / 10 proofs. This estimates a default `max_fee` the user should specify for including there proof within the batch."
+    )]
+    default_fee_estimate: bool,
+}
+
 impl SubmitArgs {
     async fn get_max_fee(&self) -> Result<U256, AlignedError> {
-        // If max_fee is explicitly provided it is used first
-        if let Some(max_fee) = &self.max_fee {
-            // Inform the user if both are declared that `max_fee` is used.
-            if self.price_estimate.is_some() {
-                return Err(SubmitError::GenericError("`max_fee` and `price_estimate` are both present please specify one or the other".to_string()))?;
+        // The fee types are present as a ArgGroup in clap that in which declaring multiple arguments is not allowed.
+        // Therefore we can switch over the returned values of each with a guarantee that only one or none are set.
+        // In the case of none being set we return a default `max_fee`.
+        let estimate = match (
+            &self.price_estimate.max_fee,
+            &self.price_estimate.custom_fee_estimate,
+            self.price_estimate.instant_fee_estimate,
+            self.price_estimate.default_fee_estimate,
+        ) {
+            (Some(max_fee), None, false, false) => {
+                if !max_fee.ends_with("ether") {
+                    error!("`max_fee` should be in the format XX.XXether");
+                    Err(SubmitError::EthereumProviderError(
+                        "Error while parsing `max_fee`".to_string(),
+                    ))?
+                }
+
+                let max_fee_ether = max_fee.replace("ether", "");
+                parse_ether(&max_fee_ether).map_err(|e| {
+                    SubmitError::EthereumProviderError(format!(
+                        "Error while parsing `max_fee`: {}",
+                        e
+                    ))
+                })?
             }
-            return Ok(
-                U256::from_str(max_fee).map_err(|e| SubmitError::GenericError(e.to_string()))?
-            );
-        }
-
-        if let Some(price_est) = &self.price_estimate {
-            let estimate = PriceEstimate::try_from(price_est.clone())
-                .map_err(|e| SubmitError::GenericError(e.to_string()))?;
-            return estimate_fee(&self.eth_rpc_url, estimate)
+            (None, Some(number_proofs_in_batch), false, false) => estimate_fee(
+                &self.eth_rpc_url,
+                PriceEstimate::Custom(*number_proofs_in_batch),
+            )
+            .await
+            .map_err(AlignedError::FeeEstimateError)?,
+            (None, None, true, false) => estimate_fee(&self.eth_rpc_url, PriceEstimate::Instant)
                 .await
-                .map_err(AlignedError::FeeEstimateError);
-        }
-
-        // Fallback to default value
-        Ok(U256::from_str("1300000000000000")
-            .map_err(|e| SubmitError::GenericError(e.to_string()))?)
+                .map_err(AlignedError::FeeEstimateError)?,
+            (None, None, false, true) => estimate_fee(&self.eth_rpc_url, PriceEstimate::Default)
+                .await
+                .map_err(AlignedError::FeeEstimateError)?,
+            _ => U256::from_dec_str("13000000000000")
+                .map_err(|e| SubmitError::GenericError(e.to_string()))?,
+        };
+        Ok(estimate)
     }
 }
 
