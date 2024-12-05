@@ -18,7 +18,7 @@ use lambdaworks_crypto::merkle_tree::{
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
-use super::constants::{BATCHER_URL_DEVNET, BATCHER_URL_HOLESKY, BATCHER_URL_HOLESKY_STAGE};
+use super::constants::{BATCHER_URL_DEVNET, BATCHER_URL_HOLESKY, BATCHER_URL_HOLESKY_STAGE, BATCHER_URL_MAINNET};
 
 use super::errors::VerifySignatureError;
 
@@ -429,6 +429,7 @@ impl Network {
             Self::Devnet => BATCHER_URL_DEVNET,
             Self::Holesky => BATCHER_URL_HOLESKY,
             Self::HoleskyStage => BATCHER_URL_HOLESKY_STAGE,
+            Self::Mainnet => BATCHER_URL_MAINNET,
         }
     }
 }
