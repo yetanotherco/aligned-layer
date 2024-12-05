@@ -132,7 +132,7 @@ impl SubmitArgs {
     async fn get_max_fee(&self) -> Result<U256, AlignedError> {
         // If max_fee is explicitly provided it is used first
         if let Some(max_fee) = &self.max_fee {
-            // We explicitly tell the user that using both is invalid
+            // Inform the user if both are declared that `max_fee` is used.
             if self.price_estimate.is_some() {
                 warn!("`max_fee` and `price_estimate` are both present using `max_fee`");
             }
