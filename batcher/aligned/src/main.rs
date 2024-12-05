@@ -152,9 +152,9 @@ pub struct PriceEstimateArgs {
 
 impl SubmitArgs {
     async fn get_max_fee(&self) -> Result<U256, AlignedError> {
-        // The fee types are present as a ArgGroup in clap that in which declaring multiple arguments is not allowed.
-        // Therefore we can switch over the returned values of each with a guarantee that only one or none are set.
-        // In the case of none being set we return a default `max_fee`.
+        // The fee types are present as a ArgGroup in clap in which declaring multiple arguments is not allowed.
+        // Therefore we switch over the returned values of each argument with as we assume that only one or none are set.
+        // In the case of none are set we return a default `max_fee`.
         let estimate = match (
             &self.price_estimate.max_fee,
             &self.price_estimate.custom_fee_estimate,
