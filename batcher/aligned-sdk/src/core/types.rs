@@ -105,14 +105,14 @@ impl TryFrom<String> for PriceEstimate {
                 let n = s
                     .split_whitespace()
                     .nth(1)
-                    .ok_or("Failed to Parse: `number_proofs_per_batch` not supplied")?
+                    .ok_or("Failed to Parse: `number_proofs_per_batch` not supplied, correct usage \"custom <NUM_PROOFS_IN_BATCH>\" (note quotations)")?
                     .parse()
-                    .map_err(|_| "Failed to Parse: Value of `number_proofs_per_batch` invalid")?;
+                    .map_err(|_| "Failed to Parse: Value of `number_proofs_per_batch` invalid , correct usage \"custom <NUM_PROOFS_IN_BATCH>\" (note quotations)")?;
                 PriceEstimate::Custom(n)
             }
             _ => {
                 return Err(
-                    "Invalid network, possible values are: \"default\", \"instant\", \"custom\""
+                    "Invalid network, possible values are: \"default\", \"instant\", \"custom <NUM_PROOFS_IN_BATCH>\""
                         .to_string(),
                 )
             }

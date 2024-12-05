@@ -115,6 +115,7 @@ pub struct SubmitArgs {
         name = "Price Estimate",
         long = "price_estimate",
         default_value = "default",
+        help = "`price_estimate` allows for a user to use the aligned_sdk `estimate_fee` function to compute there `max_fee`.\n Usage: `default,`, `instant`, \"custom <NUM_PROOFS_IN_BATCH>\"",
         allow_hyphen_values = true
     )]
     price_estimate: Option<String>,
