@@ -316,8 +316,8 @@ async fn main() -> Result<(), AlignedError> {
 
             let eth_rpc_url = submit_args.eth_rpc_url.clone();
             // `max_fee` is required unless `price_estimate` is present.
-            let max_fee = submit_args.get_max_fee().await?;
-            info!("max_fee: {} ether", format_ether(max_fee));
+            let max_fee_wei = submit_args.get_max_fee().await?;
+            info!("max_fee: {} ether", format_ether(max_fee_wei));
             let repetitions = submit_args.repetitions;
             let connect_addr = submit_args.batcher_url.clone();
 
@@ -394,7 +394,7 @@ async fn main() -> Result<(), AlignedError> {
                 &connect_addr,
                 submit_args.network,
                 &verification_data_arr,
-                max_fee,
+                max_fee_wei,
                 wallet.clone(),
                 nonce,
             )
