@@ -135,7 +135,7 @@ impl SubmitArgs {
         if let Some(max_fee) = &self.max_fee {
             // Inform the user if both are declared that `max_fee` is used.
             if self.price_estimate.is_some() {
-                warn!("`max_fee` and `price_estimate` are both present using `max_fee`");
+                return Err(SubmitError::GenericError("`max_fee` and `price_estimate` are both present please specify one or the other".to_string()))?
             }
             return Ok(
                 U256::from_str(max_fee).map_err(|e| SubmitError::GenericError(e.to_string()))?
