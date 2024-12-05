@@ -36,4 +36,4 @@ prometheus = { version = "0.13.4", features = ["process"] }
 backon = "1.2.0"
 tokio-boring = "4.13.0"
 boring = "4.13.0"
-openssl = { version = "0.10", features = ["vendored"] }
+openssl = { version = "0.10.68", features = ["vendored"] }
