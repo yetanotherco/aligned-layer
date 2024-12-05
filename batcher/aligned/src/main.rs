@@ -29,8 +29,8 @@ use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
 use crate::AlignedCommands::GetUserBalance;
-use crate::AlignedCommands::GetUserFirstNonce;
 use crate::AlignedCommands::GetUserNonce;
+use crate::AlignedCommands::GetUserNonceFromEthereum;
 use crate::AlignedCommands::GetVkCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -58,13 +58,16 @@ pub enum AlignedCommands {
     DepositToBatcher(DepositToBatcherArgs),
     #[clap(about = "Get user balance from the batcher", name = "get-user-balance")]
     GetUserBalance(GetUserBalanceArgs),
-    #[clap(about = "Get user nonce from the batcher", name = "get-user-nonce")]
+    #[clap(
+        about = "Gets user current nonce from the batcher. This is the nonce you should send in your next proof.",
+        name = "get-user-nonce"
+    )]
     GetUserNonce(GetUserNonceArgs),
     #[clap(
-        about = "Get the first user nonce from ethereum",
-        name = "get-user-first-nonce"
+        about = "Gets the user nonce directly from the Ethereum blockchain's BatcherPaymentService contract. Useful for validating the on-chain state and check if your transactions are pending in the batcher.",
+        name = "get-user-nonce-from-ethereum"
     )]
-    GetUserFirstNonce(GetUserFirstNonceArgs),
+    GetUserNonceFromEthereum(GetUserNonceFromEthereumArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -227,7 +230,7 @@ pub struct GetUserNonceArgs {
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-pub struct GetUserFirstNonceArgs {
+pub struct GetUserNonceFromEthereumArgs {
     #[arg(
         name = "Ethereum RPC provider address",
         long = "rpc_url",
@@ -558,13 +561,16 @@ async fn main() -> Result<(), AlignedError> {
                 }
             }
         }
-        GetUserFirstNonce(args) => {
+        GetUserNonceFromEthereum(args) => {
             let address = H160::from_str(&args.address).unwrap();
             let network = args.network.into();
             match get_nonce_from_ethereum(&args.eth_rpc_url, address, network).await {
                 Ok(nonce) => {
-                    let first_nonce = nonce + 1;
-                    info!("Nonce for address {} is {}", address, first_nonce);
+                    let first_nonce = nonce;
+                    info!(
+                        "Nonce for address {} in BatcherPaymentService contract is {}",
+                        address, first_nonce
+                    );
                 }
                 Err(e) => {
                     error!("Error while getting nonce: {:?}", e);
