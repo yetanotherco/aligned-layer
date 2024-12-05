@@ -923,7 +923,21 @@ impl Batcher {
             nonced_verification_data.verification_data.clone().into();
         replacement_entry.nonced_verification_data = nonced_verification_data;
 
-        // Close old sink in old entry and replace it with the new one
+        if !batch_state_lock.replacement_entry_is_valid(&replacement_entry) {
+            std::mem::drop(batch_state_lock);
+            warn!("Invalid replacement message");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidReplacementMessage,
+            )
+            .await;
+            self.metrics
+                .user_error(&["invalid_replacement_message", ""]);
+            return;
+        }
+
+        // Replacement entry is valid,
+        // We must close the old sink in old entry and replace it with the new one
         {
             if let Some(messaging_sink) = replacement_entry.messaging_sink {
                 let mut old_sink = messaging_sink.write().await;
@@ -939,20 +953,7 @@ impl Batcher {
                 )
             };
         }
-
         replacement_entry.messaging_sink = Some(ws_conn_sink.clone());
-        if !batch_state_lock.replacement_entry_is_valid(&replacement_entry) {
-            std::mem::drop(batch_state_lock);
-            warn!("Invalid replacement message");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidReplacementMessage,
-            )
-            .await;
-            self.metrics
-                .user_error(&["invalid_replacement_message", ""]);
-            return;
-        }
 
         info!(
             "Replacement entry is valid, incrementing fee for sender: {:?}, nonce: {:?}, max_fee: {:?}",
