@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use clap::Parser;
 use env_logger::Env;
+use rustls::crypto::{CryptoProvider, aws_lc_rs};
 
 use aligned_batcher::{types::errors::BatcherError, Batcher};
 
@@ -34,6 +35,9 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> Result<(), BatcherError> {
+    CryptoProvider::install_default(aws_lc_rs::default_provider())
+        .expect("failed to initialize crypto provider");
+
     let cli = Cli::parse();
     let port = cli.port.unwrap_or(8080);
 
