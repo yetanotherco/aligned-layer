@@ -337,7 +337,7 @@ defmodule ExplorerWeb.CoreComponents do
   def card_link(assigns) do
     ~H"""
     <.link target="_blank" href={@href} class="group" {@rest}>
-      <.card_background class={["h-full", @class]}>
+      <.card_background class="h-full">
         <h2 class="font-medium text-muted-foreground capitalize group-hover:underline truncate">
           <%= @title %>
           <.icon name={@icon} class="size-4 mb-1" />

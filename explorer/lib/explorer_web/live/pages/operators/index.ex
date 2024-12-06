@@ -79,8 +79,11 @@ defmodule ExplorerWeb.Operators.Index do
           <:col :let={operator} label="Restake Concentration">
             <%= operator.weight |> Numbers.show_percentage() %>
           </:col>
-          <:col :let={operator} label="Total ETH Restaked">
-            <%= operator.total_stake |> EthConverter.wei_to_eth(2) |> Helpers.format_number() %> ETH
+          <:col :let={operator} label="Total Restaked">
+            <div class="flex flex-col">
+              <p><%= operator.total_stake_eth %> ETH</p>
+              <p class="text-gray-500"><%= operator.total_stake_usd %> USD</p>
+            </div>
           </:col>
           <:col :let={operator} label="Status">
             <.dynamic_badge_boolean status={operator.is_active} truthy_text="Active" falsy_text="Inactive" />
