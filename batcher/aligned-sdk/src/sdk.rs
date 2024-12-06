@@ -8,13 +8,13 @@ use crate::{
     core::{
         constants::{
             ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
-            DEFAULT_MAX_FEE_PROOF_NUMBER, GAS_PRICE_PERCENTAGE_MULTIPLIER,
-            INSTANT_MAX_FEE_PROOF_NUMBER, PERCENTAGE_DIVIDER,
+            DEFAULT_MAX_FEE_BATCH_SIZE, GAS_PRICE_PERCENTAGE_MULTIPLIER,
+            INSTANT_MAX_FEE_BATCH_SIZE, PERCENTAGE_DIVIDER,
         },
         errors::{self, GetNonceError},
         types::{
-            AlignedVerificationData, ClientMessage, GetNonceResponseMessage, Network,
-            PriceEstimate, ProvingSystemId, VerificationData,
+            AlignedVerificationData, ClientMessage, FeeEstimateType, GetNonceResponseMessage,
+            Network, ProvingSystemId, VerificationData,
         },
     },
     eth::{
@@ -118,7 +118,7 @@ pub async fn submit_multiple_and_wait_verification(
 
 /// Returns the estimated `max_fee` depending on the batch inclusion preference of the user, computed based on the current gas price, and the number of proofs in a batch.
 /// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
-/// To estimate the `max_fee` of a batch we use a compute the `max_fee` with respect to a batch size of 1 (Instant), 10 (Default), or `number_proofs_in_batch` (Custom).
+/// To estimate the `max_fee` of a batch we compute it based on a batch size of 1 (Instant), 10 (Default), or `number_proofs_in_batch` (Custom).
 /// The `max_fee` estimates therefore are:
 /// * `Default`: Specifies a `max_fee` equivalent to the cost of paying for one proof within a batch of 10 proofs ie. 1 / 10 proofs.
 ///        This estimates a default `max_fee` the user should specify for including there proof within the batch.
@@ -135,17 +135,17 @@ pub async fn submit_multiple_and_wait_verification(
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
 pub async fn estimate_fee(
     eth_rpc_url: &str,
-    estimate: PriceEstimate,
+    estimate: FeeEstimateType,
 ) -> Result<U256, errors::FeeEstimateError> {
     // Price of 1 proof in 32 proof batch
     match estimate {
-        PriceEstimate::Default => {
-            fee_per_proof_in_batch(eth_rpc_url, DEFAULT_MAX_FEE_PROOF_NUMBER).await
+        FeeEstimateType::Default => {
+            calculate_fee_per_proof_in_batch(eth_rpc_url, DEFAULT_MAX_FEE_BATCH_SIZE).await
         }
-        PriceEstimate::Instant => {
-            fee_per_proof_in_batch(eth_rpc_url, INSTANT_MAX_FEE_PROOF_NUMBER).await
+        FeeEstimateType::Instant => {
+            calculate_fee_per_proof_in_batch(eth_rpc_url, INSTANT_MAX_FEE_BATCH_SIZE).await
         }
-        PriceEstimate::Custom(n) => fee_per_proof_in_batch(eth_rpc_url, n).await,
+        FeeEstimateType::Custom(n) => calculate_fee_per_proof_in_batch(eth_rpc_url, n).await,
     }
 }
 
@@ -160,7 +160,7 @@ pub async fn estimate_fee(
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
-pub async fn fee_per_proof_in_batch(
+pub async fn calculate_fee_per_proof_in_batch(
     eth_rpc_url: &str,
     num_proofs_in_batch: usize,
 ) -> Result<U256, errors::FeeEstimateError> {

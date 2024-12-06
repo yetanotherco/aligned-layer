@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use aligned_sdk::communication::serialization::cbor_deserialize;
-use aligned_sdk::core::types::PriceEstimate;
+use aligned_sdk::core::types::FeeEstimateType;
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
@@ -110,7 +110,7 @@ pub struct SubmitArgs {
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
     #[command(flatten)]
-    price_estimate: PriceEstimateArgs,
+    fee_type: FeeType,
     #[arg(name = "Nonce", long = "nonce")]
     nonce: Option<String>, // String because U256 expects hex
     #[arg(
@@ -123,7 +123,7 @@ pub struct SubmitArgs {
 
 #[derive(Args, Debug)]
 #[group(required = false, multiple = false)]
-pub struct PriceEstimateArgs {
+pub struct FeeType {
     #[arg(
         name = "Max Fee (ether)",
         long = "max_fee",
@@ -137,13 +137,11 @@ pub struct PriceEstimateArgs {
     )]
     custom_fee_estimate: Option<usize>,
     #[arg(
-        name = "Price Estimate: Instant",
         long = "instant_fee_estimate",
         help = "Specifies a `max_fee` that covers the cost of paying for the entire batch, ensuring the proof is included instantly."
     )]
     instant_fee_estimate: bool,
     #[arg(
-        name = "Price Estimate: Default",
         long = "default_fee_estimate",
         help = "Specifies a default `max_fee` based on the cost of one proof within a batch of 10 proofs, providing a standard fee for batch inclusion."
     )]
@@ -152,7 +150,7 @@ pub struct PriceEstimateArgs {
 
 impl SubmitArgs {
     async fn get_max_fee(&self) -> Result<U256, AlignedError> {
-        if let Some(max_fee) = &self.price_estimate.max_fee {
+        if let Some(max_fee) = &self.fee_type.max_fee {
             if !max_fee.ends_with("ether") {
                 error!("`max_fee` should be in the format XX.XXether");
                 Err(SubmitError::EthereumProviderError(
@@ -161,28 +159,28 @@ impl SubmitArgs {
             }
 
             let max_fee_ether = max_fee.replace("ether", "");
-            return Ok(parse_ether(&max_fee_ether).map_err(|e| {
+            return Ok(parse_ether(max_fee_ether).map_err(|e| {
                 SubmitError::EthereumProviderError(format!("Error while parsing `max_fee`: {}", e))
             })?);
         }
 
-        if let Some(number_proofs_in_batch) = &self.price_estimate.custom_fee_estimate {
+        if let Some(number_proofs_in_batch) = &self.fee_type.custom_fee_estimate {
             return estimate_fee(
                 &self.eth_rpc_url,
-                PriceEstimate::Custom(*number_proofs_in_batch),
+                FeeEstimateType::Custom(*number_proofs_in_batch),
             )
             .await
             .map_err(AlignedError::FeeEstimateError);
         }
 
-        if self.price_estimate.instant_fee_estimate {
-            return estimate_fee(&self.eth_rpc_url, PriceEstimate::Instant)
+        if self.fee_type.instant_fee_estimate {
+            return estimate_fee(&self.eth_rpc_url, FeeEstimateType::Instant)
                 .await
                 .map_err(AlignedError::FeeEstimateError);
         }
 
-        if self.price_estimate.default_fee_estimate {
-            return estimate_fee(&self.eth_rpc_url, PriceEstimate::Default)
+        if self.fee_type.default_fee_estimate {
+            return estimate_fee(&self.eth_rpc_url, FeeEstimateType::Default)
                 .await
                 .map_err(AlignedError::FeeEstimateError);
         }
