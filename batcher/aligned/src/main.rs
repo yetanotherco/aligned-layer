@@ -28,7 +28,7 @@ use log::{error, info};
 use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
-use crate::AlignedCommands::GetAmountOfProofsInBatcherQueue;
+use crate::AlignedCommands::GetUserNumberOfQueuedProofs;
 use crate::AlignedCommands::GetUserBalance;
 use crate::AlignedCommands::GetUserNonce;
 use crate::AlignedCommands::GetUserNonceFromEthereum;
@@ -70,10 +70,10 @@ pub enum AlignedCommands {
     )]
     GetUserNonceFromEthereum(GetUserNonceFromEthereumArgs),
     #[clap(
-        about = "Gets the amount of proofs a user has queued in the Batcher.",
-        name = "get-amount-of-proofs-in-batcher-queue"
+        about = "Gets the number of proofs a user has queued in the Batcher.",
+        name = "get-user-number-of-queued-proofs"
     )]
-    GetAmountOfProofsInBatcherQueue(GetAmountOfProofsInBatcherQueueArgs),
+    GetUserNumberOfQueuedProofs(GetUserNumberOfQueuedProofsArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -259,7 +259,7 @@ pub struct GetUserNonceFromEthereumArgs {
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-pub struct GetAmountOfProofsInBatcherQueueArgs {
+pub struct GetUserNumberOfQueuedProofsArgs {
     #[arg(
         name = "Ethereum RPC provider address",
         long = "rpc_url",
@@ -612,7 +612,7 @@ async fn main() -> Result<(), AlignedError> {
                 }
             }
         }
-        GetAmountOfProofsInBatcherQueue(args) => {
+        GetUserNumberOfQueuedProofs(args) => {
             let address = H160::from_str(&args.address).unwrap();
             let network = args.network.into();
             let ethereum_nonce =
