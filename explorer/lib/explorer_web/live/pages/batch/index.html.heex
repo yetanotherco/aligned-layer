@@ -44,9 +44,9 @@
           Fee per Proof:
         </h3>
         <p>
-          <%= @current_batch.fee_per_proof |> EthConverter.wei_to_eth() %> ETH
-          <%= if @eth_usd_price != :empty and @eth_usd_price != "0.00000" do %>
-            <span class="inline-flex md:inline-block">(<%= @eth_usd_price %> USD)</span>
+          <%= @current_batch.fee_per_proof %> ETH
+          <%= if @current_batch.fee_per_proof_usd != :nil do %>
+            <span class="inline-flex md:inline-block text-gray-500">(<%= @current_batch.fee_per_proof_usd %> USD)</span>
           <% end %>
         </p>
       </div>
