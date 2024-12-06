@@ -1,9 +1,21 @@
 defmodule ExplorerWeb.Restakes.Index do
   use ExplorerWeb, :live_view
 
+  def get_all_strategies() do
+    Strategies.get_all_strategies()
+    |> Enum.map(fn strategy ->
+      total_staked_eth = EthConverter.wei_to_eth(strategy.total_staked, 2)
+      {_, total_staked_usd} = EthConverter.wei_to_usd(strategy.total_staked, 2)
+
+      strategy
+      |> Map.put(:total_staked_eth, total_staked_eth)
+      |> Map.put(:total_staked_usd, total_staked_usd)
+    end)
+  end
+
   @impl true
   def handle_info(_, socket) do
-    assets = Strategies.get_all_strategies()
+    assets = get_all_strategies()
     total_staked_eth = Restakings.get_restaked_amount_eth()
     total_staked_usd = Restakings.get_restaked_amount_usd()
     operators_registered = Operators.get_amount_of_operators()
@@ -26,7 +38,7 @@ defmodule ExplorerWeb.Restakes.Index do
 
   @impl true
   def handle_params(_params, _url, socket) do
-    assets = Strategies.get_all_strategies()
+    assets = get_all_strategies()
     total_staked_eth = Restakings.get_restaked_amount_eth()
     total_staked_usd = Restakings.get_restaked_amount_usd()
     operators_registered = Operators.get_amount_of_operators()
@@ -75,12 +87,15 @@ defmodule ExplorerWeb.Restakes.Index do
               <.right_arrow />
             </.link>
           </:col>
-          <:col :let={asset} label="Total ETH Restaked">
-            <%= if asset.total_staked != nil do %>
-              <%= asset.total_staked |> EthConverter.wei_to_eth(3) |> Helpers.format_number() %>
-            <% else %>
-              N/A
-            <% end %>
+          <:col :let={asset} label="Total Restaked">
+            <div class="flex flex-col">
+              <%= if asset.total_staked_eth != nil do %>
+                <p><%= asset.total_staked_eth %> ETH</p>
+                <p class="text-gray-500"><%= asset.total_staked_usd %> USD</p>
+              <% else %>
+                N/A
+              <% end %>
+            </div>
           </:col>
         </.table>
       <% else %>
