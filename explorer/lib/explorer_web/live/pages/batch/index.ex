@@ -48,7 +48,7 @@ defmodule ExplorerWeb.Batch.Index do
   end
 
   @impl true
-  def handle_info(%{eth_usd: eth_usd_price} = _params, socket) do
+  def handle_info(_params, socket) do
     new_batch =
       case Batches.get_batch(%{merkle_root: socket.assigns.merkle_root}) do
         nil ->
@@ -60,7 +60,7 @@ defmodule ExplorerWeb.Batch.Index do
           %{
             batch
             | fee_per_proof: EthConverter.wei_to_eth(fee_per_proof),
-              fee_per_proof_usd: 123
+              fee_per_proof_usd: fee_per_proof_usd
           }
       end
 
