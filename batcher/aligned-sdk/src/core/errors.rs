@@ -281,7 +281,7 @@ impl fmt::Display for FeeEstimateError {
             FeeEstimateError::EthereumGasPriceError(e) => {
                 write!(f, "Failed to retreive the current gas price: {}", e)
             }
-            FeeEstimateError::PriceEstimateParseError(e) => {
+            FeeEstimateError::FeeEstimateParseError(e) => {
                 write!(f, "Error parsing PriceEstimate: {}", e)
             }
         }

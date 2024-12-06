@@ -133,7 +133,7 @@ pub struct FeeType {
     #[arg(
         name = "NUMBER_PROOFS_IN_BATCH",
         long = "custom_fee_estimate",
-        help = "Specifies a `max_fee` equivalent to the cost of paying 1 proof / `num_proofs_in_batch` allowing the user a user to estimate a `max_fee` precisely based on the `number_proofs_in_batch`."
+        help = "Specifies a `max_fee` equivalent to the cost of paying (1 proof / `num_proofs_in_batch`) allowing the user to estimate a `max_fee` precisely based on the `number_proofs_in_batch`."
     )]
     custom_fee_estimate: Option<usize>,
     #[arg(
@@ -143,7 +143,7 @@ pub struct FeeType {
     instant_fee_estimate: bool,
     #[arg(
         long = "default_fee_estimate",
-        help = "Specifies a default `max_fee` based on the cost of one proof within a batch of 10 proofs, providing a standard fee for batch inclusion."
+        help = "Specifies a default `max_fee` based on the cost of one proof within a batch of 16 proofs, providing a standard fee for batch inclusion."
     )]
     default_fee_estimate: bool,
 }
@@ -517,9 +517,9 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let amount = deposit_to_batcher_args.amount.replace("ether", "");
+            let amount_ether = deposit_to_batcher_args.amount.replace("ether", "");
 
-            let amount_ether = parse_ether(&amount).map_err(|e| {
+            let amount_wei = parse_ether(&amount_ether).map_err(|e| {
                 SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
             })?;
 
@@ -550,7 +550,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            match deposit_to_aligned(amount_ether, client, deposit_to_batcher_args.network.into())
+            match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network.into())
                 .await
             {
                 Ok(receipt) => {

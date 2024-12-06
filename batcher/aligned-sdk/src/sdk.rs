@@ -123,7 +123,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// * `Default`: Specifies a `max_fee` equivalent to the cost of paying for one proof within a batch of 16 proofs ie. 1 / 16 proofs.
 ///        This estimates a default `max_fee` the user should specify for including there proof within the batch.
 /// * `Instant`: Specifies a `max_fee` equivalent to the cost of paying for an entire batch ensuring the user's proof is included instantly.
-/// * `Custom (number_proofs_in_batch)`: Specifies a `max_fee` equivalent to the cost of paying 1 proof / `num_proofs_in_batch` allowing the user a user to estimate the `max_fee` precisely based on the `number_proofs_in_batch`.
+/// * `Custom (number_proofs_in_batch)`: Specifies a `max_fee` equivalent to the cost of paying 1 proof / `number_proofs_in_batch` allowing the user a user to estimate the `max_fee` precisely based on the `number_proofs_in_batch`.
 ///
 /// # Arguments
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
