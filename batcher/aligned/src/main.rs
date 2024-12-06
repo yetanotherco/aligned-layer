@@ -287,6 +287,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let keystore_path = &submit_args.keystore_path;
             let private_key = &submit_args.private_key;
+            let network = submit_args.network.into();
 
             if keystore_path.is_some() && private_key.is_some() {
                 warn!("Can't have a keystore path and a private key as input. Please use only one");
