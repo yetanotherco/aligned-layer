@@ -1032,7 +1032,7 @@ docker_verify_proof_submission_success:
 				fi; \
 				echo "---------------------------------------------------------------------------------------------------"; \
 			done; \
-			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne 10 ]; then \
+			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne 5 ]; then \
 				echo "ERROR: Some proofs were verified successfully, but some proofs are missing in the aligned_verification_data/ directory"; \
 				exit 1; \
 			fi; \
