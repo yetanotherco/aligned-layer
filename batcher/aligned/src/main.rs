@@ -125,13 +125,13 @@ pub struct SubmitArgs {
 #[group(required = false, multiple = false)]
 pub struct PriceEstimateArgs {
     #[arg(
-        name = "Max Fee",
+        name = "Max Fee (ether)",
         long = "max_fee",
         help = "Specifies the `max_fee` the user of the submitted proof in `ether`."
     )]
     max_fee: Option<String>, // String because U256 expects hex
     #[arg(
-        name = "Price Estimate: Custom",
+        name = "NUMBER_PROOFS_IN_BATCH",
         long = "custom_fee_estimate",
         help = "Specifies a `max_fee` equivalent to the cost of paying 1 proof / `num_proofs_in_batch` allowing the user a user to estimate there `max_fee` precisely based on the `number_proofs_in_batch`."
     )]
@@ -188,7 +188,7 @@ impl SubmitArgs {
         }
 
         Ok(U256::from_dec_str("13000000000000")
-            .map_err(|e| SubmitError::GenericError(e.to_string()))?)
+            .map_err(|e| SubmitError::GenericError(e.to_string()))?)  // 13_000 gas per proof * 100 gwei gas price (upper bound)
     }
 }
 

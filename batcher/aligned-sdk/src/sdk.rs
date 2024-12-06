@@ -140,12 +140,12 @@ pub async fn estimate_fee(
     // Price of 1 proof in 32 proof batch
     match estimate {
         PriceEstimate::Default => {
-            suggest_fee_per_proof(eth_rpc_url, DEFAULT_MAX_FEE_PROOF_NUMBER).await
+            fee_per_proof_in_batch(eth_rpc_url, DEFAULT_MAX_FEE_PROOF_NUMBER).await
         }
         PriceEstimate::Instant => {
-            suggest_fee_per_proof(eth_rpc_url, INSTANT_MAX_FEE_PROOF_NUMBER).await
+            fee_per_proof_in_batch(eth_rpc_url, INSTANT_MAX_FEE_PROOF_NUMBER).await
         }
-        PriceEstimate::Custom(n) => suggest_fee_per_proof(eth_rpc_url, n).await,
+        PriceEstimate::Custom(n) => fee_per_proof_in_batch(eth_rpc_url, n).await,
     }
 }
 
@@ -160,7 +160,7 @@ pub async fn estimate_fee(
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
-pub async fn suggest_fee_per_proof(
+pub async fn fee_per_proof_in_batch(
     eth_rpc_url: &str,
     num_proofs_in_batch: usize,
 ) -> Result<U256, errors::FeeEstimateError> {
@@ -175,7 +175,10 @@ pub async fn suggest_fee_per_proof(
         + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
         / num_proofs_in_batch as u128;
 
-    // Price of 1 / `num_proofs_in_batch` proof batch
+    
+    // Price of 1 proof in a batch of size `num_proofs_in_batch` (i.e. 1 / `num_proofs_in_batch`). 
+    // The computed price is adjusted with respect to the percentage multiplier from:
+    // https://github.com/yetanotherco/aligned_layer/blob/staging/batcher/aligned-batcher/src/lib.rs#L1401
     let fee_per_proof = (U256::from(estimated_gas_per_proof)
         * gas_price
         * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER))
