@@ -138,7 +138,7 @@ pub async fn estimate_fee(
     estimate_type: FeeEstimateType,
 ) -> Result<U256, errors::FeeEstimateError> {
     // Price of 1 proof in 32 proof batch
-    match estimate {
+    match estimate_type {
         FeeEstimateType::Default => {
             calculate_fee_per_proof_in_batch(eth_rpc_url, DEFAULT_MAX_FEE_BATCH_SIZE).await
         }
