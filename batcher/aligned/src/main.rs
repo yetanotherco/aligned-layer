@@ -29,10 +29,10 @@ use log::{error, info};
 use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
-use crate::AlignedCommands::GetUserNumberOfQueuedProofs;
 use crate::AlignedCommands::GetUserBalance;
 use crate::AlignedCommands::GetUserNonce;
 use crate::AlignedCommands::GetUserNonceFromEthereum;
+use crate::AlignedCommands::GetUserNumberOfQueuedProofs;
 use crate::AlignedCommands::GetVkCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -619,18 +619,16 @@ async fn main() -> Result<(), AlignedError> {
             let Ok((ethereum_nonce, batcher_nonce)) = future::try_join(
                 get_nonce_from_ethereum(&args.eth_rpc_url, address, network),
                 get_nonce_from_batcher(&args.batcher_url, address),
-            ).await.map_err(|e| error!("Error while getting nonce: {:?}", e)) else {
+            )
+            .await
+            .map_err(|e| error!("Error while getting nonce: {:?}", e)) else {
                 return Ok(());
             };
-            if ethereum_nonce > batcher_nonce {
-                error!("User {} is in an invalid state.", address);
-            } else {
-                info!(
-                    "User {} has {} proofs in the batcher queue",
-                    address,
-                    batcher_nonce - ethereum_nonce
-                );
-            }
+            info!(
+                "User {} has {} proofs in the batcher queue",
+                address,
+                batcher_nonce - ethereum_nonce
+            );
             return Ok(());
         }
     }
