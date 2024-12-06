@@ -271,14 +271,19 @@ impl Batcher {
         // acceptor_builder.check_private_key().unwrap();
         // let acceptor = Arc::new(acceptor_builder.build());
         // Reference: https://github.com/rustls/tokio-rustls/blob/main/examples/server.rs
-        let cert = vec![CertificateDer::from_pem_file(cert)?];
-        let key = PrivateKeyDer::from_pem_file(key)?;
+        let cert = vec![
+            CertificateDer::from_pem_file(cert)
+                .map_err(|e| BatcherError::TlsError(format!("{e}")))?,
+        ];
+        let key = PrivateKeyDer::from_pem_file(key)
+            .map_err(|e| BatcherError::TlsError(format!("{e}")))?;
 
         let config = rustls::ServerConfig::builder()
             .with_no_client_auth()
-            .with_single_cert(cert, key)?;
+            .with_single_cert(cert, key)
+            .map_err(|e| BatcherError::TlsError(format!("{e}")))?;
 
-        let acceptor = TlsAcceptor::from(Arc::new(config));
+        let acceptor = Arc::new(TlsAcceptor::from(Arc::new(config)));
 
         // Create the event loop and TCP listener we'll accept connections on.
         let listener = TcpListener::bind(address)
@@ -385,13 +390,13 @@ impl Batcher {
         self: Arc<Self>,
         raw_stream: TcpStream,
         addr: SocketAddr,
-        acceptor: Arc<SslAcceptor>,
+        acceptor: Arc<TlsAcceptor>,
     ) -> Result<(), BatcherError> {
         info!("Incoming TCP connection from: {}", addr);
         self.metrics.open_connections.inc();
-        let tls_stream = tokio_boring::accept(&acceptor, raw_stream)
+        let tls_stream = acceptor.accept(raw_stream)
             .await
-            .map_err(|e | BatcherError::TlsError(e.to_string()))?;
+            .map_err(|e| BatcherError::TlsError(e.to_string()))?;
         let ws_stream_future = tokio_tungstenite::accept_async(tls_stream);
         let ws_stream =
             match timeout(Duration::from_secs(CONNECTION_TIMEOUT), ws_stream_future).await {
