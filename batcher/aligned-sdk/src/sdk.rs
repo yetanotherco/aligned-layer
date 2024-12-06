@@ -135,7 +135,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
 pub async fn estimate_fee(
     eth_rpc_url: &str,
-    estimate: FeeEstimateType,
+    estimate_type: FeeEstimateType,
 ) -> Result<U256, errors::FeeEstimateError> {
     // Price of 1 proof in 32 proof batch
     match estimate {
