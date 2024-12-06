@@ -152,47 +152,46 @@ pub struct PriceEstimateArgs {
 
 impl SubmitArgs {
     async fn get_max_fee(&self) -> Result<U256, AlignedError> {
-        // The fee types are present as a ArgGroup in clap in which declaring multiple arguments is not allowed.
-        // Therefore we switch over the returned values of each argument with as we assume that only one or none are set.
-        // In the case of none are set we return a default `max_fee`.
-        let estimate = match (
-            &self.price_estimate.max_fee,
-            &self.price_estimate.custom_fee_estimate,
-            self.price_estimate.instant_fee_estimate,
-            self.price_estimate.default_fee_estimate,
-        ) {
-            (Some(max_fee), None, false, false) => {
-                if !max_fee.ends_with("ether") {
-                    error!("`max_fee` should be in the format XX.XXether");
-                    Err(SubmitError::EthereumProviderError(
-                        "Error while parsing `max_fee`".to_string(),
-                    ))?
-                }
-
-                let max_fee_ether = max_fee.replace("ether", "");
-                parse_ether(&max_fee_ether).map_err(|e| {
-                    SubmitError::EthereumProviderError(format!(
-                        "Error while parsing `max_fee`: {}",
-                        e
-                    ))
-                })?
+        if let Some(max_fee) = &self.price_estimate.max_fee  {
+            if !max_fee.ends_with("ether") {
+                error!("`max_fee` should be in the format XX.XXether");
+                Err(SubmitError::EthereumProviderError(
+                    "Error while parsing `max_fee`".to_string(),
+                ))?
             }
-            (None, Some(number_proofs_in_batch), false, false) => estimate_fee(
+
+            let max_fee_ether = max_fee.replace("ether", "");
+            return Ok(parse_ether(&max_fee_ether).map_err(|e| {
+                SubmitError::EthereumProviderError(format!(
+                    "Error while parsing `max_fee`: {}",
+                    e
+                ))
+            })?)
+        }
+
+        if let Some(number_proofs_in_batch) = &self.price_estimate.custom_fee_estimate {
+            return Ok(estimate_fee(
                 &self.eth_rpc_url,
                 PriceEstimate::Custom(*number_proofs_in_batch),
             )
             .await
-            .map_err(AlignedError::FeeEstimateError)?,
-            (None, None, true, false) => estimate_fee(&self.eth_rpc_url, PriceEstimate::Instant)
-                .await
-                .map_err(AlignedError::FeeEstimateError)?,
-            (None, None, false, true) => estimate_fee(&self.eth_rpc_url, PriceEstimate::Default)
-                .await
-                .map_err(AlignedError::FeeEstimateError)?,
-            _ => U256::from_dec_str("13000000000000")
-                .map_err(|e| SubmitError::GenericError(e.to_string()))?,
-        };
-        Ok(estimate)
+            .map_err(AlignedError::FeeEstimateError)?)
+        }
+
+        if self.price_estimate.instant_fee_estimate {
+            return Ok(estimate_fee(&self.eth_rpc_url, PriceEstimate::Instant)
+            .await
+            .map_err(AlignedError::FeeEstimateError)?)
+        }
+
+        if self.price_estimate.default_fee_estimate {
+            return Ok(estimate_fee(&self.eth_rpc_url, PriceEstimate::Instant)
+            .await
+            .map_err(AlignedError::FeeEstimateError)?)
+        }
+
+        Ok(U256::from_dec_str("13000000000000")
+                .map_err(|e| SubmitError::GenericError(e.to_string()))?)
     }
 }
 
