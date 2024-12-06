@@ -152,7 +152,7 @@ pub struct PriceEstimateArgs {
 
 impl SubmitArgs {
     async fn get_max_fee(&self) -> Result<U256, AlignedError> {
-        if let Some(max_fee) = &self.price_estimate.max_fee  {
+        if let Some(max_fee) = &self.price_estimate.max_fee {
             if !max_fee.ends_with("ether") {
                 error!("`max_fee` should be in the format XX.XXether");
                 Err(SubmitError::EthereumProviderError(
@@ -162,36 +162,33 @@ impl SubmitArgs {
 
             let max_fee_ether = max_fee.replace("ether", "");
             return Ok(parse_ether(&max_fee_ether).map_err(|e| {
-                SubmitError::EthereumProviderError(format!(
-                    "Error while parsing `max_fee`: {}",
-                    e
-                ))
-            })?)
+                SubmitError::EthereumProviderError(format!("Error while parsing `max_fee`: {}", e))
+            })?);
         }
 
         if let Some(number_proofs_in_batch) = &self.price_estimate.custom_fee_estimate {
-            return Ok(estimate_fee(
+            return estimate_fee(
                 &self.eth_rpc_url,
                 PriceEstimate::Custom(*number_proofs_in_batch),
             )
             .await
-            .map_err(AlignedError::FeeEstimateError)?)
+            .map_err(AlignedError::FeeEstimateError);
         }
 
         if self.price_estimate.instant_fee_estimate {
-            return Ok(estimate_fee(&self.eth_rpc_url, PriceEstimate::Instant)
-            .await
-            .map_err(AlignedError::FeeEstimateError)?)
+            return estimate_fee(&self.eth_rpc_url, PriceEstimate::Instant)
+                .await
+                .map_err(AlignedError::FeeEstimateError);
         }
 
         if self.price_estimate.default_fee_estimate {
-            return Ok(estimate_fee(&self.eth_rpc_url, PriceEstimate::Instant)
-            .await
-            .map_err(AlignedError::FeeEstimateError)?)
+            return estimate_fee(&self.eth_rpc_url, PriceEstimate::Instant)
+                .await
+                .map_err(AlignedError::FeeEstimateError);
         }
 
         Ok(U256::from_dec_str("13000000000000")
-                .map_err(|e| SubmitError::GenericError(e.to_string()))?)
+            .map_err(|e| SubmitError::GenericError(e.to_string()))?)
     }
 }
 
@@ -295,7 +292,6 @@ enum NetworkArg {
     Devnet,
     Holesky,
     HoleskyStage,
-    Mainnet,
 }
 
 impl From<NetworkArg> for Network {
@@ -304,7 +300,6 @@ impl From<NetworkArg> for Network {
             NetworkArg::Devnet => Network::Devnet,
             NetworkArg::Holesky => Network::Holesky,
             NetworkArg::HoleskyStage => Network::HoleskyStage,
-            NetworkArg::Mainnet => Network::Mainnet,
         }
     }
 }
@@ -516,13 +511,13 @@ async fn main() -> Result<(), AlignedError> {
         }
         DepositToBatcher(deposit_to_batcher_args) => {
             if !deposit_to_batcher_args.amount.ends_with("ether") {
-                error!("`amount` should be in the format XX.XXether");
+                error!("Amount should be in the format XX.XXether");
                 return Ok(());
             }
 
-            let amount_ether = deposit_to_batcher_args.amount.replace("ether", "");
+            let amount = deposit_to_batcher_args.amount.replace("ether", "");
 
-            let amount_wei = parse_ether(&amount_ether).map_err(|e| {
+            let amount_ether = parse_ether(&amount).map_err(|e| {
                 SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
             })?;
 
@@ -553,7 +548,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network.into())
+            match deposit_to_aligned(amount_ether, client, deposit_to_batcher_args.network.into())
                 .await
             {
                 Ok(receipt) => {
