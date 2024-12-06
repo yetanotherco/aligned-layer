@@ -23,6 +23,7 @@ use ethers::prelude::*;
 use ethers::utils::format_ether;
 use ethers::utils::hex;
 use ethers::utils::parse_ether;
+use futures_util::future;
 use log::warn;
 use log::{error, info};
 use transaction::eip2718::TypedTransaction;
@@ -615,20 +616,11 @@ async fn main() -> Result<(), AlignedError> {
         GetUserNumberOfQueuedProofs(args) => {
             let address = H160::from_str(&args.address).unwrap();
             let network = args.network.into();
-            let ethereum_nonce =
-                match get_nonce_from_ethereum(&args.eth_rpc_url, address, network).await {
-                    Ok(nonce) => nonce,
-                    Err(e) => {
-                        error!("Error while getting nonce: {:?}", e);
-                        return Ok(());
-                    }
-                };
-            let batcher_nonce = match get_nonce_from_batcher(&args.batcher_url, address).await {
-                Ok(nonce) => nonce,
-                Err(e) => {
-                    error!("Error while getting nonce: {:?}", e);
-                    return Ok(());
-                }
+            let Ok((ethereum_nonce, batcher_nonce)) = future::try_join(
+                get_nonce_from_ethereum(&args.eth_rpc_url, address, network),
+                get_nonce_from_batcher(&args.batcher_url, address),
+            ).await.map_err(|e| error!("Error while getting nonce: {:?}", e)) else {
+                return Ok(());
             };
             if ethereum_nonce > batcher_nonce {
                 error!("User {} is in an invalid state.", address);
