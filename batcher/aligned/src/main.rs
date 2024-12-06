@@ -295,6 +295,7 @@ enum NetworkArg {
     Devnet,
     Holesky,
     HoleskyStage,
+    Mainnet,
 }
 
 impl From<NetworkArg> for Network {
@@ -303,6 +304,7 @@ impl From<NetworkArg> for Network {
             NetworkArg::Devnet => Network::Devnet,
             NetworkArg::Holesky => Network::Holesky,
             NetworkArg::HoleskyStage => Network::HoleskyStage,
+            NetworkArg::Mainnet => Network::Mainnet,
         }
     }
 }
@@ -514,13 +516,13 @@ async fn main() -> Result<(), AlignedError> {
         }
         DepositToBatcher(deposit_to_batcher_args) => {
             if !deposit_to_batcher_args.amount.ends_with("ether") {
-                error!("Amount should be in the format XX.XXether");
+                error!("`amount` should be in the format XX.XXether");
                 return Ok(());
             }
 
-            let amount = deposit_to_batcher_args.amount.replace("ether", "");
+            let amount_ether = deposit_to_batcher_args.amount.replace("ether", "");
 
-            let amount_ether = parse_ether(&amount).map_err(|e| {
+            let amount_wei = parse_ether(&amount_ether).map_err(|e| {
                 SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
             })?;
 
@@ -551,7 +553,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            match deposit_to_aligned(amount_ether, client, deposit_to_batcher_args.network.into())
+            match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network.into())
                 .await
             {
                 Ok(receipt) => {

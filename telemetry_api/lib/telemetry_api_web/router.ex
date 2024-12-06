@@ -29,8 +29,8 @@ defmodule TelemetryApiWeb.Router do
   scope "/versions", TelemetryApiWeb do
     pipe_through :api
 
-    get "/", OperatorController, :index
-    get "/:id", OperatorController, :show
+    get "/", OperatorController, :index_public
+    get "/:id", OperatorController, :show_public
     post "/", OperatorController, :create_or_update
   end
 
