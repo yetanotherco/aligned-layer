@@ -175,8 +175,7 @@ pub async fn fee_per_proof_in_batch(
         + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
         / num_proofs_in_batch as u128;
 
-    
-    // Price of 1 proof in a batch of size `num_proofs_in_batch` (i.e. 1 / `num_proofs_in_batch`). 
+    // Price of 1 proof in a batch of size `num_proofs_in_batch` i.e. (1 / `num_proofs_in_batch`).
     // The computed price is adjusted with respect to the percentage multiplier from:
     // https://github.com/yetanotherco/aligned_layer/blob/staging/batcher/aligned-batcher/src/lib.rs#L1401
     let fee_per_proof = (U256::from(estimated_gas_per_proof)

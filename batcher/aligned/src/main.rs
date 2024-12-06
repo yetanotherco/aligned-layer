@@ -188,7 +188,7 @@ impl SubmitArgs {
         }
 
         Ok(U256::from_dec_str("13000000000000")
-            .map_err(|e| SubmitError::GenericError(e.to_string()))?)  // 13_000 gas per proof * 100 gwei gas price (upper bound)
+            .map_err(|e| SubmitError::GenericError(e.to_string()))?) // 13_000 gas per proof * 100 gwei gas price (upper bound)
     }
 }
 
