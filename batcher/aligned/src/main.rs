@@ -102,9 +102,9 @@ pub struct SubmitArgs {
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
     #[arg(
-        name = "Max Fee",
+        name = "Max Fee (ether)",
         long = "max_fee",
-        default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
+        default_value = "0.0013ether" // 13_000 gas per proof * 100 gwei gas price (upper bound)
     )]
     max_fee: String, // String because U256 expects hex
     #[arg(name = "Nonce", long = "nonce")]
@@ -272,9 +272,16 @@ async fn main() -> Result<(), AlignedError> {
                 SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
             })?;
 
-            let max_fee =
-                U256::from_dec_str(&submit_args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
-            let network: Network = submit_args.network.into();
+            if !submit_args.max_fee.ends_with("ether") {
+                error!("`max_fee` should be in the format XX.XXether");
+                return Ok(());
+            }
+
+            let max_fee_ether = submit_args.max_fee.replace("ether", "");
+
+            let max_fee_wei: U256 = parse_ether(&max_fee_ether).map_err(|e| {
+                SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
+            })?;
 
             let repetitions = submit_args.repetitions;
 
@@ -352,7 +359,7 @@ async fn main() -> Result<(), AlignedError> {
             let aligned_verification_data_vec = submit_multiple(
                 submit_args.network.into(),
                 &verification_data_arr,
-                max_fee,
+                max_fee_wei,
                 wallet.clone(),
                 nonce,
             )
@@ -437,13 +444,13 @@ async fn main() -> Result<(), AlignedError> {
         }
         DepositToBatcher(deposit_to_batcher_args) => {
             if !deposit_to_batcher_args.amount.ends_with("ether") {
-                error!("Amount should be in the format XX.XXether");
+                error!("`amount` should be in the format XX.XXether");
                 return Ok(());
             }
 
-            let amount = deposit_to_batcher_args.amount.replace("ether", "");
+            let amount_ether = deposit_to_batcher_args.amount.replace("ether", "");
 
-            let amount_ether = parse_ether(&amount).map_err(|e| {
+            let amount_wei = parse_ether(&amount_ether).map_err(|e| {
                 SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
             })?;
 
@@ -483,7 +490,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            match deposit_to_aligned(amount_ether, client, deposit_to_batcher_args.network.into())
+            match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network.into())
                 .await
             {
                 Ok(receipt) => {
