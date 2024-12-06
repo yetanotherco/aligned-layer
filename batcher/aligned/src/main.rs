@@ -182,7 +182,7 @@ impl SubmitArgs {
         }
 
         if self.price_estimate.default_fee_estimate {
-            return estimate_fee(&self.eth_rpc_url, PriceEstimate::Instant)
+            return estimate_fee(&self.eth_rpc_url, PriceEstimate::Default)
                 .await
                 .map_err(AlignedError::FeeEstimateError);
         }
@@ -292,6 +292,7 @@ enum NetworkArg {
     Devnet,
     Holesky,
     HoleskyStage,
+    Mainnet
 }
 
 impl From<NetworkArg> for Network {
@@ -300,6 +301,7 @@ impl From<NetworkArg> for Network {
             NetworkArg::Devnet => Network::Devnet,
             NetworkArg::Holesky => Network::Holesky,
             NetworkArg::HoleskyStage => Network::HoleskyStage,
+            NetworkArg::Mainnet => Network::Mainnet,
         }
     }
 }
@@ -347,9 +349,8 @@ async fn main() -> Result<(), AlignedError> {
             })?;
 
             let eth_rpc_url = submit_args.eth_rpc_url.clone();
-            // `max_fee` is required unless `price_estimate` is present.
             let max_fee_wei = submit_args.get_max_fee().await?;
-            info!("max_fee: {} ether", format_ether(max_fee_wei));
+            info!("Will send proof with an estimated max_fee of: {}ether", format_ether(max_fee_wei));
             let repetitions = submit_args.repetitions;
             let connect_addr = submit_args.batcher_url.clone();
 
