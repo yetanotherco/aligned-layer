@@ -36,12 +36,12 @@ In this guide we add and remove Operators from Aligned's Whitelist using a multi
 
 ## Steps for Whitelisting an Operator
 
-#### 1. Propose the transaction with the multisig following the [Propose Whitelist Guide](./5_b_1_propose_whitelist.md).
+1. Propose the transaction with the multisig following the [Propose Whitelist Guide](./5_b_1_propose_whitelist.md).
 
-#### 2. After the Whitelist is proposed, multisig participants can approve the whitelist transaction following the [Approve Whitelist Guide](./5_b_2_approve_whitelist.md).
+2. After the Whitelist is proposed, multisig participants can approve the whitelist transaction following the [Approve Whitelist Guide](./5_b_2_approve_whitelist.md).
 
 ## Steps for Removing an Operator
 
-#### 1. Propose the transaction with the multisig following the [Propose Remove Whitelist Guide](./5_b_3_propose_remove_whitelist.md).
+1. Propose the transaction with the multisig following the [Propose Remove Whitelist Guide](./5_b_3_propose_remove_whitelist.md).
 
-#### 2. After the unpause is proposed, multisig participants can approve the remove following the [Approve Remove Whitelist Guide](./5_b_4_approve_remove_whitelist.md).
+2. After the unpause is proposed, multisig participants can approve the remove following the [Approve Remove Whitelist Guide](./5_b_4_approve_remove_whitelist.md).
