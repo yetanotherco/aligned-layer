@@ -918,7 +918,8 @@ docker_batcher_send_sp1_burst:
               --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-              --rpc_url $(DOCKER_RPC_URL)
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
 
 docker_batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
@@ -930,7 +931,8 @@ docker_batcher_send_risc0_burst:
               --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-              --rpc_url $(DOCKER_RPC_URL)
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
 
 docker_batcher_send_plonk_bn254_burst:
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -942,7 +944,8 @@ docker_batcher_send_plonk_bn254_burst:
               --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
-              --repetitions $(DOCKER_BURST_SIZE)
+              --repetitions $(DOCKER_BURST_SIZE) \
+			  --max_fee 0.1ether
 
 docker_batcher_send_plonk_bls12_381_burst:
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
@@ -954,19 +957,21 @@ docker_batcher_send_plonk_bls12_381_burst:
               --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --repetitions $(DOCKER_BURST_SIZE) \
-              --rpc_url $(DOCKER_RPC_URL)
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
 
 docker_batcher_send_groth16_burst:
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
-              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
-							--proving_system Groth16Bn254 \
-							--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
-							--public_input ./scripts/test_files/gnark_groth16_bn254_script/plonk_pub_input.pub \
-							--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
-							--proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-  						--repetitions $(DOCKER_BURST_SIZE) \
-							--rpc_url $(DOCKER_RPC_URL)
+            --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+			--proving_system Groth16Bn254 \
+			--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
+			--public_input ./scripts/test_files/gnark_groth16_bn254_script/plonk_pub_input.pub \
+			--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
+			--proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+			--repetitions $(DOCKER_BURST_SIZE) \
+			--rpc_url $(DOCKER_RPC_URL) \
+			--max_fee 0.1ether
 
 # Update target as new proofs are supported.
 docker_batcher_send_all_proofs_burst:
@@ -993,6 +998,7 @@ docker_batcher_send_infinite_groth16:
 	              --public_input scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.pub \
 	              --vk scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.vk \
 	              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS); \
+				  --max_fee 0.1ether
 	    sleep $${timer}; \
 	    counter=$$((counter + 1)); \
 	  done \
