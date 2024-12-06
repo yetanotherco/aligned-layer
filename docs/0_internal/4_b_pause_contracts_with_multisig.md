@@ -36,12 +36,12 @@ In this guide we pause and unpause the AlignedLayerServiceManager and BatcherPay
 
 ## Steps for Pausing
 
-#### 1. Propose the transaction with the multisig following the [Propose Pause Guide](./4_b_1_propose_pause.md).
+1. Propose the transaction with the multisig following the [Propose Pause Guide](./4_b_1_propose_pause.md).
 
-#### 2. After the pause is proposed, multisig participants can approve the pause following the [Approve Pause Guide](./4_b_2_approve_pause.md).
+2. After the pause is proposed, multisig participants can approve the pause following the [Approve Pause Guide](./4_b_2_approve_pause.md).
 
 ## Steps for Unpausing
 
-#### 1. Propose the transaction with the multisig following the [Propose Unpause Guide](./4_b_3_propose_unpause.md).
+1. Propose the transaction with the multisig following the [Propose Unpause Guide](./4_b_3_propose_unpause.md).
 
-#### 2. After the unpause is proposed, multisig participants can approve the unpause following the [Approve Unpause Guide](./4_b_4_approve_unpause.md).
+2. After the unpause is proposed, multisig participants can approve the unpause following the [Approve Unpause Guide](./4_b_4_approve_unpause.md).
