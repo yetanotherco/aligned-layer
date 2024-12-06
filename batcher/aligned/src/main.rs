@@ -212,7 +212,7 @@ pub struct GetUserBalanceArgs {
     eth_rpc_url: String,
     #[arg(
         name = "The user's Ethereum address",
-        long = "user_addr",
+        long = "user_address",
         required = true
     )]
     user_address: String,
