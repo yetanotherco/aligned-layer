@@ -322,11 +322,12 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
-  Renders a card with a link and title that has a hyperlink icon and underline on hover.
+  Renders a card with a link and title and an optional subtitle that has a hyperlink icon and underline on hover.
   """
   attr :class, :string, default: nil
   attr :inner_class, :string, default: nil
   attr :title, :string, default: nil
+  attr :subtitle, :string, default: nil
   attr :href, :string, default: nil
   attr :rest, :global, include: ~w(href target navigate)
   attr :icon, :string, default: "hero-arrow-top-right-on-square-solid"
@@ -336,14 +337,21 @@ defmodule ExplorerWeb.CoreComponents do
   def card_link(assigns) do
     ~H"""
     <.link target="_blank" href={@href} class="group" {@rest}>
-      <.card_background class={@class}>
+      <.card_background class={["h-full",@class]}>
         <h2 class="font-medium text-muted-foreground capitalize group-hover:underline truncate">
           <%= @title %>
           <.icon name={@icon} class="size-4 mb-1" />
         </h2>
-        <span class={classes(["text-4xl font-bold slashed-zero", @inner_class])}>
-          <%= render_slot(@inner_block) %>
-        </span>
+        <div class={[classes(["flex items-center justify-between flex-wrap"])]}>
+          <span class={classes(["text-4xl font-bold slashed-zero", @inner_class])}>
+            <%= render_slot(@inner_block) %>
+          </span>
+          <%= if @subtitle != :nil do %>
+            <p class={classes(["text-s slashed-zero mt-2", @inner_class])}>
+              <%= @subtitle %>
+            </p>
+          <% end %>
+        </div>
       </.card_background>
     </.link>
     """
