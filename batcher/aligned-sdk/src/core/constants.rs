@@ -18,12 +18,11 @@ pub const OVERRIDE_GAS_PRICE_PERCENTAGE_MULTIPLIER: u128 = 120; // gasPrice modi
 pub const PERCENTAGE_DIVIDER: u128 = 100;
 
 /// SDK ///
-/// Number of proofs we a batch for estimation.
-/// This is the number of proofs in a batch of size 1.
-/// i.e. the user pays for the entire batch and his proof is instantly submitted.
+/// Constants used for `max_fee` estimation in the sdk `estimate_fee()` function.
+/// The number of proofs in a batch to compute the `Instant` fee estimate for proof submission to Aligned.
+/// i.e. the user pays for the entire batch and his proof is instantly submitted, therefore a batch of one proof.
 pub const INSTANT_MAX_FEE_BATCH_SIZE: usize = 1;
-/// Estimated number of proofs for batch submission.
-/// This corresponds to the number of proofs to compute for a default max_fee.
+/// The number of proofs in a batch to compute the `Default` fee estimate for proof submission to Aligned.
 pub const DEFAULT_MAX_FEE_BATCH_SIZE: usize = 16;
 
 /// Ethereum calls retry constants

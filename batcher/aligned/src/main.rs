@@ -133,7 +133,7 @@ pub struct FeeType {
     #[arg(
         name = "NUMBER_PROOFS_IN_BATCH",
         long = "custom_fee_estimate",
-        help = "Specifies a `max_fee` equivalent to the cost of paying 1 proof / `num_proofs_in_batch` allowing the user a user to estimate there `max_fee` precisely based on the `number_proofs_in_batch`."
+        help = "Specifies a `max_fee` equivalent to the cost of paying 1 proof / `num_proofs_in_batch` allowing the user a user to estimate a `max_fee` precisely based on the `number_proofs_in_batch`."
     )]
     custom_fee_estimate: Option<usize>,
     #[arg(

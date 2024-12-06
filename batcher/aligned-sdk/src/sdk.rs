@@ -118,18 +118,18 @@ pub async fn submit_multiple_and_wait_verification(
 
 /// Returns the estimated `max_fee` depending on the batch inclusion preference of the user, computed based on the current gas price, and the number of proofs in a batch.
 /// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
-/// To estimate the `max_fee` of a batch we compute it based on a batch size of 1 (Instant), 10 (Default), or `number_proofs_in_batch` (Custom).
+/// To estimate the `max_fee` of a batch we compute it based on a batch size of 1 (Instant), 16 (Default), or a user supplied `number_proofs_in_batch` (Custom).
 /// The `max_fee` estimates therefore are:
-/// * `Default`: Specifies a `max_fee` equivalent to the cost of paying for one proof within a batch of 10 proofs ie. 1 / 10 proofs.
+/// * `Default`: Specifies a `max_fee` equivalent to the cost of paying for one proof within a batch of 16 proofs ie. 1 / 16 proofs.
 ///        This estimates a default `max_fee` the user should specify for including there proof within the batch.
 /// * `Instant`: Specifies a `max_fee` equivalent to the cost of paying for an entire batch ensuring the user's proof is included instantly.
-/// * `Custom (number_proofs_in_batch)`: Specifies a `max_fee` equivalent to the cost of paying 1 proof / `num_proofs_in_batch` allowing the user a user to estimate there `max_fee` precisely based on the `number_proofs_in_batch`.
+/// * `Custom (number_proofs_in_batch)`: Specifies a `max_fee` equivalent to the cost of paying 1 proof / `num_proofs_in_batch` allowing the user a user to estimate the `max_fee` precisely based on the `number_proofs_in_batch`.
 ///
 /// # Arguments
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
-/// * `estimate` - Enum specifying the type of price estimate: MIN, DEFAULT, INSTANT.
+/// * `estimate_type` - Enum specifying the type of price estimate:  Default, Instant. Custom(usize)
 /// # Returns
-/// The estimated `max_fee` in gas for a proof based on the users `PriceEstimate` as a `U256`.
+/// The estimated `max_fee` in gas for a proof based on the users `FeeEstimateType` as a `U256`.
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
@@ -137,7 +137,6 @@ pub async fn estimate_fee(
     eth_rpc_url: &str,
     estimate_type: FeeEstimateType,
 ) -> Result<U256, errors::FeeEstimateError> {
-    // Price of 1 proof in 32 proof batch
     match estimate_type {
         FeeEstimateType::Default => {
             calculate_fee_per_proof_in_batch(eth_rpc_url, DEFAULT_MAX_FEE_BATCH_SIZE).await
@@ -170,7 +169,7 @@ pub async fn calculate_fee_per_proof_in_batch(
         })?;
     let gas_price = fetch_gas_price(&eth_rpc_provider).await?;
 
-    // Cost for estimate `num_proofs_per_batch` proofs
+    // Cost for estimate `num_proofs_in_batch` proofs
     let estimated_gas_per_proof = (CONSTANT_GAS_COST
         + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
         / num_proofs_in_batch as u128;
