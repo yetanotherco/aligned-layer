@@ -57,7 +57,7 @@ impl fmt::Display for AlignedError {
             AlignedError::SubmitError(e) => write!(f, "Submit error: {}", e),
             AlignedError::VerificationError(e) => write!(f, "Verification error: {}", e),
             AlignedError::ChainIdError(e) => write!(f, "Chain ID error: {}", e),
-            AlignedError::FeeEstimateError(e) => write!(f, "Max fee estimate error: {}", e),
+            AlignedError::FeeEstimateError(e) => write!(f, "Fee estimate error: {}", e),
             AlignedError::FileError(e) => write!(f, "File error: {}", e),
         }
     }

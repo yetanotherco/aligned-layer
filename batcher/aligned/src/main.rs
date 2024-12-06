@@ -127,7 +127,7 @@ pub struct PriceEstimateArgs {
     #[arg(
         name = "Max Fee (ether)",
         long = "max_fee",
-        help = "Specifies the `max_fee` the user of the submitted proof in `ether`."
+        help = "Specifies the maximum fee (`max_fee`) the user is willing to pay for the submitted proof, in Ether."
     )]
     max_fee: Option<String>, // String because U256 expects hex
     #[arg(
@@ -139,13 +139,13 @@ pub struct PriceEstimateArgs {
     #[arg(
         name = "Price Estimate: Instant",
         long = "instant_fee_estimate",
-        help = "Specifies a `max_fee` equivalent to the cost of paying for an entire batch ensuring the user's proof is included instantly."
+        help = "Specifies a `max_fee` that covers the cost of paying for the entire batch, ensuring the proof is included instantly."
     )]
     instant_fee_estimate: bool,
     #[arg(
         name = "Price Estimate: Default",
         long = "default_fee_estimate",
-        help = "Specifies a `max_fee` equivalent to the cost of paying for one proof within a batch of 10 proofs ie. 1 / 10 proofs. This estimates a default `max_fee` the user should specify for including there proof within the batch."
+        help = "Specifies a default `max_fee` based on the cost of one proof within a batch of 10 proofs, providing a standard fee for batch inclusion."
     )]
     default_fee_estimate: bool,
 }
