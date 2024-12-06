@@ -10,7 +10,7 @@ use crate::{
             ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
             MAX_FEE_BATCH_PROOF_NUMBER, MAX_FEE_DEFAULT_PROOF_NUMBER,
         },
-        errors::{self, GetNonceError},
+        errors::{self, FlushQueueError, GetNonceError},
         types::{
             AlignedVerificationData, ClientMessage, GetNonceResponseMessage, Network,
             PriceEstimate, ProvingSystemId, VerificationData,
@@ -551,6 +551,19 @@ pub fn get_vk_commitment(
     hasher.update(verification_key_bytes);
     hasher.update([proving_system_id_byte]);
     hasher.finalize().into()
+}
+
+/// Flushes the users queued proofs in the batcher.
+/// # Arguments
+/// * `batcher_url` - The batcher websocket url.
+/// * `address` - The user address for which the nonce will be retrieved.
+/// # Errors
+/// * `FlushQueue` if the batcher has an error in the Ethereum call when retrieving the nonce if not already cached.
+pub async fn flush_queue(    
+    batcher_ws_url: &str,
+    address: Address
+) -> Result<U256, FlushQueueError> {
+    todo!()
 }
 
 /// Returns the next nonce for a given address from the batcher.

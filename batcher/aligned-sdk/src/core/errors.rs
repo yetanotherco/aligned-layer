@@ -19,6 +19,7 @@ pub enum AlignedError {
     ChainIdError(ChainIdError),
     MaxFeeEstimateError(MaxFeeEstimateError),
     FileError(FileError),
+    FlushQueueError(FlushQueueError)
 }
 
 impl From<SubmitError> for AlignedError {
@@ -51,6 +52,12 @@ impl From<FileError> for AlignedError {
     }
 }
 
+impl From<FlushQueueError> for AlignedError {
+    fn from(e: FlushQueueError) -> Self {
+        AlignedError::FlushQueueError(e)
+    }
+}
+
 impl fmt::Display for AlignedError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -59,6 +66,7 @@ impl fmt::Display for AlignedError {
             AlignedError::ChainIdError(e) => write!(f, "Chain ID error: {}", e),
             AlignedError::MaxFeeEstimateError(e) => write!(f, "Max fee estimate error: {}", e),
             AlignedError::FileError(e) => write!(f, "File error: {}", e),
+            AlignedError::FileError(e) => write!(f, "Flush Queue error: {e}"),
         }
     }
 }
@@ -283,6 +291,22 @@ impl fmt::Display for MaxFeeEstimateError {
         }
     }
 }
+
+#[derive(Debug)]
+pub enum FlushQueueError {
+    Generic(String),
+}
+
+impl fmt::Display for FlushQueueError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            FlushQueueError::Generic(e) => {
+                write!(f, "{e}")
+            }
+        }
+    }
+}
+
 
 #[derive(Debug)]
 pub enum VerifySignatureError {
