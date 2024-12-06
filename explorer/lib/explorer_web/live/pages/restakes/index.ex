@@ -4,13 +4,15 @@ defmodule ExplorerWeb.Restakes.Index do
   @impl true
   def handle_info(_, socket) do
     assets = Strategies.get_all_strategies()
-    total_staked = Restakings.get_restaked_amount_eth()
+    total_staked_eth = Restakings.get_restaked_amount_eth()
+    total_staked_usd = Restakings.get_restaked_amount_usd()
     operators_registered = Operators.get_amount_of_operators()
 
     {:noreply,
      assign(socket,
        assets: assets,
-       total_staked: total_staked,
+       total_staked_eth: total_staked_eth,
+       total_staked_usd: total_staked_usd,
        operators_registered: operators_registered
      )}
   end
@@ -25,13 +27,15 @@ defmodule ExplorerWeb.Restakes.Index do
   @impl true
   def handle_params(_params, _url, socket) do
     assets = Strategies.get_all_strategies()
-    total_staked = Restakings.get_restaked_amount_eth()
+    total_staked_eth = Restakings.get_restaked_amount_eth()
+    total_staked_usd = Restakings.get_restaked_amount_usd()
     operators_registered = Operators.get_amount_of_operators()
 
     {:noreply,
      assign(socket,
        assets: assets,
-       total_staked: total_staked,
+       total_staked_eth: total_staked_eth,
+       total_staked_usd: total_staked_usd,
        operators_registered: operators_registered
      )}
   end
@@ -44,7 +48,8 @@ defmodule ExplorerWeb.Restakes.Index do
       <.live_component
         module={AssetsCTAComponent}
         id="assets_cta"
-        total_staked={@total_staked}
+        total_staked_eth={@total_staked_eth}
+        total_staked_usd={@total_staked_usd}
         operators_registered={@operators_registered}
       />
       <%= if @assets != [] do %>

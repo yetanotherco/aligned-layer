@@ -4,13 +4,15 @@ defmodule ExplorerWeb.Operators.Index do
   @impl true
   def handle_info(_, socket) do
     operators = Operators.get_operators_with_their_weights()
-    total_staked = Restakings.get_restaked_amount_eth()
+    total_staked_eth = Restakings.get_restaked_amount_eth()
+    total_staked_usd = Restakings.get_restaked_amount_usd()
     operators_registered = Operators.get_amount_of_operators()
 
     {:noreply,
      assign(socket,
        operators: operators,
-       total_staked: total_staked,
+       total_staked_eth: total_staked_eth,
+       total_staked_usd: total_staked_usd,
        operators_registered: operators_registered
      )}
   end
@@ -24,14 +26,16 @@ defmodule ExplorerWeb.Operators.Index do
   @impl true
   def handle_params(_params, _url, socket) do
     operators = Operators.get_operators_with_their_weights()
-    total_staked = Restakings.get_restaked_amount_eth()
+    total_staked_eth = Restakings.get_restaked_amount_eth()
+    total_staked_usd = Restakings.get_restaked_amount_usd()
     operators_registered = Operators.get_amount_of_operators()
     operator_versions = OperatorVersionTracker.get_operators_version()
 
     {:noreply,
      assign(socket,
        operators: operators,
-       total_staked: total_staked,
+       total_staked_eth: total_staked_eth,
+       total_staked_usd: total_staked_usd,
        operators_registered: operators_registered,
        operator_versions: operator_versions
      )}
@@ -45,7 +49,8 @@ defmodule ExplorerWeb.Operators.Index do
       <.live_component
         module={AssetsCTAComponent}
         id="operators_cta"
-        total_staked={@total_staked}
+        total_staked_eth={@total_staked_eth}
+        total_staked_usd={@total_staked_usd}
         operators_registered={@operators_registered}
       />
       <%= if @operators != [] do %>
