@@ -36,7 +36,7 @@ defmodule AssetsCTAComponent do
                 <span class="text-4xl font-bold slashed-zero">
                   <%= @total_staked_eth %> ETH
                 </span>
-                <p class="text-s slashed-zero mt-2">
+                <p class="text-s slashed-zero text-gray-500 mt-2">
                   (<%= @total_staked_usd %> USD)
                 </p>
             </div>
