@@ -269,7 +269,7 @@ impl fmt::Display for ChainIdError {
 pub enum FeeEstimateError {
     EthereumProviderError(String),
     EthereumGasPriceError(String),
-    PriceEstimateParseError(String),
+    FeeEstimateParseError(String),
 }
 
 impl fmt::Display for FeeEstimateError {
