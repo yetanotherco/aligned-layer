@@ -292,7 +292,7 @@ enum NetworkArg {
     Devnet,
     Holesky,
     HoleskyStage,
-    Mainnet
+    Mainnet,
 }
 
 impl From<NetworkArg> for Network {
@@ -350,7 +350,10 @@ async fn main() -> Result<(), AlignedError> {
 
             let eth_rpc_url = submit_args.eth_rpc_url.clone();
             let max_fee_wei = submit_args.get_max_fee().await?;
-            info!("Will send proof with an estimated max_fee of: {}ether", format_ether(max_fee_wei));
+            info!(
+                "Will send proof with an estimated max_fee of: {}ether",
+                format_ether(max_fee_wei)
+            );
             let repetitions = submit_args.repetitions;
             let connect_addr = submit_args.batcher_url.clone();
 
