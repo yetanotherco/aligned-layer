@@ -15,7 +15,6 @@ use retry::{retry_function, RetryError};
 use tokio::time::{timeout, Instant};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
-use boring::ssl::{SslMethod, SslAcceptor, SslFiletype};
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
@@ -45,8 +44,11 @@ use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{debug, error, info, warn};
+use rustls::pki_types::pem::PemObject;
+use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
+use tokio_rustls::{rustls, TlsAcceptor};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, TransactionSendError};
@@ -263,11 +265,20 @@ impl Batcher {
     }
 
     pub async fn listen_connections(self: Arc<Self>, address: &str, cert: PathBuf, key: PathBuf) -> Result<(), BatcherError> {
-        let mut acceptor_builder = SslAcceptor::mozilla_intermediate_v5(SslMethod::tls()).unwrap();
-        acceptor_builder.set_private_key_file(key, SslFiletype::PEM).unwrap();
-        acceptor_builder.set_certificate_chain_file(cert).unwrap();
-        acceptor_builder.check_private_key().unwrap();
-        let acceptor = Arc::new(acceptor_builder.build());
+        // let mut acceptor_builder = SslAcceptor::mozilla_intermediate_v5(SslMethod::tls()).unwrap();
+        // acceptor_builder.set_private_key_file(key, SslFiletype::PEM).unwrap();
+        // acceptor_builder.set_certificate_chain_file(cert).unwrap();
+        // acceptor_builder.check_private_key().unwrap();
+        // let acceptor = Arc::new(acceptor_builder.build());
+        // Reference: https://github.com/rustls/tokio-rustls/blob/main/examples/server.rs
+        let cert = vec![CertificateDer::from_pem_file(cert)?];
+        let key = PrivateKeyDer::from_pem_file(key)?;
+
+        let config = rustls::ServerConfig::builder()
+            .with_no_client_auth()
+            .with_single_cert(cert, key)?;
+
+        let acceptor = TlsAcceptor::from(Arc::new(config));
 
         // Create the event loop and TCP listener we'll accept connections on.
         let listener = TcpListener::bind(address)
