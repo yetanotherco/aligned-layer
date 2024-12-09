@@ -33,7 +33,7 @@ scrape_configs:
           bot: "tracker"
 
   - job_name: "node"
-    scrape_interval: 1s
+    scrape_interval: 60s
     static_configs:
       - targets: [ "host.docker.internal:9100" ]
         labels:

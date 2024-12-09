@@ -1,0 +1,13 @@
+[Unit]
+Description=Node exporter
+After=network.target
+
+[Service]
+Type=simple
+User=admin
+WorkingDirectory=/home/admin/node_exporter-1.8.2.linux-amd64
+ExecStart=/home/admin/node_exporter-1.8.2.linux-amd64/node_exporter --collector.systemd --collector.processes
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
