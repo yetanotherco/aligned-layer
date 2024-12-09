@@ -174,15 +174,14 @@ impl SubmitArgs {
         }
 
         if self.fee_type.instant_fee_estimate {
-            return estimate_fee(&self.eth_rpc_url, FeeEstimationType::Instant)
+            estimate_fee(&self.eth_rpc_url, FeeEstimationType::Instant)
                 .await
-                .map_err(AlignedError::FeeEstimateError);
+                .map_err(AlignedError::FeeEstimateError)
         } else {
-            return estimate_fee(&self.eth_rpc_url, FeeEstimationType::Default)
+            estimate_fee(&self.eth_rpc_url, FeeEstimationType::Default)
                 .await
-                .map_err(AlignedError::FeeEstimateError);
+                .map_err(AlignedError::FeeEstimateError)
         }
-
     }
 }
 
