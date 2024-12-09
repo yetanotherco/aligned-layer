@@ -7,7 +7,7 @@ defmodule ExplorerWeb.Router do
 
   @content_security_policy (case Mix.env() do
                               :prod ->
-                                "default-src 'self' 'unsafe-inline';connect-src wss://#{@host};img-src https://w3.org blob: data:;"
+                                "default-src 'self' 'unsafe-inline';connect-src wss://#{@host};img-src https://w3.org http://raw.githubusercontent.com blob: data:;"
 
                               _ ->
                                 "default-src 'self' 'unsafe-eval' 'unsafe-inline';" <>
