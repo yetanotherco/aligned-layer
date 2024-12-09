@@ -416,7 +416,11 @@ impl Batcher {
 
         info!("4");
         
-        let mut incoming_filter = incoming.try_filter(|msg| future::ready(msg.is_binary()));
+        let mut incoming_filter = incoming.try_filter(|msg| {
+            let res = future::ready(msg.is_binary());
+            println!("is_binary: {:?}", res);
+            res
+        });
 
         info!("5");
         let future_msg = incoming_filter.try_next();
