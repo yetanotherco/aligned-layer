@@ -204,7 +204,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	return retry.RetryWithData(respondToTaskV2Func, retry.RespondToTaskV2())
 }
 
-// Calculates the transaction cost from the receipt and updates the total amount paid by the aggregaot metric
+// Calculates the transaction cost from the receipt and updates the total amount paid by the aggregator metric
 // Then, it compares that tx cost with the batcher respondToTaskFeeLimit.
 // If the tx cost was higher, it means the aggregator has paid the difference for the batcher (txCost - respondToTaskFeeLimit) and so metrics are updated accordingly.
 func (w *AvsWriter) updateAggregatorGasCostMetrics(tx *types.Transaction, batchIdentifierHash [32]byte) {
