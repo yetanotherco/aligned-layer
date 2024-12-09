@@ -13,7 +13,7 @@ use crate::{
         },
         errors::{self, GetNonceError},
         types::{
-            AlignedVerificationData, ClientMessage, FeeEstimateType, GetNonceResponseMessage,
+            AlignedVerificationData, ClientMessage, FeeEstimationType, GetNonceResponseMessage,
             Network, ProvingSystemId, VerificationData,
         },
     },
@@ -135,16 +135,18 @@ pub async fn submit_multiple_and_wait_verification(
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
 pub async fn estimate_fee(
     eth_rpc_url: &str,
-    estimate_type: FeeEstimateType,
+    fee_estimation_type: FeeEstimationType,
 ) -> Result<U256, errors::FeeEstimateError> {
-    match estimate_type {
-        FeeEstimateType::Default => {
-            calculate_fee_per_proof_in_batch(eth_rpc_url, DEFAULT_MAX_FEE_BATCH_SIZE).await
+    match fee_estimation_type {
+        FeeEstimationType::Default => {
+            calculate_fee_per_proof_for_batch_of_size(eth_rpc_url, DEFAULT_MAX_FEE_BATCH_SIZE).await
         }
-        FeeEstimateType::Instant => {
-            calculate_fee_per_proof_in_batch(eth_rpc_url, INSTANT_MAX_FEE_BATCH_SIZE).await
+        FeeEstimationType::Instant => {
+            calculate_fee_per_proof_for_batch_of_size(eth_rpc_url, INSTANT_MAX_FEE_BATCH_SIZE).await
         }
-        FeeEstimateType::Custom(n) => calculate_fee_per_proof_in_batch(eth_rpc_url, n).await,
+        FeeEstimationType::Custom(n) => {
+            calculate_fee_per_proof_for_batch_of_size(eth_rpc_url, n).await
+        }
     }
 }
 
@@ -159,7 +161,7 @@ pub async fn estimate_fee(
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
-pub async fn calculate_fee_per_proof_in_batch(
+pub async fn calculate_fee_per_proof_for_batch_of_size(
     eth_rpc_url: &str,
     num_proofs_in_batch: usize,
 ) -> Result<U256, errors::FeeEstimateError> {

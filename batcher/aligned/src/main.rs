@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use aligned_sdk::communication::serialization::cbor_deserialize;
-use aligned_sdk::core::types::FeeEstimateType;
+use aligned_sdk::core::types::FeeEstimationType;
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
@@ -143,7 +143,7 @@ pub struct FeeType {
     instant_fee_estimate: bool,
     #[arg(
         long = "default_fee_estimate",
-        help = "Specifies a default `max_fee` based on the cost of one proof within a batch of 16 proofs, providing a standard fee for batch inclusion."
+        help = "Specifies a `max_fee`, based on the cost of one proof within a batch of 16 proofs, providing a `default` fee for batch inclusion."
     )]
     default_fee_estimate: bool,
 }
@@ -167,26 +167,22 @@ impl SubmitArgs {
         if let Some(number_proofs_in_batch) = &self.fee_type.custom_fee_estimate {
             return estimate_fee(
                 &self.eth_rpc_url,
-                FeeEstimateType::Custom(*number_proofs_in_batch),
+                FeeEstimationType::Custom(*number_proofs_in_batch),
             )
             .await
             .map_err(AlignedError::FeeEstimateError);
         }
 
         if self.fee_type.instant_fee_estimate {
-            return estimate_fee(&self.eth_rpc_url, FeeEstimateType::Instant)
+            return estimate_fee(&self.eth_rpc_url, FeeEstimationType::Instant)
+                .await
+                .map_err(AlignedError::FeeEstimateError);
+        } else {
+            return estimate_fee(&self.eth_rpc_url, FeeEstimationType::Default)
                 .await
                 .map_err(AlignedError::FeeEstimateError);
         }
 
-        if self.fee_type.default_fee_estimate {
-            return estimate_fee(&self.eth_rpc_url, FeeEstimateType::Default)
-                .await
-                .map_err(AlignedError::FeeEstimateError);
-        }
-
-        Ok(U256::from_dec_str("13000000000000")
-            .map_err(|e| SubmitError::GenericError(e.to_string()))?) // 13_000 gas per proof * 100 gwei gas price (upper bound)
     }
 }
 
