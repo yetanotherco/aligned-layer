@@ -23,7 +23,7 @@ pub const PERCENTAGE_DIVIDER: u128 = 100;
 /// i.e. the user pays for the entire batch and his proof is instantly submitted, therefore a batch of one proof.
 pub const INSTANT_MAX_FEE_BATCH_SIZE: usize = 1;
 /// The number of proofs in a batch to compute the `Default` fee estimate for proof submission to Aligned.
-pub const DEFAULT_MAX_FEE_BATCH_SIZE: usize = 16;
+pub const DEFAULT_MAX_FEE_BATCH_SIZE: usize = 10;
 
 /// Ethereum calls retry constants
 pub const ETHEREUM_CALL_MIN_RETRY_DELAY: u64 = 500; // milliseconds
