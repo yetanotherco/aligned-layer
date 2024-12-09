@@ -43,6 +43,7 @@
         src: /tmp/aggregator/aligned_layer/build/aligned-aggregator
         dest: /home/{{ ansible_user }}/repos/aggregator/aligned_layer/build/aligned-aggregator
         remote_src: true
+        force: true
 
     - name: Remove Aligned repository on /tmp/
       file:
@@ -67,7 +68,7 @@
         bls_private_key_store_password: "{{ lookup('ini', 'bls_private_key_store_password', file='ini/config-aggregator.ini') }}"
         enable_metrics: "{{ lookup('ini', 'enable_metrics', file='ini/config-aggregator.ini') }}"
         metrics_ip_port_address: "{{ lookup('ini', 'metrics_ip_port_address', file='ini/config-aggregator.ini') }}"
-        telemetry_ip_port_address: "{{ lookup('ini', 'telemetry_ip_port_address', file='ini/config-aggregator.ini') }}" 
+        telemetry_ip_port_address: "{{ lookup('ini', 'telemetry_ip_port_address', file='ini/config-aggregator.ini') }}"
 
     - name: Add service to systemd
       template:
