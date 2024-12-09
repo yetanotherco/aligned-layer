@@ -1178,6 +1178,13 @@ ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
 		-e "keystore_path=$(KEYSTORE)"
 
 
+ansible_aggregator_update:
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/update/aggregator.yaml -i $(INVENTORY)
+
 ansible_operator_create_env: ## Create empty variables files for the Operator deploy
 	@cp -n infra/ansible/playbooks/ini/config-operator.ini.example infra/ansible/playbooks/ini/config-operator.ini
 	@cp -n infra/ansible/playbooks/ini/config-register-operator.ini.example infra/ansible/playbooks/ini/config-register-operator.ini

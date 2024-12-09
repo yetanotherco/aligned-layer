@@ -1,0 +1,83 @@
+- name: Run go playbook
+  ansible.builtin.import_playbook: go.yaml
+  vars:
+    host: aggregator
+
+- hosts: aggregator
+  vars:
+    service: "aggregator"
+
+  tasks:
+    - name: Create directories
+      file:
+        path: "{{ item }}"
+        recurse: yes
+        state: directory
+      loop:
+        - /tmp/aggregator/aligned_layer
+        - /home/{{ ansible_user }}/repos/aggregator/aligned_layer/build
+        - /home/{{ ansible_user }}/config
+        - /home/{{ ansible_user }}/.config/systemd/user
+
+    - name: Clone Aligned repository on /tmp/
+      git:
+        repo: https://github.com/yetanotherco/aligned_layer.git
+        dest: /tmp/aggregator/aligned_layer/
+        version: v0.12.0
+
+    - name: Set permissions for cloned repository
+      file:
+        path: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
+        mode: '0755'
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+        recurse: yes
+
+    - name: Build aggregator on /tmp/
+      shell: 
+        chdir: /tmp/aggregator/aligned_layer/
+        cmd: /usr/local/go/bin/go build -o /tmp/aggregator/aligned_layer/build/aligned-aggregator /tmp/aggregator/aligned_layer/aggregator/cmd/main.go
+
+    - name: Move compiled aggregator to user directory
+      copy: 
+        src: /tmp/aggregator/aligned_layer/build/aligned-aggregator
+        dest: /home/{{ ansible_user }}/repos/aggregator/aligned_layer/build/aligned-aggregator
+        remote_src: true
+
+    - name: Remove Aligned repository on /tmp/
+      file:
+        path: /tmp/aggregator/aligned_layer/
+        state: absent
+
+    - name: Upload config file for aggregator
+      template:
+        src: config-files/config-aggregator.yaml.j2
+        dest: "/home/{{ ansible_user }}/config/config-aggregator.yaml"
+        force: yes
+      vars:
+        aligned_layer_deployment_config_file_path: "{{ lookup('ini', 'aligned_layer_deployment_config_file_path', file='ini/config-aggregator.ini') }}"
+        eigen_layer_deployment_config_file_path: "{{ lookup('ini', 'eigen_layer_deployment_config_file_path', file='ini/config-aggregator.ini') }}"
+        eth_rpc_url: "{{ lookup('ini', 'eth_rpc_url', file='ini/config-aggregator.ini') }}"
+        eth_rpc_url_fallback: "{{ lookup('ini', 'eth_rpc_url_fallback', file='ini/config-aggregator.ini') }}"
+        eth_ws_url: "{{ lookup('ini', 'eth_ws_url', file='ini/config-aggregator.ini') }}"
+        eth_ws_url_fallback: "{{ lookup('ini', 'eth_ws_url_fallback', file='ini/config-aggregator.ini') }}"
+        ecdsa_private_key_store_path: "{{ lookup('ini', 'ecdsa_private_key_store_path', file='ini/config-aggregator.ini') }}"
+        ecdsa_private_key_store_password: "{{ lookup('ini', 'ecdsa_private_key_store_password', file='ini/config-aggregator.ini') }}"
+        bls_private_key_store_path: "{{ lookup('ini', 'bls_private_key_store_path', file='ini/config-aggregator.ini') }}"
+        bls_private_key_store_password: "{{ lookup('ini', 'bls_private_key_store_password', file='ini/config-aggregator.ini') }}"
+        enable_metrics: "{{ lookup('ini', 'enable_metrics', file='ini/config-aggregator.ini') }}"
+        metrics_ip_port_address: "{{ lookup('ini', 'metrics_ip_port_address', file='ini/config-aggregator.ini') }}"
+        telemetry_ip_port_address: "{{ lookup('ini', 'telemetry_ip_port_address', file='ini/config-aggregator.ini') }}" 
+
+    - name: Add service to systemd
+      template:
+        src: services/aggregator.service.j2
+        dest: "/home/{{ ansible_user }}/.config/systemd/user/aggregator.service"
+        force: yes
+
+    - name: Restart aggregator service
+      systemd_service:
+        name: aggregator
+        state: restarted
+        enabled: true
+        scope: user
