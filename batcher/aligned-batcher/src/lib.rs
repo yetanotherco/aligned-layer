@@ -426,7 +426,7 @@ impl Batcher {
         info!("future: {:?}", future_msg);
 
         // timeout to prevent a DOS attack
-        match timeout(Duration::from_secs(CONNECTION_TIMEOUT*10), future_msg).await {
+        match timeout(Duration::from_secs(CONNECTION_TIMEOUT), future_msg).await {
             Ok(Ok(Some(msg))) => {
                 self.clone().handle_message(msg, outgoing.clone()).await?;
             }
