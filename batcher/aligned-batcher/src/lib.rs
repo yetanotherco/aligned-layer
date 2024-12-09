@@ -369,9 +369,7 @@ impl Batcher {
         addr: SocketAddr,
     ) -> Result<(), BatcherError> {
         info!("Incoming TCP connection from: {}", addr);
-        info!("HELLO");
         self.metrics.open_connections.inc();
-        info!("HIII");
 
         let ws_stream_future = tokio_tungstenite::accept_async(raw_stream);
 
@@ -396,12 +394,19 @@ impl Batcher {
         let (outgoing, incoming) = ws_stream.split();
         let outgoing = Arc::new(RwLock::new(outgoing));
 
+        info!("1");
+
         let protocol_version_msg = SubmitProofResponseMessage::ProtocolVersion(
             aligned_sdk::communication::protocol::EXPECTED_PROTOCOL_VERSION,
         );
 
+        info!("2");
+
+
         let serialized_protocol_version_msg = cbor_serialize(&protocol_version_msg)
             .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
+
+        info!("3");
 
         outgoing
             .write()
@@ -409,8 +414,15 @@ impl Batcher {
             .send(Message::binary(serialized_protocol_version_msg))
             .await?;
 
+        info!("4");
+        
         let mut incoming_filter = incoming.try_filter(|msg| future::ready(msg.is_binary()));
+
+        info!("5");
         let future_msg = incoming_filter.try_next();
+
+        info!("6");
+        info!("future: {:?}", future_msg);
 
         // timeout to prevent a DOS attack
         match timeout(Duration::from_secs(CONNECTION_TIMEOUT), future_msg).await {
@@ -418,6 +430,7 @@ impl Batcher {
                 self.clone().handle_message(msg, outgoing.clone()).await?;
             }
             Err(elapsed) => {
+                info!("probably here");
                 warn!("[{}] {}", &addr, elapsed);
                 self.metrics.user_error(&["user_timeout", ""]);
                 self.metrics.open_connections.dec();
