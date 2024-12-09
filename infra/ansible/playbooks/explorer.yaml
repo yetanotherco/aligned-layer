@@ -18,11 +18,6 @@
   vars:
     host: explorer
 
-- name: Run caddy playbook
-  ansible.builtin.import_playbook: caddy.yaml
-  vars:
-    host: explorer
-
 - hosts: explorer
   vars:
     service: "explorer"
@@ -43,25 +38,6 @@
         update: yes
 
   tasks:
-    - name: Add reverse proxy configuration to Caddyfile
-      become: true
-      blockinfile:
-        path: /etc/caddy/Caddyfile
-        block: |
-          {{ caddy_explorer_url }} {
-            tls {
-              dns cloudflare {{ caddy_cloudflare_token }}
-            }
-            reverse_proxy localhost:{{ caddy_explorer_port }}
-          }
-        create: yes
-        prepend_newline: true
-      vars:
-        ansible_ssh_user: "{{ admin_user }}"
-        caddy_explorer_url: "{{ lookup('ini', 'caddy_explorer_url', file=ini_file) }}"
-        caddy_explorer_port: 4000
-        caddy_cloudflare_token: "{{ lookup('ini', 'caddy_cloudflare_token', file=ini_file) }}"
-
     - name: Build the explorer release
       args:
         chdir: "{{ clone_repo.git_dir_now }}"
