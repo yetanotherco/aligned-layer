@@ -116,7 +116,7 @@ defmodule TelemetryApi.Operators do
   #    iex> add_operator_metadata(operator)
   #    {:error, string}
   #
-  defp add_operator_metadata(op_data) do
+  def add_operator_metadata(op_data) do
     with {:ok, url} <- DelegationManager.get_operator_url(op_data.address),
          {:ok, metadata} <- TelemetryApi.Utils.fetch_json_data(url) do
       operator = %{
