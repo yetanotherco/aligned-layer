@@ -87,7 +87,7 @@ defmodule ExplorerWeb.Operators.Index do
           <:col :let={operator} label="Total Restaked">
             <div class="flex flex-col">
               <p><%= operator.total_stake_eth %> ETH</p>
-              <p class="text-gray-500"><%= operator.total_stake_usd %> USD</p>
+              <p class="text-gray-500 font-normal"><%= operator.total_stake_usd %> USD</p>
             </div>
           </:col>
           <:col :let={operator} label="Status">
