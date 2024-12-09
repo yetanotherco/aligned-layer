@@ -811,3 +811,50 @@ fn save_response_json(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    //Public constants for convenience
+    pub const HOLESKY_PUBLIC_RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
+    use super::*;
+
+    #[tokio::test]
+    async fn computed_max_fee_for_larger_batch_is_smaller() {
+        let small_fee = calculate_fee_per_proof_for_batch_of_size(HOLESKY_PUBLIC_RPC_URL, 2)
+            .await
+            .unwrap();
+        let large_fee = calculate_fee_per_proof_for_batch_of_size(HOLESKY_PUBLIC_RPC_URL, 5)
+            .await
+            .unwrap();
+
+        assert!(small_fee < large_fee);
+    }
+
+    #[tokio::test]
+    async fn computed_max_fee_for_more_proofs_larger_than_for_less_proofs() {
+        let small_fee = calculate_fee_per_proof_for_batch_of_size(HOLESKY_PUBLIC_RPC_URL, 20)
+            .await
+            .unwrap();
+        let large_fee = calculate_fee_per_proof_for_batch_of_size(HOLESKY_PUBLIC_RPC_URL, 10)
+            .await
+            .unwrap();
+
+        assert!(small_fee < large_fee);
+    }
+
+    #[tokio::test]
+    async fn estimate_fee_are_larger_than_one_another() {
+        let min_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, FeeEstimationType::Custom(100))
+            .await
+            .unwrap();
+        let default_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, FeeEstimationType::Default)
+            .await
+            .unwrap();
+        let instant_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, FeeEstimationType::Instant)
+            .await
+            .unwrap();
+
+        assert!(min_fee < default_fee);
+        assert!(default_fee < instant_fee);
+    }
+}
