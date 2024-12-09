@@ -415,9 +415,11 @@ impl Batcher {
             .await?;
 
         info!("4");
+        info!("44");
         
         let mut incoming_filter = incoming.try_filter(|msg| {
-            let res = future::ready(msg.is_binary());
+            // let res = future::ready(msg.is_binary());
+            let res = future::ready(msg.is_text());
             info!("is_binary: {:?}", res);
             res
         });
@@ -426,6 +428,7 @@ impl Batcher {
         let future_msg = incoming_filter.try_next();
 
         info!("6");
+        info!("future: {:?}", future_msg);
 
         // timeout to prevent a DOS attack
         match timeout(Duration::from_secs(CONNECTION_TIMEOUT), future_msg).await {
@@ -433,7 +436,7 @@ impl Batcher {
                 self.clone().handle_message(msg, outgoing.clone()).await?;
             }
             Err(elapsed) => {
-                info!("probably here");
+                info!("timeout here");
                 warn!("[{}] {}", &addr, elapsed);
                 self.metrics.user_error(&["user_timeout", ""]);
                 self.metrics.open_connections.dec();
