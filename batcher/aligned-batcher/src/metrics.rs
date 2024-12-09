@@ -19,6 +19,8 @@ pub struct BatcherMetrics {
     pub batcher_started: IntCounter,
     pub gas_price_used_on_latest_batch: IntGauge,
     pub broken_ws_connections: IntCounter,
+    pub queue_len: IntGauge,
+    pub queue_size_bytes: IntGauge,
 }
 
 impl BatcherMetrics {
@@ -46,6 +48,11 @@ impl BatcherMetrics {
             "broken_ws_connections_count",
             "Broken websocket connections"
         ))?;
+        let queue_len = register_int_gauge!(opts!("queue_len", "Amount of proofs in the queue"))?;
+        let queue_size_bytes = register_int_gauge!(opts!(
+            "queue_size_bytes",
+            "Accumulated size in bytes of all proofs in the queue"
+        ))?;
 
         registry.register(Box::new(open_connections.clone()))?;
         registry.register(Box::new(received_proofs.clone()))?;
@@ -56,6 +63,8 @@ impl BatcherMetrics {
         registry.register(Box::new(gas_price_used_on_latest_batch.clone()))?;
         registry.register(Box::new(batcher_started.clone()))?;
         registry.register(Box::new(broken_ws_connections.clone()))?;
+        registry.register(Box::new(queue_len.clone()))?;
+        registry.register(Box::new(queue_size_bytes.clone()))?;
 
         let metrics_route = warp::path!("metrics")
             .and(warp::any().map(move || registry.clone()))
@@ -77,6 +86,8 @@ impl BatcherMetrics {
             batcher_started,
             gas_price_used_on_latest_batch,
             broken_ws_connections,
+            queue_len,
+            queue_size_bytes,
         })
     }
 

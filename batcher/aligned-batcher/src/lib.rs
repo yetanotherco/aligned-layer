@@ -16,6 +16,7 @@ use tokio::time::timeout;
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
+use batch_queue::calculate_batch_size;
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
@@ -1042,11 +1043,15 @@ impl Batcher {
             ),
             BatchQueueEntryPriority::new(max_fee, nonce),
         );
+        
+        // Update metrics
+        let queue_len = batch_state_lock.batch_queue.len();
+        let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
 
-        info!(
-            "Current batch queue length: {}",
-            batch_state_lock.batch_queue.len()
-        );
+        self.metrics.queue_len.set(queue_len as i64);
+        self.metrics.queue_size_bytes.set(queue_size_bytes as i64);
+
+        info!("Current batch queue length: {}", queue_len);
 
         let mut proof_submitter_addr = proof_submitter_addr;
 
@@ -1226,6 +1231,13 @@ impl Batcher {
                 ))?;
         }
 
+        // Update metrics
+        let queue_len = batch_state_lock.batch_queue.len();
+        let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+
+        self.metrics.queue_len.set(queue_len as i64);
+        self.metrics.queue_size_bytes.set(queue_size_bytes as i64);
+
         Ok(())
     }
 
@@ -1373,6 +1385,9 @@ impl Batcher {
         batch_state_lock
             .user_states
             .insert(nonpaying_replacement_addr, nonpaying_user_state);
+
+        self.metrics.queue_len.set(0);
+        self.metrics.queue_size_bytes.set(0);
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
