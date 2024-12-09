@@ -11,6 +11,7 @@ use retry::batcher_retryables::{
     get_user_nonce_from_ethereum_retryable, user_balance_is_unlocked_retryable,
 };
 use retry::{retry_function, RetryError};
+use tokio::time::timeout;
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
@@ -18,14 +19,15 @@ use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, BUMP_BACKOFF_FACTOR,
-    BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONSTANT_GAS_COST,
-    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
+    BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONNECTION_TIMEOUT,
+    CONSTANT_GAS_COST, DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
     ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
-    ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF,
-    PERCENTAGE_DIVIDER, RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+    ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
+    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
     ClientMessage, GetNonceResponseMessage, NoncedVerificationData, ProofInvalidReason,
@@ -79,10 +81,11 @@ pub struct Batcher {
     service_manager: ServiceManager,
     service_manager_fallback: ServiceManager,
     batch_state: Mutex<BatchState>,
-    max_block_interval: u64,
+    min_block_interval: u64,
     transaction_wait_timeout: u64,
     max_proof_size: usize,
-    max_batch_size: usize,
+    max_batch_byte_size: usize,
+    max_batch_proof_qty: usize,
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
@@ -241,10 +244,11 @@ impl Batcher {
             payment_service_fallback,
             service_manager,
             service_manager_fallback,
-            max_block_interval: config.batcher.block_interval,
+            min_block_interval: config.batcher.block_interval,
             transaction_wait_timeout: config.batcher.transaction_wait_timeout,
             max_proof_size: config.batcher.max_proof_size,
-            max_batch_size: config.batcher.max_batch_size,
+            max_batch_byte_size: config.batcher.max_batch_byte_size,
+            max_batch_proof_qty: config.batcher.max_batch_proof_qty,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
@@ -263,13 +267,19 @@ impl Batcher {
             .map_err(|e| BatcherError::TcpListenerError(e.to_string()))?;
         info!("Listening on: {}", address);
 
-        // Let's spawn the handling of each connection in a separate task.
-        while let Ok((stream, addr)) = listener.accept().await {
-            self.metrics.open_connections.inc();
-            let batcher = self.clone();
-            tokio::spawn(batcher.handle_connection(stream, addr));
+        loop {
+            match listener.accept().await {
+                Ok((stream, addr)) => {
+                    let batcher = self.clone();
+                    // Let's spawn the handling of each connection in a separate task.
+                    tokio::spawn(batcher.handle_connection(stream, addr));
+                }
+                Err(e) => {
+                    self.metrics.user_error(&["connection_accept_error", ""]);
+                    error!("Couldn't accept new connection: {}", e);
+                }
+            }
         }
-        Ok(())
     }
 
     /// Listen for Ethereum new blocks.
@@ -358,7 +368,24 @@ impl Batcher {
         addr: SocketAddr,
     ) -> Result<(), BatcherError> {
         info!("Incoming TCP connection from: {}", addr);
-        let ws_stream = tokio_tungstenite::accept_async(raw_stream).await?;
+        self.metrics.open_connections.inc();
+
+        let ws_stream_future = tokio_tungstenite::accept_async(raw_stream);
+        let ws_stream =
+            match timeout(Duration::from_secs(CONNECTION_TIMEOUT), ws_stream_future).await {
+                Ok(Ok(stream)) => stream,
+                Ok(Err(e)) => {
+                    warn!("Error while establishing websocket connection: {}", e);
+                    self.metrics.open_connections.dec();
+                    return Ok(());
+                }
+                Err(e) => {
+                    warn!("Error while establishing websocket connection: {}", e);
+                    self.metrics.open_connections.dec();
+                    self.metrics.user_error(&["user_timeout", ""]);
+                    return Ok(());
+                }
+            };
 
         debug!("WebSocket connection established: {}", addr);
         let (outgoing, incoming) = ws_stream.split();
@@ -377,8 +404,33 @@ impl Batcher {
             .send(Message::binary(serialized_protocol_version_msg))
             .await?;
 
-        match incoming
-            .try_filter(|msg| future::ready(msg.is_binary()))
+        let mut incoming_filter = incoming.try_filter(|msg| future::ready(msg.is_binary()));
+        let future_msg = incoming_filter.try_next();
+
+        // timeout to prevent a DOS attack
+        match timeout(Duration::from_secs(CONNECTION_TIMEOUT), future_msg).await {
+            Ok(Ok(Some(msg))) => {
+                self.clone().handle_message(msg, outgoing.clone()).await?;
+            }
+            Err(elapsed) => {
+                warn!("[{}] {}", &addr, elapsed);
+                self.metrics.user_error(&["user_timeout", ""]);
+                self.metrics.open_connections.dec();
+                return Ok(());
+            }
+            Ok(Ok(None)) => {
+                info!("[{}] Connection closed by the other side", &addr);
+                self.metrics.open_connections.dec();
+                return Ok(());
+            }
+            Ok(Err(e)) => {
+                error!("Unexpected error: {}", e);
+                self.metrics.open_connections.dec();
+                return Ok(());
+            }
+        };
+
+        match incoming_filter
             .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
             .await
         {
@@ -519,7 +571,7 @@ impl Batcher {
             )
             .await;
             self.metrics
-                .user_error(&["invalid_paument_service_address", ""]);
+                .user_error(&["invalid_payment_service_address", ""]);
             return Ok(());
         }
 
@@ -630,10 +682,10 @@ impl Batcher {
                     );
                     send_message(
                         ws_conn_sink.clone(),
-                        SubmitProofResponseMessage::InvalidNonce,
+                        SubmitProofResponseMessage::EthRpcError,
                     )
                     .await;
-                    self.metrics.user_error(&["invalid_nonce", ""]);
+                    self.metrics.user_error(&["eth_rpc_error", ""]);
                     return Ok(());
                 }
             };
@@ -665,19 +717,34 @@ impl Batcher {
         // finally add the proof to the batch queue.
 
         let batch_state_lock = self.batch_state.lock().await;
-        let Some(proofs_in_batch) = batch_state_lock.get_user_proof_count(&addr).await else {
-            error!("Failed to get user proof count: User not found in user states, but it should have been already inserted");
+
+        let msg_max_fee = nonced_verification_data.max_fee;
+        let Some(user_last_max_fee_limit) =
+            batch_state_lock.get_user_last_max_fee_limit(&addr).await
+        else {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidNonce,
+                SubmitProofResponseMessage::AddToBatchError,
             )
             .await;
-            self.metrics.user_error(&["invalid_nonce", ""]);
+            self.metrics.user_error(&["batcher_state_error", ""]);
             return Ok(());
         };
 
-        if !self.check_min_balance(proofs_in_batch + 1, user_balance) {
+        let Some(user_accumulated_fee) = batch_state_lock.get_user_total_fees_in_queue(&addr).await
+        else {
+            std::mem::drop(batch_state_lock);
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::AddToBatchError,
+            )
+            .await;
+            self.metrics.user_error(&["batcher_state_error", ""]);
+            return Ok(());
+        };
+
+        if !self.verify_user_has_enough_balance(user_balance, user_accumulated_fee, msg_max_fee) {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
@@ -694,10 +761,10 @@ impl Batcher {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidNonce,
+                SubmitProofResponseMessage::AddToBatchError,
             )
             .await;
-            self.metrics.user_error(&["invalid_nonce", ""]);
+            self.metrics.user_error(&["batcher_state_error", ""]);
             return Ok(());
         };
 
@@ -729,21 +796,9 @@ impl Batcher {
             return Ok(());
         }
 
-        let msg_max_fee = nonced_verification_data.max_fee;
-        let Some(user_min_fee) = batch_state_lock.get_user_min_fee(&addr).await else {
+        if msg_max_fee > user_last_max_fee_limit {
             std::mem::drop(batch_state_lock);
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidNonce,
-            )
-            .await;
-            self.metrics.user_error(&["invalid_nonce", ""]);
-            return Ok(());
-        };
-
-        if msg_max_fee > user_min_fee {
-            std::mem::drop(batch_state_lock);
-            warn!("Invalid max fee for address {addr}, had fee {user_min_fee:?} < {msg_max_fee:?}");
+            warn!("Invalid max fee for address {addr}, had fee limit of {user_last_max_fee_limit:?}, sent {msg_max_fee:?}");
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::InvalidMaxFee,
@@ -782,10 +837,15 @@ impl Batcher {
         zk_utils::is_verifier_disabled(*disabled_verifiers, verifier)
     }
 
-    // Checks user has sufficient balance for paying all its the proofs in the current batch.
-    fn check_min_balance(&self, user_proofs_in_batch: usize, user_balance: U256) -> bool {
-        let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_FEE_PER_PROOF);
-        user_balance >= min_balance
+    // Verifies user has enough balance for paying all his proofs in the current batch.
+    fn verify_user_has_enough_balance(
+        &self,
+        user_balance: U256,
+        user_accumulated_fee: U256,
+        new_msg_max_fee: U256,
+    ) -> bool {
+        let required_balance: U256 = user_accumulated_fee + new_msg_max_fee;
+        user_balance >= required_balance
     }
 
     /// Handles a replacement message
@@ -820,7 +880,7 @@ impl Batcher {
         let original_max_fee = entry.nonced_verification_data.max_fee;
         if original_max_fee > replacement_max_fee {
             std::mem::drop(batch_state_lock);
-            warn!("Invalid replacement message for address {addr}, had fee {original_max_fee:?} < {replacement_max_fee:?}");
+            warn!("Invalid replacement message for address {addr}, had max fee: {original_max_fee:?}, received fee: {replacement_max_fee:?}");
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::InvalidReplacementMessage,
@@ -886,13 +946,38 @@ impl Batcher {
             BatchQueueEntryPriority::new(replacement_max_fee, nonce),
         );
 
-        let updated_min_fee_in_batch = batch_state_lock.get_user_min_fee_in_batch(&addr);
+        // update max_fee_limit
+        let updated_max_fee_limit_in_batch = batch_state_lock.get_user_min_fee_in_batch(&addr);
         if batch_state_lock
-            .update_user_min_fee(&addr, updated_min_fee_in_batch)
+            .update_user_max_fee_limit(&addr, updated_max_fee_limit_in_batch)
             .is_none()
         {
             std::mem::drop(batch_state_lock);
             warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::AddToBatchError,
+            )
+            .await;
+            return;
+        };
+
+        // update total_fees_in_queue
+        if batch_state_lock
+            .update_user_total_fees_in_queue_of_replacement_message(
+                &addr,
+                original_max_fee,
+                replacement_max_fee,
+            )
+            .is_none()
+        {
+            std::mem::drop(batch_state_lock);
+            warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::AddToBatchError,
+            )
+            .await;
         };
     }
 
@@ -984,6 +1069,17 @@ impl Batcher {
             ));
         };
 
+        let Some(current_total_fees_in_queue) = batch_state_lock
+            .get_user_total_fees_in_queue(&proof_submitter_addr)
+            .await
+        else {
+            error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
+            std::mem::drop(batch_state_lock);
+            return Err(BatcherError::AddressNotFoundInUserStates(
+                proof_submitter_addr,
+            ));
+        };
+
         // User state is updated
         if batch_state_lock
             .update_user_state(
@@ -991,6 +1087,7 @@ impl Batcher {
                 nonce + U256::one(),
                 max_fee,
                 user_proof_count + 1,
+                current_total_fees_in_queue + max_fee,
             )
             .is_none()
         {
@@ -1027,17 +1124,17 @@ impl Batcher {
         let current_batch_len = batch_state_lock.batch_queue.len();
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
-        if current_batch_len < 2 {
+        if current_batch_len < 1 {
             info!(
-                "Current batch has {} proof. Waiting for more proofs...",
+                "Current batch has {} proofs. Waiting for more proofs...",
                 current_batch_len
             );
             return None;
         }
 
-        if block_number < *last_uploaded_batch_block_lock + self.max_block_interval {
+        if block_number < *last_uploaded_batch_block_lock + self.min_block_interval {
             info!(
-                "Current batch not ready to be posted. Minimium amount of {} blocks have not passed. Block passed: {}", self.max_block_interval,
+                "Current batch not ready to be posted. Minimium amount of {} blocks have not passed. Block passed: {}", self.min_block_interval,
                 block_number - *last_uploaded_batch_block_lock,
             );
             return None;
@@ -1055,31 +1152,35 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
         let batch_queue_copy = batch_state_lock.batch_queue.clone();
-        let (resulting_batch_queue, finalized_batch) =
-            batch_queue::try_build_batch(batch_queue_copy, gas_price, self.max_batch_size)
-                .inspect_err(|e| {
-                    *batch_posting = false;
-                    match e {
-                        // We can't post a batch since users are not willing to pay the needed fee, wait for more proofs
-                        BatcherError::BatchCostTooHigh => {
-                            info!("No working batch found. Waiting for more proofs")
-                        }
-                        // FIXME: We should refactor this code and instead of returning None, return an error.
-                        // See issue https://github.com/yetanotherco/aligned_layer/issues/1046.
-                        e => error!("Unexpected error: {:?}", e),
-                    }
-                })
-                .ok()?;
+        let (resulting_batch_queue, finalized_batch) = batch_queue::try_build_batch(
+            batch_queue_copy,
+            gas_price,
+            self.max_batch_byte_size,
+            self.max_batch_proof_qty,
+        )
+        .inspect_err(|e| {
+            *batch_posting = false;
+            match e {
+                // We can't post a batch since users are not willing to pay the needed fee, wait for more proofs
+                BatcherError::BatchCostTooHigh => {
+                    info!("No working batch found. Waiting for more proofs")
+                }
+                // FIXME: We should refactor this code and instead of returning None, return an error.
+                // See issue https://github.com/yetanotherco/aligned_layer/issues/1046.
+                e => error!("Unexpected error: {:?}", e),
+            }
+        })
+        .ok()?;
 
         batch_state_lock.batch_queue = resulting_batch_queue;
-        let updated_user_proof_count_and_min_fee =
-            batch_state_lock.get_user_proofs_in_batch_and_min_fee();
+        let new_user_states = // proofs, max_fee_limit, total_fees_in_queue
+            batch_state_lock.calculate_new_user_states_data();
 
         let user_addresses: Vec<Address> = batch_state_lock.user_states.keys().cloned().collect();
+        let default_value = (0, U256::MAX, U256::zero());
         for addr in user_addresses.iter() {
-            let (proof_count, min_fee) = updated_user_proof_count_and_min_fee
-                .get(addr)
-                .unwrap_or(&(0, U256::MAX));
+            let (proof_count, max_fee_limit, total_fees_in_queue) =
+                new_user_states.get(addr).unwrap_or(&default_value);
 
             // FIXME: The case where a the update functions return `None` can only happen when the user was not found
             // in the `user_states` map should not really happen here, but doing this check so that we don't unwrap.
@@ -1088,7 +1189,8 @@ impl Batcher {
 
             // Now we update the user states related to the batch (proof count in batch and min fee in batch)
             batch_state_lock.update_user_proof_count(addr, *proof_count)?;
-            batch_state_lock.update_user_min_fee(addr, *min_fee)?;
+            batch_state_lock.update_user_max_fee_limit(addr, *max_fee_limit)?;
+            batch_state_lock.update_user_total_fees_in_queue(addr, *total_fees_in_queue)?;
         }
 
         Some(finalized_batch)
@@ -1151,7 +1253,7 @@ impl Batcher {
             .init_task_trace(&hex::encode(batch_merkle_tree.root))
             .await
         {
-            error!("Failed to initialize task trace on telemetry: {:?}", e);
+            warn!("Failed to initialize task trace on telemetry: {:?}", e);
         }
 
         if let Err(e) = self
@@ -1170,7 +1272,7 @@ impl Batcher {
                 .task_creation_failed(&hex::encode(batch_merkle_tree.root), &reason)
                 .await
             {
-                error!("Failed to send task status to telemetry: {:?}", e);
+                warn!("Failed to send task status to telemetry: {:?}", e);
             }
             for entry in finalized_batch.into_iter() {
                 if let Some(ws_sink) = entry.messaging_sink {
@@ -1294,7 +1396,7 @@ impl Batcher {
             .task_uploaded_to_s3(&batch_merkle_root_hex)
             .await
         {
-            error!("Failed to send task status to telemetry: {:?}", e);
+            warn!("Failed to send task status to telemetry: {:?}", e);
         };
         info!("Batch sent to S3 with name: {}", file_name);
 
@@ -1337,7 +1439,7 @@ impl Batcher {
             )
             .await
         {
-            error!("Failed to send task status to telemetry: {:?}", e);
+            warn!("Failed to send task status to telemetry: {:?}", e);
         };
 
         match self
@@ -1366,7 +1468,7 @@ impl Batcher {
         }
     }
 
-    /// Sends a `create_new_task` transaction to Ethereum and waits for a maximum of 3 blocks for the receipt.
+    /// Sends a `create_new_task` transaction to Ethereum and waits for a maximum of 8 blocks for the receipt.
     /// Retries up to `ETHEREUM_CALL_MAX_RETRIES` times using exponential backoff on recoverable errors while trying to send the transaction:
     /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
     /// `ReceiptNotFoundError` is treated as non-recoverable, and the transaction will be canceled using `cancel_create_new_task_tx` in that case.
@@ -1402,7 +1504,7 @@ impl Batcher {
                     .task_sent(&hex::encode(batch_merkle_root), receipt.transaction_hash)
                     .await
                 {
-                    error!("Failed to send task status to telemetry: {:?}", e);
+                    warn!("Failed to send task status to telemetry: {:?}", e);
                 }
                 Ok(receipt)
             }
@@ -1417,7 +1519,7 @@ impl Batcher {
 
     /// Sends a transaction to Ethereum with the same nonce as the previous one to override it.
     /// Retries on recoverable errors with exponential backoff.
-    /// Bumps the fee if not included in 3 blocks, using `calculate_bumped_gas_price`.
+    /// Bumps the fee if not included in 6 blocks, using `calculate_bumped_gas_price`.
     /// In the first 5 attemps, bumps the fee every 3 blocks. Then exponential backoff takes over.
     /// After 2 hours (attempt 13), retries occur hourly for 1 day (33 retries).
     pub async fn cancel_create_new_task_tx(&self, old_tx_gas_price: U256) {

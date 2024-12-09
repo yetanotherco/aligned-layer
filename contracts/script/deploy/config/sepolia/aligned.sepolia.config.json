@@ -3,12 +3,13 @@
       "chainId": 11155111
     },
     "permissions" : {
+      "aggregator": "<aggregator_address>", 
+      "deployer": "<deployer_address>",
       "owner": "<owner_address>",
-      "aggregator": "<aggregator_address>",
       "upgrader": "<upgrader_address>",
       "churner": "<churner_address>",
       "ejector": "<ejector_address>",
-      "deployer": "<deployer_address>",
+      "pauser": "<pauser_address>",
       "initalPausedStatus": 0
     },
     "minimumStakes": [

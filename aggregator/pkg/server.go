@@ -6,11 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/rpc"
-	"strings"
 	"time"
 
-	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
-	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
@@ -53,7 +50,11 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 	taskIndex := uint32(0)
 
-	taskIndex, err := agg.GetTaskIndex(signedTaskResponse.BatchIdentifierHash)
+	// The Aggregator may receive the Task Identifier after the operators.
+	// If that's the case, we won't know about the task at this point
+	// so we make GetTaskIndex retryable, waiting for some seconds,
+	// before trying to fetch the task again from the map.
+	taskIndex, err := agg.GetTaskIndexRetryable(signedTaskResponse.BatchIdentifierHash, retry.NetworkRetryParams())
 
 	if err != nil {
 		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
@@ -72,7 +73,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 
 	agg.logger.Info("Starting bls signature process")
 	go func() {
-		err := agg.ProcessNewSignature(
+		err := agg.blsAggregationService.ProcessNewSignature(
 			context.Background(), taskIndex, signedTaskResponse.BatchIdentifierHash,
 			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 		)
@@ -99,9 +100,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		*reply = 0
 	}
 
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Task response processing finished")
-	agg.taskMutex.Unlock()
-
 	return nil
 }
 
@@ -112,47 +110,23 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 	return nil
 }
 
-// |---RETRYABLE---|
-
 /*
-  - Errors:
-    Permanent:
-  - SignatureVerificationError: Verification of the sigature within the BLS Aggregation Service failed. (https://github.com/Layr-Labs/eigensdk-go/blob/dev/services/bls_aggregation/blsagg.go#L42).
-    Transient:
-  - All others.
-  - Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
-  - NOTE: TaskNotFound errors from the BLS Aggregation service are Transient errors as block reorg's may lead to these errors being thrown.
+Checks Internal mapping for Signed Task Response, returns its TaskIndex.
+- All errors are considered Transient Errors
+- Retry times (3 retries): 1 sec, 2 sec, 4 sec
+TODO: We should refactor the retry duration considering extending it to a larger time or number of retries, at least somewhere between 1 and 2 blocks
 */
-func (agg *Aggregator) ProcessNewSignature(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
-	processNewSignature_func := func() error {
-		err := agg.blsAggregationService.ProcessNewSignature(
-			ctx, taskIndex, taskResponse,
-			blsSignature, operatorId,
-		)
-		if err != nil {
-			if strings.Contains(err.Error(), "Failed to verify signature") {
-				err = retry.PermanentError{Inner: err}
-			}
-		}
-		return err
-	}
-
-	return retry.Retry(processNewSignature_func, retry.MinDelayChain, retry.RetryFactor, retry.NumRetries, retry.MaxIntervalChain, retry.MaxElapsedTime)
-}
-
-func (agg *Aggregator) GetTaskIndex(batchIdentifierHash [32]byte) (uint32, error) {
+func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte, config *retry.RetryParams) (uint32, error) {
 	getTaskIndex_func := func() (uint32, error) {
 		agg.taskMutex.Lock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
 		taskIndex, ok := agg.batchesIdxByIdentifierHash[batchIdentifierHash]
+		agg.taskMutex.Unlock()
 		if !ok {
-			agg.taskMutex.Unlock()
-			agg.logger.Info("- Unlocked Resources: Task not found in the internal map")
 			return taskIndex, fmt.Errorf("Task not found in the internal map")
 		} else {
 			return taskIndex, nil
 		}
 	}
 
-	return retry.RetryWithData(getTaskIndex_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(getTaskIndex_func, config)
 }
