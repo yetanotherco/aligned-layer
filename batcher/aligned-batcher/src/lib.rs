@@ -369,9 +369,13 @@ impl Batcher {
         addr: SocketAddr,
     ) -> Result<(), BatcherError> {
         info!("Incoming TCP connection from: {}", addr);
+        info!("HELLO");
         self.metrics.open_connections.inc();
+        info!("HIII");
 
         let ws_stream_future = tokio_tungstenite::accept_async(raw_stream);
+
+        info!("Establishing WebSocket connection...");
         let ws_stream =
             match timeout(Duration::from_secs(CONNECTION_TIMEOUT), ws_stream_future).await {
                 Ok(Ok(stream)) => stream,
@@ -388,7 +392,7 @@ impl Batcher {
                 }
             };
 
-        debug!("WebSocket connection established: {}", addr);
+        info!("WebSocket connection established: {}", addr);
         let (outgoing, incoming) = ws_stream.split();
         let outgoing = Arc::new(RwLock::new(outgoing));
 
