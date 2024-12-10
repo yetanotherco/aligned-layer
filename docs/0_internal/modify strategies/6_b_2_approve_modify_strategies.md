@@ -24,7 +24,7 @@ Once the transaction is proposed, the multisig owners must approve the transacti
    
 4. Click on the transaction, and then click on ```Advanced Details```.
 
-![check details](image-3.png)
+![check details](../images/6_b_2_approve_1.png)
 
 5. Copy the ```Raw Data```, paste it in a text editor and verify it is the same value as the one you got in step 3.
 
@@ -32,6 +32,6 @@ Once the transaction is proposed, the multisig owners must approve the transacti
 
 7. Simulate the transaction. If everything is correct, click on the `Sign` button, or `Execute` if you are the last signer.
 
-![Sign execute](image-4.png)
+![Sign execute](../images/6_b_2_approve_2.png)
 
 8. Once the transaction is executed, the modification will be effective.

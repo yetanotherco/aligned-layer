@@ -14,25 +14,23 @@ To propose the modify Strategy Weight Multipliers transaction you can follow the
 
 2. Click on `New transaction` -> `Transaction Builder`
 
-   ![New transaction](./images/4_b_1_pause_1.png)
+   ![New transaction](../images/6_b_1_modify_strategies_1.png)
 
-   ![Transaction Builder](./images/4_b_1_pause_2.png)
+   ![Transaction Builder](../images/6_b_1_modify_strategies_2.png)
 
 3. . Get the `StakeRegistry` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
 
 4. Paste the `StakeRegistry` address on `Enter Address or ENS Name`
 
-TODO pic
-
 5. As this is a Proxy contract, choose `Use Implementation ABI`
 
-![use implementation abi](image.png)
+![use implementation abi](../images/6_b_1_modify_strategies_3.png)
 
 6. In `contract method selector` choose `modifyStrategyParams` , and fill in the parameter values accordingly. 
 
 Note: Aligned currently only has `quorumNumber: 0`, and you will replace `strategyIndices` with `newMultipliers`
 
-![choose modify strategy params](image-1.png)
+![choose modify strategy params](../images/6_b_1_modify_strategies_4.png)
 
 7. Click on `+ Add new transaction`
 
@@ -46,7 +44,7 @@ Note: Aligned currently only has `quorumNumber: 0`, and you will replace `strate
 
 11. Simulate the transaction, and if everything is correct, click on `Sign`.
 
-![send batch](image-2.png)
+![send batch](../images/6_b_1_modify_strategies_5.png)
 
 > [!NOTE]
 > In the `call` field, you will see `fallback`.

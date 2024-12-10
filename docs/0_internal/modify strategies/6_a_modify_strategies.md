@@ -10,7 +10,6 @@ MULTISIG=false
 ```
 
 ## 
-
 To view some relevant information you can:
 
 ### Get all available strategies:
