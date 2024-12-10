@@ -7,14 +7,14 @@ defmodule Scripts.FetchOperatorsMetadata do
   # This Script is to fetch operators metadata from the blockchain activity
   # and insert/update them into the Ecto database
 
-  def run(fromBlock) do
+  def run() do
     "Fetching old operators changes" |> Logger.debug()
-    update_operators_metadata(fromBlock)
+    update_operators_metadata()
 
     "Done" |> Logger.debug()
   end
 
-  def update_operators_metadata(fromBlock) do
+  def update_operators_metadata() do
     with {:ok, operators} <- OperatorStateRetriever.get_operators() do
       # Construct tuple {%Operator{}, op_data}
       operators = Enum.map(operators, fn op_data ->
