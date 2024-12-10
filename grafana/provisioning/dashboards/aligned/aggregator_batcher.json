@@ -794,7 +794,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Accumulated gas cost the aggregator paid for the batcher when the tx cost was higher than the respondToTaskFeeLimit.",
+      "description": "Accumulated gas cost in ETH the Aggregator paid when sending RespondToTask transactions.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -847,7 +847,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "increase(aligned_aggregator_gas_cost_paid_total_sum{bot=\"aggregator\"}[10y])",
+          "expr": "increase(aligned_aggregator_gas_cost_paid_total_count{bot=\"aggregator\"}[10y])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -2940,6 +2940,6 @@
   "timezone": "browser",
   "title": "System Data",
   "uid": "aggregator",
-  "version": 39,
+  "version": 47,
   "weekStart": ""
 }

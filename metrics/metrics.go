@@ -21,7 +21,7 @@ type Metrics struct {
 	aggregatorGasCostPaidForBatcherTotal   prometheus.Gauge
 	aggregatorNumTimesPaidForBatcher       prometheus.Counter
 	numBumpedGasPriceForAggregatedResponse prometheus.Counter
-	aggregatorGasCostPaidTotal             prometheus.Gauge
+	aggregatorGasCostPaidTotal             prometheus.Counter
 }
 
 const alignedNamespace = "aligned"
@@ -55,9 +55,9 @@ func NewMetrics(ipPortAddress string, reg prometheus.Registerer, logger logging.
 			Name:      "aggregator_num_times_paid_for_batcher_count",
 			Help:      "Number of times the aggregator paid for the batcher when the tx cost was higher than the respondToTaskFeeLimit",
 		}),
-		aggregatorGasCostPaidTotal: promauto.With(reg).NewGauge(prometheus.GaugeOpts{
+		aggregatorGasCostPaidTotal: promauto.With(reg).NewCounter(prometheus.CounterOpts{
 			Namespace: alignedNamespace,
-			Name:      "aggregator_gas_cost_paid_total_sum",
+			Name:      "aggregator_gas_cost_paid_total_count",
 			Help:      "Total amount of gas paid by the aggregator while responding to tasks",
 		}),
 		numBumpedGasPriceForAggregatedResponse: promauto.With(reg).NewCounter(prometheus.CounterOpts{
