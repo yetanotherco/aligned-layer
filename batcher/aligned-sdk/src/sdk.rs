@@ -28,10 +28,10 @@ use ethers::{
     prelude::k256::ecdsa::SigningKey,
     providers::{Http, Middleware, Provider},
     signers::{LocalWallet, Wallet},
-    types::{Address, H160, U256},
+    types::{Address, U256},
 };
 use sha3::{Digest, Keccak256};
-use std::{str::FromStr, sync::Arc};
+use std::sync::Arc;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
@@ -271,28 +271,6 @@ pub async fn submit_multiple(
     .await
 }
 
-pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {
-    match network {
-        Network::Devnet => H160::from_str("0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650").unwrap(),
-        Network::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").unwrap(),
-        Network::HoleskyStage => {
-            H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").unwrap()
-        }
-        Network::Mainnet => H160::from_str("0xb0567184A52cB40956df6333510d6eF35B89C8de").unwrap(),
-    }
-}
-
-pub fn get_aligned_service_manager_address(network: Network) -> ethers::types::H160 {
-    match network {
-        Network::Devnet => H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap(),
-        Network::Holesky => H160::from_str("0x58F280BeBE9B34c9939C3C39e0890C81f163B623").unwrap(),
-        Network::HoleskyStage => {
-            H160::from_str("0x9C5231FC88059C086Ea95712d105A2026048c39B").unwrap()
-        }
-        Network::Mainnet => H160::from_str("0xeF2A435e5EE44B2041100EF8cbC8ae035166606c").unwrap(),
-    }
-}
-
 // Will submit the proofs to the batcher and wait for their responses
 // Will return once all proofs are responded, or up to a proof that is responded with an error
 async fn _submit_multiple(
@@ -328,7 +306,7 @@ async fn _submit_multiple(
 
     let response_stream = Arc::new(Mutex::new(response_stream));
 
-    let payment_service_addr = get_payment_service_address(network);
+    let payment_service_addr = network.get_batcher_payment_service_address();
 
     let result = async {
         let sent_verification_data_rev = send_messages(
@@ -498,8 +476,8 @@ async fn _is_proof_verified(
     network: Network,
     eth_rpc_provider: Provider<Http>,
 ) -> Result<bool, errors::VerificationError> {
-    let contract_address = get_aligned_service_manager_address(network);
-    let payment_service_addr = get_payment_service_address(network);
+    let contract_address = network.get_aligned_service_manager_address();
+    let payment_service_addr = network.get_batcher_payment_service_address();
 
     // All the elements from the merkle proof have to be concatenated
     let merkle_proof: Vec<u8> = aligned_verification_data
@@ -640,7 +618,7 @@ pub async fn get_nonce_from_ethereum(
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
         .map_err(|e| GetNonceError::EthRpcError(e.to_string()))?;
 
-    let payment_service_address = get_payment_service_address(network);
+    let payment_service_address = network.get_batcher_payment_service_address();
 
     match batcher_payment_service(eth_rpc_provider, payment_service_address).await {
         Ok(contract) => {
@@ -691,7 +669,7 @@ pub async fn deposit_to_aligned(
     signer: SignerMiddleware<Provider<Http>, LocalWallet>,
     network: Network,
 ) -> Result<ethers::types::TransactionReceipt, errors::PaymentError> {
-    let payment_service_address = get_payment_service_address(network);
+    let payment_service_address = network.get_batcher_payment_service_address();
     let from = signer.address();
 
     let tx = TransactionRequest::new()
@@ -729,7 +707,7 @@ pub async fn get_balance_in_aligned(
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
         .map_err(|e| errors::BalanceError::EthereumProviderError(e.to_string()))?;
 
-    let payment_service_address = get_payment_service_address(network);
+    let payment_service_address = network.get_batcher_payment_service_address();
 
     match batcher_payment_service(eth_rpc_provider, payment_service_address).await {
         Ok(batcher_payment_service) => {

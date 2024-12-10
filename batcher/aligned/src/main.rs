@@ -120,7 +120,7 @@ pub struct SubmitArgs {
         long = "network",
         default_value = "devnet"
     )]
-    network: NetworkArg,
+    network: Network,
 }
 
 #[derive(Parser, Debug)]
@@ -143,7 +143,7 @@ pub struct DepositToBatcherArgs {
         long = "network",
         default_value = "devnet"
     )]
-    network: NetworkArg,
+    network: Network,
     #[arg(name = "Amount to deposit", long = "amount", required = true)]
     amount: String,
 }
@@ -164,7 +164,7 @@ pub struct VerifyProofOnchainArgs {
         long = "network",
         default_value = "devnet"
     )]
-    network: NetworkArg,
+    network: Network,
 }
 
 #[derive(Parser, Debug)]
@@ -186,7 +186,7 @@ pub struct GetUserBalanceArgs {
         long = "network",
         default_value = "devnet"
     )]
-    network: NetworkArg,
+    network: Network,
     #[arg(
         name = "Ethereum RPC provider address",
         long = "rpc_url",
@@ -216,25 +216,6 @@ pub struct GetUserNonceArgs {
         required = true
     )]
     address: String,
-}
-
-#[derive(Debug, Clone, ValueEnum, Copy)]
-enum NetworkArg {
-    Devnet,
-    Holesky,
-    HoleskyStage,
-    Mainnet,
-}
-
-impl From<NetworkArg> for Network {
-    fn from(env_arg: NetworkArg) -> Self {
-        match env_arg {
-            NetworkArg::Devnet => Network::Devnet,
-            NetworkArg::Holesky => Network::Holesky,
-            NetworkArg::HoleskyStage => Network::HoleskyStage,
-            NetworkArg::Mainnet => Network::Mainnet,
-        }
-    }
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -366,7 +347,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let aligned_verification_data_vec = submit_multiple(
                 &connect_addr,
-                submit_args.network.into(),
+                submit_args.network,
                 &verification_data_arr,
                 max_fee_wei,
                 wallet.clone(),
@@ -425,7 +406,7 @@ async fn main() -> Result<(), AlignedError> {
             info!("Verifying response data matches sent proof data...");
             let response = is_proof_verified(
                 &aligned_verification_data,
-                verify_inclusion_args.network.into(),
+                verify_inclusion_args.network,
                 &verify_inclusion_args.eth_rpc_url,
             )
             .await?;
@@ -490,9 +471,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network.into())
-                .await
-            {
+            match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network).await {
                 Ok(receipt) => {
                     info!(
                         "Payment sent to the batcher successfully. Tx: 0x{:x}",
@@ -509,7 +488,7 @@ async fn main() -> Result<(), AlignedError> {
             match get_balance_in_aligned(
                 user_address,
                 &get_user_balance_args.eth_rpc_url,
-                get_user_balance_args.network.into(),
+                get_user_balance_args.network,
             )
             .await
             {
