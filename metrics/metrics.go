@@ -22,6 +22,8 @@ type Metrics struct {
 	aggregatorNumTimesPaidForBatcher       prometheus.Counter
 	numBumpedGasPriceForAggregatedResponse prometheus.Counter
 	aggregatorGasCostPaidTotal             prometheus.Counter
+	aggregatorRespondToTaskLatency         prometheus.Gauge
+	aggregatorTaskQuorumReachedLatency     prometheus.Gauge
 }
 
 const alignedNamespace = "aligned"
@@ -64,6 +66,16 @@ func NewMetrics(ipPortAddress string, reg prometheus.Registerer, logger logging.
 			Namespace: alignedNamespace,
 			Name:      "respond_to_task_gas_price_bumped_count",
 			Help:      "Number of times gas price was bumped while sending aggregated response",
+		}),
+		aggregatorRespondToTaskLatency: promauto.With(reg).NewGauge(prometheus.GaugeOpts{
+			Namespace: alignedNamespace,
+			Name:      "aggregator_respond_to_task_latency",
+			Help:      "Latency of last call to respondToTask on Aligned Service Manager",
+		}),
+		aggregatorTaskQuorumReachedLatency: promauto.With(reg).NewGauge(prometheus.GaugeOpts{
+			Namespace: alignedNamespace,
+			Name:      "aggregator_task_quorum_reached_latency",
+			Help:      "Time it takes for a task to reach quorum",
 		}),
 	}
 }
@@ -125,4 +137,12 @@ func (m *Metrics) AddAggregatorGasCostPaidTotal(value float64) {
 
 func (m *Metrics) IncBumpedGasPriceForAggregatedResponse() {
 	m.numBumpedGasPriceForAggregatedResponse.Inc()
+}
+
+func (m *Metrics) ObserveLatencyForRespondToTask(elapsed time.Duration) {
+	m.aggregatorRespondToTaskLatency.Set(elapsed.Seconds())
+}
+
+func (m *Metrics) ObserveTaskQuorumReached(elapsed time.Duration) {
+	m.aggregatorTaskQuorumReachedLatency.Set(elapsed.Seconds())
 }

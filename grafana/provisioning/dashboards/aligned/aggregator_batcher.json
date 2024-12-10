@@ -153,7 +153,6 @@
     },
     {
       "datasource": {
-        "default": true,
         "type": "prometheus",
         "uid": "prometheus"
       },
@@ -820,7 +819,7 @@
         "x": 7,
         "y": 14
       },
-      "id": 46,
+      "id": 48,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -2522,7 +2521,32 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "{bot=\"aggregator\", instance=\"host.docker.internal:9091\", job=\"aligned-aggregator\"}"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 7,
@@ -2702,6 +2726,31 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 69
+      },
+      "id": 46,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<h1 style=\"background-color: #00A86B; color: white; padding: 10px; border-radius: 0px; text-align: center;\">\n  Latency\n</h1>",
+        "mode": "html"
+      },
+      "pluginVersion": "10.1.10",
+      "transparent": true,
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2756,9 +2805,9 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 69
+        "y": 71
       },
-      "id": 43,
+      "id": 47,
       "options": {
         "legend": {
           "calcs": [],
@@ -2779,7 +2828,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "s3_latency * 10 ^ (-3)",
+          "expr": "s3_duration * 10 ^ (-3)",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -2789,7 +2838,105 @@
           "useBackend": false
         }
       ],
-      "title": "S3 Latency",
+      "title": "Upload Batch to S3 Duration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 71
+      },
+      "id": 43,
+      "interval": "1s",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "aligned_aggregator_respond_to_task_latency{bot=\"aggregator\"}",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "Latest latency",
+          "range": true,
+          "refId": "Latency"
+        }
+      ],
+      "title": "Latest respond to task latency",
       "type": "timeseries"
     },
     {
@@ -2855,7 +3002,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 77
+        "y": 79
       },
       "id": 45,
       "options": {
@@ -2878,7 +3025,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "cancel_create_new_task_latency * 10 ^ (-3)",
+          "expr": "cancel_create_new_task_duration * 10 ^ (-3)",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -2894,7 +3041,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "create_new_task_latency * 10 ^(-3)",
+          "expr": "create_new_task_duration * 10 ^(-3)",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -2905,7 +3052,7 @@
           "useBackend": false
         }
       ],
-      "title": "CreateNewTask Latency",
+      "title": "CreateNewTask Duration",
       "transformations": [
         {
           "id": "calculateField",
@@ -2923,9 +3070,105 @@
         }
       ],
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 79
+      },
+      "id": 44,
+      "interval": "1s",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "aligned_aggregator_task_quorum_reached_latency{bot=\"aggregator\"}",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "Latest latency",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Latest quorum reached latency",
+      "type": "timeseries"
     }
   ],
-  "refresh": "5s",
+  "refresh": "",
   "schemaVersion": 38,
   "style": "dark",
   "tags": [],
@@ -2933,13 +3176,13 @@
     "list": []
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "System Data",
   "uid": "aggregator",
-  "version": 47,
+  "version": 7,
   "weekStart": ""
 }
