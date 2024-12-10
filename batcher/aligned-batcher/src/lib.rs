@@ -373,7 +373,6 @@ impl Batcher {
 
         let ws_stream_future = tokio_tungstenite::accept_async(raw_stream);
 
-        info!("Establishing WebSocket connection...");
         let ws_stream =
             match timeout(Duration::from_secs(CONNECTION_TIMEOUT), ws_stream_future).await {
                 Ok(Ok(stream)) => stream,
@@ -390,40 +389,26 @@ impl Batcher {
                 }
             };
 
-        info!("WebSocket connection established: {}", addr);
+        debug!("WebSocket connection established: {}", addr);
         let (outgoing, incoming) = ws_stream.split();
         let outgoing = Arc::new(RwLock::new(outgoing));
-
-        info!("1");
 
         let protocol_version_msg = SubmitProofResponseMessage::ProtocolVersion(
             aligned_sdk::communication::protocol::EXPECTED_PROTOCOL_VERSION,
         );
 
-        info!("2");
-
-
         let serialized_protocol_version_msg = cbor_serialize(&protocol_version_msg)
             .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
-
-        info!("3");
 
         outgoing
             .write()
             .await
             .send(Message::binary(serialized_protocol_version_msg))
             .await?;
-
-        info!("4");
-        info!("44");
         
         let mut incoming_filter = incoming.try_filter(|msg| future::ready(msg.is_binary()));
 
-        info!("5");
         let future_msg = incoming_filter.try_next();
-
-        info!("6");
-        info!("future: {:?}", future_msg);
 
         // timeout to prevent a DOS attack
         match timeout(Duration::from_secs(CONNECTION_TIMEOUT*10), future_msg).await {
