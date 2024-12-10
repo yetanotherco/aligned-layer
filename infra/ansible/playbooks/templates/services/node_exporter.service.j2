@@ -5,9 +5,12 @@ After=network.target
 [Service]
 Type=simple
 User=admin
-WorkingDirectory=/home/admin/node_exporter-1.8.2.linux-amd64
-ExecStart=/home/admin/node_exporter-1.8.2.linux-amd64/node_exporter --collector.systemd --collector.processes
+WorkingDirectory=/home/{{ ansible_user }}/
+ExecStart=node_exporter --collector.systemd --collector.processes
 Restart=always
+RestartSec=1
+StartLimitBurst=100
+LimitNOFILE=100000
 
 [Install]
 WantedBy=multi-user.target

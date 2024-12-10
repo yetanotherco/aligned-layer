@@ -141,6 +141,6 @@
         ansible_ssh_user: "{{ admin_user }}"
     
     - name: Run setup playbook
-  ansible.builtin.import_playbook: node_exporter.yaml
-  vars:
-    host: batcher
+      ansible.builtin.import_playbook: node_exporter.yaml
+      vars:
+        host: batcher
