@@ -2655,6 +2655,126 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 69
+      },
+      "id": 46,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<h1 style=\"background-color: #00A86B; color: white; padding: 10px; border-radius: 0px; text-align: center;\">\n  Latency\n</h1>",
+        "mode": "html"
+      },
+      "pluginVersion": "10.1.10",
+      "transparent": true,
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 48,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 71
+      },
+      "id": 47,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "s3_duration * 10 ^ (-3)",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Upload Batch to S3 Duration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -2714,7 +2834,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 61
+        "y": 71
       },
       "id": 43,
       "interval": "1s",
@@ -2746,6 +2866,138 @@
         }
       ],
       "title": "Latest respond to task latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 48,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 79
+      },
+      "id": 45,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "cancel_create_new_task_duration * 10 ^ (-3)",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "cancel_new_task",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "create_new_task_duration * 10 ^(-3)",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "create_new_task",
+          "range": true,
+          "refId": "B",
+          "useBackend": false
+        }
+      ],
+      "title": "CreateNewTask Duration",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "total",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "cancel_new_task",
+                "create_new_task"
+              ],
+              "reducer": "sum"
+            }
+          }
+        }
+      ],
       "type": "timeseries"
     },
     {
@@ -2810,7 +3062,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 69
+        "y": 79
       },
       "id": 44,
       "interval": "1s",
@@ -2844,276 +3096,22 @@
       "title": "Latest quorum reached latency",
       "type": "timeseries"
     }
-  ]
-},
-{
-  "datasource": {
-    "type": "prometheus",
-    "uid": "prometheus"
-  },
-  "gridPos": {
-    "h": 2,
-    "w": 12,
-    "x": 0,
-    "y": 69
-  },
-  "id": 46,
-  "options": {
-    "code": {
-      "language": "plaintext",
-      "showLineNumbers": false,
-      "showMiniMap": false
-    },
-    "content": "<h1 style=\"background-color: #00A86B; color: white; padding: 10px; border-radius: 0px; text-align: center;\">\n  Latency\n</h1>",
-    "mode": "html"
-  },
-  "pluginVersion": "10.1.10",
-  "transparent": true,
-  "type": "text"
-},
-{
-  "datasource": {
-    "type": "prometheus",
-    "uid": "prometheus"
-  },
-  "fieldConfig": {
-    "defaults": {
-      "color": {
-        "mode": "palette-classic"
-      },
-      "custom": {
-        "axisCenteredZero": false,
-        "axisColorMode": "text",
-        "axisLabel": "",
-        "axisPlacement": "auto",
-        "barAlignment": 0,
-        "drawStyle": "line",
-        "fillOpacity": 48,
-        "gradientMode": "opacity",
-        "hideFrom": {
-          "legend": false,
-          "tooltip": false,
-          "viz": false
-        },
-        "insertNulls": false,
-        "lineInterpolation": "smooth",
-        "lineWidth": 1,
-        "pointSize": 5,
-        "scaleDistribution": {
-          "type": "linear"
-        },
-        "showPoints": "auto",
-        "spanNulls": false,
-        "stacking": {
-          "group": "A",
-          "mode": "none"
-        },
-        "thresholdsStyle": {
-          "mode": "off"
-        }
-      },
-      "mappings": [],
-      "thresholds": {
-        "mode": "absolute",
-        "steps": [
-          {
-            "color": "green",
-            "value": null
-          }
-        ]
-      },
-      "unit": "ms"
-    },
-    "overrides": []
-  },
-  "gridPos": {
-    "h": 8,
-    "w": 12,
-    "x": 0,
-    "y": 71
-  },
-  "id": 43,
-  "options": {
-    "legend": {
-      "calcs": [],
-      "displayMode": "list",
-      "placement": "bottom",
-      "showLegend": false
-    },
-    "tooltip": {
-      "mode": "single",
-      "sort": "none"
-    }
-  },
-  "targets": [
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "disableTextWrap": false,
-      "editorMode": "code",
-      "expr": "s3_duration * 10 ^ (-3)",
-      "fullMetaSearch": false,
-      "includeNullMetadata": true,
-      "instant": false,
-      "legendFormat": "__auto",
-      "range": true,
-      "refId": "A",
-      "useBackend": false
-    }
   ],
-  "title": "Upload Batch to S3 Duration",
-  "type": "timeseries"
-},
-{
-  "datasource": {
-    "type": "prometheus",
-    "uid": "prometheus"
+  "refresh": "",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": []
   },
-  "fieldConfig": {
-    "defaults": {
-      "color": {
-        "mode": "palette-classic"
-      },
-      "custom": {
-        "axisCenteredZero": false,
-        "axisColorMode": "text",
-        "axisLabel": "",
-        "axisPlacement": "auto",
-        "barAlignment": 0,
-        "drawStyle": "line",
-        "fillOpacity": 48,
-        "gradientMode": "opacity",
-        "hideFrom": {
-          "legend": false,
-          "tooltip": false,
-          "viz": false
-        },
-        "insertNulls": false,
-        "lineInterpolation": "smooth",
-        "lineWidth": 1,
-        "pointSize": 5,
-        "scaleDistribution": {
-          "type": "linear"
-        },
-        "showPoints": "auto",
-        "spanNulls": false,
-        "stacking": {
-          "group": "A",
-          "mode": "none"
-        },
-        "thresholdsStyle": {
-          "mode": "off"
-        }
-      },
-      "mappings": [],
-      "thresholds": {
-        "mode": "absolute",
-        "steps": [
-          {
-            "color": "green",
-            "value": null
-          },
-          {
-            "color": "red",
-            "value": 80
-          }
-        ]
-      },
-      "unit": "s"
-    },
-    "overrides": []
+  "time": {
+    "from": "now-5m",
+    "to": "now"
   },
-  "gridPos": {
-    "h": 8,
-    "w": 12,
-    "x": 0,
-    "y": 79
-  },
-  "id": 45,
-  "options": {
-    "legend": {
-      "calcs": [],
-      "displayMode": "list",
-      "placement": "right",
-      "showLegend": true
-    },
-    "tooltip": {
-      "mode": "single",
-      "sort": "none"
-    }
-  },
-  "targets": [
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "disableTextWrap": false,
-      "editorMode": "code",
-      "expr": "cancel_create_new_task_duration * 10 ^ (-3)",
-      "fullMetaSearch": false,
-      "includeNullMetadata": true,
-      "instant": false,
-      "legendFormat": "cancel_new_task",
-      "range": true,
-      "refId": "A",
-      "useBackend": false
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "disableTextWrap": false,
-      "editorMode": "code",
-      "expr": "create_new_task_duration * 10 ^(-3)",
-      "fullMetaSearch": false,
-      "hide": false,
-      "includeNullMetadata": true,
-      "instant": false,
-      "legendFormat": "create_new_task",
-      "range": true,
-      "refId": "B",
-      "useBackend": false
-    }
-  ],
-  "title": "CreateNewTask Duration",
-  "transformations": [
-    {
-      "id": "calculateField",
-      "options": {
-        "alias": "total",
-        "mode": "reduceRow",
-        "reduce": {
-          "include": [
-            "cancel_new_task",
-            "create_new_task"
-          ],
-          "reducer": "sum"
-        }
-      }
-    }
-  ],
-  "type": "timeseries"
-}
-],
-"refresh": "",
-"schemaVersion": 38,
-"style": "dark",
-"tags": [],
-"templating": {
-"list": []
-},
-"time": {
-"from": "now-5m",
-"to": "now"
-},
-"timepicker": {},
-"timezone": "browser",
-"title": "System Data",
-"uid": "aggregator",
-"version": 9,
-"weekStart": ""
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "System Data",
+  "uid": "aggregator",
+  "version": 7,
+  "weekStart": ""
 }
