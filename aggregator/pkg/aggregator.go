@@ -285,10 +285,12 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	if err == nil {
 		// In some cases, we may fail to retrieve the receipt for the transaction.
 		txHash := "Unknown"
+		effectiveGasPrice := "Unknown"
 		if receipt != nil {
 			txHash = receipt.TxHash.String()
+			effectiveGasPrice = receipt.EffectiveGasPrice.String()
 		}
-		agg.telemetry.TaskSentToEthereum(batchData.BatchMerkleRoot, txHash)
+		agg.telemetry.TaskSentToEthereum(batchData.BatchMerkleRoot, txHash, effectiveGasPrice)
 		agg.logger.Info("Aggregator successfully responded to task",
 			"taskIndex", blsAggServiceResp.TaskIndex,
 			"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
@@ -316,9 +318,8 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
 	// This function is a callback that is called when the gas price is bumped on the avsWriter.SendAggregatedResponse
-	onGasPriceBumped := func(bumpedGasPrice *big.Int) {
-		agg.metrics.IncBumpedGasPriceForAggregatedResponse()
-		agg.telemetry.BumpedTaskGasPrice(batchMerkleRoot, bumpedGasPrice.String())
+	onSetGasPrice := func(gasPrice *big.Int) {
+		agg.telemetry.TaskSetGasPrice(batchMerkleRoot, gasPrice.String())
 	}
 	receipt, err := agg.avsWriter.SendAggregatedResponse(
 		batchIdentifierHash,
@@ -329,12 +330,12 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 		agg.AggregatorConfig.Aggregator.GasBumpIncrementalPercentage,
 		agg.AggregatorConfig.Aggregator.GasBumpPercentageLimit,
 		agg.AggregatorConfig.Aggregator.TimeToWaitBeforeBump,
-		onGasPriceBumped,
+		agg.metrics,
+		onSetGasPrice,
 	)
 	if err != nil {
 		agg.walletMutex.Unlock()
 		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
-		agg.telemetry.LogTaskError(batchMerkleRoot, err)
 		return nil, err
 	}
 

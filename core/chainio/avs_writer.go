@@ -89,7 +89,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 //   - If no receipt is found, but the batch state indicates the response has already been processed, it exits
 //     without an error (returning `nil, nil`).
 //   - An error if the process encounters a fatal issue (e.g., permanent failure in verifying balances or state).
-func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, gasBumpPercentageLimit uint, timeToWaitBeforeBump time.Duration, onGasPriceBumped func(*big.Int)) (*types.Receipt, error) {
+func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, gasBumpPercentageLimit uint, timeToWaitBeforeBump time.Duration, metrics *metrics.Metrics, onSetGasPrice func(*big.Int)) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 	simTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, retry.SendToChainRetryParams())
@@ -141,6 +141,8 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			txOpts.GasPrice = minimumGasPriceBump
 		}
 
+		onSetGasPrice(txOpts.GasPrice)
+
 		if i > 0 {
 			w.logger.Infof("Trying to get old sent transaction receipt before sending a new transaction", "merkle root", batchMerkleRootHashString)
 			for _, tx := range sentTxs {
@@ -161,7 +163,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			}
 			w.logger.Infof("Batch state has not been responded yet, will send a new tx", "merkle root", batchMerkleRootHashString)
 
-			onGasPriceBumped(txOpts.GasPrice)
+			metrics.IncBumpedGasPriceForAggregatedResponse()
 		}
 
 		// We compare both Aggregator funds and Batcher balance in Aligned against respondToTaskFeeLimit

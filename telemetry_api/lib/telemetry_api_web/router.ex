@@ -15,7 +15,7 @@ defmodule TelemetryApiWeb.Router do
     post "/operatorResponse", TraceController, :register_operator_response
     post "/quorumReached", TraceController, :quorum_reached
     post "/taskError", TraceController, :task_error
-    post "/aggregatorTaskGasPriceBump", TraceController, :aggregator_task_gas_price_bumped
+    post "/aggregatorTaskSetGasPrice", TraceController, :aggregator_task_set_gas_price
     post "/aggregatorTaskSent", TraceController, :aggregator_task_sent
     post "/finishTaskTrace", TraceController, :finish_task_trace
 
