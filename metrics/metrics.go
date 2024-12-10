@@ -21,6 +21,7 @@ type Metrics struct {
 	aggregatorGasCostPaidForBatcherTotal   prometheus.Gauge
 	aggregatorNumTimesPaidForBatcher       prometheus.Counter
 	numBumpedGasPriceForAggregatedResponse prometheus.Counter
+	aggregatorGasCostPaidTotal             prometheus.Counter
 	aggregatorRespondToTaskLatency         prometheus.Gauge
 	aggregatorTaskQuorumReachedLatency     prometheus.Gauge
 }
@@ -55,6 +56,11 @@ func NewMetrics(ipPortAddress string, reg prometheus.Registerer, logger logging.
 			Namespace: alignedNamespace,
 			Name:      "aggregator_num_times_paid_for_batcher_count",
 			Help:      "Number of times the aggregator paid for the batcher when the tx cost was higher than the respondToTaskFeeLimit",
+		}),
+		aggregatorGasCostPaidTotal: promauto.With(reg).NewCounter(prometheus.CounterOpts{
+			Namespace: alignedNamespace,
+			Name:      "aggregator_gas_cost_paid_total_count",
+			Help:      "Total amount of gas paid by the aggregator while responding to tasks",
 		}),
 		numBumpedGasPriceForAggregatedResponse: promauto.With(reg).NewCounter(prometheus.CounterOpts{
 			Namespace: alignedNamespace,
@@ -123,6 +129,10 @@ func (m *Metrics) IncAggregatorPaidForBatcher() {
 
 func (m *Metrics) AddAggregatorGasPaidForBatcher(value float64) {
 	m.aggregatorGasCostPaidForBatcherTotal.Add(value)
+}
+
+func (m *Metrics) AddAggregatorGasCostPaidTotal(value float64) {
+	m.aggregatorGasCostPaidTotal.Add(value)
 }
 
 func (m *Metrics) IncBumpedGasPriceForAggregatedResponse() {
