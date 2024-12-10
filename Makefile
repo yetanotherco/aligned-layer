@@ -604,6 +604,16 @@ upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
 
+set_aggregator_address:
+	@echo "Setting Aggregator Address in Aligned Service Manager Contract on $(NETWORK) network..."
+	@echo "Aggregator address: $(AGGREGATOR_ADDRESS)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/set_aggregator_address.sh $(AGGREGATOR_ADDRESS)
+
+set_aggregator_address_devnet:
+	@echo "Setting Aggregator Address in Aligned Service Manager Contract..."
+	@echo "Aggregator address: $(AGGREGATOR_ADDRESS)"
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/set_aggregator_address.sh $(AGGREGATOR_ADDRESS)
+
 upgrade_initialize_disabled_verifiers:
 	@echo "Adding disabled verifiers to Aligned Service Manager..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_disabled_verifiers_in_service_manager.sh
