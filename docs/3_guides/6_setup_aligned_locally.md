@@ -151,3 +151,25 @@ make batcher_send_burst_groth16 BURST_SIZE=2
 ```
 
 Feel free to explore the rest of targets.
+
+---
+
+## Other Components
+
+Aligned also counts with 2 external components, which are not necesarry for Aligned to work, but are really usefull for observability of Aligned:
+
+### Explorer
+
+The Explorer is used to view the current state of the network, as a whole. With it, you can visualize:
+- Submitted batches, proofs
+  - With their current status and other useful metadata
+- Operators registered, and their staking
+- Other cumulative Stake information
+
+On how to set up the Explorer, you can follow [the following guide](./6.1_explorer.md)
+
+### Metrics/Telemetry
+
+The Metrics and Telemetry are used to view more in-depth information about the network. With it, you can visualize all sort of cumulative and historical metrics of the network, of the individual components and their behaviours.
+
+On how to set up the Explorer, you can follow [the following guide](./6.2_metrics_telemetry.md)
