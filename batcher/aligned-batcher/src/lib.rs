@@ -1047,9 +1047,8 @@ impl Batcher {
         // Update metrics
         let queue_len = batch_state_lock.batch_queue.len();
         let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
-
-        self.metrics.queue_len.set(queue_len as i64);
-        self.metrics.queue_size_bytes.set(queue_size_bytes as i64);
+        self.metrics
+            .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
 
         info!("Current batch queue length: {}", queue_len);
 
@@ -1235,8 +1234,8 @@ impl Batcher {
         let queue_len = batch_state_lock.batch_queue.len();
         let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
 
-        self.metrics.queue_len.set(queue_len as i64);
-        self.metrics.queue_size_bytes.set(queue_size_bytes as i64);
+        self.metrics
+            .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
 
         Ok(())
     }
@@ -1386,8 +1385,7 @@ impl Batcher {
             .user_states
             .insert(nonpaying_replacement_addr, nonpaying_user_state);
 
-        self.metrics.queue_len.set(0);
-        self.metrics.queue_size_bytes.set(0);
+        self.metrics.update_queue_metrics(0, 0);
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and

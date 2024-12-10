@@ -117,4 +117,9 @@ impl BatcherMetrics {
     pub fn user_error(&self, label_values: &[&str]) {
         self.user_errors.with_label_values(label_values).inc();
     }
+
+    pub fn update_queue_metrics(&self, queue_len: i64, queue_size: i64) {
+        self.queue_len.set(queue_len);
+        self.queue_size_bytes.set(queue_size);
+    }
 }
