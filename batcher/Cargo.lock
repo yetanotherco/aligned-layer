@@ -130,6 +130,7 @@ name = "aligned-sdk"
 version = "0.1.0"
 dependencies = [
  "ciborium",
+ "clap",
  "dialoguer",
  "ethers",
  "futures-util",
