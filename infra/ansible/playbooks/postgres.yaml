@@ -5,7 +5,6 @@
     ansible_ssh_user: "{{ admin_user }}"
 
   tasks:
-
     - name: Update apt and install required system packages
       become: true
       ansible.builtin.apt:
@@ -21,7 +20,7 @@
         path: /usr/share/postgresql-common/pgdg
         state: directory
         mode: '0755'
-    
+
     - name: Download postgres ca-certificates if not already present
       become: true
       ansible.builtin.get_url:
@@ -45,3 +44,14 @@
           - postgresql-16
         state: latest
         update_cache: true
+
+    - name: Create PostgreSQL credentials
+      shell:
+        cmd: |
+          sudo -u postgres psql -U postgres -c "CREATE USER {{ DB_USER }} WITH PASSWORD '{{ DB_PASS }}';"
+          sudo -u postgres psql -U postgres -c "CREATE DATABASE {{ DB_NAME }} OWNER {{ DB_USER }};"
+      vars:
+        DB_USER: "{{ lookup('ini', 'DB_USER', file=ini_file) }}"
+        DB_PASS: "{{ lookup('ini', 'DB_PASS', file=ini_file) }}"
+        DB_NAME: "{{ lookup('ini', 'DB_NAME', file=ini_file) }}"
+      ignore_errors: true

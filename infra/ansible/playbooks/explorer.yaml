@@ -17,8 +17,10 @@
   ansible.builtin.import_playbook: postgres.yaml
   vars:
     host: explorer
+    ini_file: ini/config-explorer.ini
 
-- hosts: explorer
+- name: Setup Explorer
+  hosts: explorer
   vars:
     service: "explorer"
 
@@ -31,21 +33,40 @@
         ansible_ssh_user: "{{ admin_user }}"
 
     - name: Clone the aligned_layer repository
-      register: clone_repo
       ansible.builtin.git:
         repo: https://github.com/yetanotherco/aligned_layer
-        dest: "{{ ansible_env.HOME }}/aligned_layer"
+        dest: "/home/{{ ansible_user }}/repos/explorer/aligned_layer"
+        version: explorer-ssl
         update: yes
 
   tasks:
+    - name: Add environment file for Explorer
+      template:
+        src: explorer/explorer_env.j2
+        dest: /home/{{ ansible_user }}/repos/explorer/aligned_layer/explorer/.env
+      vars:
+        RPC_URL: "{{ lookup('ini', 'RPC_URL file=ini/config-explorer.ini') }}"
+        ENVIRONMENT: "{{ lookup('ini', 'ENVIRONMENT file=ini/config-explorer.ini') }}"
+        ALIGNED_CONFIG_FILE: "{{ lookup('ini', 'ALIGNED_CONFIG_FILE file=ini/config-explorer.ini') }}"
+        PHX_HOST: "{{ lookup('ini', 'PHX_HOST file=ini/config-explorer.ini') }}"
+        ELIXIR_HOSTNAME: "{{ lookup('ini', 'ELIXIR_HOSTNAME file=ini/config-explorer.ini') }}"
+        DB_NAME: "{{ lookup('ini', 'DB_NAME file=ini/config-explorer.ini') }}"
+        DB_USER: "{{ lookup('ini', 'DB_USER file=ini/config-explorer.ini') }}"
+        DB_PASS: "{{ lookup('ini', 'DB_PASS file=ini/config-explorer.ini') }}"
+        DB_HOST: "{{ lookup('ini', 'DB_HOST file=ini/config-explorer.ini') }}"
+        TRACKER_API_URL: "{{ lookup('ini', 'TRACKER_API_URL file=ini/config-explorer.ini') }}"
+        SECRET_KEY_BASE: "{{ lookup('ini', 'SECRET_KEY_BASE file=ini/config-explorer.ini') }}"
+
     - name: Build the explorer release
       args:
-        chdir: "{{ clone_repo.git_dir_now }}"
+        chdir: "/home/{{ ansible_user }}/repos/explorer/aligned_layer/explorer"
       environment:
         MIX_ENV: prod
-      ansible.builtin.shell:
+      shell:
+        executable: /bin/bash
         cmd: |
           set -ex
+          source .env
           mix local.hex --force
           mix local.rebar --force
           mix deps.get --only $MIX_ENV
@@ -53,4 +74,12 @@
           pnpm --prefix=assets/ install
           mix phx.digest
           mix assets.deploy
-          mix release
+          mix release --overwrite
+
+    - name: Set CAP_NET_BIND_SERVICE to beam
+      shell:
+        cmd: sudo setcap CAP_NET_BIND_SERVICE=+eip /home/app/repos/explorer/aligned_layer/explorer/_build/prod/rel/explorer/erts-14.2.1/bin/beam.smp
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    # TODO: add systemd service
