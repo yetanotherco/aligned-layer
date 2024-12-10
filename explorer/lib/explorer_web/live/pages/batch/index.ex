@@ -59,9 +59,10 @@ defmodule ExplorerWeb.Batch.Index do
 
           %{
             batch
-            | fee_per_proof: EthConverter.wei_to_eth(fee_per_proof),
-              fee_per_proof_usd: fee_per_proof_usd
+            | fee_per_proof: EthConverter.wei_to_eth(fee_per_proof)
           }
+          |> Map.put(:fee_per_proof_usd, fee_per_proof_usd)
+
       end
 
     {
