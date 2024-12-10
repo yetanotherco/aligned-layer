@@ -405,18 +405,16 @@ impl Batcher {
             .await
             .send(Message::binary(serialized_protocol_version_msg))
             .await?;
-        
-        let mut incoming_filter = incoming.try_filter(|msg| future::ready(msg.is_binary()));
 
+        let mut incoming_filter = incoming.try_filter(|msg| future::ready(msg.is_binary()));
         let future_msg = incoming_filter.try_next();
 
         // timeout to prevent a DOS attack
-        match timeout(Duration::from_secs(CONNECTION_TIMEOUT*10), future_msg).await {
+        match timeout(Duration::from_secs(CONNECTION_TIMEOUT), future_msg).await {
             Ok(Ok(Some(msg))) => {
                 self.clone().handle_message(msg, outgoing.clone()).await?;
             }
             Err(elapsed) => {
-                info!("timeout here");
                 warn!("[{}] {}", &addr, elapsed);
                 self.metrics.user_error(&["user_timeout", ""]);
                 self.metrics.open_connections.dec();
