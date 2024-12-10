@@ -34,10 +34,10 @@ defmodule AssetsCTAComponent do
           </div>
             <div class="flex items-center justify-between flex-wrap">
                 <span class="text-4xl font-bold slashed-zero">
-                  <%= @total_staked_eth %> ETH
+                <%= @total_staked_usd %> USD
                 </span>
                 <p class="text-s slashed-zero text-gray-500 mt-2">
-                  (<%= @total_staked_usd %> USD)
+                  (<%= @total_staked_eth %> ETH)
                 </p>
             </div>
           <.tooltip>

@@ -90,8 +90,8 @@ defmodule ExplorerWeb.Restakes.Index do
           <:col :let={asset} label="Total Restaked">
             <div class="flex flex-col">
               <%= if asset.total_staked_eth != nil do %>
-                <p><%= asset.total_staked_eth %> ETH</p>
-                <p class="text-gray-500 font-normal"><%= asset.total_staked_usd %> USD</p>
+                <p><%= asset.total_staked_usd %> USD</p>
+                <p class="text-gray-500 font-normal"><%= asset.total_staked_eth %> ETH</p>
               <% else %>
                 N/A
               <% end %>
