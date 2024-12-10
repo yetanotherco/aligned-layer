@@ -344,7 +344,7 @@ async fn main() -> Result<(), AlignedError> {
             let eth_rpc_url = submit_args.eth_rpc_url.clone();
             let max_fee_wei = submit_args.get_max_fee().await?;
             info!(
-                "Will send proof with an estimated max_fee of: {}ether",
+                "Will send each proof with an estimated max_fee of: {}ether",
                 format_ether(max_fee_wei)
             );
             let repetitions = submit_args.repetitions;
