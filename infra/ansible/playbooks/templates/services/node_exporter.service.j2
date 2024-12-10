@@ -4,9 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-User={{ ansible_user }}
 WorkingDirectory=/home/{{ ansible_user }}/
-ExecStart=node_exporter --collector.systemd --collector.processes
+ExecStart=/home/admin/.node_exporter/bin/node_exporter --collector.systemd --collector.processes
 Restart=always
 RestartSec=1
 StartLimitBurst=100
