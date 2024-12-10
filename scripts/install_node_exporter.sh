@@ -6,6 +6,10 @@ VERSION="1.8.2"
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 
+if [[ "$ARCH" == "x86_64" ]]; then
+    ARCH="amd64"
+fi
+
 BASE_DIR="$HOME"
 NODE_EXPORTER_DIR="${NODE_EXPORTER_DIR-"$BASE_DIR/.node_exporter"}"
 NODE_EXPORTER_BIN_DIR="$NODE_EXPORTER_DIR/bin"
@@ -16,17 +20,23 @@ FILE="node_exporter-$VERSION.$OS-$ARCH.tar.gz"
 
 mkdir -p "$NODE_EXPORTER_BIN_DIR"
 
-if curl -sSf -L "$RELEASE_URL$FILE" -o "$NODE_EXPORTER_DIR/$FILE"; then
-    echo "Node Exporter download successful."
+echo "Downloading Node Exporter from $RELEASE_URL$FILE..."
+if wget -q "$RELEASE_URL$FILE"; then
+    echo "Download successful."
 else
     echo "Error: Failed to download $RELEASE_URL$FILE"
     exit 1
 fi
 
-tar xvfz "$NODE_EXPORTER_DIR/$FILE" -C "$NODE_EXPORTER_DIR"
-mv "$NODE_EXPORTER_DIR/node_exporter-$VERSION.$OS-$ARCH/node_exporter" "$NODE_EXPORTER_BIN_PATH"
-
-chmod +x "$NODE_EXPORTER_BIN_PATH"
+echo "Extracting Node Exporter..."
+if tar xvfz $FILE; then
+    mv "node_exporter-$VERSION.$OS-$ARCH/node_exporter" "$NODE_EXPORTER_BIN_PATH"
+    chmod +x "$NODE_EXPORTER_BIN_PATH"
+    rm -rf "node_exporter-$VERSION.$OS-$ARCH" $FILE
+else
+    echo "Error: Failed to extract $FILE"
+    exit 1
+fi
 
 # Store the correct profile file (i.e. .profile for bash or .zshenv for ZSH).
 case $SHELL in
