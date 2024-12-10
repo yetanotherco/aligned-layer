@@ -23,6 +23,11 @@
   vars:
     host: batcher
 
+- name: Run node_exporter playbook
+  ansible.builtin.import_playbook: node_exporter.yaml
+  vars:
+    host: batcher
+
 - hosts: batcher
 
   tasks:
@@ -43,9 +48,9 @@
       ansible.builtin.file:
         path: /home/{{ ansible_user }}/repos/batcher
         state: directory
-        mode: '0755'
-        owner: '{{ ansible_user }}'
-        group: '{{ ansible_user }}'
+        mode: "0755"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
 
     # Clone Aligned repository for the service
     - name: Clone Aligned repository
@@ -69,11 +74,6 @@
         target: install_batcher
       environment:
         PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
-
-    - name: Create systemd services directory
-      file:
-        path: "/home/{{ ansible_user }}/.config/systemd/user/"
-        state: directory
 
     - name: Add service to systemd
       template:
@@ -120,10 +120,10 @@
 
     - name: Copy keystore to server
       ansible.builtin.copy:
-        src: '{{ keystore_path }}'
+        src: "{{ keystore_path }}"
         dest: /home/{{ ansible_user }}/.keystores/batcher
-        owner: '{{ ansible_user }}'
-        group: '{{ ansible_user }}'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
 
     - name: Start Batcher service
       ansible.builtin.systemd_service:
@@ -139,7 +139,7 @@
         state: restarted
       vars:
         ansible_ssh_user: "{{ admin_user }}"
-    
+
     - name: Run setup playbook
       ansible.builtin.import_playbook: node_exporter.yaml
       vars:
