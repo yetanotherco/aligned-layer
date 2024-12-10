@@ -372,7 +372,6 @@ impl Batcher {
         self.metrics.open_connections.inc();
 
         let ws_stream_future = tokio_tungstenite::accept_async(raw_stream);
-
         let ws_stream =
             match timeout(Duration::from_secs(CONNECTION_TIMEOUT), ws_stream_future).await {
                 Ok(Ok(stream)) => stream,
