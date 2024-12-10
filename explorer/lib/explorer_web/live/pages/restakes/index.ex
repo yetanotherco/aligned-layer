@@ -5,7 +5,7 @@ defmodule ExplorerWeb.Restakes.Index do
     Strategies.get_all_strategies()
     |> Enum.map(fn strategy ->
       total_staked_eth = EthConverter.wei_to_eth(strategy.total_staked, 2)
-      {_, total_staked_usd} = EthConverter.wei_to_usd(strategy.total_staked, 2)
+      {_, total_staked_usd} = EthConverter.wei_to_usd(strategy.total_staked, 0)
 
       strategy
       |> Map.put(:total_staked_eth, total_staked_eth)
@@ -90,8 +90,8 @@ defmodule ExplorerWeb.Restakes.Index do
           <:col :let={asset} label="Total Restaked">
             <div class="flex flex-col">
               <%= if asset.total_staked_eth != nil do %>
-                <p><%= asset.total_staked_usd %> USD</p>
-                <p class="text-gray-500 font-normal"><%= asset.total_staked_eth %> ETH</p>
+                <p><%= asset.total_staked_usd |> Helpers.format_number() %> USD</p>
+                <p class="text-gray-500 font-normal"><%= asset.total_staked_eth |> Helpers.format_number() %> ETH</p>
               <% else %>
                 N/A
               <% end %>

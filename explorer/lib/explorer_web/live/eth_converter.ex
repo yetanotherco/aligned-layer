@@ -31,7 +31,7 @@ defmodule EthConverter do
     |> wei_to_eth(decimal_places)
   end
 
-  def wei_to_usd(wei, decimal_places \\ 2) do
+  def wei_to_usd(wei, decimal_places \\ 0) do
     with eth_amount <- wei_to_eth(wei, 18),
          {:ok, eth_price} <- get_eth_price_usd() do
       usd_value =

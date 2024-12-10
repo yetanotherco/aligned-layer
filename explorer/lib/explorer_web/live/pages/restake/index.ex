@@ -12,7 +12,7 @@ defmodule ExplorerWeb.Restake.Index do
 
     {_, restaked_amount_usd} =
       total_stake
-      |> EthConverter.wei_to_usd(2)
+      |> EthConverter.wei_to_usd(0)
 
     {:noreply,
      assign(socket,
@@ -29,7 +29,7 @@ defmodule ExplorerWeb.Restake.Index do
 
     {_, restaked_amount_usd} =
       restake.total_staked
-      |> EthConverter.wei_to_usd(2)
+      |> EthConverter.wei_to_usd(0)
 
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_restakings")
 

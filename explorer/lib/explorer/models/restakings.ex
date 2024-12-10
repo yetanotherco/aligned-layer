@@ -137,7 +137,7 @@ defmodule Restakings do
         nil
 
       _ ->
-        case EthConverter.wei_to_usd(restaked_amount_wei, 2) do
+        case EthConverter.wei_to_usd(restaked_amount_wei, 0) do
           {:ok, usd_value} -> usd_value
           _ -> nil
         end

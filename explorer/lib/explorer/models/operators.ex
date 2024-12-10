@@ -77,7 +77,7 @@ defmodule Operators do
           total_stake_eth = operator.total_stake |> EthConverter.wei_to_eth(2)
 
           {_, total_stake_usd} =
-            operator.total_stake |> EthConverter.wei_to_usd(2)
+            operator.total_stake |> EthConverter.wei_to_usd(0)
 
           Map.from_struct(operator)
           |> Map.put(:total_stake_eth, total_stake_eth)
