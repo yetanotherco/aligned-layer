@@ -12,7 +12,7 @@ use retry::batcher_retryables::{
     user_balance_is_unlocked_retryable,
 };
 use retry::{retry_function, RetryError};
-use tokio::time::timeout;
+use tokio::time::{timeout, Instant};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
@@ -1524,6 +1524,7 @@ impl Batcher {
         proof_submitters: Vec<Address>,
         fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
+        let start = Instant::now();
         let result = retry_function(
             || {
                 create_new_task_retryable(
@@ -1542,6 +1543,11 @@ impl Batcher {
             ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
         .await;
+        self.metrics
+            .create_new_task_duration
+            .set(start.elapsed().as_millis() as i64);
+        // Set to zero since it is not always executed
+        self.metrics.cancel_create_new_task_duration.set(0);
         match result {
             Ok(receipt) => {
                 if let Err(e) = self
@@ -1600,10 +1606,11 @@ impl Batcher {
     /// After 2 hours (attempt 13), retries occur hourly for 1 day (33 retries).
     pub async fn cancel_create_new_task_tx(&self, old_tx_gas_price: U256) {
         info!("Cancelling createNewTask transaction...");
+        let start = Instant::now();
         let iteration = Arc::new(Mutex::new(0));
         let previous_gas_price = Arc::new(Mutex::new(old_tx_gas_price));
 
-        if let Err(e) = retry_function(
+        match retry_function(
             || async {
                 let mut iteration = iteration.lock().await;
                 let mut previous_gas_price = previous_gas_price.lock().await;
@@ -1639,11 +1646,12 @@ impl Batcher {
         )
         .await
         {
-            error!("Could not cancel createNewTask transaction: {e}");
-            return;
+            Ok(_) => info!("createNewTask transaction successfully canceled"),
+            Err(e) => error!("Could not cancel createNewTask transaction: {e}"),
         };
-
-        info!("createNewTask transaction successfully canceled");
+        self.metrics
+            .cancel_create_new_task_duration
+            .set(start.elapsed().as_millis() as i64);
     }
 
     /// Only relevant for testing and for users to easily use Aligned
@@ -1785,7 +1793,8 @@ impl Batcher {
         batch_bytes: &[u8],
         file_name: &str,
     ) -> Result<(), BatcherError> {
-        retry_function(
+        let start = Instant::now();
+        let result = retry_function(
             || {
                 Self::upload_batch_to_s3_retryable(
                     batch_bytes,
@@ -1800,7 +1809,13 @@ impl Batcher {
             ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
         .await
-        .map_err(|e| BatcherError::BatchUploadError(e.to_string()))
+        .map_err(|e| BatcherError::BatchUploadError(e.to_string()));
+
+        self.metrics
+            .s3_duration
+            .set(start.elapsed().as_micros() as i64);
+
+        result
     }
 
     async fn upload_batch_to_s3_retryable(
