@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import {Utils} from "./Utils.sol";
 
-contract DeployL1Script is Script {
+contract DeployScript is Script {
     struct Supply {
         address beneficiary;
         uint256 amount;
