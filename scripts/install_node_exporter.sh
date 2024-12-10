@@ -1,29 +1,30 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+echo "Installing Node Exporter..."
 
-echo "Installing node-exporter..."
+VERSION="1.8.2"
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m)
 
-BASE_DIR=$HOME
+BASE_DIR="$HOME"
 NODE_EXPORTER_DIR="${NODE_EXPORTER_DIR-"$BASE_DIR/.node_exporter"}"
 NODE_EXPORTER_BIN_DIR="$NODE_EXPORTER_DIR/bin"
 NODE_EXPORTER_BIN_PATH="$NODE_EXPORTER_BIN_DIR/node_exporter"
-RELEASE_URL="https://github.com/prometheus/node_exporter/releases/download/v1.8.2/"
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-ARCH=$(uname -m)
-FILE="node_exporter-1.8.2.$OS-$ARCH.tar.gz"
 
+RELEASE_URL="https://github.com/prometheus/node_exporter/releases/download/v$VERSION/"
+FILE="node_exporter-$VERSION.$OS-$ARCH.tar.gz"
 
 mkdir -p "$NODE_EXPORTER_BIN_DIR"
-if curl -sSf -L "$RELEASE_URL$FILE" -o "$NODE_EXPORTER_BIN_PATH"; then
-    echo "Node exporter download successful."
+
+if curl -sSf -L "$RELEASE_URL$FILE" -o "$NODE_EXPORTER_DIR/$FILE"; then
+    echo "Node Exporter download successful."
 else
     echo "Error: Failed to download $RELEASE_URL$FILE"
     exit 1
 fi
 
-tar xvfz $NODE_EXPORTER_BIN_PATH -C $NODE_EXPORTER_DIR
-mv "$NODE_EXPORTER_DIR/"node_exporter-1.8.2.$OS-$ARCH"/node_exporter" $NODE_EXPORTER_BIN_PATH 
+tar xvfz "$NODE_EXPORTER_DIR/$FILE" -C "$NODE_EXPORTER_DIR"
+mv "$NODE_EXPORTER_DIR/node_exporter-$VERSION.$OS-$ARCH/node_exporter" "$NODE_EXPORTER_BIN_PATH"
 
 chmod +x "$NODE_EXPORTER_BIN_PATH"
 
@@ -61,6 +62,6 @@ if [[ ":$PATH:" != *":${NODE_EXPORTER_BIN_DIR}:"* ]]; then
     fi
 fi
 
-echo "Node exporter installed successfully in $NODE_EXPORTER_BIN_PATH."
+echo "Node exporter $VERSION installed successfully in $NODE_EXPORTER_BIN_PATH."
 echo "Detected your preferred shell is $PREF_SHELL and added node-exporter to PATH."
 echo "Run 'source $PROFILE' or start a new terminal session to use node-exporter."
