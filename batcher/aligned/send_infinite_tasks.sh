@@ -14,7 +14,7 @@ fi
 
 # Set default values for RPC and BATCHER if they are not set
 RPC=${RPC:-http://localhost:8545}
-BATCHER_CONN=${BATCHER_CONN:-ws://localhost:8080}
+BATCHER_CONN=${BATCHER_CONN:-wss://localhost:8080}
 if [ -z "$NETWORK" ]; then
     echo "NETWORK is not set. Setting it to devnet"
     NETWORK="devnet"
