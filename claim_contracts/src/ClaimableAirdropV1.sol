@@ -4,9 +4,16 @@ pragma solidity ^0.8.13;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract ClaimableAirdrop is ReentrancyGuard, Initializable {
+contract ClaimableAirdropV1 is
+    ReentrancyGuard,
+    Initializable,
+    OwnableUpgradeable,
+    UUPSUpgradeable
+{
     address public tokenContractAddress;
     address public tokenOwnerAddress;
     uint256 public limitTimestampToClaim;
@@ -16,12 +23,21 @@ contract ClaimableAirdrop is ReentrancyGuard, Initializable {
 
     event TokenClaimed(address indexed to, uint256 indexed amount);
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
+        address _initialOwner,
         address _tokenContractAddress,
         address _tokenOwnerAddress,
         uint256 _limitTimestampToClaim,
         bytes32 _claimMerkleRoot
     ) public initializer nonReentrant {
+        __Ownable_init(_initialOwner);
+        __UUPSUpgradeable_init();
+
         tokenContractAddress = _tokenContractAddress;
         tokenOwnerAddress = _tokenOwnerAddress;
         limitTimestampToClaim = _limitTimestampToClaim;
@@ -60,4 +76,8 @@ contract ClaimableAirdrop is ReentrancyGuard, Initializable {
 
         emit TokenClaimed(msg.sender, amount);
     }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 }
