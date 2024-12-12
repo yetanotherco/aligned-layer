@@ -953,7 +953,7 @@ impl Batcher {
             .is_none()
         {
             std::mem::drop(batch_state_lock);
-            warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
+            warn!("User state for address {addr} was not present in batcher user states, but it should be");
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::AddToBatchError,
@@ -972,7 +972,7 @@ impl Batcher {
             .is_none()
         {
             std::mem::drop(batch_state_lock);
-            warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
+            warn!("User state for address {addr} was not present in batcher user states, but it should be");
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::AddToBatchError,
@@ -1655,9 +1655,7 @@ impl Batcher {
     /// Gets the balance of user with address `addr` from Ethereum.
     /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
     /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs)
-    /// Returns `None` if the balance couldn't be returned
-    /// FIXME: This should return a `Result` instead.
-    async fn get_user_balance(&self, addr: &Address) -> Option<U256> {
+    pub async fn get_user_balance(&self, addr: &Address) -> Result<U256, BatcherError> {
         retry_function(
             || {
                 get_user_balance_retryable(
@@ -1672,7 +1670,7 @@ impl Batcher {
             ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
         .await
-        .ok()
+        .map_err(|e| BatcherError::UserBalanceError(e.to_string()))
     }
 
     /// Checks if the user's balance is unlocked for a given address.
