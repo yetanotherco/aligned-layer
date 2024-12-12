@@ -20,6 +20,7 @@ pub enum BatcherError {
     BatchCostTooHigh,
     WsSinkEmpty,
     AddressNotFoundInUserStates(Address),
+    UserBalanceError(String),
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -97,6 +98,9 @@ impl fmt::Debug for BatcherError {
                     "Error while trying to get disabled verifiers: {}",
                     reason
                 )
+            }
+            BatcherError::UserBalanceError(e) => {
+                write!(f, "User balance error: {}", e)
             }
         }
     }
