@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "../src/AlignedTokenV1.sol";
-import "../src/AlignedTokenV2Example.sol";
+import "../../src/AlignedTokenV1.sol";
+import "../../src/AlignedTokenV2Example.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "forge-std/Script.sol";
-import {Utils} from "./Utils.sol";
+import {Utils} from "../Utils.sol";
 
 contract UpgradeAlignedTokenImplementation is Script {
     function run(
