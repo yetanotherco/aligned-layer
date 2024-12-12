@@ -1,19 +1,24 @@
 .PHONY: help deploy-aligned-token-implementation deploy-aligned-token-proxy deploy-claimable-airdrop-implementation deploy-claimable-airdrop-proxy upgrade-aligned-token-implementation aligned-token-proxy-deploy-data aligned-token-init-data aligned-token-upgrade-data aligned-token-create2 aligned-token-proxy-create2
 
-RPC_URL?=http://localhost:8545
-PRIVATE_KEY?=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-VERSION?=1
 
 help: ## 📚 Show help for each of the Makefile recipes
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 # Deployments
 
+RPC_URL?=http://localhost:8545
+PRIVATE_KEY?=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+VERSION?=1
+
 MINT?="1 ether"
 OWNER?=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 BENEFICIARY1?=0x70997970C51812dc3A010C7d01b50e0d17dc79C8
 BENEFICIARY2?=0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
 BENEFICIARY3?=0x90F79bf6EB2c4f870365E785982E1f101E93b906
+
+CLAIM_TIME_LIMIT?=1632960000
+MERKLE_ROOT?=0x90076b5fb9a6c81d9fce83dfd51760987b8c49e7c861ea25b328e6e63d2cd3df
+TOKEN_OWNER?=$(OWNER)
 
 deploy-aligned-token-implementation: ## 🚀 Deploy the AlignedToken implementation contract
 	cd script/aligned_token && \
@@ -45,8 +50,8 @@ deploy-claimable-airdrop-implementation: ## 🚀 Deploy the ClaimableAirdrop imp
 deploy-claimable-airdrop-proxy: ## 🚀 Deploy the ClaimableAirdrop proxy contract
 	cd script/claimable_airdrop && \
 	forge script DeployClaimableAirdropProxy.s.sol \
-	--sig "run(address,uint256,address,address,address,address)" \
-	$(IMPLEMENTATION) $(VERSION) $(OWNER) $(BENEFICIARY1) $(BENEFICIARY2) $(BENEFICIARY3) $(MINT) \
+	--sig "run(address,uint256,address,address,address,uint256,bytes32)" \
+	$(IMPLEMENTATION) $(VERSION) $(OWNER) $(TOKEN) $(BENEFICIARY1) $(CLAIM_TIME_LIMIT) $(MERKLE_ROOT) \
 	--rpc-url $(RPC_URL) \
 	--private-key $(PRIVATE_KEY) \
 	--broadcast
@@ -98,11 +103,28 @@ aligned-token-proxy-create2: ## 🚀 Generate the create2 data for the AlignedTo
 	--sig "run(address,uint256, address,address,address,address,uint256,bytes32,address)" \
 	$(IMPLEMENTATION) $(VERSION) $(OWNER) $(BENEFICIARY1) $(BENEFICIARY2) $(BENEFICIARY3) $(MINT) $(SALT) $(DEPLOYER
 
+# Misc
+
+approve:
+	cd script && \
+	forge script ApproveERC20.s.sol \
+	--sig "run(address,address,uint256)" \
+	$(TOKEN) $(AIRDROP) $(AMOUNT) \
+	--rpc-url $(RPC_URL) \
+	--private-key $(HOLDER_PRIVATE_KEY) \
+	--broadcast
+
 # Test targets
 
-test-token: ## 🚀 Test the AlignedToken contract
-	cast call $(ADDRESS) "name()(string)" --rpc-url http://localhost:8545
-	cast call $(ADDRESS) "totalSupply()(uint256)" --rpc-url http://localhost:8545
+test-token:
+	cast call $(ADDRESS) "name()(string)" --rpc-url $(RPC_URL)
+	cast call $(ADDRESS) "totalSupply()(uint256)" --rpc-url $(RPC_URL)
 
-test-airdrop: ## 🚀 Test the ClaimableAirdrop contract
-	cast call $(ADDRESS) "hasClaimed(address)(bool)" --rpc-url http://localhost:8545
+AMOUNT_TO_CLAIM=$(shell curl -S -H "Content-Type: application/json" http://localhost:4000/api/proof/\$(CLAIMER) | jq -r .amount)
+MERKLE_PROOF_TO_CLAIM=$(shell curl -S -H "Content-Type: application/json" http://localhost:4000/api/proof/\$(CLAIMER) | jq .proof | tr -d '"\n ')
+test-claim:
+	cast send $(AIRDROP) --private-key $(CLAIMER_PRIVATE_KEY) "claim(uint256,bytes32[])" $(AMOUNT_TO_CLAIM) "$(MERKLE_PROOF_TO_CLAIM)" --rpc-url $(RPC_URL)
+
+test-claimed:
+	cast call $(AIRDROP) "hasClaimed(address)(bool)" $(CLAIMER) --rpc-url $(RPC_URL)
+	cast balance --erc20 $(TOKEN) $(CLAIMER) --rpc-url $(RPC_URL)
