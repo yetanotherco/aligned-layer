@@ -6,18 +6,16 @@ import {Utils} from "../Utils.sol";
 
 contract AlignedTokenProxyDeploymentData is Script {
     function run(
+        address _proxyAdmin,
         address _implementation,
-        uint256 _version,
-        address _safe,
         address _beneficiary1,
         address _beneficiary2,
         address _beneficiary3,
         uint256 _mintAmount
     ) public {
         bytes memory data = Utils.alignedTokenProxyDeploymentData(
+            _proxyAdmin,
             _implementation,
-            _version,
-            _safe,
             _beneficiary1,
             _beneficiary2,
             _beneficiary3,

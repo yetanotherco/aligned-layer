@@ -7,11 +7,10 @@ import {Utils} from "../Utils.sol";
 
 contract AlignedTokenProxyCreate2 is Script {
     function run(
+        address _proxyAdmin,
         bytes32 _salt,
         address _deployer,
         address _implementation,
-        uint256 _version,
-        address _safe,
         address _beneficiary1,
         address _beneficiary2,
         address _beneficiary3,
@@ -21,9 +20,8 @@ contract AlignedTokenProxyCreate2 is Script {
             _salt,
             keccak256(
                 Utils.alignedTokenProxyDeploymentData(
+                    _proxyAdmin,
                     _implementation,
-                    _version,
-                    _safe,
                     _beneficiary1,
                     _beneficiary2,
                     _beneficiary3,

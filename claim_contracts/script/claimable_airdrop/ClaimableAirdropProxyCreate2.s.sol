@@ -7,11 +7,10 @@ import {Utils} from "../Utils.sol";
 
 contract ClaimableAirdropnProxyCreate2 is Script {
     function run(
+        address _proxyAdmin,
         bytes32 _salt,
         address _deployer,
         address _implementation,
-        uint256 _version,
-        address _safe,
         address _tokenContractAddress,
         address _tokenOwnerAddress,
         uint256 _limitTimestampToClaim,
@@ -21,9 +20,8 @@ contract ClaimableAirdropnProxyCreate2 is Script {
             _salt,
             keccak256(
                 Utils.claimableAirdropProxyDeploymentData(
+                    _proxyAdmin,
                     _implementation,
-                    _version,
-                    _safe,
                     _tokenContractAddress,
                     _tokenOwnerAddress,
                     _limitTimestampToClaim,
@@ -32,7 +30,9 @@ contract ClaimableAirdropnProxyCreate2 is Script {
             ),
             _deployer
         );
+
         console.logAddress(_create2Address);
+
         vm.writeFile(
             string.concat(
                 vm.projectRoot(),

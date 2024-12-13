@@ -2,23 +2,15 @@
 pragma solidity ^0.8.19;
 
 import "../../src/AlignedTokenV1.sol";
-import "../../src/AlignedTokenV2Example.sol";
 import "forge-std/Script.sol";
 import {Utils} from "../Utils.sol";
 
 contract DeployTokenImplementation is Script {
-    function run(uint256 _version) public {
+    function run() public {
         address _implementation_address = Utils
-            .deployAlignedTokenImplementation(_version);
+            .deployAlignedTokenImplementation();
 
-        console.log(
-            string.concat(
-                "Token Implementation v",
-                vm.toString(_version),
-                "Address:"
-            ),
-            _implementation_address
-        );
+        console.log("Token Implementation Address:", _implementation_address);
 
         vm.serializeAddress(
             "implementation",
@@ -26,30 +18,17 @@ contract DeployTokenImplementation is Script {
             _implementation_address
         );
 
-        string memory out;
-        if (_version == 1) {
-            out = vm.serializeBytes(
-                "implementation",
-                "deploymentData",
-                type(AlignedTokenV1).creationCode
-            );
-        } else if (_version == 2) {
-            out = vm.serializeBytes(
-                "implementation",
-                "deploymentData",
-                type(AlignedTokenV2Example).creationCode
-            );
-        } else {
-            revert("Unsupported version");
-        }
-
-        string memory path = string.concat(
-            vm.projectRoot(),
-            "/script-out/aligned_token_implementation_v",
-            vm.toString(_version),
-            ".json"
+        string memory _out = vm.serializeBytes(
+            "implementation",
+            "deploymentData",
+            type(AlignedTokenV1).creationCode
         );
 
-        vm.writeJson(out, path);
+        string memory _path = string.concat(
+            vm.projectRoot(),
+            "/script-out/aligned_token_implementation.json"
+        );
+
+        vm.writeJson(_out, _path);
     }
 }

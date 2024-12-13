@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "forge-std/Script.sol";
 import {Utils} from "../Utils.sol";
 
 contract DeployAlignedTokenProxy is Script {
     function run(
+        address _proxyAdmin,
         address _implementation,
-        uint256 _version,
-        address _safe,
         address _tokenContractAddress,
         address _tokenOwnerAddress,
         uint256 _limitTimestampToClaim,
@@ -17,16 +16,15 @@ contract DeployAlignedTokenProxy is Script {
     ) public {
         bytes memory _proxyDeploymentData = Utils.claimableAirdropInitData(
             _implementation,
-            _version,
-            _safe,
             _tokenContractAddress,
             _tokenOwnerAddress,
             _limitTimestampToClaim,
             _claimMerkleRoot
         );
         vm.broadcast();
-        ERC1967Proxy _proxy = new ERC1967Proxy(
+        TransparentUpgradeableProxy _proxy = new TransparentUpgradeableProxy(
             _implementation,
+            _proxyAdmin,
             _proxyDeploymentData
         );
         console.log("Claimable Airdrop Proxy Address:", address(_proxy));
@@ -36,9 +34,8 @@ contract DeployAlignedTokenProxy is Script {
             "proxy",
             "deploymentData",
             Utils.claimableAirdropProxyDeploymentData(
+                _proxyAdmin,
                 _implementation,
-                _version,
-                _safe,
                 _tokenContractAddress,
                 _tokenOwnerAddress,
                 _limitTimestampToClaim,
