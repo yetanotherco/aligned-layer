@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "../../src/AlignedTokenV1.sol";
+import "../../src/AlignedToken.sol";
 import "forge-std/Script.sol";
 import {Utils} from "../Utils.sol";
 
@@ -21,7 +21,7 @@ contract DeployTokenImplementation is Script {
         string memory _out = vm.serializeBytes(
             "implementation",
             "deploymentData",
-            type(AlignedTokenV1).creationCode
+            type(AlignedToken).creationCode
         );
 
         string memory _path = string.concat(

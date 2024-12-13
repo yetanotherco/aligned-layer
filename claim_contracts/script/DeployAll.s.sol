@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "../src/AlignedTokenV1.sol";
-import "../src/ClaimableAirdropV1.sol";
+import "../src/AlignedToken.sol";
+import "../src/ClaimableAirdrop.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "forge-std/Script.sol";
@@ -113,7 +113,7 @@ contract DeployAll is Script {
         uint256 _mintAmount
     ) internal returns (TransparentUpgradeableProxy) {
         vm.broadcast();
-        AlignedTokenV1 _token = new AlignedTokenV1();
+        AlignedToken _token = new AlignedToken();
 
         bytes memory _alignedTokenDeploymentData = Utils
             .alignedTokenProxyDeploymentData(
@@ -157,7 +157,7 @@ contract DeployAll is Script {
         bytes32 _claimMerkleRoot
     ) internal returns (TransparentUpgradeableProxy) {
         vm.broadcast();
-        ClaimableAirdropV1 _airdrop = new ClaimableAirdropV1();
+        ClaimableAirdrop _airdrop = new ClaimableAirdrop();
 
         bytes memory _airdropDeploymentData = Utils
             .claimableAirdropProxyDeploymentData(
@@ -176,7 +176,7 @@ contract DeployAll is Script {
         );
 
         console.log(
-            "ClaimableAirdropV1 proxy deployed with address:",
+            "ClaimableAirdrop proxy deployed with address:",
             _airdropProxy,
             "and admin:",
             _proxyAdmin

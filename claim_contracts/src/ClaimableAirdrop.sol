@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract ClaimableAirdropV1 is
+contract ClaimableAirdrop is
     ReentrancyGuard,
     Initializable,
     PausableUpgradeable,
@@ -29,13 +29,27 @@ contract ClaimableAirdropV1 is
     }
 
     function initialize(
-        address _initialOwner,
+        address _multisig,
         address _tokenContractAddress,
         address _tokenOwnerAddress,
         uint256 _limitTimestampToClaim,
         bytes32 _claimMerkleRoot
-    ) public initializer nonReentrant {
-        __Ownable_init(_initialOwner);
+    ) public initializer {
+        __Ownable_init(_multisig);
+        __Pausable_init();
+
+        require(_multisig != address(0), "Invalid multisig address");
+        require(
+            _tokenContractAddress != address(0),
+            "Invalid token contract address"
+        );
+        require(
+            _tokenOwnerAddress != address(0),
+            "Invalid token owner address"
+        );
+        require(_limitTimestampToClaim > block.timestamp, "Invalid timestamp");
+        require(_claimMerkleRoot != 0, "Invalid Merkle root");
+
         tokenContractAddress = _tokenContractAddress;
         tokenOwnerAddress = _tokenOwnerAddress;
         limitTimestampToClaim = _limitTimestampToClaim;
@@ -45,7 +59,7 @@ contract ClaimableAirdropV1 is
     function claim(
         uint256 amount,
         bytes32[] calldata merkleProof
-    ) public nonReentrant {
+    ) public nonReentrant whenNotPaused {
         require(
             !hasClaimed[msg.sender],
             "Account has already claimed the drop"
@@ -62,7 +76,13 @@ contract ClaimableAirdropV1 is
 
         require(verifies, "Invalid Merkle proof");
 
-        hasClaimed[msg.sender] = true;
+        require(
+            IERC20(tokenContractAddress).allowance(
+                tokenOwnerAddress,
+                address(this)
+            ) >= amount,
+            "Insufficient token allowance"
+        );
 
         bool success = IERC20(tokenContractAddress).transferFrom(
             tokenOwnerAddress,
@@ -71,6 +91,8 @@ contract ClaimableAirdropV1 is
         );
 
         require(success, "Failed to transfer funds");
+
+        hasClaimed[msg.sender] = true;
 
         emit TokenClaimed(msg.sender, amount);
     }

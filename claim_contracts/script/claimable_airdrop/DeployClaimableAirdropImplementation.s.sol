@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "../../src/ClaimableAirdropV1.sol";
+import "../../src/ClaimableAirdrop.sol";
 import "forge-std/Script.sol";
 import {Utils} from "../Utils.sol";
 
@@ -24,7 +24,7 @@ contract DeployTokenImplementation is Script {
         string memory _out = vm.serializeBytes(
             "implementation",
             "deploymentData",
-            type(ClaimableAirdropV1).creationCode
+            type(ClaimableAirdrop).creationCode
         );
 
         string memory _path = string.concat(

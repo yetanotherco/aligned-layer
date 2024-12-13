@@ -5,8 +5,8 @@ import {Vm} from "forge-std/Vm.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import "../src/AlignedTokenV1.sol";
-import "../src/ClaimableAirdropV1.sol";
+import "../src/AlignedToken.sol";
+import "../src/ClaimableAirdrop.sol";
 
 library Utils {
     // Cheatcodes address, 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D.
@@ -78,7 +78,7 @@ library Utils {
 
     function deployAlignedTokenImplementation() internal returns (address) {
         vm.broadcast();
-        AlignedTokenV1 _implementation = new AlignedTokenV1();
+        AlignedToken _implementation = new AlignedToken();
         return address(_implementation);
     }
 
@@ -116,7 +116,7 @@ library Utils {
     ) internal pure returns (bytes memory) {
         return
             abi.encodeCall(
-                AlignedTokenV1(_implementation).initialize,
+                AlignedToken(_implementation).initialize,
                 (
                     _beneficiary1,
                     _mintAmount,
@@ -158,7 +158,7 @@ library Utils {
 
     function deployClaimableAirdropImplementation() internal returns (address) {
         vm.broadcast();
-        ClaimableAirdropV1 _implementation = new ClaimableAirdropV1();
+        ClaimableAirdrop _implementation = new ClaimableAirdrop();
         return address(_implementation);
     }
 
@@ -199,7 +199,7 @@ library Utils {
     ) internal pure returns (bytes memory) {
         return
             abi.encodeCall(
-                ClaimableAirdropV1(_implementation).initialize,
+                ClaimableAirdrop(_implementation).initialize,
                 (
                     _owner,
                     _tokenContractAddress,
