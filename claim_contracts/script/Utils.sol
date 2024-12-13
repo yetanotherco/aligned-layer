@@ -3,10 +3,10 @@ pragma solidity ^0.8.13;
 
 import {Vm} from "forge-std/Vm.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "../src/AlignedTokenV1.sol";
-import "../src/AlignedTokenV2Example.sol";
 import "../src/ClaimableAirdropV1.sol";
-import "../src/ClaimableAirdropV2Example.sol";
 
 library Utils {
     // Cheatcodes address, 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D.
@@ -25,8 +25,7 @@ library Utils {
     function deployWithCreate2(
         bytes memory bytecode,
         bytes32 salt,
-        address create2Factory,
-        uint256 signerPrivateKey
+        address create2Factory
     ) internal returns (address) {
         if (bytecode.length == 0) {
             revert("Bytecode is not set");
@@ -40,7 +39,7 @@ library Utils {
             revert("Contract already deployed");
         }
 
-        vm.broadcast(signerPrivateKey);
+        vm.broadcast();
         (bool success, bytes memory data) = create2Factory.call(
             abi.encodePacked(salt, bytecode)
         );
@@ -75,28 +74,17 @@ library Utils {
         }
     }
 
-    function deployAlignedTokenImplementation(
-        uint256 _version
-    ) internal returns (address) {
-        address _implementation_address;
-        if (_version == 1) {
-            vm.broadcast();
-            AlignedTokenV1 _implementation = new AlignedTokenV1();
-            _implementation_address = address(_implementation);
-        } else if (_version == 2) {
-            vm.broadcast();
-            AlignedTokenV2Example _implementation = new AlignedTokenV2Example();
-            _implementation_address = address(_implementation);
-        } else {
-            revert("Unsupported version");
-        }
-        return _implementation_address;
+    // AlignedToken utils
+
+    function deployAlignedTokenImplementation() internal returns (address) {
+        vm.broadcast();
+        AlignedTokenV1 _implementation = new AlignedTokenV1();
+        return address(_implementation);
     }
 
     function alignedTokenProxyDeploymentData(
+        address _proxyAdmin,
         address _implementation,
-        uint256 _version,
-        address _safe,
         address _beneficiary1,
         address _beneficiary2,
         address _beneficiary3,
@@ -104,118 +92,80 @@ library Utils {
     ) internal pure returns (bytes memory) {
         return
             abi.encodePacked(
-                type(ERC1967Proxy).creationCode,
-                alignedTokenInitData(
+                type(TransparentUpgradeableProxy).creationCode,
+                abi.encode(
                     _implementation,
-                    _version,
-                    _safe,
-                    _beneficiary1,
-                    _beneficiary2,
-                    _beneficiary3,
-                    _mintAmount
+                    _proxyAdmin,
+                    alignedTokenInitData(
+                        _implementation,
+                        _beneficiary1,
+                        _beneficiary2,
+                        _beneficiary3,
+                        _mintAmount
+                    )
                 )
             );
     }
 
     function alignedTokenInitData(
         address _implementation,
-        uint256 _version,
-        address _safe,
         address _beneficiary1,
         address _beneficiary2,
         address _beneficiary3,
         uint256 _mintAmount
     ) internal pure returns (bytes memory) {
-        if (_version == 1) {
-            return
-                abi.encodeCall(
-                    AlignedTokenV1(_implementation).initialize,
-                    (
-                        _safe,
-                        _beneficiary1,
-                        _mintAmount,
-                        _beneficiary2,
-                        _mintAmount,
-                        _beneficiary3,
-                        _mintAmount
-                    )
-                );
-        } else if (_version == 2) {
-            return
-                abi.encodeCall(
-                    AlignedTokenV2Example(_implementation).initialize,
-                    (
-                        _safe,
-                        _beneficiary1,
-                        _mintAmount,
-                        _beneficiary2,
-                        _mintAmount,
-                        _beneficiary3,
-                        _mintAmount
-                    )
-                );
-        } else {
-            revert("Unsupported version");
-        }
+        return
+            abi.encodeCall(
+                AlignedTokenV1(_implementation).initialize,
+                (
+                    _beneficiary1,
+                    _mintAmount,
+                    _beneficiary2,
+                    _mintAmount,
+                    _beneficiary3,
+                    _mintAmount
+                )
+            );
     }
 
     function alignedTokenUpgradeData(
+        address _proxyAdmin,
+        address _proxy,
         address _newImplementation,
-        uint256 _version,
-        address _safe,
         address _beneficiary1,
         address _beneficiary2,
         address _beneficiary3,
         uint256 _mintAmount
     ) internal pure returns (bytes memory) {
-        bytes memory _initData = Utils.alignedTokenInitData(
-            _newImplementation,
-            _version,
-            _safe,
-            _beneficiary1,
-            _beneficiary2,
-            _beneficiary3,
-            _mintAmount
-        );
-        bytes memory _upgradeData;
-        if (_version == 1) {
-            _upgradeData = abi.encodeCall(
-                AlignedTokenV1(_newImplementation).upgradeToAndCall,
-                (_newImplementation, _initData)
+        return
+            abi.encodeCall(
+                ProxyAdmin(_proxyAdmin).upgradeAndCall,
+                (
+                    ITransparentUpgradeableProxy(_proxy),
+                    _newImplementation,
+                    Utils.alignedTokenInitData(
+                        _newImplementation,
+                        _beneficiary1,
+                        _beneficiary2,
+                        _beneficiary3,
+                        _mintAmount
+                    )
+                )
             );
-        } else if (_version == 2) {
-            _upgradeData = abi.encodeCall(
-                AlignedTokenV2Example(_newImplementation).upgradeToAndCall,
-                (_newImplementation, _initData)
-            );
-        } else {
-            revert("Unsupported version");
-        }
-        return _upgradeData;
     }
 
-    function deployClaimableAirdropImplementation(
-        uint256 _version
-    ) internal returns (address) {
-        address _implementation_address;
-        if (_version == 1) {
-            vm.broadcast();
-            ClaimableAirdropV1 _implementation = new ClaimableAirdropV1();
-            _implementation_address = address(_implementation);
-        } else if (_version == 2) {
-            vm.broadcast();
-            ClaimableAirdropV2Example _implementation = new ClaimableAirdropV2Example();
-            _implementation_address = address(_implementation);
-        } else {
-            revert("Unsupported version");
-        }
-        return _implementation_address;
+    // ClaimableAirdrop utils
+
+    function deployClaimableAirdropImplementation() internal returns (address) {
+        vm.broadcast();
+        ClaimableAirdropV1 _implementation = new ClaimableAirdropV1();
+        return address(_implementation);
     }
 
     function claimableAirdropProxyDeploymentData(
+        address _proxyAdmin,
         address _implementation,
-        uint256 _version,
-        address _safe,
+        address _owner,
         address _tokenContractAddress,
         address _tokenOwnerAddress,
         uint256 _limitTimestampToClaim,
@@ -223,11 +173,35 @@ library Utils {
     ) internal pure returns (bytes memory) {
         return
             abi.encodePacked(
-                type(ERC1967Proxy).creationCode,
-                claimableAirdropInitData(
+                type(TransparentUpgradeableProxy).creationCode,
+                abi.encode(
                     _implementation,
-                    _version,
-                    _safe,
+                    _proxyAdmin,
+                    claimableAirdropInitData(
+                        _implementation,
+                        _owner,
+                        _tokenContractAddress,
+                        _tokenOwnerAddress,
+                        _limitTimestampToClaim,
+                        _claimMerkleRoot
+                    )
+                )
+            );
+    }
+
+    function claimableAirdropInitData(
+        address _implementation,
+        address _owner,
+        address _tokenContractAddress,
+        address _tokenOwnerAddress,
+        uint256 _limitTimestampToClaim,
+        bytes32 _claimMerkleRoot
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encodeCall(
+                ClaimableAirdropV1(_implementation).initialize,
+                (
+                    _owner,
                     _tokenContractAddress,
                     _tokenOwnerAddress,
                     _limitTimestampToClaim,
@@ -236,78 +210,45 @@ library Utils {
             );
     }
 
-    function claimableAirdropInitData(
-        address _implementation,
-        uint256 _version,
-        address _safe,
-        address _tokenContractAddress,
-        address _tokenOwnerAddress,
-        uint256 _limitTimestampToClaim,
-        bytes32 _claimMerkleRoot
-    ) internal pure returns (bytes memory) {
-        if (_version == 1) {
-            return
-                abi.encodeCall(
-                    ClaimableAirdropV1(_implementation).initialize,
-                    (
-                        _safe,
-                        _tokenContractAddress,
-                        _tokenOwnerAddress,
-                        _limitTimestampToClaim,
-                        _claimMerkleRoot
-                    )
-                );
-        } else if (_version == 2) {
-            return
-                abi.encodeCall(
-                    ClaimableAirdropV2Example(_implementation).initialize,
-                    (
-                        _safe,
-                        _tokenContractAddress,
-                        _tokenOwnerAddress,
-                        _limitTimestampToClaim,
-                        _claimMerkleRoot
-                    )
-                );
-        } else {
-            revert("Unsupported version");
-        }
-    }
-
     function claimableAirdropUpgradeData(
+        address _proxy,
+        address _owner,
         address _newImplementation,
-        uint256 _version,
-        address _safe,
         address _tokenContractAddress,
         address _tokenOwnerAddress,
         uint256 _limitTimestampToClaim,
         bytes32 _claimMerkleRoot
     ) internal pure returns (bytes memory) {
-        bytes memory _initData = Utils.claimableAirdropInitData(
-            _newImplementation,
-            _version,
-            _safe,
-            _tokenContractAddress,
-            _tokenOwnerAddress,
-            _limitTimestampToClaim,
-            _claimMerkleRoot
-        );
-        bytes memory _upgradeData;
-        if (_version == 1) {
-            _upgradeData = abi.encodeCall(
-                ClaimableAirdropV1(_newImplementation).upgradeToAndCall,
-                (_newImplementation, _initData)
+        return
+            abi.encodeCall(
+                ProxyAdmin(_newImplementation).upgradeAndCall,
+                (
+                    ITransparentUpgradeableProxy(_proxy),
+                    _newImplementation,
+                    Utils.claimableAirdropInitData(
+                        _owner,
+                        _newImplementation,
+                        _tokenContractAddress,
+                        _tokenOwnerAddress,
+                        _limitTimestampToClaim,
+                        _claimMerkleRoot
+                    )
+                )
             );
-        } else if (_version == 2) {
-            _upgradeData = abi.encodeCall(
-                ClaimableAirdropV2Example(_newImplementation).upgradeToAndCall,
-                (_newImplementation, _initData)
-            );
-        } else {
-            revert("Unsupported version");
-        }
-        return _upgradeData;
     }
 
-    
+    // ProxyAdmin utils
+
+    function deployProxyAdmin(address _safe) internal returns (address) {
+        vm.broadcast();
+        ProxyAdmin _proxyAdmin = new ProxyAdmin(_safe);
+        return address(_proxyAdmin);
+    }
+
+    function proxyAdminDeploymentData(
+        address _safe
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encodePacked(type(ProxyAdmin).creationCode, abi.encode(_safe));
+    }
 }
