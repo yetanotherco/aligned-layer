@@ -7,8 +7,10 @@ help: ## 📚 Show help for each of the Makefile recipes
 # Deployments
 
 RPC_URL?=http://localhost:8545
-PRIVATE_KEY?=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-VERSION?=1
+PRIVATE_KEY?=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+
+deploy-all: ## 🚀 Deploy all contracts
+	cd script && forge script DeployAll.s.sol --private-key $(PRIVATE_KEY) --rpc-url $(RPC_URL) --broadcast
 
 MINT?="1 ether"
 OWNER?=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
@@ -20,11 +22,18 @@ CLAIM_TIME_LIMIT?=1632960000
 MERKLE_ROOT?=0x90076b5fb9a6c81d9fce83dfd51760987b8c49e7c861ea25b328e6e63d2cd3df
 TOKEN_OWNER?=$(OWNER)
 
+deploy-proxy-admin: ## 🚀 Deploy the ProxyAdmin contract
+	cd script/proxy_admin && \
+	forge script DeployProxyAdmin.s.sol \
+	--sig "run(address)" \
+	$(OWNER) \
+	--rpc-url $(RPC_URL) \
+	--private-key $(PRIVATE_KEY) \
+	--broadcast
+
 deploy-aligned-token-implementation: ## 🚀 Deploy the AlignedToken implementation contract
 	cd script/aligned_token && \
 	forge script DeployAlignedTokenImplementation.s.sol \
-	--sig "run(uint256)" \
-	$(VERSION) \
 	--rpc-url $(RPC_URL) \
 	--private-key $(PRIVATE_KEY) \
 	--broadcast
@@ -32,8 +41,8 @@ deploy-aligned-token-implementation: ## 🚀 Deploy the AlignedToken implementat
 deploy-aligned-token-proxy: ## 🚀 Deploy the AlignedToken proxy contract
 	cd script/aligned_token && \
 	forge script DeployAlignedTokenProxy.s.sol \
-	--sig "run(address,uint256,address,address,address,address,uint256)" \
-	$(IMPLEMENTATION) $(VERSION) $(OWNER) $(BENEFICIARY1) $(BENEFICIARY2) $(BENEFICIARY3) $(MINT) \
+	--sig "run(address,address,address,address,address,address,uint256)" \
+	$(PROXY_ADMIN) $(IMPLEMENTATION) $(OWNER) $(BENEFICIARY1) $(BENEFICIARY2) $(BENEFICIARY3) $(MINT) \
 	--rpc-url $(RPC_URL) \
 	--private-key $(PRIVATE_KEY) \
 	--broadcast
@@ -41,8 +50,6 @@ deploy-aligned-token-proxy: ## 🚀 Deploy the AlignedToken proxy contract
 deploy-claimable-airdrop-implementation: ## 🚀 Deploy the ClaimableAirdrop implementation contract
 	cd script/claimable_airdrop && \
 	forge script DeployClaimableAirdropImplementation.s.sol \
-	--sig "run(uint256)" \
-	$(VERSION) \
 	--rpc-url $(RPC_URL) \
 	--private-key $(PRIVATE_KEY) \
 	--broadcast
@@ -50,8 +57,8 @@ deploy-claimable-airdrop-implementation: ## 🚀 Deploy the ClaimableAirdrop imp
 deploy-claimable-airdrop-proxy: ## 🚀 Deploy the ClaimableAirdrop proxy contract
 	cd script/claimable_airdrop && \
 	forge script DeployClaimableAirdropProxy.s.sol \
-	--sig "run(address,uint256,address,address,address,uint256,bytes32)" \
-	$(IMPLEMENTATION) $(VERSION) $(OWNER) $(TOKEN) $(BENEFICIARY1) $(CLAIM_TIME_LIMIT) $(MERKLE_ROOT) \
+	--sig "run(address,address,address,address,address,uint256,bytes32)" \
+	$(PROXY_ADMIN) $(IMPLEMENTATION) $(OWNER) $(TOKEN) $(BENEFICIARY1) $(CLAIM_TIME_LIMIT) $(MERKLE_ROOT) \
 	--rpc-url $(RPC_URL) \
 	--private-key $(PRIVATE_KEY) \
 	--broadcast
@@ -120,6 +127,7 @@ test-token:
 	cast call $(ADDRESS) "name()(string)" --rpc-url $(RPC_URL)
 	cast call $(ADDRESS) "totalSupply()(uint256)" --rpc-url $(RPC_URL)
 
+# The following target needs the proof API running on localhost:4000
 AMOUNT_TO_CLAIM=$(shell curl -S -H "Content-Type: application/json" http://localhost:4000/api/proof/\$(CLAIMER) | jq -r .amount)
 MERKLE_PROOF_TO_CLAIM=$(shell curl -S -H "Content-Type: application/json" http://localhost:4000/api/proof/\$(CLAIMER) | jq .proof | tr -d '"\n ')
 test-claim:
@@ -128,3 +136,11 @@ test-claim:
 test-claimed:
 	cast call $(AIRDROP) "hasClaimed(address)(bool)" $(CLAIMER) --rpc-url $(RPC_URL)
 	cast balance --erc20 $(TOKEN) $(CLAIMER) --rpc-url $(RPC_URL)
+
+OWNER_PRIVATE_KEY?=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+test-pause:
+	cast send $(AIRDROP) --private-key $(OWNER_PRIVATE_KEY) "pause()" --rpc-url $(RPC_URL)
+
+test-unpause:
+	cast send $(AIRDROP) --private-key $(OWNER_PRIVATE_KEY) "unpause()" --rpc-url $(RPC_URL)
