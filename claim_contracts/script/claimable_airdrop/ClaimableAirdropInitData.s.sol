@@ -6,6 +6,7 @@ import {Utils} from "../Utils.sol";
 
 contract AlignedTokenInitData is Script {
     function run(
+        address _multisig,
         address _implementation,
         address _tokenContractAddress,
         address _tokenOwnerAddress,
@@ -14,6 +15,7 @@ contract AlignedTokenInitData is Script {
     ) public {
         bytes memory data = Utils.claimableAirdropInitData(
             _implementation,
+            _multisig,
             _tokenContractAddress,
             _tokenOwnerAddress,
             _limitTimestampToClaim,

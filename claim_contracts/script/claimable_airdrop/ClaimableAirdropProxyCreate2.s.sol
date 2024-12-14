@@ -7,6 +7,7 @@ import {Utils} from "../Utils.sol";
 
 contract ClaimableAirdropnProxyCreate2 is Script {
     function run(
+        address _multisig,
         address _proxyAdmin,
         bytes32 _salt,
         address _deployer,
@@ -22,6 +23,7 @@ contract ClaimableAirdropnProxyCreate2 is Script {
                 Utils.claimableAirdropProxyDeploymentData(
                     _proxyAdmin,
                     _implementation,
+                    _multisig,
                     _tokenContractAddress,
                     _tokenOwnerAddress,
                     _limitTimestampToClaim,

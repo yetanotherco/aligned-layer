@@ -7,6 +7,7 @@ import {Utils} from "../Utils.sol";
 
 contract DeployAlignedTokenProxy is Script {
     function run(
+        address _multisig,
         address _proxyAdmin,
         address _implementation,
         address _tokenContractAddress,
@@ -16,6 +17,7 @@ contract DeployAlignedTokenProxy is Script {
     ) public {
         bytes memory _proxyDeploymentData = Utils.claimableAirdropInitData(
             _implementation,
+            _multisig,
             _tokenContractAddress,
             _tokenOwnerAddress,
             _limitTimestampToClaim,
@@ -36,6 +38,7 @@ contract DeployAlignedTokenProxy is Script {
             Utils.claimableAirdropProxyDeploymentData(
                 _proxyAdmin,
                 _implementation,
+                _multisig,
                 _tokenContractAddress,
                 _tokenOwnerAddress,
                 _limitTimestampToClaim,
