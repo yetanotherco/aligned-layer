@@ -5,6 +5,7 @@ defmodule TelemetryApi.Traces do
   alias TelemetryApi.Traces.Trace
   alias TelemetryApi.Operators
   alias TelemetryApi.ContractManagers.StakeRegistry
+  alias TelemetryApi.PrometheusMetrics
 
   require OpenTelemetry.Tracer
   require OpenTelemetry.Ctx
@@ -208,7 +209,6 @@ defmodule TelemetryApi.Traces do
       :ok
     end
   end
-  
 
   @doc """
   Registers the sending of a batcher task to Ethereum in the task trace.
@@ -298,7 +298,7 @@ defmodule TelemetryApi.Traces do
       :ok
     end
   end
-  
+
   @doc """
   Registers a bump in the gas price when the aggregator tries to respond to a task in the task trace.
 
@@ -368,6 +368,11 @@ defmodule TelemetryApi.Traces do
   defp add_missing_operators([]), do: :ok
 
   defp add_missing_operators(missing_operators) do
+    # Send to prometheus
+    missing_operators
+    |> Enum.map(fn o -> PrometheusMetrics.missing_operator(o.name) end)
+    |> Enum.join(";")
+
     missing_operators =
       missing_operators |> Enum.map(fn o -> o.name end) |> Enum.join(";")
 

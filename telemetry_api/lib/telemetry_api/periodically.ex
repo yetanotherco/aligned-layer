@@ -1,7 +1,7 @@
 defmodule TelemetryApi.Periodically do
   use GenServer
   alias TelemetryApi.Operators
-  alias TelemetryApi.EthereumMetrics
+  alias TelemetryApi.PrometheusMetrics
   alias TelemetryApi.ContractManagers.RegistryCoordinatorManager
   require Logger
 
@@ -45,7 +45,7 @@ defmodule TelemetryApi.Periodically do
   def handle_info(:gas_price, _state) do
     case Ethers.current_gas_price() do
       {:ok, gas_price} ->
-        EthereumMetrics.new_gas_price(gas_price)
+        PrometheusMetrics.new_gas_price(gas_price)
 
       {:error, error} ->
         IO.inspect("Error fetching gas price: #{error}")
