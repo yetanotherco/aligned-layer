@@ -16,6 +16,7 @@ env_vars=(
   "TRACKER_API_URL"
   "MAX_BATCH_SIZE"
   "BATCH_TTL_MINUTES"
+  "MAX_BATCH_WAIT_MINUTES"
 )
 
 for var in "${env_vars[@]}"; do

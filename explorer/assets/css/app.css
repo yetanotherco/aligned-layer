@@ -50,13 +50,45 @@
 }
 
 @layer components {
-	.tooltip {
-		display: none;
-	}
+    .tooltip {
+        display: none;
+    }
 
-	.tooltip[data-show] {
-		position: absolute;
-		display: block;
-		z-index: 9999;
-	}
+    .tooltip[data-show] {
+        position: absolute;
+        display: block;
+        z-index: 9999;
+    }
+
+    /* Progress bar based on https://dev.to/mikekennedydev/progress-bar-text-colour-1gg6
+     * Foreground color removed to use the accent colors */
+    .progress-with-labels {
+        width: 100%;
+        position: relative;
+        font-weight: bold;
+
+        .progress-foreground {
+            border-radius: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            color: hsl(var(--accent-foreground));
+            background-color: hsl(var(--accent));
+        }
+
+        .progress-background {
+            border-radius: 25px;
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            background: lightgray;
+            color: black;
+        }
+    }
 }

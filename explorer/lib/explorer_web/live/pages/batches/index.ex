@@ -17,8 +17,21 @@ defmodule ExplorerWeb.Batches.Index do
      assign(socket,
        current_page: current_page,
        batches: batches,
+       next_batch_countdown_progress: Helpers.next_block_progress(),
+       time_to_next_block: Helpers.time_to_next_block(),
        last_page: Batches.get_last_page(@page_size),
        page_title: "Batches"
+     )}
+  end
+
+  # 12.22222 316
+  @impl true
+  def handle_info(%{block_wait_progress: progress, time_to_next_block: remaining} = _params, socket) do
+    Logger.debug("updating block progress: remaining=#{remaining} progress=#{progress}%")
+    {:noreply,
+     assign(socket,
+       next_batch_countdown_progress: progress,
+       time_to_next_block: remaining
      )}
   end
 
@@ -28,7 +41,13 @@ defmodule ExplorerWeb.Batches.Index do
 
     batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
 
-    {:noreply, assign(socket, batches: batches, last_page: Batches.get_last_page(@page_size))}
+    {:noreply,
+     assign(socket,
+       batches: batches,
+       next_batch_countdown_progress: Helpers.next_block_progress(),
+       time_to_next_block: Helpers.time_to_next_block(),
+       last_page: Batches.get_last_page(@page_size)
+     )}
   end
 
   @impl true

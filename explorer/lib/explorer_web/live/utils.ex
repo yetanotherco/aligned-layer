@@ -154,6 +154,23 @@ defmodule ExplorerWeb.Helpers do
       true -> :pending
     end
   end
+
+  def time_to_next_block() do
+    max_wait = Utils.max_batch_wait_minutes()
+    latest_batch = Batches.get_latest_verified_batch()
+    cond do
+      latest_batch != nil -> latest_batch.submission_timestamp
+        |> DateTime.add(max_wait, :minute)
+        |> DateTime.diff(DateTime.utc_now(), :minute)
+        |> max(0)
+      true -> max_wait
+    end
+  end
+
+  def next_block_progress() do
+    max_wait = Utils.max_batch_wait_minutes()
+    100 * (max_wait - time_to_next_block()) / max_wait
+  end
 end
 
 # Backend utils
@@ -167,6 +184,11 @@ defmodule Utils do
                      # error
                      _ -> 268_435_456
                    end)
+
+  def max_batch_wait_minutes() do
+    System.get_env("MAX_BATCH_WAIT_MINUTES")
+    |> String.to_integer
+  end
 
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix

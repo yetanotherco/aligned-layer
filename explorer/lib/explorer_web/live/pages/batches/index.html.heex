@@ -1,5 +1,11 @@
 <div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
   <.card_preheding>Batches</.card_preheding>
+  <!-- Progress bar based on https://dev.to/mikekennedydev/progress-bar-text-colour-1gg6 -->
+  <.live_component
+  id="labeled-progress-bar"
+  module={LabeledProgressBarComponent}
+  progress={@next_batch_countdown_progress}
+  label={"Next batch in #{@time_to_next_block} minutes"}/>
   <%= if @batches != :empty and @batches != [] do %>
     <.table id="batches" rows={@batches}>
       <:col :let={batch} label="Batch Hash" class="text-left">
