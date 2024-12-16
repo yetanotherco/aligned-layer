@@ -18,30 +18,15 @@ contract DeployAll is Script {
         bytes32 _salt = stdJson.readBytes32(config_json, ".salt");
         address _deployer = stdJson.readAddress(config_json, ".deployer");
         address _foundation = stdJson.readAddress(config_json, ".foundation");
-        address _claim = stdJson.readAddress(config_json, ".claim");
-        uint256 _claimPrivateKey = stdJson.readUint(
-            config_json,
-            ".claimPrivateKey"
-        );
-        uint256 _limitTimestampToClaim = stdJson.readUint(
-            config_json,
-            ".limitTimestampToClaim"
-        );
-        bytes32 _claimMerkleRoot = stdJson.readBytes32(
-            config_json,
-            ".claimMerkleRoot"
-        );
+        address _claim = stdJson.readAddress(config_json, ".claimSupplier");
+        uint256 _claimPrivateKey = stdJson.readUint(config_json, ".claimSupplierPrivateKey");
+        uint256 _limitTimestampToClaim = stdJson.readUint(config_json, ".limitTimestampToClaim");
+        bytes32 _claimMerkleRoot = stdJson.readBytes32(config_json, ".claimMerkleRoot");
 
         ProxyAdmin _proxyAdmin = deployProxyAdmin(_safe, _salt, _deployer);
 
-        TransparentUpgradeableProxy _tokenProxy = deployAlignedTokenProxy(
-            address(_proxyAdmin),
-            _salt,
-            _deployer,
-            _safe,
-            _foundation,
-            _claim
-        );
+        TransparentUpgradeableProxy _tokenProxy =
+            deployAlignedTokenProxy(address(_proxyAdmin), _salt, _deployer, _safe, _foundation, _claim);
 
         TransparentUpgradeableProxy _airdropProxy = deployClaimableAirdropProxy(
             address(_proxyAdmin),
@@ -57,32 +42,13 @@ contract DeployAll is Script {
         approve(address(_tokenProxy), address(_airdropProxy), _claimPrivateKey);
     }
 
-    function deployProxyAdmin(
-        address _safe,
-        bytes32 _salt,
-        address _deployer
-    ) internal returns (ProxyAdmin) {
-        bytes memory _proxyAdminDeploymentData = Utils.proxyAdminDeploymentData(
-            _safe
-        );
-        address _proxyAdminCreate2Address = Utils.deployWithCreate2(
-            _proxyAdminDeploymentData,
-            _salt,
-            _deployer
-        );
+    function deployProxyAdmin(address _safe, bytes32 _salt, address _deployer) internal returns (ProxyAdmin) {
+        bytes memory _proxyAdminDeploymentData = Utils.proxyAdminDeploymentData(_safe);
+        address _proxyAdminCreate2Address = Utils.deployWithCreate2(_proxyAdminDeploymentData, _salt, _deployer);
 
-        console.log(
-            "Proxy Admin Address:",
-            _proxyAdminCreate2Address,
-            "Owner:",
-            _safe
-        );
+        console.log("Proxy Admin Address:", _proxyAdminCreate2Address, "Owner:", _safe);
         vm.serializeAddress("proxyAdmin", "address", _proxyAdminCreate2Address);
-        vm.serializeBytes(
-            "proxyAdmin",
-            "deploymentData",
-            _proxyAdminDeploymentData
-        );
+        vm.serializeBytes("proxyAdmin", "deploymentData", _proxyAdminDeploymentData);
 
         return ProxyAdmin(_proxyAdminCreate2Address);
     }
@@ -98,32 +64,13 @@ contract DeployAll is Script {
         vm.broadcast();
         AlignedToken _token = new AlignedToken();
 
-        bytes memory _alignedTokenDeploymentData = Utils
-            .alignedTokenProxyDeploymentData(
-                _proxyAdmin,
-                address(_token),
-                _owner,
-                _foundation,
-                _claim
-            );
-        address _alignedTokenProxy = Utils.deployWithCreate2(
-            _alignedTokenDeploymentData,
-            _salt,
-            _deployer
-        );
+        bytes memory _alignedTokenDeploymentData =
+            Utils.alignedTokenProxyDeploymentData(_proxyAdmin, address(_token), _foundation, _claim);
+        address _alignedTokenProxy = Utils.deployWithCreate2(_alignedTokenDeploymentData, _salt, _deployer);
 
-        console.log(
-            "AlignedToken proxy deployed with address:",
-            _alignedTokenProxy,
-            "and admin:",
-            _proxyAdmin
-        );
+        console.log("AlignedToken proxy deployed with address:", _alignedTokenProxy, "and admin:", _proxyAdmin);
         vm.serializeAddress("alignedToken", "address", _alignedTokenProxy);
-        vm.serializeBytes(
-            "alignedToken",
-            "deploymentData",
-            _alignedTokenDeploymentData
-        );
+        vm.serializeBytes("alignedToken", "deploymentData", _alignedTokenDeploymentData);
 
         return TransparentUpgradeableProxy(payable(_alignedTokenProxy));
     }
@@ -141,50 +88,22 @@ contract DeployAll is Script {
         vm.broadcast();
         ClaimableAirdrop _airdrop = new ClaimableAirdrop();
 
-        bytes memory _airdropDeploymentData = Utils
-            .claimableAirdropProxyDeploymentData(
-                _proxyAdmin,
-                address(_airdrop),
-                _owner,
-                _token,
-                _tokenOwner,
-                _limitTimestampToClaim,
-                _claimMerkleRoot
-            );
-        address _airdropProxy = Utils.deployWithCreate2(
-            _airdropDeploymentData,
-            _salt,
-            _deployer
+        bytes memory _airdropDeploymentData = Utils.claimableAirdropProxyDeploymentData(
+            _proxyAdmin, address(_airdrop), _owner, _token, _tokenOwner, _limitTimestampToClaim, _claimMerkleRoot
         );
+        address _airdropProxy = Utils.deployWithCreate2(_airdropDeploymentData, _salt, _deployer);
 
-        console.log(
-            "ClaimableAirdrop proxy deployed with address:",
-            _airdropProxy,
-            "and admin:",
-            _proxyAdmin
-        );
+        console.log("ClaimableAirdrop proxy deployed with address:", _airdropProxy, "and admin:", _proxyAdmin);
         vm.serializeAddress("claimableAirdrop", "address", _airdropProxy);
-        vm.serializeBytes(
-            "claimableAirdrop",
-            "deploymentData",
-            _airdropDeploymentData
-        );
+        vm.serializeBytes("claimableAirdrop", "deploymentData", _airdropDeploymentData);
 
         return TransparentUpgradeableProxy(payable(_airdropProxy));
     }
 
-    function approve(
-        address _tokenContractProxy,
-        address _airdropContractProxy,
-        uint256 _claimPrivateKey
-    ) public {
+    function approve(address _tokenContractProxy, address _airdropContractProxy, uint256 _claimPrivateKey) public {
         vm.startBroadcast(_claimPrivateKey);
-        (bool success, bytes memory data) = address(_tokenContractProxy).call(
-            abi.encodeCall(
-                IERC20.approve,
-                (address(_airdropContractProxy), 1 ether)
-            )
-        );
+        (bool success, bytes memory data) =
+            address(_tokenContractProxy).call(abi.encodeCall(IERC20.approve, (address(_airdropContractProxy), 1 ether)));
         bool approved;
         assembly {
             approved := mload(add(data, 0x20))
