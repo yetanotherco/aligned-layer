@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 contract AlignedToken is
@@ -11,6 +12,7 @@ contract AlignedToken is
     ERC20Upgradeable,
     EIP712Upgradeable,
     ERC20PermitUpgradeable,
+    ERC20BurnableUpgradeable,
     Ownable2StepUpgradeable
 {
     /// @notice Name of the token.
@@ -48,10 +50,16 @@ contract AlignedToken is
         __ERC20_init(NAME, SYMBOL);
         __EIP712_init(NAME, VERSION);
         __ERC20Permit_init(NAME);
+        __ERC20Burnable_init();
         __Ownable2Step_init(); // default is msg.sender
         _transferOwnership(_foundation);
         _mint(_foundation, 7_300_000_000e18); // 7.3 billion
         _mint(_claimSupplier, 2_700_000_000e18); // 2.7 billion
+    }
+
+    /// @notice Mints `amount` of tokens.
+    function mint(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
     }
 
     /// @notice Prevents the owner from renouncing ownership.
