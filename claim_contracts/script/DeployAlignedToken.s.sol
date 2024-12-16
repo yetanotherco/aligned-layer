@@ -18,12 +18,15 @@ contract DeployAlignedToken is Script {
         bytes32 _salt = stdJson.readBytes32(config_json, ".salt");
         address _deployer = stdJson.readAddress(config_json, ".deployer");
         address _foundation = stdJson.readAddress(config_json, ".foundation");
-        address _claim = stdJson.readAddress(config_json, ".claim");
+        address _claimSupplier = stdJson.readAddress(
+            config_json,
+            ".claimSupplier"
+        );
 
         ProxyAdmin _proxyAdmin = deployProxyAdmin(_safe, _salt, _deployer);
 
         console.log(
-            "Proxy Admin deployed at address :",
+            "Proxy Admin deployed at address:",
             address(_proxyAdmin),
             "with owner:",
             _safe
@@ -35,12 +38,12 @@ contract DeployAlignedToken is Script {
             _deployer,
             _safe,
             _foundation,
-            _claim
+            _claimSupplier
         );
 
         console.log(
             string.concat(
-                "Aligned Token Proxy deployed at address :",
+                "Aligned Token Proxy deployed at address:",
                 vm.toString(address(_tokenProxy)),
                 "with proxy admin:",
                 vm.toString(address(_proxyAdmin)),
