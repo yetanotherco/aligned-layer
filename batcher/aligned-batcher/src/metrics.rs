@@ -21,6 +21,9 @@ pub struct BatcherMetrics {
     pub broken_ws_connections: IntCounter,
     pub queue_len: IntGauge,
     pub queue_size_bytes: IntGauge,
+    pub s3_duration: IntGauge,
+    pub create_new_task_duration: IntGauge,
+    pub cancel_create_new_task_duration: IntGauge,
 }
 
 impl BatcherMetrics {
@@ -53,6 +56,15 @@ impl BatcherMetrics {
             "queue_size_bytes",
             "Accumulated size in bytes of all proofs in the queue"
         ))?;
+        let s3_duration = register_int_gauge!(opts!("s3_duration", "S3 Duration"))?;
+        let create_new_task_duration = register_int_gauge!(opts!(
+            "create_new_task_duration",
+            "Create New Task Duration"
+        ))?;
+        let cancel_create_new_task_duration = register_int_gauge!(opts!(
+            "cancel_create_new_task_duration",
+            "Cancel create New Task Duration"
+        ))?;
 
         registry.register(Box::new(open_connections.clone()))?;
         registry.register(Box::new(received_proofs.clone()))?;
@@ -65,6 +77,9 @@ impl BatcherMetrics {
         registry.register(Box::new(broken_ws_connections.clone()))?;
         registry.register(Box::new(queue_len.clone()))?;
         registry.register(Box::new(queue_size_bytes.clone()))?;
+        registry.register(Box::new(s3_duration.clone()))?;
+        registry.register(Box::new(create_new_task_duration.clone()))?;
+        registry.register(Box::new(cancel_create_new_task_duration.clone()))?;
 
         let metrics_route = warp::path!("metrics")
             .and(warp::any().map(move || registry.clone()))
@@ -88,6 +103,9 @@ impl BatcherMetrics {
             broken_ws_connections,
             queue_len,
             queue_size_bytes,
+            s3_duration,
+            create_new_task_duration,
+            cancel_create_new_task_duration,
         })
     }
 
