@@ -31,10 +31,12 @@ defmodule EthConverter do
     |> wei_to_eth(decimal_places)
   end
 
-  def wei_to_usd(wei, decimal_places \\ 2) do
+  def wei_to_usd(wei, decimal_places \\ 0) do
     with eth_amount <- wei_to_eth(wei, 18),
          {:ok, eth_price} <- get_eth_price_usd() do
-      usd_value = Decimal.mult(Decimal.new(eth_amount), Decimal.new(eth_price))
+      usd_value =
+        Decimal.mult(Decimal.new(to_string(eth_amount)), Decimal.new(to_string(eth_price)))
+
       {:ok, Decimal.round(usd_value, decimal_places) |> Decimal.to_string(:normal)}
     else
       {:error, reason} -> {:error, reason}
