@@ -64,7 +64,7 @@
 
     - name: Copy BLS keystore to server
       copy:
-        src: "{{ bls_keystore_path }}"
+        src: '{{ bls_keystore_path }}'
         dest: /home/{{ ansible_user }}/.keystores/aggregator.bls
         owner: '{{ ansible_user }}'
         group: '{{ ansible_user }}'

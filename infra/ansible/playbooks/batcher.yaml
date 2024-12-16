@@ -48,9 +48,9 @@
       ansible.builtin.file:
         path: /home/{{ ansible_user }}/repos/batcher
         state: directory
-        mode: "0755"
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
+        mode: '0755'
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
 
     # Clone Aligned repository for the service
     - name: Clone Aligned repository
@@ -120,10 +120,10 @@
 
     - name: Copy keystore to server
       ansible.builtin.copy:
-        src: "{{ keystore_path }}"
+        src: '{{ keystore_path }}'
         dest: /home/{{ ansible_user }}/.keystores/batcher
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
 
     - name: Start Batcher service
       ansible.builtin.systemd_service:
