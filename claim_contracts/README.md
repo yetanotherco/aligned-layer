@@ -4,6 +4,14 @@
 
 - Foundry
 
+## Build
+
+Install dependencies and compile the project running:
+
+```bash
+$ make build
+```
+
 ## Local deploying
 
 To deploy the contracts, set the following environment variables:
