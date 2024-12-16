@@ -27,8 +27,8 @@ defmodule FooterComponent do
           ]},
          {"Resources",
           [
-            {"Contact", "https://alignedlayer.com/contact/"},
-            {"Blog", "https://blog.alignedlayer.com/"}
+            {"Blog", "https://blog.alignedlayer.com/"},
+            {"Contact", "https://alignedlayer.com/contact/"}
           ]}
        ]
      )}
