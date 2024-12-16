@@ -34,3 +34,48 @@ Then run the following script:
 ```
 ./deployClaim.sh
 ```
+
+## Production
+
+This is a series of steps to deploy the token to production and upgrade it if necessary.
+
+### Safe wallet creation
+
+First we create a wallet in [Safe](https://app.safe.global/) to represent the foundation. We assume this is done by the user. This safe will:
+- Receive part of the deployed tokens.
+- Own the proxy admin contract. This is the contract that can upgrade the token contract.
+- Own the proxy contract. This will point to the current implementation of the contract. All users and the safe itself will interact with this contract to mint, transfer, burn, and other erc20 operations.
+
+### Configuration
+
+There is an example configuration file in `script-config/config.example.json`. Before deploying to production, we need to create a `config.mainnet.json` file in the same folder with the same contents as the example, but we need to change a couple of fields:
+
+- `foundation`: this is the address of the safe that was created in the previous step.
+- `claimSupplier`: this is the address of a different safe that will provide the funds for the claim contract when it is deployed.
+- `deployer`: The address of the deterministic create2 deployer as specified in the [official repo](https://github.com/Arachnid/deterministic-deployment-proxy). The address should be `0x4e59b44847b379578588920ca78fbf26c0b4956c`.
+- `salt`: An arbitrary value provided by the sender. This is a 32-bytes hex string. We default to 0.
+
+### Deployment of the Token (proxy and implementation)
+
+```bash
+make deploy-token PRIVATE_KEY=<private_key> RPC_URL=<rpc_url> CONFIG=<config>
+```
+
+This make target internally executes a forge script that:
+
+1. Deploys the token implementation that will be used only for its logic.
+2. Deploys the Transparent Proxy, which also deploys the proxy admin. In this step the safe is set as the owner of both the owner of the proxy admin and the proxy (token).
+
+The private key does NOT correspond to the safe, it needs to represent an account with sufficient funds to deploy the token.
+
+Arguments (env variables):
+- `PRIVATE_KEY`: the private key of the deployer account. This is NOT the foundation safe, just any account with enough eth for the deployment. This operation consumes approximately `3935470` gas units. As of Dec 16 2024, the gas price for a high priority is 16 gwei, which means around `0.063` eth.
+- `RPC_URL`: a gateway or node that allows for rpc calls.
+- `CONFIG`: the name of the configuration file. For `config.example.json` the name would be `example`. For `config.mainnet.json`, this would be `mainnet`.
+
+The output of the deployment will look something like this:
+
+```
+== Logs ==
+Aligned Token Proxy deployed at address: 0x9eDC342ADc2B73B2E36d0e77475bCF2103F09a22 with proxy admin: 0x51D94AdA2FFBFED637e6446CC991D8C65B93e167 and owner: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
+```
