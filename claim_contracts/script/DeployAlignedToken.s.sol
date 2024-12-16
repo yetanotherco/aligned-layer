@@ -9,9 +9,14 @@ import "forge-std/Script.sol";
 import {Utils} from "./Utils.sol";
 
 contract DeployAlignedToken is Script {
-    function run() public {
+    function run(string memory config) public {
         string memory root = vm.projectRoot();
-        string memory path = string.concat(root, "/script-config/config.json");
+        string memory path = string.concat(
+            root,
+            "/script-config/config",
+            config,
+            ".json"
+        );
         string memory config_json = vm.readFile(path);
 
         address _safe = stdJson.readAddress(config_json, ".safe");

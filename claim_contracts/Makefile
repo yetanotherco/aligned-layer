@@ -12,9 +12,12 @@ PRIVATE_KEY?=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
 deploy-all: ## 🚀 Deploy all contracts
 	cd script && forge script DeployAll.s.sol --private-key $(PRIVATE_KEY) --rpc-url $(RPC_URL) --broadcast
 
+CONFIG?=example
 deploy-token: ## 🚀 Deploy the token contract
 	cd script && \
 	forge script DeployAlignedToken.s.sol \
+	--sig "run(string)" \
+	$(CONFIG)
 	--private-key $(PRIVATE_KEY) \
 	--rpc-url $(RPC_URL) \
 	--broadcast
