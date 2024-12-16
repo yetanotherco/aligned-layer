@@ -26,7 +26,7 @@ contract DeployAll is Script {
         ProxyAdmin _proxyAdmin = deployProxyAdmin(_safe, _salt, _deployer);
 
         TransparentUpgradeableProxy _tokenProxy =
-            deployAlignedTokenProxy(address(_proxyAdmin), _salt, _deployer, _safe, _foundation, _claim);
+            deployAlignedTokenProxy(address(_proxyAdmin), _salt, _deployer, _foundation, _claim);
 
         TransparentUpgradeableProxy _airdropProxy = deployClaimableAirdropProxy(
             address(_proxyAdmin),
@@ -57,7 +57,6 @@ contract DeployAll is Script {
         address _proxyAdmin,
         bytes32 _salt,
         address _deployer,
-        address _owner,
         address _foundation,
         address _claim
     ) internal returns (TransparentUpgradeableProxy) {
