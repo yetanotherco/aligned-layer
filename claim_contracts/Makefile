@@ -1,8 +1,11 @@
-.PHONY: help deploy-aligned-token-implementation deploy-aligned-token-proxy deploy-claimable-airdrop-implementation deploy-claimable-airdrop-proxy upgrade-aligned-token-implementation aligned-token-proxy-deploy-data aligned-token-init-data aligned-token-upgrade-data aligned-token-create2 aligned-token-proxy-create2
+.PHONY: help deps deploy-aligned-token-implementation deploy-aligned-token-proxy deploy-claimable-airdrop-implementation deploy-claimable-airdrop-proxy upgrade-aligned-token-implementation aligned-token-proxy-deploy-data aligned-token-init-data aligned-token-upgrade-data aligned-token-create2 aligned-token-proxy-create2
 
 
 help: ## 📚 Show help for each of the Makefile recipes
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+deps: ## 📄 Install contract dependencies
+	forge install
 
 # Deployments
 
