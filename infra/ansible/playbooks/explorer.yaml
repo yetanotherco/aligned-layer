@@ -73,7 +73,6 @@
         KEYFILE_PATH: "{{ lookup('ini', 'KEYFILE_PATH file=ini/config-explorer.ini') }}"
         CERTFILE_PATH: "{{ lookup('ini', 'CERTFILE_PATH file=ini/config-explorer.ini') }}"
 
-
     - name: Build the explorer release
       args:
         chdir: "/home/{{ ansible_user }}/repos/explorer/aligned_layer/explorer"
