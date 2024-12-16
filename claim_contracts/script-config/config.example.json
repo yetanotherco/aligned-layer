@@ -7,7 +7,6 @@
   "claimSupplierPrivateKey": "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
   "limitTimestampToClaim": 2733427549,
   "claimMerkleRoot": "0x90076b5fb9a6c81d9fce83dfd51760987b8c49e7c861ea25b328e6e63d2cd3df",
-  "airdropProxy": "0xB443aFBc5f9FCECB42334bb7EC95412FFCf9C860",
-  "proxyAdmin": "0x74120FC99fEb357B7F3c277A42D1FA551A6eE23a",
-  "tokenProxy": "0xfC3443C5Fc1b16fdA71B9CfBfe12aF874d6219c0"
+  "airdropProxy": "0x882b82f4E9014164Af87ecdAB64955cf7C252C4f",
+  "tokenProxy": "0x82720a392C037B708370A1c2FCfd64d01e851e81"
 }
