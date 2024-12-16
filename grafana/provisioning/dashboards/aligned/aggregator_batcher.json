@@ -2732,6 +2732,7 @@
             "mode": "continuous-GrYlRd"
           },
           "mappings": [],
+          "noValue": "none",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -2768,6 +2769,7 @@
           "values": false
         },
         "showUnfilled": true,
+        "text": {},
         "valueMode": "color"
       },
       "pluginVersion": "10.1.10",
@@ -2779,10 +2781,13 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
+          "exemplar": false,
           "expr": "floor(increase(missing_operator_count{job=\"aligned-tracker\"}[$__range]))",
+          "format": "time_series",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
+          "interval": "1",
           "legendFormat": "{{operator}}",
           "range": true,
           "refId": "A",
@@ -2790,7 +2795,12 @@
         }
       ],
       "title": "# Operator Missing Tasks",
-      "transformations": [],
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {}
+        }
+      ],
       "type": "bargauge"
     },
     {
@@ -3255,6 +3265,6 @@
   "timezone": "browser",
   "title": "System Data",
   "uid": "aggregator",
-  "version": 4,
+  "version": 7,
   "weekStart": ""
 }
