@@ -17,7 +17,7 @@ deploy-token: ## 🚀 Deploy the token contract
 	cd script && \
 	forge script DeployAlignedToken.s.sol \
 	--sig "run(string)" \
-	$(CONFIG)
+	$(CONFIG) \
 	--private-key $(PRIVATE_KEY) \
 	--rpc-url $(RPC_URL) \
 	--broadcast
