@@ -25,6 +25,9 @@ contract AlignedToken is
     /// @notice Total supply of the token.
     uint256 public constant TOTAL_SUPPLY = 10_000_000_000e18; // 10 billion
 
+    /// @notice Signals the initialization of the Aligned Token and the minted amount.
+    event AlignedTokenInitialized(address owner, uint256 mintedForFoundation, uint256 mintedForClaimSupplier);
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -45,13 +48,18 @@ contract AlignedToken is
             _foundation != address(0) && _claimSupplier != address(0),
             "Invalid _foundation or _claimSupplier"
         );
+        uint256 amountForFoundation = 7_300_000_000e18;
+        uint256 amountForClaimSupplier = 2_700_000_000e18;
+
         __ERC20_init(NAME, SYMBOL);
         __EIP712_init(NAME, VERSION);
         __ERC20Permit_init(NAME);
         __Ownable2Step_init(); // default is msg.sender
         _transferOwnership(_foundation);
-        _mint(_foundation, 7_300_000_000e18); // 7.3 billion
-        _mint(_claimSupplier, 2_700_000_000e18); // 2.7 billion
+        _mint(_foundation, amountForFoundation); // 7.3 billion
+        _mint(_claimSupplier, amountForClaimSupplier); // 2.7 billion
+
+        emit AlignedTokenInitialized(_foundation, amountForFoundation, amountForClaimSupplier);
     }
 
     /// @notice Prevents the owner from renouncing ownership.
