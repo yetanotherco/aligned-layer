@@ -122,7 +122,8 @@ defmodule ExplorerWeb.Helpers do
   def get_aligned_networks() do
     [
       {"Mainnet", "https://explorer.alignedlayer.com"},
-      {"Holesky", "https://holesky.explorer.alignedlayer.com"}
+      {"Holesky", "https://holesky.explorer.alignedlayer.com"},
+      {"Stage", "https://stage.explorer.alignedlayer.com"}
     ]
   end
 
