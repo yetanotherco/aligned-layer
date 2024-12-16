@@ -78,4 +78,30 @@ The output of the deployment will look something like this:
 ```
 == Logs ==
 Aligned Token Proxy deployed at address: 0x9eDC342ADc2B73B2E36d0e77475bCF2103F09a22 with proxy admin: 0x51D94AdA2FFBFED637e6446CC991D8C65B93e167 and owner: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
+
+...
+
+##### sepolia
+✅  [Success]Hash: 0x6b58e061e0c37209bf7e33a4a4705706b5accd13b8964ecf2ae919fe01f41da1
+Contract Address: 0xDC1dc4e84b0FB522DBa3a14C909b90c96496830C
+Block: 7293558
+Paid: 0.008478255653505184 ETH (1850587 gas * 4.581387232 gwei)
 ```
+
+As a sanity check, we can call the following make target with the address of the deployed proxy contract.
+
+```bash
+make test-token ADDRESS=0x9eDC342ADc2B73B2E36d0e77475bCF2103F09a22
+```
+
+This calls functions to get the name, symbol and total supply in the deploy contract and displays them on the screen.
+
+### Contract Verification in explorer
+
+We can also verify the implementation contract in Etherscan, which is useful for other applications like wallets to recognize the ABI.
+
+```
+forge verify-contract 0xDC1dc4e84b0FB522DBa3a14C909b90c96496830C --rpc-url $RPC_URL --etherscan-api-key $ETHERSCAN_API_KEY
+```
+
+In this case we pass the implementation contract address.
