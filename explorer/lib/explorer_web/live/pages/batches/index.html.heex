@@ -2,6 +2,19 @@
   <.card_preheding>Batches</.card_preheding>
   <%= if @batches != :empty and @batches != [] do %>
     <.table id="batches" rows={@batches}>
+      <:header>
+        <.link
+          href="https://docs.alignedlayer.com/guides/6_contract_addresses"
+          class="absolute top-4 right-5 hover:underline font-medium text-muted-foreground capitalize text-sm"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View All <.icon name="hero-arrow-top-right-on-square-solid" class="size-3.5 mb-1" />
+        </.link>
+        <h3>
+          <.icon name="hero-cpu-chip" class="size-4 mb-0.5" /> Service Manager:
+        </h3>
+      </:header>
       <:col :let={batch} label="Batch Hash" class="text-left">
         <.link navigate={~p"/batches/#{batch.merkle_root}"}>
           <span class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80">
