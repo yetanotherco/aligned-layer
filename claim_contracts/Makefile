@@ -30,6 +30,12 @@ deploy-token: ## 🚀 Deploy the token contract
 	--broadcast \
 	--verbosity 3
 
+
+update_token_proxy:
+	@NEW_TOKEN_PROXY=$$(jq -r '.tokenProxy' "script-out/deployed_contracts.json") && \
+	jq --arg new_proxy "$$NEW_TOKEN_PROXY" '.tokenProxy = $$new_proxy' $(CONFIG) > $(CONFIG).tmp \
+	&& mv $(CONFIG).tmp $(CONFIG) \
+
 upgrade-token: ## 🚀 Upgrade the token contract
 	cd script && \
 	forge script UpgradeToken.s.sol \

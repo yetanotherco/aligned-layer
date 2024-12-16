@@ -47,6 +47,46 @@ contract DeployAlignedToken is Script {
                 vm.toString(_safe)
             )
         );
+
+        string memory deployedAddressesJson = "deployedAddressesJson";
+
+        string memory tokenProxyKey = "tokenProxy";
+       vm.serializeAddress(
+            deployedAddressesJson,
+            tokenProxyKey,
+            address(_tokenProxy)
+        );
+        string memory proxyAdminKey = "proxyAdmin";
+        vm.serializeAddress(
+            deployedAddressesJson,
+            proxyAdminKey,
+            Utils.getAdminAddress(address(_tokenProxy))
+        );
+        string memory safeKey = "safe";
+       vm.serializeAddress(
+            deployedAddressesJson,
+            safeKey,
+            address(_safe)
+        );
+
+        // serialize all the data
+        string memory finalJson =
+            vm.serializeString(deployedAddressesJson, "aligned", "deployed contracts");
+
+        vm.writeJson(finalJson, _getOutputPath("deployed_contracts.json"));
+    }
+
+        function _getOutputPath(
+        string memory fileName
+    ) internal returns (string memory) {
+        string memory outputDir = "script-out/";
+
+        // Create output directory if it doesn't exist
+        if (!vm.exists(outputDir)) {
+            vm.createDir(outputDir, true);
+        }
+
+        return string.concat(outputDir, fileName);
     }
 
     function deployAlignedTokenProxy(
