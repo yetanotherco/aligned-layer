@@ -148,7 +148,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 				if receipt == nil {
 					receipt, _ = w.ClientFallback.TransactionReceipt(context.Background(), tx.Hash())
 					if receipt != nil {
-						w.checkIfAggregatorHadToPaidForBatcher(tx, batchIdentifierHash)
+						w.updateAggregatorGasCostMetrics(tx, batchIdentifierHash)
 						return receipt, nil
 					}
 				}
@@ -183,7 +183,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		w.logger.Infof("Transaction sent, waiting for receipt", "merkle root", batchMerkleRootHashString)
 		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, realTx.Hash(), retry.WaitForTxRetryParams(timeToWaitBeforeBump))
 		if receipt != nil {
-			w.checkIfAggregatorHadToPaidForBatcher(realTx, batchIdentifierHash)
+			w.updateAggregatorGasCostMetrics(realTx, batchIdentifierHash)
 			return receipt, nil
 		}
 
@@ -204,10 +204,10 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	return retry.RetryWithData(respondToTaskV2Func, retry.RespondToTaskV2())
 }
 
-// Calculates the transaction cost from the receipt and compares it with the batcher respondToTaskFeeLimit
-// if the tx cost was higher, then it means the aggregator has paid the difference for the batcher (txCost - respondToTaskFeeLimit) and so metrics are updated accordingly.
-// otherwise nothing is done.
-func (w *AvsWriter) checkIfAggregatorHadToPaidForBatcher(tx *types.Transaction, batchIdentifierHash [32]byte) {
+// Calculates the transaction cost from the receipt and updates the total amount paid by the aggregator metric
+// Then, it compares that tx cost with the batcher respondToTaskFeeLimit.
+// If the tx cost was higher, it means the aggregator has paid the difference for the batcher (txCost - respondToTaskFeeLimit) and so metrics are updated accordingly.
+func (w *AvsWriter) updateAggregatorGasCostMetrics(tx *types.Transaction, batchIdentifierHash [32]byte) {
 	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash, retry.NetworkRetryParams())
 	if err != nil {
 		return
@@ -216,6 +216,9 @@ func (w *AvsWriter) checkIfAggregatorHadToPaidForBatcher(tx *types.Transaction, 
 
 	// NOTE we are not using tx.Cost() because tx.Cost() includes tx.Value()
 	txCost := new(big.Int).Mul(big.NewInt(int64(tx.Gas())), tx.GasPrice())
+
+	txCostInEth := utils.WeiToEth(txCost)
+	w.metrics.AddAggregatorGasCostPaidTotal(txCostInEth)
 
 	if respondToTaskFeeLimit.Cmp(txCost) < 0 {
 		aggregatorDifferencePaid := new(big.Int).Sub(txCost, respondToTaskFeeLimit)
