@@ -42,7 +42,7 @@ contract DeployAlignedToken is Script {
                 "Aligned Token Proxy deployed at address:",
                 vm.toString(address(_tokenProxy)),
                 " with proxy admin: ",
-                vm.toString(getAdminAddress(address(_tokenProxy))),
+                vm.toString(Utils.getAdminAddress(address(_tokenProxy))),
                 " and owner: ",
                 vm.toString(_safe)
             )
@@ -93,13 +93,5 @@ contract DeployAlignedToken is Script {
             _deployer
         );
         return TransparentUpgradeableProxy(payable(_alignedTokenProxy));
-    }
-
-    function getAdminAddress(address proxy) internal view returns (address) {
-        address CHEATCODE_ADDRESS = 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D;
-        Vm vm = Vm(CHEATCODE_ADDRESS);
-        
-        bytes32 adminSlot = vm.load(proxy, ERC1967Utils.ADMIN_SLOT);
-        return address(uint160(uint256(adminSlot)));
     }
 }

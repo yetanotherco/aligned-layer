@@ -102,7 +102,6 @@ contract DeployAll is Script {
             .alignedTokenProxyDeploymentData(
                 _proxyAdmin,
                 address(_token),
-                _owner,
                 _foundation,
                 _claim
             );

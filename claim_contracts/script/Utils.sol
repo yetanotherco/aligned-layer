@@ -14,6 +14,11 @@ library Utils {
         address(uint160(uint256(keccak256("hevm cheat code"))));
     Vm internal constant vm = Vm(VM_ADDRESS);
 
+    function getAdminAddress(address proxy) internal view returns (address) {        
+        bytes32 adminSlot = vm.load(proxy, ERC1967Utils.ADMIN_SLOT);
+        return address(uint160(uint256(adminSlot)));
+    }
+
     /// @notice Address of the deterministic create2 factory.
     /// @dev This address corresponds to a contracts that is set in the storage
     /// in the genesis file. The same contract with the same address is deployed
