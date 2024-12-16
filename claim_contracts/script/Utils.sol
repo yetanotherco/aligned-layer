@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "../src/AlignedToken.sol";
 import "../src/ClaimableAirdrop.sol";
+import "../src/ClaimableAirdropV2.sol";
 
 library Utils {
     // Cheatcodes address, 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D.
@@ -85,10 +86,9 @@ library Utils {
     function alignedTokenProxyDeploymentData(
         address _proxyAdmin,
         address _implementation,
-        address _beneficiary1,
-        address _beneficiary2,
-        address _beneficiary3,
-        uint256 _mintAmount
+        address _owner,
+        address _foundation,
+        address _claim
     ) internal pure returns (bytes memory) {
         return
             abi.encodePacked(
@@ -98,10 +98,9 @@ library Utils {
                     _proxyAdmin,
                     alignedTokenInitData(
                         _implementation,
-                        _beneficiary1,
-                        _beneficiary2,
-                        _beneficiary3,
-                        _mintAmount
+                        _owner,
+                        _foundation,
+                        _claim
                     )
                 )
             );
@@ -109,48 +108,14 @@ library Utils {
 
     function alignedTokenInitData(
         address _implementation,
-        address _beneficiary1,
-        address _beneficiary2,
-        address _beneficiary3,
-        uint256 _mintAmount
+        address _owner,
+        address _foundation,
+        address _claim
     ) internal pure returns (bytes memory) {
         return
             abi.encodeCall(
                 AlignedToken(_implementation).initialize,
-                (
-                    _beneficiary1,
-                    _mintAmount,
-                    _beneficiary2,
-                    _mintAmount,
-                    _beneficiary3,
-                    _mintAmount
-                )
-            );
-    }
-
-    function alignedTokenUpgradeData(
-        address _proxyAdmin,
-        address _proxy,
-        address _newImplementation,
-        address _beneficiary1,
-        address _beneficiary2,
-        address _beneficiary3,
-        uint256 _mintAmount
-    ) internal pure returns (bytes memory) {
-        return
-            abi.encodeCall(
-                ProxyAdmin(_proxyAdmin).upgradeAndCall,
-                (
-                    ITransparentUpgradeableProxy(_proxy),
-                    _newImplementation,
-                    Utils.alignedTokenInitData(
-                        _newImplementation,
-                        _beneficiary1,
-                        _beneficiary2,
-                        _beneficiary3,
-                        _mintAmount
-                    )
-                )
+                (_owner, _foundation, _claim)
             );
     }
 
@@ -212,12 +177,7 @@ library Utils {
 
     function claimableAirdropUpgradeData(
         address _proxy,
-        address _owner,
-        address _newImplementation,
-        address _tokenContractAddress,
-        address _tokenOwnerAddress,
-        uint256 _limitTimestampToClaim,
-        bytes32 _claimMerkleRoot
+        address _newImplementation
     ) internal pure returns (bytes memory) {
         return
             abi.encodeCall(
@@ -225,13 +185,9 @@ library Utils {
                 (
                     ITransparentUpgradeableProxy(_proxy),
                     _newImplementation,
-                    Utils.claimableAirdropInitData(
-                        _owner,
-                        _newImplementation,
-                        _tokenContractAddress,
-                        _tokenOwnerAddress,
-                        _limitTimestampToClaim,
-                        _claimMerkleRoot
+                    abi.encodeCall(
+                        ClaimableAirdropV2(_newImplementation).reinitialize,
+                        ()
                     )
                 )
             );

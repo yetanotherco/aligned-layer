@@ -17,19 +17,12 @@ contract DeployAll is Script {
         address _safe = stdJson.readAddress(config_json, ".safe");
         bytes32 _salt = stdJson.readBytes32(config_json, ".salt");
         address _deployer = stdJson.readAddress(config_json, ".deployer");
-        address _beneficiary1 = stdJson.readAddress(
+        address _foundation = stdJson.readAddress(config_json, ".foundation");
+        address _claim = stdJson.readAddress(config_json, ".claim");
+        uint256 _claimPrivateKey = stdJson.readUint(
             config_json,
-            ".beneficiary1"
+            ".claimPrivateKey"
         );
-        address _beneficiary2 = stdJson.readAddress(
-            config_json,
-            ".beneficiary2"
-        );
-        address _beneficiary3 = stdJson.readAddress(
-            config_json,
-            ".beneficiary3"
-        );
-        uint256 _mintAmount = stdJson.readUint(config_json, ".mintAmount");
         uint256 _limitTimestampToClaim = stdJson.readUint(
             config_json,
             ".limitTimestampToClaim"
@@ -38,10 +31,6 @@ contract DeployAll is Script {
             config_json,
             ".claimMerkleRoot"
         );
-        uint256 _holderPrivateKey = stdJson.readUint(
-            config_json,
-            ".holderPrivateKey"
-        );
 
         ProxyAdmin _proxyAdmin = deployProxyAdmin(_safe, _salt, _deployer);
 
@@ -49,16 +38,15 @@ contract DeployAll is Script {
             address(_proxyAdmin),
             _salt,
             _deployer,
-            _beneficiary1,
-            _beneficiary2,
-            _beneficiary3,
-            _mintAmount
+            _safe,
+            _foundation,
+            _claim
         );
 
         TransparentUpgradeableProxy _airdropProxy = deployClaimableAirdropProxy(
             address(_proxyAdmin),
             _safe,
-            _beneficiary1,
+            _foundation,
             _salt,
             _deployer,
             address(_tokenProxy),
@@ -66,11 +54,7 @@ contract DeployAll is Script {
             _claimMerkleRoot
         );
 
-        approve(
-            address(_tokenProxy),
-            address(_airdropProxy),
-            _holderPrivateKey
-        );
+        approve(address(_tokenProxy), address(_airdropProxy), _claimPrivateKey);
     }
 
     function deployProxyAdmin(
@@ -107,10 +91,9 @@ contract DeployAll is Script {
         address _proxyAdmin,
         bytes32 _salt,
         address _deployer,
-        address _beneficiary1,
-        address _beneficiary2,
-        address _beneficiary3,
-        uint256 _mintAmount
+        address _owner,
+        address _foundation,
+        address _claim
     ) internal returns (TransparentUpgradeableProxy) {
         vm.broadcast();
         AlignedToken _token = new AlignedToken();
@@ -119,10 +102,9 @@ contract DeployAll is Script {
             .alignedTokenProxyDeploymentData(
                 _proxyAdmin,
                 address(_token),
-                _beneficiary1,
-                _beneficiary2,
-                _beneficiary3,
-                _mintAmount
+                _owner,
+                _foundation,
+                _claim
             );
         address _alignedTokenProxy = Utils.deployWithCreate2(
             _alignedTokenDeploymentData,
@@ -194,9 +176,9 @@ contract DeployAll is Script {
     function approve(
         address _tokenContractProxy,
         address _airdropContractProxy,
-        uint256 _holderPrivateKey
+        uint256 _claimPrivateKey
     ) public {
-        vm.startBroadcast(_holderPrivateKey);
+        vm.startBroadcast(_claimPrivateKey);
         (bool success, bytes memory data) = address(_tokenContractProxy).call(
             abi.encodeCall(
                 IERC20.approve,
