@@ -125,7 +125,7 @@ library Utils {
     }
 
     function claimableAirdropProxyDeploymentData(
-        address _proxyAdmin,
+        address _proxyAdminOwner,
         address _implementation,
         address _owner,
         address _tokenContractAddress,
@@ -138,7 +138,7 @@ library Utils {
                 type(TransparentUpgradeableProxy).creationCode,
                 abi.encode(
                     _implementation,
-                    _proxyAdmin,
+                    _proxyAdminOwner,
                     claimableAirdropInitData(
                         _implementation,
                         _owner,

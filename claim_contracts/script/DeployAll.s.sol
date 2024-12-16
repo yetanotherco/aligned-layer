@@ -19,10 +19,10 @@ contract DeployAll is Script {
         );
         string memory config_json = vm.readFile(path);
 
-        address _safe = stdJson.readAddress(config_json, ".safe");
         bytes32 _salt = stdJson.readBytes32(config_json, ".salt");
         address _deployer = stdJson.readAddress(config_json, ".deployer");
         address _foundation = stdJson.readAddress(config_json, ".foundation");
+        address _safe = _foundation;
         address _claim = stdJson.readAddress(config_json, ".claimSupplier");
         uint256 _claimPrivateKey = stdJson.readUint(
             config_json,
