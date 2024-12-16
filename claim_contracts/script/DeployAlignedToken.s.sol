@@ -12,30 +12,17 @@ import {Utils} from "./Utils.sol";
 contract DeployAlignedToken is Script {
     function run(string memory config) public {
         string memory root = vm.projectRoot();
-        string memory path = string.concat(
-            root,
-            "/script-config/config.",
-            config,
-            ".json"
-        );
+        string memory path = string.concat(root, "/script-config/config.", config, ".json");
         string memory config_json = vm.readFile(path);
 
         address _safe = stdJson.readAddress(config_json, ".safe");
         bytes32 _salt = stdJson.readBytes32(config_json, ".salt");
         address _deployer = stdJson.readAddress(config_json, ".deployer");
         address _foundation = stdJson.readAddress(config_json, ".foundation");
-        address _claimSupplier = stdJson.readAddress(
-            config_json,
-            ".claimSupplier"
-        );
+        address _claimSupplier = stdJson.readAddress(config_json, ".claimSupplier");
 
-        TransparentUpgradeableProxy _tokenProxy = deployAlignedTokenProxy(
-            _safe,
-            _salt,
-            _deployer,
-            _foundation,
-            _claimSupplier
-        );
+        TransparentUpgradeableProxy _tokenProxy =
+            deployAlignedTokenProxy(_safe, _salt, _deployer, _foundation, _claimSupplier);
 
         console.log(
             string.concat(
@@ -49,36 +36,14 @@ contract DeployAlignedToken is Script {
         );
 
         string memory deployedAddressesJson = "deployedAddressesJson";
+        vm.serializeAddress(deployedAddressesJson, "tokenProxy", address(_tokenProxy));
+        vm.serializeAddress(deployedAddressesJson, "proxyAdmin", Utils.getAdminAddress(address(_tokenProxy)));
+        string memory finalJson = vm.serializeAddress(deployedAddressesJson, "safe", address(_safe));
 
-        string memory tokenProxyKey = "tokenProxy";
-       vm.serializeAddress(
-            deployedAddressesJson,
-            tokenProxyKey,
-            address(_tokenProxy)
-        );
-        string memory proxyAdminKey = "proxyAdmin";
-        vm.serializeAddress(
-            deployedAddressesJson,
-            proxyAdminKey,
-            Utils.getAdminAddress(address(_tokenProxy))
-        );
-        string memory safeKey = "safe";
-       vm.serializeAddress(
-            deployedAddressesJson,
-            safeKey,
-            address(_safe)
-        );
-
-        // serialize all the data
-        string memory finalJson =
-            vm.serializeString(deployedAddressesJson, "aligned", "deployed contracts");
-
-        vm.writeJson(finalJson, _getOutputPath("deployed_contracts.json"));
+        vm.writeJson(finalJson, _getOutputPath("deployed_token_addresses.json"));
     }
 
-        function _getOutputPath(
-        string memory fileName
-    ) internal returns (string memory) {
+    function _getOutputPath(string memory fileName) internal returns (string memory) {
         string memory outputDir = "script-out/";
 
         // Create output directory if it doesn't exist
@@ -99,18 +64,9 @@ contract DeployAlignedToken is Script {
         vm.broadcast();
         AlignedToken _token = new AlignedToken();
 
-        bytes memory _alignedTokenDeploymentData = Utils
-            .alignedTokenProxyDeploymentData(
-                _proxyAdmin,
-                address(_token),
-                _foundation,
-                _claim
-            );
-        address _alignedTokenProxy = Utils.deployWithCreate2(
-            _alignedTokenDeploymentData,
-            _salt,
-            _deployer
-        );
+        bytes memory _alignedTokenDeploymentData =
+            Utils.alignedTokenProxyDeploymentData(_proxyAdmin, address(_token), _foundation, _claim);
+        address _alignedTokenProxy = Utils.deployWithCreate2(_alignedTokenDeploymentData, _salt, _deployer);
         return TransparentUpgradeableProxy(payable(_alignedTokenProxy));
     }
 }

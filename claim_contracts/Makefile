@@ -32,7 +32,7 @@ deploy-token: ## 🚀 Deploy the token contract
 
 
 update_token_proxy:
-	@NEW_TOKEN_PROXY=$$(jq -r '.tokenProxy' "script-out/deployed_contracts.json") && \
+	@NEW_TOKEN_PROXY=$$(jq -r '.tokenProxy' "script-out/deployed_token_addresses.json") && \
 	jq --arg new_proxy "$$NEW_TOKEN_PROXY" '.tokenProxy = $$new_proxy' $(CONFIG) > $(CONFIG).tmp \
 	&& mv $(CONFIG).tmp $(CONFIG) \
 
