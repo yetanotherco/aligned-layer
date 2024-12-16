@@ -36,8 +36,22 @@
       ansible.builtin.git:
         repo: https://github.com/yetanotherco/aligned_layer
         dest: "/home/{{ ansible_user }}/repos/explorer/aligned_layer"
-        version: explorer-ssl
         update: yes
+
+    - name: Create .ssl directory
+      file:
+        path: /home/{{ ansible_user }}/.ssl/
+        state: directory
+
+    - name: Upload SSL key to server (infra/ansible/playbooks/files/key.pem)
+      copy:
+        src: key.pem
+        dest: /home/{{ ansible_user }}/.ssl/key.pem
+
+    - name: Upload SSL certificate to server (infra/ansible/playbooks/files/cert.pem)
+      copy:
+        src: cert.pem
+        dest: /home/{{ ansible_user }}/.ssl/cert.pem
 
   tasks:
     - name: Add environment file for Explorer
@@ -56,6 +70,9 @@
         DB_HOST: "{{ lookup('ini', 'DB_HOST file=ini/config-explorer.ini') }}"
         TRACKER_API_URL: "{{ lookup('ini', 'TRACKER_API_URL file=ini/config-explorer.ini') }}"
         SECRET_KEY_BASE: "{{ lookup('ini', 'SECRET_KEY_BASE file=ini/config-explorer.ini') }}"
+        KEYFILE_PATH: "{{ lookup('ini', 'KEYFILE_PATH file=ini/config-explorer.ini') }}"
+        CERTFILE_PATH: "{{ lookup('ini', 'CERTFILE_PATH file=ini/config-explorer.ini') }}"
+
 
     - name: Build the explorer release
       args:
@@ -82,4 +99,23 @@
       vars:
         ansible_ssh_user: "{{ admin_user }}"
 
-    # TODO: add systemd service
+    - name: Create .env for Explorer systemd service
+      shell: cat /home/{{ ansible_user }}/repos/explorer/aligned_layer/explorer/.env | sed 's/export //g' > /home/{{ ansible_user }}/config/.env.explorer
+
+    - name: Create systemd services directory
+      file:
+        path: "/home/{{ ansible_user }}/.config/systemd/user/"
+        state: directory
+
+    - name: Add service to systemd
+      template:
+        src: services/explorer.service.j2
+        dest: "/home/{{ ansible_user }}/.config/systemd/user/explorer.service"
+        force: no
+
+    - name: Start explorer service
+      systemd_service:
+        name: explorer
+        state: started
+        enabled: true
+        scope: user

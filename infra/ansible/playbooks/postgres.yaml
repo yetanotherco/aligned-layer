@@ -55,3 +55,4 @@
         DB_PASS: "{{ lookup('ini', 'DB_PASS', file=ini_file) }}"
         DB_NAME: "{{ lookup('ini', 'DB_NAME', file=ini_file) }}"
       ignore_errors: true
+      no_log: true
