@@ -24,17 +24,10 @@ scrape_configs:
       - targets: [ "host.docker.internal:9093" ]
         labels:
           bot: "batcher"
-  
-  - job_name: "aligned-tracker"
-    scrape_interval: 1s
-    static_configs:
-      - targets: [ "host.docker.internal:4001" ]
-        labels:
-          bot: "tracker"
 
-  - job_name: "node"
+  - job_name: "node-exporter"
     scrape_interval: 60s
     static_configs:
       - targets: [ "host.docker.internal:9100" ]
         labels:
-          bot: "node"
+          bot: "node-exporter"
