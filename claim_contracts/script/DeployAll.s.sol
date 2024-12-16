@@ -112,9 +112,9 @@ contract DeployAll is Script {
         );
 
         console.log(
-            "AlignedToken proxy deployed with address:",
+            "AlignedToken proxy deployed with address: ",
             _alignedTokenProxy,
-            "and admin:",
+            " and admin: ",
             _proxyAdmin
         );
         vm.serializeAddress("alignedToken", "address", _alignedTokenProxy);

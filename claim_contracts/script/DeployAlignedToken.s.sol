@@ -39,7 +39,7 @@ contract DeployAlignedToken is Script {
 
         console.log(
             string.concat(
-                "Aligned Token Proxy deployed at address:",
+                "Aligned Token Proxy deployed at address: ",
                 vm.toString(address(_tokenProxy)),
                 " with proxy admin: ",
                 vm.toString(Utils.getAdminAddress(address(_tokenProxy))),
