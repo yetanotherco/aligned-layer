@@ -10,8 +10,6 @@ defmodule ExplorerWeb.Home.Index do
 
     latest_batches =
       Batches.get_latest_batches(%{amount: 5})
-      # extract only the merkle root
-      |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
@@ -38,8 +36,6 @@ defmodule ExplorerWeb.Home.Index do
 
     latest_batches =
       Batches.get_latest_batches(%{amount: 5})
-      # extract only the merkle root
-      |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 

@@ -713,6 +713,7 @@ defmodule ExplorerWeb.CoreComponents do
   attr(:rows, :list, required: true)
   attr(:row_id, :any, default: nil, doc: "the function for generating the row id")
   attr(:row_click, :any, default: nil, doc: "the function for handling phx-click on each row")
+  attr(:class, :any, default: nil, doc: "css class attributes for the card background")
 
   attr(:row_item, :any,
     default: &Function.identity/1,
@@ -725,6 +726,7 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   slot(:action, doc: "the slot for showing user actions in the last table column")
+  slot(:header, default: nil, doc: "optional header for the table")
 
   def table(assigns) do
     assigns =
@@ -733,7 +735,8 @@ defmodule ExplorerWeb.CoreComponents do
       end
 
     ~H"""
-    <.card_background class="overflow-x-auto">
+    <.card_background class={classes(["overflow-x-auto", @class])}>
+      <%= render_slot(@header) %>
       <table class="table-auto border-collapse w-full">
         <thead>
           <tr class="text-muted-foreground font-normal truncate">
