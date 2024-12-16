@@ -477,7 +477,7 @@ defmodule ExplorerWeb.CoreComponents do
         :invalid -> "Invalid"
         :verified -> "Verified"
         :pending -> "Pending"
-        :stale -> "Pending"
+        :stale -> "Unverified"
       end %>
       <%= render_slot(@inner_block) %>
     </.badge>
