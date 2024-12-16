@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "./AlignedToken.sol";
 
-contract AlignedTokenV2 is AlignedToken {
+contract ExampleAlignedTokenV2 is AlignedToken {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -17,7 +17,7 @@ contract AlignedTokenV2 is AlignedToken {
 
     function reinitialize() public reinitializer(2) {}
 
-    function mint(address _tokenOwner, uint256 amount) public onlyOwner {
-        _mint(_tokenOwner, amount);
+    function helloWorld() public pure returns (string memory) {
+        return "Hello World";
     }
 }
