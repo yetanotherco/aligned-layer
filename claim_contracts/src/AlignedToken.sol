@@ -27,8 +27,6 @@ contract AlignedToken is
 
     /// @notice Initializes the contract.
     /// @dev This initializer should be called only once.
-    /// @dev The _foundation must accept the ownership of the contract
-    /// after deployment in another transaction.
     /// @param _foundation address of the foundation.
     /// @param _claimSupplier address of the claim supplier. This is the address
     /// that will give the tokens to the users that claim them.
