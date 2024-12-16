@@ -47,10 +47,6 @@ contract DeployAlignedToken is Script {
                 vm.toString(_safe)
             )
         );
-
-        console.log(
-            "Remember that the foundation must accept the ownership of the contract after deployment in another transaction."
-        );
     }
 
     function deployProxyAdmin(
