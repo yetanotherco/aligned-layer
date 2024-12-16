@@ -464,6 +464,7 @@ defmodule ExplorerWeb.CoreComponents do
           :invalid -> "destructive"
           :verified -> "accent"
           :pending -> "foreground"
+          :stale -> "destructive"
         end
       }
       class={
@@ -476,6 +477,7 @@ defmodule ExplorerWeb.CoreComponents do
         :invalid -> "Invalid"
         :verified -> "Verified"
         :pending -> "Pending"
+        :stale -> "Pending"
       end %>
       <%= render_slot(@inner_block) %>
     </.badge>

@@ -128,10 +128,16 @@ defmodule ExplorerWeb.Helpers do
     Utils.binary_to_hex_string(binary)
   end
 
+  def is_stale?(batch) do
+    expiration = Time.add(batch.submission_timestamp, 300)
+    Time.after?(Time.utc_now(), expiration)
+  end
+
   def get_batch_status(batch) do
     cond do
       not batch.is_valid -> :invalid
       batch.is_verified -> :verified
+      is_stale?(batch) -> :stale
       true -> :pending
     end
   end
