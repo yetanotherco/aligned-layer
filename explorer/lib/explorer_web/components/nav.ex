@@ -3,7 +3,19 @@ defmodule NavComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, latest_release: ReleasesHelper.get_latest_release())}
+    networks = ExplorerWeb.Helpers.get_aligned_networks()
+
+    networks =
+      Enum.map(networks, fn {name, link} ->
+        {name, "window.location.href='#{link}'"}
+      end)
+
+    {:ok,
+     assign(socket,
+       latest_release: ReleasesHelper.get_latest_release(),
+       current_network: ExplorerWeb.Helpers.get_current_network(),
+       networks: networks
+     )}
   end
 
   @impl true
@@ -57,6 +69,12 @@ defmodule NavComponent do
             Latest Aligned version
           </.tooltip>
         </.badge>
+        <.hover_dropdown_selector
+          current_value={@current_network}
+          variant="foreground"
+          options={@networks}
+          icon="hero-cube-transparent-micro"
+        />
         <button
           class="md:hidden z-50"
           id="menu-toggle"
