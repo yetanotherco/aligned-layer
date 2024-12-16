@@ -35,13 +35,13 @@ contract AlignedToken is
     /// @dev The _foundation must accept the ownership of the contract
     /// after deployment in another transaction.
     /// @param _foundation address of the foundation.
-    /// @param _claim address of the claim.
+    /// @param _claimSupplier address of the claim supplier.
     function initialize(
         address _foundation,
-        address _claim
+        address _claimSupplier
     ) public initializer {
         require(
-            _foundation != address(0) && _claim != address(0),
+            _foundation != address(0) && _claimSupplier != address(0),
             "Invalid _foundation or _claim"
         );
         __ERC20_init(NAME, SYMBOL);
@@ -50,7 +50,7 @@ contract AlignedToken is
         __Ownable2Step_init(); // default is msg.sender
         _transferOwnership(_foundation);
         _mint(_foundation, 7_300_000_000e18); // 7.3 billion
-        _mint(_claim, 2_700_000_000e18); // 2.7 billion
+        _mint(_claimSupplier, 2_700_000_000e18); // 2.7 billion
     }
 
     /// @notice Prevents the owner from renouncing ownership.
