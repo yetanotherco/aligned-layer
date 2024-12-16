@@ -49,23 +49,6 @@ contract DeployAlignedToken is Script {
         );
     }
 
-    function deployProxyAdmin(
-        address _safe,
-        bytes32 _salt,
-        address _deployer
-    ) internal returns (ProxyAdmin) {
-        bytes memory _proxyAdminDeploymentData = Utils.proxyAdminDeploymentData(
-            _safe
-        );
-        address _proxyAdminCreate2Address = Utils.deployWithCreate2(
-            _proxyAdminDeploymentData,
-            _salt,
-            _deployer
-        );
-
-        return ProxyAdmin(_proxyAdminCreate2Address);
-    }
-
     function deployAlignedTokenProxy(
         address _proxyAdmin,
         bytes32 _salt,
