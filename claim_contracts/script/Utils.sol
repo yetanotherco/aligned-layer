@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "../src/AlignedToken.sol";
 import "../src/ClaimableAirdrop.sol";
-import "../src/ClaimableAirdropV2.sol";
 
 library Utils {
     // Cheatcodes address, 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D.
@@ -86,7 +85,6 @@ library Utils {
     function alignedTokenProxyDeploymentData(
         address _proxyAdmin,
         address _implementation,
-        address _owner,
         address _foundation,
         address _claim
     ) internal pure returns (bytes memory) {
@@ -96,26 +94,20 @@ library Utils {
                 abi.encode(
                     _implementation,
                     _proxyAdmin,
-                    alignedTokenInitData(
-                        _implementation,
-                        _owner,
-                        _foundation,
-                        _claim
-                    )
+                    alignedTokenInitData(_implementation, _foundation, _claim)
                 )
             );
     }
 
     function alignedTokenInitData(
         address _implementation,
-        address _owner,
         address _foundation,
         address _claim
     ) internal pure returns (bytes memory) {
         return
             abi.encodeCall(
                 AlignedToken(_implementation).initialize,
-                (_owner, _foundation, _claim)
+                (_foundation, _claim)
             );
     }
 
@@ -171,24 +163,6 @@ library Utils {
                     _tokenOwnerAddress,
                     _limitTimestampToClaim,
                     _claimMerkleRoot
-                )
-            );
-    }
-
-    function claimableAirdropUpgradeData(
-        address _proxy,
-        address _newImplementation
-    ) internal pure returns (bytes memory) {
-        return
-            abi.encodeCall(
-                ProxyAdmin(_newImplementation).upgradeAndCall,
-                (
-                    ITransparentUpgradeableProxy(_proxy),
-                    _newImplementation,
-                    abi.encodeCall(
-                        ClaimableAirdropV2(_newImplementation).reinitialize,
-                        ()
-                    )
                 )
             );
     }
