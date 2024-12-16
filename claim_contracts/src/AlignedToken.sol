@@ -10,7 +10,6 @@ import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 contract AlignedToken is
     Initializable,
     ERC20Upgradeable,
-    EIP712Upgradeable,
     ERC20PermitUpgradeable,
     ERC20BurnableUpgradeable,
     Ownable2StepUpgradeable
@@ -20,12 +19,6 @@ contract AlignedToken is
 
     /// @notice Symbol of the token.
     string public constant SYMBOL = "ALIGN";
-
-    /// @notice Version of the token implementation.
-    string public constant VERSION = "1";
-
-    /// @notice Total supply of the token.
-    uint256 public constant TOTAL_SUPPLY = 10_000_000_000e18; // 10 billion
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -48,7 +41,6 @@ contract AlignedToken is
             "Invalid _foundation or _claimSupplier"
         );
         __ERC20_init(NAME, SYMBOL);
-        __EIP712_init(NAME, VERSION);
         __ERC20Permit_init(NAME);
         __ERC20Burnable_init();
         __Ownable2Step_init(); // default is msg.sender
