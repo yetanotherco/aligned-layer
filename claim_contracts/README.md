@@ -6,6 +6,12 @@
 
 ## Local deploying
 
+Install the dependencies:
+
+```
+make deps
+```
+
 ### Token
 
 To deploy the token, modify the file `script-config/config.example.json` and set the following values:
