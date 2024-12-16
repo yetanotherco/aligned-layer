@@ -13,7 +13,7 @@ contract DeployAlignedToken is Script {
         string memory root = vm.projectRoot();
         string memory path = string.concat(
             root,
-            "/script-config/config",
+            "/script-config/config.",
             config,
             ".json"
         );
