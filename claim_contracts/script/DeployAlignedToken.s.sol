@@ -36,9 +36,7 @@ contract DeployAlignedToken is Script {
         );
 
         string memory deployedAddressesJson = "deployedAddressesJson";
-        vm.serializeAddress(deployedAddressesJson, "tokenProxy", address(_tokenProxy));
-        vm.serializeAddress(deployedAddressesJson, "proxyAdmin", Utils.getAdminAddress(address(_tokenProxy)));
-        string memory finalJson = vm.serializeAddress(deployedAddressesJson, "safe", address(_safe));
+        string memory finalJson = vm.serializeAddress(deployedAddressesJson, "tokenProxy", address(_tokenProxy));
 
         vm.writeJson(finalJson, _getOutputPath("deployed_token_addresses.json"));
     }
