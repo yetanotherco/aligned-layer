@@ -36,7 +36,6 @@ contract DeployAlignedToken is Script {
             address(_proxyAdmin),
             _salt,
             _deployer,
-            _safe,
             _foundation,
             _claimSupplier
         );
@@ -50,6 +49,10 @@ contract DeployAlignedToken is Script {
                 "and owner:",
                 vm.toString(_safe)
             )
+        );
+
+        console.log(
+            "Remember that the foundation must accept the ownership of the contract after deployment in another transaction."
         );
     }
 
@@ -74,7 +77,6 @@ contract DeployAlignedToken is Script {
         address _proxyAdmin,
         bytes32 _salt,
         address _deployer,
-        address _owner,
         address _foundation,
         address _claim
     ) internal returns (TransparentUpgradeableProxy) {
@@ -85,7 +87,6 @@ contract DeployAlignedToken is Script {
             .alignedTokenProxyDeploymentData(
                 _proxyAdmin,
                 address(_token),
-                _owner,
                 _foundation,
                 _claim
             );

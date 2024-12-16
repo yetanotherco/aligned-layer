@@ -32,25 +32,23 @@ contract AlignedToken is
 
     /// @notice Initializes the contract.
     /// @dev This initializer should be called only once.
-    /// @param _owner address of the owner of the token.
+    /// @dev The _foundation must accept the ownership of the contract
+    /// after deployment in another transaction.
     /// @param _foundation address of the foundation.
     /// @param _claim address of the claim.
     function initialize(
-        address _owner,
         address _foundation,
         address _claim
     ) public initializer {
         require(
-            _foundation != address(0) &&
-                _claim != address(0) &&
-                _owner != address(0),
-            "Invalid _foundation or _claim or _owner"
+            _foundation != address(0) && _claim != address(0),
+            "Invalid _foundation or _claim"
         );
         __ERC20_init(NAME, SYMBOL);
         __EIP712_init(NAME, VERSION);
         __ERC20Permit_init(NAME);
         __Ownable2Step_init(); // default is msg.sender
-        _transferOwnership(_owner);
+        _transferOwnership(_foundation);
         _mint(_foundation, 7_300_000_000e18); // 7.3 billion
         _mint(_claim, 2_700_000_000e18); // 2.7 billion
     }
