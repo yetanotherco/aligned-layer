@@ -67,6 +67,9 @@ type Aggregator struct {
 	// Stores the TaskResponse for each batch by batchIdentifierHash
 	batchDataByIdentifierHash map[[32]byte]BatchData
 
+	// Stores the start time for each batch of the aggregator by task index
+	batchStartTimeByIdx map[uint32]time.Time
+
 	// This task index is to communicate with the local BLS
 	// Service.
 	// Note: In case of a reboot it can start from 0 again
@@ -78,6 +81,7 @@ type Aggregator struct {
 	// - batchCreatedBlockByIdx
 	// - batchDataByIdentifierHash
 	// - nextBatchIndex
+	// - batchStartTimeByIdx
 	taskMutex *sync.Mutex
 
 	// Mutex to protect ethereum wallet
@@ -124,6 +128,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	batchesIdxByIdentifierHash := make(map[[32]byte]uint32)
 	batchDataByIdentifierHash := make(map[[32]byte]BatchData)
 	batchCreatedBlockByIdx := make(map[uint32]uint64)
+	batchStartTimeByIdx := make(map[uint32]time.Time)
 
 	chainioConfig := sdkclients.BuildAllConfig{
 		EthHttpUrl:                 aggregatorConfig.BaseConfig.EthRpcUrl,
@@ -172,6 +177,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		batchesIdxByIdentifierHash: batchesIdxByIdentifierHash,
 		batchDataByIdentifierHash:  batchDataByIdentifierHash,
 		batchCreatedBlockByIdx:     batchCreatedBlockByIdx,
+		batchStartTimeByIdx:        batchStartTimeByIdx,
 		nextBatchIndex:             nextBatchIndex,
 		taskMutex:                  &sync.Mutex{},
 		walletMutex:                &sync.Mutex{},
@@ -233,6 +239,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
 	batchData := agg.batchDataByIdentifierHash[batchIdentifierHash]
 	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
+	taskCreatedAt := agg.batchStartTimeByIdx[blsAggServiceResp.TaskIndex]
 	agg.taskMutex.Unlock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching task data")
 
@@ -265,6 +272,9 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	}
 
 	agg.telemetry.LogQuorumReached(batchData.BatchMerkleRoot)
+
+	// Only observe quorum reached if successful
+	agg.metrics.ObserveTaskQuorumReached(time.Since(taskCreatedAt))
 
 	agg.logger.Info("Threshold reached", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
@@ -320,6 +330,8 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 		agg.metrics.IncBumpedGasPriceForAggregatedResponse()
 		agg.telemetry.BumpedTaskGasPrice(batchMerkleRoot, bumpedGasPrice.String())
 	}
+
+	startTime := time.Now()
 	receipt, err := agg.avsWriter.SendAggregatedResponse(
 		batchIdentifierHash,
 		batchMerkleRoot,
@@ -337,6 +349,9 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 		agg.telemetry.LogTaskError(batchMerkleRoot, err)
 		return nil, err
 	}
+
+	// We only send the latency metric if the response is successul
+	agg.metrics.ObserveLatencyForRespondToTask(time.Since(startTime))
 
 	agg.walletMutex.Unlock()
 	agg.logger.Infof("- Unlocked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchIdentifierHash[:]))
@@ -383,6 +398,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 		BatchMerkleRoot: batchMerkleRoot,
 		SenderAddress:   senderAddress,
 	}
+	agg.batchStartTimeByIdx[batchIndex] = time.Now()
 	agg.logger.Info(
 		"Task Info added in aggregator:",
 		"Task", batchIndex,
@@ -447,6 +463,7 @@ func (agg *Aggregator) ClearTasksFromMaps() {
 				delete(agg.batchCreatedBlockByIdx, i)
 				delete(agg.batchesIdentifierHashByIdx, i)
 				delete(agg.batchDataByIdentifierHash, batchIdentifierHash)
+				delete(agg.batchStartTimeByIdx, i)
 			} else {
 				agg.logger.Warn("Task not found in maps", "taskIndex", i)
 			}
