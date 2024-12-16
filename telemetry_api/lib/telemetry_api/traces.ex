@@ -371,7 +371,6 @@ defmodule TelemetryApi.Traces do
     # Send to prometheus
     missing_operators
     |> Enum.map(fn o -> PrometheusMetrics.missing_operator(o.name) end)
-    |> Enum.join(";")
 
     missing_operators =
       missing_operators |> Enum.map(fn o -> o.name end) |> Enum.join(";")
