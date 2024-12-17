@@ -15,7 +15,7 @@
 # - PAGER_DUTY_EMAIL
 # - PAGER_DUTY_SERVICE_ID
 
-# IMPROVEMENTS:
+# TODO (Improvements):
 # 1. This script does not account for proofs being included in different batches.
 #    You can test that behavior by modifying the batcher's batch limit and sending many repetitions (REPETITIONS > BATCH_LIMIT) will throw an error on batcher
 # 2. This script parses the submission and response tx hashes from the explorer html. This may easily break if the explorer is modified.
@@ -38,15 +38,12 @@ source "$1"
 ### FUNCTIONS ###
 
 # Function to get the tx cost from the explorer:
-# @param merkle_root
+# @param batch_explorer_url
 # @param type_of_hash
 #   - Submission Transaction Hash
 #   - Response Transaction Hash
 function fetch_tx_cost() {
-  # Get the tx hash from the explorer
-  explorer_fetch_url="$EXPLORER_URL/batches/$1"
-  #echo "This is the fetch URL: $explorer_fetch_url"
-  tx_hash=$(curl -s $explorer_fetch_url | grep -C 5 "$2" | grep -oE '0x[[:alnum:]]{64}' | head -n 1)
+  tx_hash=$(curl -s $1 | grep -C 5 "$2" | grep -oE '0x[[:alnum:]]{64}' | head -n 1)
   # Get the tx receipt from the blockchain 
   receipt=$(cast receipt --rpc-url $RPC_URL $tx_hash)
   # Parse the gas used and gas price
@@ -104,14 +101,16 @@ do
 
   echo "$submit"
   
-  explorer_link=$(echo "$submit" | grep alignedlayer.com | awk '{print $4}')
   echo "Waiting $VERIFICATION_WAIT_TIME seconds for verification"
   sleep $VERIFICATION_WAIT_TIME
 
-  # Calculate the fee 
+  # Get the batch merkle root
   batch_merkle_root=$(echo "$submit" | grep "Batch merkle root: " | grep -oE "0x[[:alnum:]]{64}" | uniq | head -n 1) # TODO: Here we are only getting the first merkle root
-  submission_fee_in_wei=$(fetch_tx_cost $batch_merkle_root "Submission Transaction Hash")
-  response_fee_in_wei=$(fetch_tx_cost $batch_merkle_root "Response Transaction Hash")
+
+  # Calculate the fee
+  batch_explorer_url="$EXPLORER_URL/batches/$batch_merkle_root"
+  submission_fee_in_wei=$(fetch_tx_cost $batch_explorer_url "Submission Transaction Hash")
+  response_fee_in_wei=$(fetch_tx_cost $batch_explorer_url "Response Transaction Hash")
   total_fee_in_wei=$((submission_fee_in_wei + response_fee_in_wei))
 
   # Calculate the spent amount by converting the fee to ETH
@@ -142,7 +141,7 @@ do
   ## Send Update to Slack
   eth_usd=$(curl -s https://cryptoprices.cc/ETH/)
   spent_ammount_usd=$(echo "$spent_amount * $eth_usd" | bc | awk '{printf "%.2f", $1}')
-  slack_meesage="$REPETITIONS Proofs submitted and verified. Spent amount: $spent_amount ETH ($ $spent_ammount_usd) [ $explorer_link ]"
+  slack_meesage="$REPETITIONS Proofs submitted and verified. Spent amount: $spent_amount ETH ($ $spent_ammount_usd) [ $batch_explorer_url ]"
 
   send_slack_message "$slack_meesage"
 
