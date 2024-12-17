@@ -15,14 +15,18 @@ contract DeployAlignedToken is Script {
         string memory path = string.concat(root, "/script-config/config.", config, ".json");
         string memory config_json = vm.readFile(path);
 
-        address _safe = stdJson.readAddress(config_json, ".safe");
         bytes32 _salt = stdJson.readBytes32(config_json, ".salt");
         address _deployer = stdJson.readAddress(config_json, ".deployer");
         address _foundation = stdJson.readAddress(config_json, ".foundation");
         address _claimSupplier = stdJson.readAddress(config_json, ".claimSupplier");
 
-        TransparentUpgradeableProxy _tokenProxy =
-            deployAlignedTokenProxy(_safe, _salt, _deployer, _foundation, _claimSupplier);
+        TransparentUpgradeableProxy _tokenProxy = deployAlignedTokenProxy(
+            _foundation,
+            _salt,
+            _deployer,
+            _foundation,
+            _claimSupplier
+        );
 
         console.log(
             string.concat(
@@ -31,7 +35,7 @@ contract DeployAlignedToken is Script {
                 " with proxy admin: ",
                 vm.toString(Utils.getAdminAddress(address(_tokenProxy))),
                 " and owner: ",
-                vm.toString(_safe)
+                vm.toString(_foundation)
             )
         );
 
@@ -53,7 +57,7 @@ contract DeployAlignedToken is Script {
     }
 
     function deployAlignedTokenProxy(
-        address _proxyAdmin,
+        address _proxyAdminOwner,
         bytes32 _salt,
         address _deployer,
         address _foundation,
@@ -62,9 +66,18 @@ contract DeployAlignedToken is Script {
         vm.broadcast();
         AlignedToken _token = new AlignedToken();
 
-        bytes memory _alignedTokenDeploymentData =
-            Utils.alignedTokenProxyDeploymentData(_proxyAdmin, address(_token), _foundation, _claim);
-        address _alignedTokenProxy = Utils.deployWithCreate2(_alignedTokenDeploymentData, _salt, _deployer);
+        bytes memory _alignedTokenDeploymentData = Utils
+            .alignedTokenProxyDeploymentData(
+                _proxyAdminOwner,
+                address(_token),
+                _foundation,
+                _claim
+            );
+        address _alignedTokenProxy = Utils.deployWithCreate2(
+            _alignedTokenDeploymentData,
+            _salt,
+            _deployer
+        );
         return TransparentUpgradeableProxy(payable(_alignedTokenProxy));
     }
 }

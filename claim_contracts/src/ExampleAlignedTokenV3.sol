@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.28;
+pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PermitUp
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
-contract AlignedToken is
+contract ExampleAlignedTokenV3 is
     Initializable,
     ERC20Upgradeable,
     ERC20PermitUpgradeable,
@@ -15,10 +15,10 @@ contract AlignedToken is
     Ownable2StepUpgradeable
 {
     /// @notice Name of the token.
-    string public constant NAME = "Aligned Token";
+    string public constant NAME = "Test Token";
 
     /// @notice Symbol of the token.
-    string public constant SYMBOL = "ALIGN";
+    string public constant SYMBOL = "TESTITO";
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -47,9 +47,11 @@ contract AlignedToken is
         _mint(_claimSupplier, 2_700_000_000e18); // 2.7 billion
     }
 
+    function reinitialize() public reinitializer(3) {}
+
     /// @notice Mints `amount` of tokens.
     function mint(address to, uint256 amount) external onlyOwner {
-        _mint(to, amount);
+        _mint(to, amount * 2);
     }
 
     /// @notice Prevents the owner from renouncing ownership.
