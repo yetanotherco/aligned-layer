@@ -6,39 +6,22 @@ import "../src/ClaimableAirdrop.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "forge-std/Script.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {Utils} from "./Utils.sol";
 
 contract DeployAlignedToken is Script {
     function run(string memory config) public {
         string memory root = vm.projectRoot();
-        string memory path = string.concat(
-            root,
-            "/script-config/config.",
-            config,
-            ".json"
-        );
+        string memory path = string.concat(root, "/script-config/config.", config, ".json");
         string memory config_json = vm.readFile(path);
 
-        address _safe = stdJson.readAddress(config_json, ".safe");
         bytes32 _salt = stdJson.readBytes32(config_json, ".salt");
         address _deployer = stdJson.readAddress(config_json, ".deployer");
         address _foundation = stdJson.readAddress(config_json, ".foundation");
-        address _claimSupplier = stdJson.readAddress(
-            config_json,
-            ".claimSupplier"
-        );
-
-        ProxyAdmin _proxyAdmin = deployProxyAdmin(_safe, _salt, _deployer);
-
-        console.log(
-            "Proxy Admin deployed at address:",
-            address(_proxyAdmin),
-            "with owner:",
-            _safe
-        );
+        address _claimSupplier = stdJson.readAddress(config_json, ".claimSupplier");
 
         TransparentUpgradeableProxy _tokenProxy = deployAlignedTokenProxy(
-            address(_proxyAdmin),
+            _foundation,
             _salt,
             _deployer,
             _foundation,
@@ -47,39 +30,34 @@ contract DeployAlignedToken is Script {
 
         console.log(
             string.concat(
-                "Aligned Token Proxy deployed at address:",
+                "Aligned Token Proxy deployed at address: ",
                 vm.toString(address(_tokenProxy)),
-                "with proxy admin:",
-                vm.toString(address(_proxyAdmin)),
-                "and owner:",
-                vm.toString(_safe)
+                " with proxy admin: ",
+                vm.toString(Utils.getAdminAddress(address(_tokenProxy))),
+                " and owner: ",
+                vm.toString(_foundation)
             )
         );
 
-        console.log(
-            "Remember that the foundation must accept the ownership of the contract after deployment in another transaction."
-        );
+        string memory deployedAddressesJson = "deployedAddressesJson";
+        string memory finalJson = vm.serializeAddress(deployedAddressesJson, "tokenProxy", address(_tokenProxy));
+
+        vm.writeJson(finalJson, _getOutputPath("deployed_token_addresses.json"));
     }
 
-    function deployProxyAdmin(
-        address _safe,
-        bytes32 _salt,
-        address _deployer
-    ) internal returns (ProxyAdmin) {
-        bytes memory _proxyAdminDeploymentData = Utils.proxyAdminDeploymentData(
-            _safe
-        );
-        address _proxyAdminCreate2Address = Utils.deployWithCreate2(
-            _proxyAdminDeploymentData,
-            _salt,
-            _deployer
-        );
+    function _getOutputPath(string memory fileName) internal returns (string memory) {
+        string memory outputDir = "script-out/";
 
-        return ProxyAdmin(_proxyAdminCreate2Address);
+        // Create output directory if it doesn't exist
+        if (!vm.exists(outputDir)) {
+            vm.createDir(outputDir, true);
+        }
+
+        return string.concat(outputDir, fileName);
     }
 
     function deployAlignedTokenProxy(
-        address _proxyAdmin,
+        address _proxyAdminOwner,
         bytes32 _salt,
         address _deployer,
         address _foundation,
@@ -90,7 +68,7 @@ contract DeployAlignedToken is Script {
 
         bytes memory _alignedTokenDeploymentData = Utils
             .alignedTokenProxyDeploymentData(
-                _proxyAdmin,
+                _proxyAdminOwner,
                 address(_token),
                 _foundation,
                 _claim
