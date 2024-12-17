@@ -40,7 +40,6 @@ defmodule EthConverter do
       {:ok, Decimal.round(usd_value, decimal_places) |> Decimal.to_string(:normal)}
     else
       {:error, reason} -> {:error, reason}
-      _ -> {:error, "Failed to convert wei to USD"}
     end
   end
 

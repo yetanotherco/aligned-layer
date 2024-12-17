@@ -42,11 +42,13 @@
     </.card>
     <.live_component module={ContractsComponent} id="contracts_card" class="sm:col-span-2" />
     <.card title="Cost per proof" class="w-full sm:col-span-2">
-      <.line
-        id="salesChart"
-        data={@cost_per_proof_chart_data.data}
-        labels={@cost_per_proof_chart_data.labels}
-      />
+      <div style="height: 200px;">
+        <.line
+          id="salesChart"
+          data={@cost_per_proof_chart_data.data}
+          labels={@cost_per_proof_chart_data.labels}
+        />
+      </div>
     </.card>
     <%= if @latest_batches != :empty and @latest_batches != [] do %>
       <.card
