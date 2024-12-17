@@ -23,7 +23,7 @@ contract DeployAll is Script {
         address _deployer = stdJson.readAddress(config_json, ".deployer");
         address _foundation = stdJson.readAddress(config_json, ".foundation");
         address _safe = _foundation;
-        address _claim = stdJson.readAddress(config_json, ".claimSupplier");
+        address _claim = stdJson.readAddress(config_json, ".tokenDistributor");
         uint256 _claimPrivateKey = vm.envUint("CLAIM_SUPPLIER_PRIVATE_KEY");
         uint256 _limitTimestampToClaim = stdJson.readUint(
             config_json,

@@ -7,6 +7,9 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PermitUp
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
+/// @title Aligned Token
+/// @notice This contract is the implementation of the Aligned Token
+/// @dev This contract is upgradeable and should be used only through the proxy contract
 contract AlignedToken is
     Initializable,
     ERC20Upgradeable,
@@ -20,6 +23,12 @@ contract AlignedToken is
     /// @notice Symbol of the token.
     string public constant SYMBOL = "ALIGN";
 
+    /// @notice Supply of the token for the foundation.
+    uint256 public constant FOUNDATION_SUPPLY = 7_400_000_000e18; // 7.4 billion
+
+    /// @notice Supply of the token for the token distributor.
+    uint256 public constant TOKEN_DISTRIBUTOR_SUPPLY = 2_600_000_000e18; // 2.6 billion
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -28,23 +37,22 @@ contract AlignedToken is
     /// @notice Initializes the contract.
     /// @dev This initializer should be called only once.
     /// @param _foundation address of the foundation.
-    /// @param _claimSupplier address of the claim supplier. This is the address
+    /// @param _tokenDistributor address of the token distributor. This is the address
     /// that will give the tokens to the users that claim them.
     function initialize(
         address _foundation,
-        address _claimSupplier
-    ) public initializer {
+        address _tokenDistributor
+    ) external initializer {
         require(
-            _foundation != address(0) && _claimSupplier != address(0),
-            "Invalid _foundation or _claimSupplier"
+            _foundation != address(0) && _tokenDistributor != address(0),
+            "Invalid _foundation or _tokenDistributor"
         );
         __ERC20_init(NAME, SYMBOL);
         __ERC20Permit_init(NAME);
         __ERC20Burnable_init();
-        __Ownable2Step_init(); // default is msg.sender
-        _transferOwnership(_foundation);
-        _mint(_foundation, 7_400_000_000e18); // 7.4 billion
-        _mint(_claimSupplier, 2_600_000_000e18); // 2.6 billion
+        __Ownable_init(_foundation);
+        _mint(_foundation, FOUNDATION_SUPPLY);
+        _mint(_tokenDistributor, TOKEN_DISTRIBUTOR_SUPPLY);
     }
 
     /// @notice Mints `amount` of tokens.
