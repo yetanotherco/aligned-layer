@@ -43,8 +43,8 @@ contract AlignedToken is
         __ERC20Burnable_init();
         __Ownable2Step_init(); // default is msg.sender
         _transferOwnership(_foundation);
-        _mint(_foundation, 7_300_000_000e18); // 7.3 billion
-        _mint(_claimSupplier, 2_700_000_000e18); // 2.7 billion
+        _mint(_foundation, 7_400_000_000e18); // 7.4 billion
+        _mint(_claimSupplier, 2_600_000_000e18); // 2.6 billion
     }
 
     /// @notice Mints `amount` of tokens.
