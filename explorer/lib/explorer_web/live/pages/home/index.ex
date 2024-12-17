@@ -4,9 +4,17 @@ defmodule ExplorerWeb.Home.Index do
   use ExplorerWeb, :live_view
 
   def get_cost_per_proof_chart_data() do
+    data = Batches.get_fee_per_proofs_of_last_n_batches(100)
+
     %{
-      data: [1, 2, 3, 4, 5, 6],
-      labels: ["1", "2", "3", "4", "5", "6"]
+      data:
+        Enum.map(data, fn {fee_per_proof, _} ->
+          case EthConverter.wei_to_usd(fee_per_proof) do
+            {:ok, value} -> value
+            {:error, _} -> 0
+          end
+        end),
+      labels: Enum.map(data, fn {_, submission_block_number} -> submission_block_number end)
     }
   end
 

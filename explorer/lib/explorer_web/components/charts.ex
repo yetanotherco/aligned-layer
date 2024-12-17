@@ -12,7 +12,7 @@ defmodule ExplorerWeb.ChartComponents do
   attr(:chart_data, :string, required: true)
   attr(:chart_options, :string, required: true)
 
-  def basic_chart(assigns) do
+  defp basic_chart(assigns) do
     ~H"""
     <div class="chart-container" class="relative w-full h-full">
       <canvas
