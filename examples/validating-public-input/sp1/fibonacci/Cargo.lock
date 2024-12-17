@@ -1738,7 +1738,7 @@ dependencies = [
  "hex",
  "serde",
  "serde_json",
- "sp1-build 1.2.0",
+ "sp1-build 3.4.0",
  "sp1-helper",
  "sp1-sdk",
  "tracing",
@@ -4693,19 +4693,21 @@ dependencies = [
 
 [[package]]
 name = "sp1-build"
-version = "1.0.1"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.1#dd032eb23949828d244d1ad1f1569aa78155837c"
+version = "3.0.0"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v3.0.0#ff8f482c3e135f1a1f325d639fb6fc8c383407f2"
 dependencies = [
  "anyhow",
  "cargo_metadata",
+ "chrono",
  "clap",
+ "dirs",
 ]
 
 [[package]]
 name = "sp1-build"
-version = "1.2.0"
+version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eae094a567949cc3bbcdb265e45591cf7ac7185f121f6f29ac64a44acb00220e"
+checksum = "e58e5f49cf1481363abb74b55104e215f3b6e58dc2adb748bde7a6e4ea61b51d"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -4826,12 +4828,10 @@ dependencies = [
 
 [[package]]
 name = "sp1-helper"
-version = "1.0.1"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.1#dd032eb23949828d244d1ad1f1569aa78155837c"
+version = "3.0.0"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v3.0.0#ff8f482c3e135f1a1f325d639fb6fc8c383407f2"
 dependencies = [
- "cargo_metadata",
- "chrono",
- "sp1-build 1.0.1",
+ "sp1-build 3.0.0",
 ]
 
 [[package]]
