@@ -12,21 +12,13 @@ import {Utils} from "./Utils.sol";
 contract DeployAlignedToken is Script {
     function run(string memory config) public {
         string memory root = vm.projectRoot();
-        string memory path = string.concat(
-            root,
-            "/script-config/config.",
-            config,
-            ".json"
-        );
+        string memory path = string.concat(root, "/script-config/config.", config, ".json");
         string memory config_json = vm.readFile(path);
 
         bytes32 _salt = stdJson.readBytes32(config_json, ".salt");
         address _deployer = stdJson.readAddress(config_json, ".deployer");
         address _foundation = stdJson.readAddress(config_json, ".foundation");
-        address _claimSupplier = stdJson.readAddress(
-            config_json,
-            ".claimSupplier"
-        );
+        address _claimSupplier = stdJson.readAddress(config_json, ".claimSupplier");
 
         TransparentUpgradeableProxy _tokenProxy = deployAlignedTokenProxy(
             _foundation,
@@ -46,6 +38,22 @@ contract DeployAlignedToken is Script {
                 vm.toString(_foundation)
             )
         );
+
+        string memory deployedAddressesJson = "deployedAddressesJson";
+        string memory finalJson = vm.serializeAddress(deployedAddressesJson, "tokenProxy", address(_tokenProxy));
+
+        vm.writeJson(finalJson, _getOutputPath("deployed_token_addresses.json"));
+    }
+
+    function _getOutputPath(string memory fileName) internal returns (string memory) {
+        string memory outputDir = "script-out/";
+
+        // Create output directory if it doesn't exist
+        if (!vm.exists(outputDir)) {
+            vm.createDir(outputDir, true);
+        }
+
+        return string.concat(outputDir, fileName);
     }
 
     function deployAlignedTokenProxy(
