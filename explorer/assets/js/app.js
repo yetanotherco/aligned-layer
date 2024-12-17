@@ -7,12 +7,14 @@ import darkModeHook from "../vendor/dark_mode";
 import searchFocusHook from "../vendor/search_focus";
 import tooltipHook from "../vendor/tooltip";
 import copyToClipboardHook from "../vendor/clipboard";
+import chartHook from "../vendor/chart";
 
-let Hooks = {};
-Hooks.DarkThemeToggle = darkModeHook;
-Hooks.SearchFocus = searchFocusHook;
-Hooks.TooltipHook = tooltipHook;
-Hooks.CopyToClipboard = copyToClipboardHook;
+let hooks = {};
+hooks.DarkThemeToggle = darkModeHook;
+hooks.SearchFocus = searchFocusHook;
+hooks.TooltipHook = tooltipHook;
+hooks.CopyToClipboard = copyToClipboardHook;
+hooks.ChartHook = chartHook;
 
 let csrfToken = document
 	.querySelector("meta[name='csrf-token']")
@@ -20,7 +22,7 @@ let csrfToken = document
 
 let liveSocket = new LiveSocket("/live", Socket, {
 	params: { _csrf_token: csrfToken },
-	hooks: Hooks
+	hooks: hooks,
 });
 
 topbar.config({
