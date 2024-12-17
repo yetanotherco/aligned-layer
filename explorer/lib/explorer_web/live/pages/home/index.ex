@@ -1,6 +1,14 @@
 defmodule ExplorerWeb.Home.Index do
   require Logger
+  import ExplorerWeb.ChartComponents
   use ExplorerWeb, :live_view
+
+  def get_cost_per_proof_chart_data() do
+    %{
+      data: [1, 2, 3, 4, 5, 6],
+      labels: ["1", "2", "3", "4", "5", "6"]
+    }
+  end
 
   @impl true
   def handle_info(_, socket) do
@@ -26,7 +34,8 @@ defmodule ExplorerWeb.Home.Index do
        latest_batches: latest_batches,
        verified_proofs: verified_proofs,
        restaked_amount_eth: restaked_amount_eth,
-       restaked_amount_usd: restaked_amount_usd
+       restaked_amount_usd: restaked_amount_usd,
+       cost_per_proof_chart_data: get_cost_per_proof_chart_data()
      )}
   end
 
@@ -58,6 +67,7 @@ defmodule ExplorerWeb.Home.Index do
          AlignedLayerServiceManager.get_aligned_layer_service_manager_address(),
        restaked_amount_eth: restaked_amount_eth,
        restaked_amount_usd: restaked_amount_usd,
+       cost_per_proof_chart_data: get_cost_per_proof_chart_data(),
        page_title: "Welcome"
      )}
   rescue
