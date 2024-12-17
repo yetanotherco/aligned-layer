@@ -1,6 +1,15 @@
 defmodule NavComponent do
   use ExplorerWeb, :live_component
 
+  def get_current_network(host) do
+    case host do
+      "explorer.alignedlayer.com" -> "Mainnet"
+      "holesky.explorer.alignedlayer.com" -> "Testnet"
+      "stage.explorer.alignedlayer.com" -> "Stage"
+      _ -> "Devnet"
+    end
+  end
+
   @impl true
   def mount(socket) do
     networks = ExplorerWeb.Helpers.get_aligned_networks()
@@ -13,7 +22,6 @@ defmodule NavComponent do
     {:ok,
      assign(socket,
        latest_release: ReleasesHelper.get_latest_release(),
-       current_network: ExplorerWeb.Helpers.get_current_network(),
        networks: networks
      )}
   end
@@ -70,7 +78,7 @@ defmodule NavComponent do
           </.tooltip>
         </.badge>
         <.hover_dropdown_selector
-          current_value={@current_network}
+          current_value={get_current_network(@host)}
           variant="foreground"
           options={@networks}
           icon="hero-cube-transparent-micro"
