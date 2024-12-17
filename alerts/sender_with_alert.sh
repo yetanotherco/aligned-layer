@@ -111,10 +111,10 @@ do
     from_block_number=0
   fi
 
-  log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'NewBatchV3 (bytes32 indexed batchMerkleRoot, address senderAddress, uint32 taskCreatedBlock, string batchDataPointer, uint256 respondToTaskFeeLimit)' $merkle_root)
+  log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'NewBatchV3 (bytes32 indexed batchMerkleRoot, address senderAddress, uint32 taskCreatedBlock, string batchDataPointer, uint256 respondToTaskFeeLimit)' $batch_merkle_root)
   submission_tx_hash=$(echo $log | grep -oE "transactionHash: 0x[[:alnum:]]{64}" | awk '{ print $2 }')
 
-  log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'BatchVerified (bytes32 indexed batchMerkleRoot, address senderAddress)' $merkle_root)
+  log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'BatchVerified (bytes32 indexed batchMerkleRoot, address senderAddress)' $batch_merkle_root)
   response_tx_hash=$(echo $log | grep -oE "transactionHash: 0x[[:alnum:]]{64}" | awk '{ print $2 }')
 
   # Calculate fees for transactions
