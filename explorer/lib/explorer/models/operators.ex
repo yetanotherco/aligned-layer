@@ -68,16 +68,20 @@ defmodule Operators do
 
     get_operators()
     |> Enum.map(fn operator ->
+      total_stake_eth = operator.total_stake |> EthConverter.wei_to_eth(2)
+
+      {_, total_stake_usd} =
+        operator.total_stake |> EthConverter.wei_to_usd(0)
+
       case operator.is_active do
         false ->
-          Map.from_struct(operator) |> Map.put(:weight, 0)
+          Map.from_struct(operator)
+          |> Map.put(:weight, 0)
+          |> Map.put(:total_stake_eth, total_stake_eth)
+          |> Map.put(:total_stake_usd, total_stake_usd)
 
         true ->
           weight = Decimal.div(operator.total_stake, total_stake)
-          total_stake_eth = operator.total_stake |> EthConverter.wei_to_eth(2)
-
-          {_, total_stake_usd} =
-            operator.total_stake |> EthConverter.wei_to_usd(0)
 
           Map.from_struct(operator)
           |> Map.put(:total_stake_eth, total_stake_eth)
