@@ -10,6 +10,7 @@
 # - NETWORK
 # - PRIVATE_KEY
 # - VERIFICATION_WAIT_TIME
+# - LOGS_BLOCK_RANGE
 # - SLEEP_TIME
 # - PAGER_DUTY_KEY
 # - PAGER_DUTY_EMAIL
@@ -18,9 +19,7 @@
 # TODO (Improvements):
 # 1. This script does not account for proofs being included in different batches.
 #    You can test that behavior by modifying the batcher's batch limit and sending many repetitions (REPETITIONS > BATCH_LIMIT) will throw an error on batcher
-# 2. This script parses the submission and response tx hashes from the explorer html. This may easily break if the explorer is modified.
-#    We should be able to parse this information from ethereum logs instead
-# 3. This script waits VERIFICATION_WAIT_TIME seconds before fetching the explorer for the response tx hash.
+# 2. This script waits VERIFICATION_WAIT_TIME seconds before fetching the explorer for the response tx hash.
 #    We should instead poll in a loop until the batch is marked as verified
 
 # ACKNOWLEDGMENTS
@@ -37,15 +36,11 @@ source "$1"
 
 ### FUNCTIONS ###
 
-# Function to get the tx cost from the explorer:
-# @param batch_explorer_url
-# @param type_of_hash
-#   - Submission Transaction Hash
-#   - Response Transaction Hash
+# Function to get the tx cost from the tx hash
+# @param tx_hash
 function fetch_tx_cost() {
-  tx_hash=$(curl -s $1 | grep -C 5 "$2" | grep -oE '0x[[:alnum:]]{64}' | head -n 1)
   # Get the tx receipt from the blockchain 
-  receipt=$(cast receipt --rpc-url $RPC_URL $tx_hash)
+  receipt=$(cast receipt --rpc-url $RPC_URL $1)
   # Parse the gas used and gas price
   gas_price=$(echo "$receipt" | grep "effectiveGasPrice" | awk '{ print $2 }')
   gas_used=$(echo "$receipt" | grep "gasUsed" | awk '{ print $2 }')
@@ -107,10 +102,24 @@ do
   # Get the batch merkle root
   batch_merkle_root=$(echo "$submit" | grep "Batch merkle root: " | grep -oE "0x[[:alnum:]]{64}" | uniq | head -n 1) # TODO: Here we are only getting the first merkle root
 
-  # Calculate the fee
+  # Construct the batcher explorer url
   batch_explorer_url="$EXPLORER_URL/batches/$batch_merkle_root"
-  submission_fee_in_wei=$(fetch_tx_cost $batch_explorer_url "Submission Transaction Hash")
-  response_fee_in_wei=$(fetch_tx_cost $batch_explorer_url "Response Transaction Hash")
+
+  # Fetch the logs of both submission and response
+  from_block_number=$((current_block_number - LOGS_BLOCK_RANGE))
+  if [ $from_block_number -lt 0 ]; then
+    from_block_number=0
+  fi
+
+  log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'NewBatchV3 (bytes32 indexed batchMerkleRoot, address senderAddress, uint32 taskCreatedBlock, string batchDataPointer, uint256 respondToTaskFeeLimit)' $merkle_root)
+  submission_tx_hash=$(echo $log | grep -oE "transactionHash: 0x[[:alnum:]]{64}" | awk '{ print $2 }')
+
+  log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'BatchVerified (bytes32 indexed batchMerkleRoot, address senderAddress)' $merkle_root)
+  response_tx_hash=$(echo $log | grep -oE "transactionHash: 0x[[:alnum:]]{64}" | awk '{ print $2 }')
+
+  # Calculate fees for transactions
+  submission_fee_in_wei=$(fetch_tx_cost $submission_tx_hash)
+  response_fee_in_wei=$(fetch_tx_cost $response_tx_hash)
   total_fee_in_wei=$((submission_fee_in_wei + response_fee_in_wei))
 
   # Calculate the spent amount by converting the fee to ETH
