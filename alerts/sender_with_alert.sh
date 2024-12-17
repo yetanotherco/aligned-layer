@@ -2,15 +2,32 @@
 
 # ENV VARIABLES:
 # - REPETITIONS
-# - SLEEP
-# - RPC_URL
+# - EXPLORER_URL
 # - SENDER_ADDRESS
 # - BATCHER_URL
+# - RPC_URL
+# - EXPLORER_URL
 # - NETWORK
 # - PRIVATE_KEY
+# - VERIFICATION_WAIT_TIME
+# - SLEEP_TIME
 # - PAGER_DUTY_KEY
 # - PAGER_DUTY_EMAIL
 # - PAGER_DUTY_SERVICE_ID
+
+# IMPROVEMENTS:
+# 1. This script does not account for proofs being included in different batches.
+#    You can test that behavior by modifying the batcher's batch limit and sending many repetitions (REPETITIONS > BATCH_LIMIT) will throw an error on batcher
+# 2. This script parses the submission and response tx hashes from the explorer html. This may easily break if the explorer is modified.
+#    We should be able to parse this information from ethereum logs instead
+# 3. This script waits VERIFICATION_WAIT_TIME seconds before fetching the explorer for the response tx hash.
+#    We should instead poll in a loop until the batch is marked as verified
+
+# ACKNOWLEDGMENTS
+#
+# Special thanks to AniV for their contribution on StackExchange regarding AWK formatting with floating point operations: 
+# https://unix.stackexchange.com/questions/292087/how-do-i-get-bc-to-start-decimal-fractions-with-a-leading-zero
+
 
 # Load env file from $1 path
 source "$1"
@@ -19,6 +36,27 @@ source "$1"
 #set -ex
 
 ### FUNCTIONS ###
+
+# Function to get the tx cost from the explorer:
+# @param merkle_root
+# @param type_of_hash
+#   - Submission Transaction Hash
+#   - Response Transaction Hash
+function fetch_tx_cost() {
+  # Get the tx hash from the explorer
+  explorer_fetch_url="$EXPLORER_URL/batches/$1"
+  #echo "This is the fetch URL: $explorer_fetch_url"
+  tx_hash=$(curl -s $explorer_fetch_url | grep -C 5 "$2" | grep -oE '0x[[:alnum:]]{64}' | head -n 1)
+  # Get the tx receipt from the blockchain 
+  receipt=$(cast receipt --rpc-url $RPC_URL $tx_hash)
+  # Parse the gas used and gas price
+  gas_price=$(echo "$receipt" | grep "effectiveGasPrice" | awk '{ print $2 }')
+  gas_used=$(echo "$receipt" | grep "gasUsed" | awk '{ print $2 }')
+  # Calculate fee in wei
+  fee_in_wei=$(($gas_price * $gas_used))
+
+  echo $fee_in_wei
+}
 
 # Function to send PagerDuty alert
 # @param message
@@ -43,13 +81,10 @@ do
   mkdir -p ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 
   ## Generate Proof
-  x=$(aligned get-user-nonce --batcher_url $BATCHER_URL --user_addr $SENDER_ADDRESS 2>&1 | awk '{print $9}')
+  nonce=$(aligned get-user-nonce --batcher_url $BATCHER_URL --user_addr $SENDER_ADDRESS 2>&1 | awk '{print $9}')
+  x=$((nonce + 1)) # So we don't have any issues with nonce = 0
   echo "Generating proof $x != 0"
   go run ./scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $x
-
-  ## Get initial balance
-  initial_balance=$(aligned get-user-balance --rpc_url $RPC_URL --user_addr  $SENDER_ADDRESS --network $NETWORK 2>&1 | awk '{print $7}')
-  echo "Initial balance: $initial_balance"
 
   ## Send Proof
   echo "Submitting $REPETITIONS proofs $x != 0"
@@ -68,16 +103,20 @@ do
     2>&1)
 
   echo "$submit"
-
+  
   explorer_link=$(echo "$submit" | grep alignedlayer.com | awk '{print $4}')
-  sleep 600
+  echo "Waiting $VERIFICATION_WAIT_TIME seconds for verification"
+  sleep $VERIFICATION_WAIT_TIME
 
-  ## Get final balance
-  final_balance=$(aligned get-user-balance --rpc_url $RPC_URL --user_addr  $SENDER_ADDRESS --network $NETWORK 2>&1 | awk '{print $7}')
-  echo "Final balance: $final_balance"
+  # Calculate the fee 
+  batch_merkle_root=$(echo "$submit" | grep "Batch merkle root: " | grep -oE "0x[[:alnum:]]{64}" | uniq | head -n 1) # TODO: Here we are only getting the first merkle root
+  submission_fee_in_wei=$(fetch_tx_cost $batch_merkle_root "Submission Transaction Hash")
+  response_fee_in_wei=$(fetch_tx_cost $batch_merkle_root "Response Transaction Hash")
+  total_fee_in_wei=$((submission_fee_in_wei + response_fee_in_wei))
 
-  ## Calculate the spent amount
-  spent_amount=$(echo "$initial_balance - $final_balance" | bc | awk '{printf "%.9f", $1}')
+  # Calculate the spent amount by converting the fee to ETH
+  wei_to_eth_division_factor=$((10**18))
+  spent_amount=$(echo "scale=30; $total_fee_in_wei / 1e18" | bc -l | awk '{printf "%.15f", $0}')
 
   ## Verify Proofs
   echo "Verifying $REPETITIONS proofs $x != 0"
@@ -101,15 +140,16 @@ do
   done
 
   ## Send Update to Slack
-  eth_usd=$(curl https://cryptoprices.cc/ETH/)
+  eth_usd=$(curl -s https://cryptoprices.cc/ETH/)
   spent_ammount_usd=$(echo "$spent_amount * $eth_usd" | bc | awk '{printf "%.2f", $1}')
   slack_meesage="$REPETITIONS Proofs submitted and verified. Spent amount: $spent_amount ETH ($ $spent_ammount_usd) [ $explorer_link ]"
+
   send_slack_message "$slack_meesage"
 
   ## Remove Proof Data
   rm -rf ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/*
   rm -rf ./aligned_verification_data/*
 
-  echo "Sleeping $SLEEP seconds"
-  sleep $SLEEP
+  echo "Sleeping $SLEEP_TIME seconds"
+  sleep $SLEEP_TIME
 done
