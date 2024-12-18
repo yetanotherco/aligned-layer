@@ -119,6 +119,11 @@ defmodule Explorer.Periodically do
         Batches.insert_or_update(batch_changeset, proofs)
       end
     )
+
+    if Batches.get_unverified_batches() != nil do
+      "Marking stale batches..." |> Logger.debug()
+      PubSub.broadcast(Explorer.PubSub, "update_views", :unverified_batches)
+    end
   end
 
   def process_quorum_strategy_changes() do

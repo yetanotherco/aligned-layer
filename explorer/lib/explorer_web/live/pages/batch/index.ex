@@ -89,6 +89,18 @@ defmodule ExplorerWeb.Batch.Index do
   end
 
   @impl true
+  def handle_info(:unverified_batches, socket) do
+    new_batch = Batches.get_batch(%{merkle_root: socket.assigns.merkle_root})
+    {
+      :noreply,
+      assign(
+        socket,
+        current_batch: new_batch,
+      )
+    }
+  end
+
+  @impl true
   def handle_event("show_proofs", _value, socket) do
     {:noreply, assign(socket, proof_hashes: get_proofs(socket.assigns.merkle_root))}
   end
