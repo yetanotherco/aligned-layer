@@ -17,4 +17,19 @@ defmodule TelemetryApi.PrometheusMetrics do
       labels: [operator]
     )
   end
+
+  def initialize_operator_metrics(operator) do
+    value =
+      Counter.value(
+        name: :missing_operator_count,
+        labels: [operator]
+      )
+
+    if value == :undefined do
+      Counter.inc(
+        [name: :missing_operator_count, labels: [operator]],
+        0
+      )
+    end
+  end
 end
