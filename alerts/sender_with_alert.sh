@@ -99,11 +99,10 @@ do
   echo "Waiting $VERIFICATION_WAIT_TIME seconds for verification"
   sleep $VERIFICATION_WAIT_TIME
 
-  # Get the batch merkle root
-  batch_merkle_root=$(echo "$submit" | grep "Batch merkle root: " | grep -oE "0x[[:alnum:]]{64}" | uniq | head -n 1) # TODO: Here we are only getting the first merkle root
+  # Get all the batches merkle roots
+  batch_merkle_roots=$(echo "$submit" | grep "Batch merkle root: " | grep -oE "0x[[:alnum:]]{64}" | uniq)
 
-  # Construct the batcher explorer url
-  batch_explorer_url="$EXPLORER_URL/batches/$batch_merkle_root"
+  batch_explorer_urls=()
 
   # Fetch the logs of both submission and response
   from_block_number=$((current_block_number - LOGS_BLOCK_RANGE))
@@ -111,16 +110,28 @@ do
     from_block_number=0
   fi
 
-  log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'NewBatchV3 (bytes32 indexed batchMerkleRoot, address senderAddress, uint32 taskCreatedBlock, string batchDataPointer, uint256 respondToTaskFeeLimit)' $batch_merkle_root)
-  submission_tx_hash=$(echo $log | grep -oE "transactionHash: 0x[[:alnum:]]{64}" | awk '{ print $2 }')
+  total_fee_in_wei=0
+  for batch_merkle_root in $batch_merkle_roots 
+  do
 
-  log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'BatchVerified (bytes32 indexed batchMerkleRoot, address senderAddress)' $batch_merkle_root)
-  response_tx_hash=$(echo $log | grep -oE "transactionHash: 0x[[:alnum:]]{64}" | awk '{ print $2 }')
+    # Construct the batcher explorer url
+    batch_explorer_url="$EXPLORER_URL/batches/$batch_merkle_root"
+    batch_explorer_urls+=($batch_explorer_url)
 
-  # Calculate fees for transactions
-  submission_fee_in_wei=$(fetch_tx_cost $submission_tx_hash)
-  response_fee_in_wei=$(fetch_tx_cost $response_tx_hash)
-  total_fee_in_wei=$((submission_fee_in_wei + response_fee_in_wei))
+    log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'NewBatchV3 (bytes32 indexed batchMerkleRoot, address senderAddress, uint32 taskCreatedBlock, string batchDataPointer, uint256 respondToTaskFeeLimit)' $batch_merkle_root)
+    submission_tx_hash=$(echo "$log" | grep -oE "transactionHash: 0x[[:alnum:]]{64}" | awk '{ print $2 }')
+
+    log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'BatchVerified (bytes32 indexed batchMerkleRoot, address senderAddress)' $batch_merkle_root)
+    response_tx_hash=$(echo "$log" | grep -oE "transactionHash: 0x[[:alnum:]]{64}" | awk '{ print $2 }')
+
+    # Calculate fees for transactions
+    submission_fee_in_wei=$(fetch_tx_cost $submission_tx_hash)
+    response_fee_in_wei=$(fetch_tx_cost $response_tx_hash)
+    batch_fee_in_wei=$((submission_fee_in_wei + response_fee_in_wei))
+
+    # Accumulate the fee
+    total_fee_in_wei=$(($total_fee_in_wei + $batch_fee_in_wei))
+  done
 
   # Calculate the spent amount by converting the fee to ETH
   wei_to_eth_division_factor=$((10**18))
@@ -150,7 +161,7 @@ do
   ## Send Update to Slack
   eth_usd=$(curl -s https://cryptoprices.cc/ETH/)
   spent_ammount_usd=$(echo "$spent_amount * $eth_usd" | bc | awk '{printf "%.2f", $1}')
-  slack_meesage="$REPETITIONS Proofs submitted and verified. Spent amount: $spent_amount ETH ($ $spent_ammount_usd) [ $batch_explorer_url ]"
+  slack_meesage="$REPETITIONS Proofs submitted and verified. Spent amount: $spent_amount ETH ($ $spent_ammount_usd) [ ${batch_explorer_urls[@]} ]"
 
   send_slack_message "$slack_meesage"
 
