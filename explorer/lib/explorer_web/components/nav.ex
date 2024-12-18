@@ -93,6 +93,12 @@ defmodule NavComponent do
             >
               Operators
             </.link>
+            <.link
+              class="text-foreground/80 hover:text-foreground font-semibold"
+              navigate={~p"/restake"}
+            >
+              Assets
+            </.link>
             <.link class="hover:text-foreground" target="_blank" href="https://docs.alignedlayer.com">
               Docs
             </.link>
