@@ -339,7 +339,7 @@ mod test {
         // All with the same fee
 
         let max_fee = U256::from(130000000000000u128);
-        
+
         // Entry 1
         let nonce_1 = U256::from(1);
         let nonced_verification_data_1 = NoncedVerificationData::new(
@@ -441,7 +441,7 @@ mod test {
         // All with the same fee
 
         let max_fee = U256::from(130000000000000u128);
-        
+
         // Entry 1
         let nonce_1 = U256::from(1);
         let nonced_verification_data_1 = NoncedVerificationData::new(
