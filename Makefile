@@ -52,7 +52,7 @@ deps: submodules go_deps build_all_ffi ## Install deps
 
 go_deps:
 	@echo "Installing Go dependencies..."
-	go install github.com/maoueh/zap-pretty@latest
+	go install github.com/maoueh/zap-pretty@v0.3.0
 	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
 	go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 
