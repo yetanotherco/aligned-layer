@@ -137,7 +137,7 @@ do
 
   # Calculate the spent amount by converting the fee to ETH
   wei_to_eth_division_factor=$((10**18))
-  spent_amount=$(echo "scale=30; $total_fee_in_wei / 1e18" | bc -l | awk '{printf "%.15f", $0}')
+  spent_amount=$(echo "scale=30; $total_fee_in_wei / (10^18)" | bc -l | awk '{printf "%.15f", $0}')
 
   eth_usd=$(curl -s https://cryptoprices.cc/ETH/)
   spent_amount_usd=$(echo "$spent_amount * $eth_usd" | bc | awk '{printf "%.2f", $1}')
