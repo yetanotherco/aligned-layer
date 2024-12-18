@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
+/// @title Claimable Airdrop
+/// @notice This contract is the implementation of the Claimable Airdrop
+/// @dev This contract is upgradeable and should be used only through the proxy contract
 contract ClaimableAirdrop is
-    ReentrancyGuard,
     Initializable,
+    ReentrancyGuardUpgradeable,
     PausableUpgradeable,
     Ownable2StepUpgradeable
 {
@@ -18,7 +21,7 @@ contract ClaimableAirdrop is
     address public tokenProxy;
 
     /// @notice Address of the wallet that has the tokens to distribute to the claimants.
-    address public claimSupplier;
+    address public tokenDistributor;
 
     /// @notice Timestamp until which the claimants can claim the tokens.
     uint256 public limitTimestampToClaim;
@@ -28,10 +31,20 @@ contract ClaimableAirdrop is
 
     /// @notice Mapping of the claimants that have claimed the tokens.
     /// @dev true if the claimant has claimed the tokens.
-    mapping(address => bool) public hasClaimed;
+    mapping(address claimer => bool claimed) public hasClaimed;
 
     /// @notice Event emitted when a claimant claims the tokens.
-    event TokenClaimed(address indexed to, uint256 indexed amount);
+    /// @param to address of the claimant.
+    /// @param amount amount of tokens claimed.
+    event TokensClaimed(address indexed to, uint256 indexed amount);
+
+    /// @notice Event emitted when the Merkle root is updated.
+    /// @param newRoot new Merkle root.
+    event MerkleRootUpdated(bytes32 indexed newRoot);
+
+    /// @notice Event emitted when the claim period is extended.
+    /// @param newTimestamp new timestamp until which the claimants can claim the tokens.
+    event ClaimPeriodExtended(uint256 indexed newTimestamp);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -42,34 +55,35 @@ contract ClaimableAirdrop is
     /// @dev This initializer should be called only once.
     /// @param _owner address of the owner of the token.
     /// @param _tokenProxy address of the token contract.
-    /// @param _claimSupplier address of the wallet that has the tokens to distribute to the claimants.
+    /// @param _tokenDistributor address of the wallet that has the tokens to distribute to the claimants.
     /// @param _limitTimestampToClaim timestamp until which the claimants can claim the tokens.
     /// @param _claimMerkleRoot Merkle root of the claimants.
     function initialize(
         address _owner,
         address _tokenProxy,
-        address _claimSupplier,
+        address _tokenDistributor,
         uint256 _limitTimestampToClaim,
         bytes32 _claimMerkleRoot
-    ) public initializer {
+    ) external initializer {
         require(_owner != address(0), "Invalid owner address");
         require(
             _tokenProxy != address(0) && _tokenProxy != address(this),
             "Invalid token contract address"
         );
         require(
-            _claimSupplier != address(0) && _claimSupplier != address(this),
+            _tokenDistributor != address(0) &&
+                _tokenDistributor != address(this),
             "Invalid token owner address"
         );
         require(_limitTimestampToClaim > block.timestamp, "Invalid timestamp");
         require(_claimMerkleRoot != 0, "Invalid Merkle root");
 
-        __Ownable2Step_init(); // default is msg.sender
-        _transferOwnership(_owner);
+        __Ownable_init(_owner);
         __Pausable_init();
+        __ReentrancyGuard_init();
 
         tokenProxy = _tokenProxy;
-        claimSupplier = _claimSupplier;
+        tokenDistributor = _tokenDistributor;
         limitTimestampToClaim = _limitTimestampToClaim;
         claimMerkleRoot = _claimMerkleRoot;
     }
@@ -80,7 +94,7 @@ contract ClaimableAirdrop is
     function claim(
         uint256 amount,
         bytes32[] calldata merkleProof
-    ) public nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused {
         require(
             !hasClaimed[msg.sender],
             "Account has already claimed the drop"
@@ -97,14 +111,8 @@ contract ClaimableAirdrop is
 
         require(verifies, "Invalid Merkle proof");
 
-        require(
-            IERC20(tokenProxy).allowance(claimSupplier, address(this)) >=
-                amount,
-            "Insufficient token allowance"
-        );
-
         bool success = IERC20(tokenProxy).transferFrom(
-            claimSupplier,
+            tokenDistributor,
             msg.sender,
             amount
         );
@@ -113,7 +121,7 @@ contract ClaimableAirdrop is
 
         hasClaimed[msg.sender] = true;
 
-        emit TokenClaimed(msg.sender, amount);
+        emit TokensClaimed(msg.sender, amount);
     }
 
     /// @notice Update the Merkle root.
@@ -121,6 +129,7 @@ contract ClaimableAirdrop is
     function updateMerkleRoot(bytes32 newRoot) external whenPaused onlyOwner {
         require(newRoot != 0 && newRoot != claimMerkleRoot, "Invalid root");
         claimMerkleRoot = newRoot;
+        emit MerkleRootUpdated(newRoot);
     }
 
     /// @notice Extend the claim period.
@@ -134,15 +143,16 @@ contract ClaimableAirdrop is
             "Can only extend from current timestamp"
         );
         limitTimestampToClaim = newTimestamp;
+        emit ClaimPeriodExtended(newTimestamp);
     }
 
     /// @notice Pause the contract.
-    function pause() public whenNotPaused onlyOwner {
+    function pause() external onlyOwner {
         _pause();
     }
 
     /// @notice Unpause the contract.
-    function unpause() public whenPaused onlyOwner {
+    function unpause() external onlyOwner {
         _unpause();
     }
 }

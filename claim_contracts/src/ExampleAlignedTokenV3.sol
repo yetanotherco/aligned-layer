@@ -28,15 +28,15 @@ contract ExampleAlignedTokenV3 is
     /// @notice Initializes the contract.
     /// @dev This initializer should be called only once.
     /// @param _foundation address of the foundation.
-    /// @param _claimSupplier address of the claim supplier. This is the address
+    /// @param _tokenDistributor address of the claim supplier. This is the address
     /// that will give the tokens to the users that claim them.
     function initialize(
         address _foundation,
-        address _claimSupplier
+        address _tokenDistributor
     ) public initializer {
         require(
-            _foundation != address(0) && _claimSupplier != address(0),
-            "Invalid _foundation or _claimSupplier"
+            _foundation != address(0) && _tokenDistributor != address(0),
+            "Invalid _foundation or _tokenDistributor"
         );
         __ERC20_init(NAME, SYMBOL);
         __ERC20Permit_init(NAME);
@@ -44,7 +44,7 @@ contract ExampleAlignedTokenV3 is
         __Ownable2Step_init(); // default is msg.sender
         _transferOwnership(_foundation);
         _mint(_foundation, 7_300_000_000e18); // 7.3 billion
-        _mint(_claimSupplier, 2_700_000_000e18); // 2.7 billion
+        _mint(_tokenDistributor, 2_700_000_000e18); // 2.7 billion
     }
 
     function reinitialize() public reinitializer(3) {}
