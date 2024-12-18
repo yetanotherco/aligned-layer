@@ -111,6 +111,9 @@ contract ClaimableAirdrop is
 
         require(verifies, "Invalid Merkle proof");
 
+        // Done before the transfer call to make sure the reentrancy bug is not possible
+        hasClaimed[msg.sender] = true;
+
         bool success = IERC20(tokenProxy).transferFrom(
             tokenDistributor,
             msg.sender,
@@ -118,8 +121,6 @@ contract ClaimableAirdrop is
         );
 
         require(success, "Failed to transfer funds");
-
-        hasClaimed[msg.sender] = true;
 
         emit TokensClaimed(msg.sender, amount);
     }
