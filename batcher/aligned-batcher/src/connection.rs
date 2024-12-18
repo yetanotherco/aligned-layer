@@ -22,7 +22,7 @@ pub(crate) async fn send_batch_inclusion_data_responses(
     batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
 ) -> Result<(), BatcherError> {
     // iter in reverse because each sender wants to receive responses in ascending nonce order
-    // and finalized_batch is ordered as the PriorityQueue , low max_nonce first && high nonce first.
+    // and finalized_batch is ordered as the PriorityQueue , low max_fee first && high nonce first.
     for (vd_batch_idx, entry) in finalized_batch.iter().enumerate().rev() {
         let batch_inclusion_data = BatchInclusionData::new(
             vd_batch_idx,
