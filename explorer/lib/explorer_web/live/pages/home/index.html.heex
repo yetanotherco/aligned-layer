@@ -47,6 +47,9 @@
           id="salesChart"
           data={@cost_per_proof_chart_data.data}
           labels={@cost_per_proof_chart_data.labels}
+          tooltip={
+            %{title: "Cost per proof", body: "Cost: {{value}} USD\nBlock Number: {{label}}"}
+          }
         />
       </div>
     </.card>

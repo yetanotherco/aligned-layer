@@ -29,12 +29,8 @@ topbar.config({
 	barColors: { 0: "#18FF7F" },
 	shadowColor: "rgba(0, 0, 0, .3)"
 });
-window.addEventListener("phx:page-loading-start", (_info) =>
-	topbar.show(50)
-);
-window.addEventListener("phx:page-loading-stop", (_info) =>
-	topbar.hide()
-);
+window.addEventListener("phx:page-loading-start", (_info) => topbar.show(50));
+window.addEventListener("phx:page-loading-stop", (_info) => topbar.hide());
 
 liveSocket.connect();
 
