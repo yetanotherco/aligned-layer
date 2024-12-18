@@ -26,7 +26,7 @@ struct Cli {
     #[arg(short, long)]
     port: Option<u16>,
     /// cert file
-    #[arg(long, short = 'c')]
+    #[arg(long, short = 'C')]
     cert: PathBuf,
     /// key file
     #[arg(long, short = 'k')]
