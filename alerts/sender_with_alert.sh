@@ -15,11 +15,10 @@
 # - PAGER_DUTY_KEY
 # - PAGER_DUTY_EMAIL
 # - PAGER_DUTY_SERVICE_ID
+# - SLACK_WEBHOOK_URL
 
-# TODO (Improvements):
-# 1. This script does not account for proofs being included in different batches.
-#    You can test that behavior by modifying the batcher's batch limit and sending many repetitions (REPETITIONS > BATCH_LIMIT) will throw an error on batcher
-# 2. This script waits VERIFICATION_WAIT_TIME seconds before fetching the explorer for the response tx hash.
+# TODO (Improvement):
+# 1. This script waits VERIFICATION_WAIT_TIME seconds before fetching the explorer for the response tx hash.
 #    We should instead poll in a loop until the batch is marked as verified
 
 # ACKNOWLEDGMENTS
