@@ -41,7 +41,7 @@ defmodule ExplorerWeb.ChartComponents do
   attr(:data, :list, required: true)
   attr(:tooltip, :map, required: true)
 
-  def line(assigns) do
+  def line_chart(assigns) do
     ~H"""
     <.basic_chart
       id={@id}

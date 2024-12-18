@@ -43,7 +43,7 @@ defmodule ExplorerWeb.Home.Index do
        verified_proofs: verified_proofs,
        restaked_amount_eth: restaked_amount_eth,
        restaked_amount_usd: restaked_amount_usd,
-       cost_per_proof_chart_data: get_cost_per_proof_chart_data()
+       cost_per_proof_chart: get_cost_per_proof_chart_data()
      )}
   end
 
@@ -75,7 +75,7 @@ defmodule ExplorerWeb.Home.Index do
          AlignedLayerServiceManager.get_aligned_layer_service_manager_address(),
        restaked_amount_eth: restaked_amount_eth,
        restaked_amount_usd: restaked_amount_usd,
-       cost_per_proof_chart_data: get_cost_per_proof_chart_data(),
+       cost_per_proof_chart: get_cost_per_proof_chart_data(),
        page_title: "Welcome"
      )}
   rescue
