@@ -87,32 +87,43 @@ library Utils {
         return address(_implementation);
     }
 
-    function alignedTokenProxyDeploymentData(
-        address _proxyAdminOwner,
+    function alignedTokenProxyConstructorData(
         address _implementation,
         address _foundation,
         address _claim
     ) internal pure returns (bytes memory) {
         return
+            abi.encode(
+                _implementation,
+                _foundation,
+                alignedTokenInitData(_foundation, _claim)
+            );
+    }
+
+    function alignedTokenProxyDeploymentData(
+        address _implementation,
+        address _foundation,
+        address _tokenDistributor
+    ) internal pure returns (bytes memory) {
+        return
             abi.encodePacked(
                 type(TransparentUpgradeableProxy).creationCode,
-                abi.encode(
+                alignedTokenProxyConstructorData(
                     _implementation,
-                    _proxyAdminOwner,
-                    alignedTokenInitData(_implementation, _foundation, _claim)
+                    _foundation,
+                    _tokenDistributor
                 )
             );
     }
 
     function alignedTokenInitData(
-        address _implementation,
         address _foundation,
-        address _claim
+        address _tokenDistributor
     ) internal pure returns (bytes memory) {
         return
             abi.encodeCall(
-                AlignedToken(_implementation).initialize,
-                (_foundation, _claim)
+                AlignedToken.initialize,
+                (_foundation, _tokenDistributor)
             );
     }
 
@@ -153,7 +164,7 @@ library Utils {
 
     function claimableAirdropInitData(
         address _implementation,
-        address _owner,
+        address _foundation,
         address _tokenContractAddress,
         address _tokenOwnerAddress,
         uint256 _limitTimestampToClaim,
@@ -163,9 +174,32 @@ library Utils {
             abi.encodeCall(
                 ClaimableAirdrop(_implementation).initialize,
                 (
-                    _owner,
+                    _foundation,
                     _tokenContractAddress,
                     _tokenOwnerAddress,
+                    _limitTimestampToClaim,
+                    _claimMerkleRoot
+                )
+            );
+    }
+
+    function claimableAirdropProxyConstructorData(
+        address _implementation,
+        address _foundation,
+        address _tokenProxy,
+        address _tokenDistributor,
+        uint256 _limitTimestampToClaim,
+        bytes32 _claimMerkleRoot
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encode(
+                _implementation,
+                _foundation,
+                claimableAirdropInitData(
+                    _implementation,
+                    _foundation,
+                    _tokenProxy,
+                    _tokenDistributor,
                     _limitTimestampToClaim,
                     _claimMerkleRoot
                 )
