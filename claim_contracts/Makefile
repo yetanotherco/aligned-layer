@@ -19,7 +19,6 @@ deploy-all: ## 🚀 Deploy all contracts
 	--broadcast \
 	-vvv
 
-CONFIG?=example
 deploy-token: ## 🚀 Deploy the token contract
 	cd script && \
 	forge script DeployAlignedToken.s.sol \
@@ -40,7 +39,7 @@ deploy-token-prod: ## 🚀 Deploy the token contract
 	--broadcast \
 	--verbosity 3
 
-CONFIG?=example
+CONFIG?=anvil
 deploy-claimable: ## 🚀 Deploy the token contract
 	cd script && \
 	forge script DeployClaimableAirdrop.s.sol \

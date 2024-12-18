@@ -20,6 +20,7 @@ contract DeployClaimableAirdrop is Script {
             ".json"
         );
         string memory config_json = vm.readFile(path);
+        console.log(config);
 
         bytes32 _salt = stdJson.readBytes32(config_json, ".salt");
         address _deployer = stdJson.readAddress(config_json, ".deployer");
@@ -35,6 +36,7 @@ contract DeployClaimableAirdrop is Script {
             config_json,
             ".claimMerkleRoot"
         );
+        console.logBytes32(_claimMerkleRoot);
 
         TransparentUpgradeableProxy _airdropProxy = deployClaimableAirdropProxy(
             address(_safe),
