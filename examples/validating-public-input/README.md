@@ -28,11 +28,14 @@ The command will log the address where the validator was deployed:
 
 ```
 ##### anvil-hardhat
-✅  [Success]Hash: 0xe0c216a3a24d5bd0551924592e42c6d96a889e3082ba3d7fff413336fba66815
-Contract Address: 0x5081a39b8A5f0E35a8D959395a630b68B74Dd30f
-Block: 585
-Paid: 0.000000000005889224 ETH (736153 gas * 0.000000008 gwei)
+✅  [Success]Hash: 0xbdb6bbe9403b59de6d960dd231dae658b401735506feb0745eebe76d5f95e8f4
+Contract Address: 0x90d6A3E189C70E1Cce16c29151077cB9Badb2448
+Block: 2963688
+Paid: 0.000727925005095475 ETH (727925 gas * 1.000000007 gwei)
 ```
+
+> [NOTE]  
+> The `Contract Address` listed above corresponds to a current valid deployment of the examples contract on the `holesky` testnet.
 
 save the contract address for the next command.
 
@@ -72,11 +75,13 @@ The command will log the address where the validator was deployed:
 
 ```
 ##### anvil-hardhat
-✅  [Success]Hash: 0xe0c216a3a24d5bd0551924592e42c6d96a889e3082ba3d7fff413336fba66815
-Contract Address: 0x5081a39b8A5f0E35a8D959395a630b68B74Dd30f
-Block: 585
-Paid: 0.000000000005889224 ETH (736153 gas * 0.000000008 gwei)
+✅  [Success]Hash: 0xbdb6bbe9403b59de6d960dd231dae658b401735506feb0745eebe76d5f95e8f4
+Contract Address: 0x90d6A3E189C70E1Cce16c29151077cB9Badb2448
+Block: 2963688
+Paid: 0.000727925005095475 ETH (727925 gas * 1.000000007 gwei)
 ```
+> [NOTE]  
+> The `Contract Address` listed above corresponds to a current valid deployment of the examples contract on the `holesky` testnet.
 
 save the contract address for the next command.
 
