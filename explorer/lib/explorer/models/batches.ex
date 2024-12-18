@@ -146,7 +146,7 @@ defmodule Batches do
         where: b.is_verified == true,
         select: {b.fee_per_proof, b.submission_block_number},
         limit: ^n,
-        order_by: [desc: b.submission_block_number]
+        order_by: [asc: b.submission_block_number]
       )
 
     case Explorer.Repo.all(query) do
