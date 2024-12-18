@@ -38,15 +38,19 @@ source "$1"
 # Function to get the tx cost from the tx hash
 # @param tx_hash
 function fetch_tx_cost() {
-  # Get the tx receipt from the blockchain 
-  receipt=$(cast receipt --rpc-url $RPC_URL $1)
-  # Parse the gas used and gas price
-  gas_price=$(echo "$receipt" | grep "effectiveGasPrice" | awk '{ print $2 }')
-  gas_used=$(echo "$receipt" | grep "gasUsed" | awk '{ print $2 }')
-  # Calculate fee in wei
-  fee_in_wei=$(($gas_price * $gas_used))
+  if [[ -z "$1" ]]; then
+    echo 0
+  else
+    # Get the tx receipt from the blockchain
+    receipt=$(cast receipt --rpc-url $RPC_URL $1)
+    # Parse the gas used and gas price
+    gas_price=$(echo "$receipt" | grep "effectiveGasPrice" | awk '{ print $2 }')
+    gas_used=$(echo "$receipt" | grep "gasUsed" | awk '{ print $2 }')
+    # Calculate fee in wei
+    fee_in_wei=$(($gas_price * $gas_used))
 
-  echo $fee_in_wei
+    echo $fee_in_wei
+  fi
 }
 
 # Function to send PagerDuty alert
@@ -110,7 +114,6 @@ do
 
   total_fee_in_wei=0
   batch_explorer_urls=()
-  verified=0
   for batch_merkle_root in $batch_merkle_roots 
   do
     # Construct the batcher explorer url
@@ -125,16 +128,7 @@ do
 
     # Calculate fees for transactions
     submission_fee_in_wei=$(fetch_tx_cost $submission_tx_hash)
-
-    if [[ -z "$log" ]];
-    then
-      response_fee_in_wei=0
-      verified=0
-    else
-      verified=1
-      response_fee_in_wei=$(fetch_tx_cost $response_tx_hash)
-    fi
-
+    response_fee_in_wei=$(fetch_tx_cost $response_tx_hash)
     batch_fee_in_wei=$((submission_fee_in_wei + response_fee_in_wei))
 
     # Accumulate the fee
@@ -149,32 +143,34 @@ do
   spent_amount_usd=$(echo "$spent_amount * $eth_usd" | bc | awk '{printf "%.2f", $1}')
 
   slack_messsage=""
-  if [[ "$verified" -eq 1 ]];
-  then
-    ## Verify Proofs
-    echo "Verifying $REPETITIONS proofs $x != 0"
-    for proof in ./aligned_verification_data/*.cbor; do
-      ## Validate Proof on Chain
-      verification=$(aligned verify-proof-onchain \
-        --aligned-verification-data $proof \
-        --rpc_url $RPC_URL \
-        --network $NETWORK \
-        2>&1)
+  verified=1
 
-      ## Send Alert if Verification Fails
-      if echo "$verification" | grep -q not; then
-        message="Proof verification failed for $proof [ ${batch_explorer_urls[@]} ]"
-        echo "$message"
-        send_pagerduty_alert "$message"
-        break
-      elif echo "$verification" | grep -q verified; then
-        echo "Proof verification succeeded for $proof"
-      fi
-    done
+  ## Verify Proofs
+  echo "Verifying $REPETITIONS proofs $x != 0"
+  for proof in ./aligned_verification_data/*.cbor; do
+    ## Validate Proof on Chain
+    verification=$(aligned verify-proof-onchain \
+      --aligned-verification-data $proof \
+      --rpc_url $RPC_URL \
+      --network $NETWORK \
+      2>&1)
 
-    slack_message="$REPETITIONS Proofs submitted. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+    ## Send Alert if Verification Fails
+    if echo "$verification" | grep -q not; then
+      message="Proof verification failed for $proof [ ${batch_explorer_urls[@]} ]"
+      echo "$message"
+      send_pagerduty_alert "$message"
+      verified=0 # Some proofs failed, so we should not send the success message
+      break
+    elif echo "$verification" | grep -q verified; then
+      echo "Proof verification succeeded for $proof"
+    fi
+  done
+
+  if [ $verified -eq 1 ]; then
+    slack_message="$REPETITIONS Proofs submitted and verified. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
   else
-    slack_message="$REPETITIONS Proofs submitted but not verified. Partial spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+    slack_message="$REPETITIONS Proofs submitted but not verified. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
   fi
 
   ## Send Update to Slack
