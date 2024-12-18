@@ -14,6 +14,7 @@ defmodule ExplorerWeb.Home.Index do
             {:error, _} -> 0
           end
         end),
+      labels: Enum.map(data, fn {_, submission_block_number} -> submission_block_number end)
     }
   end
 
