@@ -12,15 +12,15 @@ use retry::batcher_retryables::{
     user_balance_is_unlocked_retryable,
 };
 use retry::{retry_function, RetryError};
-use tokio::time::{timeout, Instant};
-use types::batch_state::BatchState;
-use types::user_state::UserState;
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::time::{timeout, Instant};
+use types::batch_state::BatchState;
+use types::user_state::UserState;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, BUMP_BACKOFF_FACTOR,
@@ -264,17 +264,20 @@ impl Batcher {
         }
     }
 
-    pub async fn listen_connections(self: Arc<Self>, address: &str, cert: PathBuf, key: PathBuf) -> Result<(), BatcherError> {
+    pub async fn listen_connections(
+        self: Arc<Self>,
+        address: &str,
+        cert: PathBuf,
+        key: PathBuf,
+    ) -> Result<(), BatcherError> {
         // let mut acceptor_builder = SslAcceptor::mozilla_intermediate_v5(SslMethod::tls()).unwrap();
         // acceptor_builder.set_private_key_file(key, SslFiletype::PEM).unwrap();
         // acceptor_builder.set_certificate_chain_file(cert).unwrap();
         // acceptor_builder.check_private_key().unwrap();
         // let acceptor = Arc::new(acceptor_builder.build());
         // Reference: https://github.com/rustls/tokio-rustls/blob/main/examples/server.rs
-        let cert = vec![
-            CertificateDer::from_pem_file(cert)
-                .map_err(|e| BatcherError::TlsError(format!("{e}")))?,
-        ];
+        let cert = vec![CertificateDer::from_pem_file(cert)
+            .map_err(|e| BatcherError::TlsError(format!("{e}")))?];
         let key = PrivateKeyDer::from_pem_file(key)
             .map_err(|e| BatcherError::TlsError(format!("{e}")))?;
 
@@ -394,7 +397,8 @@ impl Batcher {
     ) -> Result<(), BatcherError> {
         info!("Incoming TCP connection from: {}", addr);
         self.metrics.open_connections.inc();
-        let tls_stream = acceptor.accept(raw_stream)
+        let tls_stream = acceptor
+            .accept(raw_stream)
             .await
             .map_err(|e| BatcherError::TlsError(e.to_string()))?;
         let ws_stream_future = tokio_tungstenite::accept_async(tls_stream);

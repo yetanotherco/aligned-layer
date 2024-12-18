@@ -16,7 +16,8 @@ use tokio_tungstenite::{
     WebSocketStream,
 };
 
-pub(crate) type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TlsStream<TcpStream>>, Message>>>;
+pub(crate) type WsMessageSink =
+    Arc<RwLock<SplitSink<WebSocketStream<TlsStream<TcpStream>>, Message>>>;
 
 pub(crate) async fn send_batch_inclusion_data_responses(
     finalized_batch: Vec<BatchQueueEntry>,

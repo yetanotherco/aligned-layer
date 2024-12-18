@@ -1,10 +1,10 @@
 extern crate dotenvy;
 
-use std::path::PathBuf;
-use std::sync::Arc;
 use clap::Parser;
 use env_logger::Env;
-use rustls::crypto::{CryptoProvider, aws_lc_rs};
+use rustls::crypto::{aws_lc_rs, CryptoProvider};
+use std::path::PathBuf;
+use std::sync::Arc;
 
 use aligned_batcher::{types::errors::BatcherError, Batcher};
 
@@ -59,9 +59,9 @@ async fn main() -> Result<(), BatcherError> {
                 .expect("Error listening for new blocks exiting")
         }
     });
-    
+
     batcher.metrics.inc_batcher_restart();
-    
+
     let addr = format!("0.0.0.0:{}", port);
     batcher.listen_connections(&addr, cli.cert, cli.key).await?;
 
