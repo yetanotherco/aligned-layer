@@ -148,7 +148,7 @@ do
 
     ## Send Alert is Verification Fails
     if echo "$verification" | grep -q not; then
-      message="Proof verification failed for $proof [ $explorer_link ]"
+      message="Proof verification failed for $proof [ ${batch_explorer_urls[@]} ]"
       echo "$message"
       send_pagerduty_alert "$message"
       break
