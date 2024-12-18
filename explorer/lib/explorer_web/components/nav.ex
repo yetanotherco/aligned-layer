@@ -24,7 +24,7 @@ defmodule NavComponent do
               "transform",
               "duration-150",
               "active:scale-95",
-              active_class(assigns.socket.view, ExplorerWeb.Home.Index)
+              active_view_class(assigns.socket.view, ExplorerWeb.Home.Index)
             ])
           }
           navigate={~p"/"}
@@ -33,13 +33,13 @@ defmodule NavComponent do
         </.link>
         <div class={["items-center gap-8 [&>a]:drop-shadow-md", "hidden md:inline-flex"]}>
           <.link
-            class={active_class(assigns.socket.view, ExplorerWeb.Batches.Index)}
+            class={active_view_class(assigns.socket.view, ExplorerWeb.Batches.Index)}
             navigate={~p"/batches"}
           >
             Batches
           </.link>
           <.link
-            class={active_class(assigns.socket.view, ExplorerWeb.Operators.Index)}
+            class={active_view_class(assigns.socket.view, ExplorerWeb.Operators.Index)}
             navigate={~p"/operators"}
           >
             Operators
@@ -86,7 +86,7 @@ defmodule NavComponent do
             <.link
               class={
                 classes([
-                  active_class(assigns.socket.view, ExplorerWeb.Batches.Index),
+                  active_view_class(assigns.socket.view, ExplorerWeb.Batches.Index),
                   "text-foreground/80 hover:text-foreground font-semibold"
                 ])
               }
@@ -95,7 +95,7 @@ defmodule NavComponent do
               Batches
             </.link>
             <.link
-              class={active_class(assigns.socket.view, ExplorerWeb.Operators.Index)}
+              class={active_view_class(assigns.socket.view, ExplorerWeb.Operators.Index)}
               navigate={~p"/operators"}
             >
               Operators
@@ -123,10 +123,10 @@ defmodule NavComponent do
     |> JS.toggle(to: ".toggle-close")
   end
 
-  defp active_class(ExplorerWeb.Home.Index, ExplorerWeb.Home.Index), do: "text-4xl"
-  defp active_class(_other, ExplorerWeb.Home.Index), do: "text-3xl"
+  defp active_view_class(ExplorerWeb.Home.Index, ExplorerWeb.Home.Index), do: "text-4xl"
+  defp active_view_class(_other, ExplorerWeb.Home.Index), do: "text-3xl"
 
-  defp active_class(current_view, ExplorerWeb.Batches.Index = target_view) do
+  defp active_view_class(current_view, ExplorerWeb.Batches.Index = target_view) do
     if current_view == target_view || current_view == ExplorerWeb.Batch.Index do
       "text-green-500 font-bold"
     else
@@ -134,7 +134,7 @@ defmodule NavComponent do
     end
   end
 
-  defp active_class(current_view, ExplorerWeb.Operators.Index = target_view) do
+  defp active_view_class(current_view, ExplorerWeb.Operators.Index = target_view) do
     if current_view == target_view || current_view == ExplorerWeb.Operator.Index do
       "text-green-500 font-bold"
     else
