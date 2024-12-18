@@ -102,7 +102,7 @@ impl Ord for BatchQueueEntryPriority {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         let ord = other.max_fee.cmp(&self.max_fee);
         if ord == std::cmp::Ordering::Equal {
-            self.nonce.cmp(&other.nonce).reverse()
+            self.nonce.cmp(&other.nonce)
         } else {
             ord
         }
