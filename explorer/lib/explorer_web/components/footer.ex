@@ -21,9 +21,11 @@ defmodule FooterComponent do
           ]},
          {"Developers",
           [
+            {"Docs", "https://docs.alignedlayer.com/"},
+            {"Supported verifiers",
+             "https://docs.alignedlayer.com/architecture/0_supported_verifiers"},
             {"Whitepaper", "https://alignedlayer.com/whitepaper/"},
-            {"Github", "https://github.com/yetanotherco/aligned_layer"},
-            {"Docs", "https://docs.alignedlayer.com/"}
+            {"Github", "https://github.com/yetanotherco/aligned_layer"}
           ]},
          {"Resources",
           [
