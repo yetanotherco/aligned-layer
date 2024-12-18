@@ -34,7 +34,9 @@ defmodule ExplorerWeb.ChartComponents do
       labels={["January", "February", "March", "April"]}
       tooltip={%{title: "Exchange details", body: "Month: {{label}}\nRate: {{value}}"}}
     />
-    !Note that {{label}} and {{value}} will get replaced with their respective values, the alternative would be to pass raw JS...
+    !Note:
+    - id can be used to apply custom styles and configurations only possible via javascript
+    - {{label}} and {{value}} will get replaced with their respective values, the alternative would be to pass raw JS...
   """
   attr(:id, :string, required: true)
   attr(:labels, :list, required: true)
@@ -72,8 +74,16 @@ defmodule ExplorerWeb.ChartComponents do
           },
           scales: %{
             x: %{
+              offset: true,
               ticks: %{
-                display: false
+                display: false,
+                autoSkip: false,
+                sampleSize: 1,
+                autoSkipPadding: 10,
+                maxRotation: 0,
+                font: %{
+                  weight: "700"
+                }
               },
               grid: %{
                 display: false
@@ -84,7 +94,12 @@ defmodule ExplorerWeb.ChartComponents do
             },
             y: %{
               ticks: %{
-                display: false
+                display: false,
+                sampleSize: 1,
+                font: %{
+                  weight: "700"
+                },
+                offset: true
               },
               grid: %{
                 display: false
