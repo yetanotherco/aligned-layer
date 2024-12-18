@@ -270,11 +270,6 @@ impl Batcher {
         cert: PathBuf,
         key: PathBuf,
     ) -> Result<(), BatcherError> {
-        // let mut acceptor_builder = SslAcceptor::mozilla_intermediate_v5(SslMethod::tls()).unwrap();
-        // acceptor_builder.set_private_key_file(key, SslFiletype::PEM).unwrap();
-        // acceptor_builder.set_certificate_chain_file(cert).unwrap();
-        // acceptor_builder.check_private_key().unwrap();
-        // let acceptor = Arc::new(acceptor_builder.build());
         // Reference: https://github.com/rustls/tokio-rustls/blob/main/examples/server.rs
         let cert = vec![CertificateDer::from_pem_file(cert)
             .map_err(|e| BatcherError::TlsError(format!("{e}")))?];
