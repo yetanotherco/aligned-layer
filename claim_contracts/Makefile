@@ -30,6 +30,16 @@ deploy-token: ## 🚀 Deploy the token contract
 	--broadcast \
 	--verbosity 3
 
+deploy-token-prod: ## 🚀 Deploy the token contract
+	cd script && \
+	forge script DeployAlignedToken.s.sol \
+	--sig "run(string)" \
+	$(PROD_CONFIG) \
+	--keystore $(KEYSTORE_PATH) \
+	--rpc-url $(PROD_RPC_URL) \
+	--broadcast \
+	--verbosity 3
+
 
 update_token_proxy:
 	@NEW_TOKEN_PROXY=$$(jq -r '.tokenProxy' "script-out/deployed_token_addresses.json") && \
