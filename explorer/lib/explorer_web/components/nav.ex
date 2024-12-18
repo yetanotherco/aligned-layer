@@ -126,19 +126,12 @@ defmodule NavComponent do
   defp active_view_class(ExplorerWeb.Home.Index, ExplorerWeb.Home.Index), do: "text-4xl"
   defp active_view_class(_other, ExplorerWeb.Home.Index), do: "text-3xl"
 
-  defp active_view_class(current_view, ExplorerWeb.Batches.Index = target_view) do
-    if current_view == target_view || current_view == ExplorerWeb.Batch.Index do
-      "text-green-500 font-bold"
-    else
-      "text-foreground/80 hover:text-foreground font-semibold"
-    end
-  end
+  defp active_view_class(ExplorerWeb.Batches.Index, ExplorerWeb.Batches.Index ), do: "text-green-500 font-bold"
+  defp active_view_class(ExplorerWeb.Batch.Index, ExplorerWeb.Batches.Index ), do: "text-green-500 font-bold"
+  defp active_view_class(_other, ExplorerWeb.Batches.Index ), do: "text-foreground/80 hover:text-foreground font-semibold"
 
-  defp active_view_class(current_view, ExplorerWeb.Operators.Index = target_view) do
-    if current_view == target_view || current_view == ExplorerWeb.Operator.Index do
-      "text-green-500 font-bold"
-    else
-      "text-foreground/80 hover:text-foreground font-semibold"
-    end
-  end
+  defp active_view_class(ExplorerWeb.Operators.Index, ExplorerWeb.Operators.Index ), do: "text-green-500 font-bold"
+  defp active_view_class(ExplorerWeb.Operator.Index, ExplorerWeb.Operators.Index ), do: "text-green-500 font-bold"
+  defp active_view_class(_other, ExplorerWeb.Operators.Index ), do: "text-foreground/80 hover:text-foreground font-semibold"
+
 end
