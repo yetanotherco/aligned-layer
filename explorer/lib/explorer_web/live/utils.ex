@@ -129,9 +129,8 @@ defmodule ExplorerWeb.Helpers do
   end
 
   def is_stale?(batch) do
-    batch_ttl_secs = 300 # 5 minutes
-    expiration = Time.add(batch.submission_timestamp, batch_ttl_secs)
-    Time.after?(Time.utc_now(), expiration)
+    DateTime.add(batch.submission_timestamp, 5, :minute)
+    |> DateTime.before?(DateTime.utc_now())
   end
 
   def get_batch_status(batch) do
