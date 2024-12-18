@@ -2,8 +2,8 @@
 
 forge --version >/dev/null 2>&1
 if [ $? != 0 ]; then
-    echo "Error: Please make sure you have forge installed and in your PATH"
-    exit 2
+  echo "Error: Please make sure you have forge installed and in your PATH"
+  exit 2
 fi
 
 safe=${SAFE_ADDRESS:-$1}

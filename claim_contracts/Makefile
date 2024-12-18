@@ -40,6 +40,17 @@ deploy-token-prod: ## 🚀 Deploy the token contract
 	--broadcast \
 	--verbosity 3
 
+CONFIG?=example
+deploy-claimable: ## 🚀 Deploy the token contract
+	cd script && \
+	forge script DeployClaimableAirdrop.s.sol \
+	--sig "run(string)" \
+	$(CONFIG) \
+	--private-key $(PRIVATE_KEY) \
+	--rpc-url $(RPC_URL) \
+	--broadcast \
+	--verbosity 3
+
 
 update_token_proxy:
 	@NEW_TOKEN_PROXY=$$(jq -r '.tokenProxy' "script-out/deployed_token_addresses.json") && \
