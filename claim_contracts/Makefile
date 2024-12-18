@@ -8,17 +8,6 @@ help: ## 📚 Show help for each of the Makefile recipes
 
 RPC_URL?=http://localhost:8545
 PRIVATE_KEY?=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
-
-deploy-all: ## 🚀 Deploy all contracts
-	cd script && \
-	forge script DeployAll.s.sol \
-	--sig "run(string)" \
-	$(CONFIG) \
-	--private-key $(PRIVATE_KEY) \
-	--rpc-url $(RPC_URL) \
-	--broadcast \
-	-vvv
-
 CONFIG?=example
 deploy-token: ## 🚀 Deploy the token contract
 	cd script && \
@@ -113,7 +102,6 @@ test-claimed:
 	cast balance --erc20 $(TOKEN) $(CLAIMER) --rpc-url $(RPC_URL)
 
 OWNER_PRIVATE_KEY?=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-
 
 test-airdrop:
 	cast call $(AIRDROP) "paused()(bool)" --rpc-url $(RPC_URL)
