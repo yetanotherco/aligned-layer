@@ -144,9 +144,9 @@ defmodule Batches do
     query =
       from(b in Batches,
         where: b.is_verified == true,
-        select: {b.fee_per_proof, b.submission_block_number},
+        select: {b.fee_per_proof, b.submission_timestamp},
         limit: ^n,
-        order_by: [asc: b.submission_block_number]
+        order_by: [asc: b.submission_timestamp]
       )
 
     case Explorer.Repo.all(query) do

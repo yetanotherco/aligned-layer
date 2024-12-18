@@ -6,15 +6,21 @@ defmodule ExplorerWeb.Home.Index do
   def get_cost_per_proof_chart_data() do
     data = Batches.get_fee_per_proofs_of_last_n_batches(100)
 
+    {data, labels} =
+      Enum.reduce(data, {[], []}, fn {fee_per_proof, submission_timestamp},
+                                     {acc_data, acc_labels} ->
+        case EthConverter.wei_to_usd(fee_per_proof) do
+          {:ok, value} ->
+            {acc_data ++ [value], acc_labels ++ [submission_timestamp]}
+
+          {:error, _} ->
+            {acc_data, acc_labels}
+        end
+      end)
+
     %{
-      data:
-        Enum.map(data, fn {fee_per_proof, _} ->
-          case EthConverter.wei_to_usd(fee_per_proof) do
-            {:ok, value} -> value
-            {:error, _} -> 0
-          end
-        end),
-      labels: Enum.map(data, fn {_, submission_block_number} -> submission_block_number end)
+      data: data,
+      labels: labels
     }
   end
 
