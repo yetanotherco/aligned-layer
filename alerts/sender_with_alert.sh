@@ -110,9 +110,9 @@ do
 
   total_fee_in_wei=0
   batch_explorer_urls=()
+  verified=0
   for batch_merkle_root in $batch_merkle_roots 
   do
-
     # Construct the batcher explorer url
     batch_explorer_url="$EXPLORER_URL/batches/$batch_merkle_root"
     batch_explorer_urls+=($batch_explorer_url)
@@ -125,7 +125,16 @@ do
 
     # Calculate fees for transactions
     submission_fee_in_wei=$(fetch_tx_cost $submission_tx_hash)
-    response_fee_in_wei=$(fetch_tx_cost $response_tx_hash)
+
+    if [[ -z "$log" ]];
+    then
+      response_fee_in_wei=0
+      verified=0
+    else
+      verified=1
+      response_fee_in_wei=$(fetch_tx_cost $response_tx_hash)
+    fi
+
     batch_fee_in_wei=$((submission_fee_in_wei + response_fee_in_wei))
 
     # Accumulate the fee
@@ -136,34 +145,40 @@ do
   wei_to_eth_division_factor=$((10**18))
   spent_amount=$(echo "scale=30; $total_fee_in_wei / 1e18" | bc -l | awk '{printf "%.15f", $0}')
 
-  ## Verify Proofs
-  echo "Verifying $REPETITIONS proofs $x != 0"
-  for proof in ./aligned_verification_data/*.cbor; do
-    ## Validate Proof on Chain
-    verification=$(aligned verify-proof-onchain \
-      --aligned-verification-data $proof \
-      --rpc_url $RPC_URL \
-      --network $NETWORK \
-      2>&1)
-
-    ## Send Alert is Verification Fails
-    if echo "$verification" | grep -q not; then
-      message="Proof verification failed for $proof [ ${batch_explorer_urls[@]} ]"
-      echo "$message"
-      send_pagerduty_alert "$message"
-      break
-    elif echo "$verification" | grep -q verified; then
-      echo "Proof verification succeeded for $proof"
-    fi
-  done
-
-  ## Send Update to Slack
   eth_usd=$(curl -s https://cryptoprices.cc/ETH/)
   spent_amount_usd=$(echo "$spent_amount * $eth_usd" | bc | awk '{printf "%.2f", $1}')
-  slack_message="$REPETITIONS Proofs submitted. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
-  
+
+  slack_messsage=""
+  if [[ "$verified" -eq 1 ]];
+  then
+    ## Verify Proofs
+    echo "Verifying $REPETITIONS proofs $x != 0"
+    for proof in ./aligned_verification_data/*.cbor; do
+      ## Validate Proof on Chain
+      verification=$(aligned verify-proof-onchain \
+        --aligned-verification-data $proof \
+        --rpc_url $RPC_URL \
+        --network $NETWORK \
+        2>&1)
+
+      ## Send Alert if Verification Fails
+      if echo "$verification" | grep -q not; then
+        message="Proof verification failed for $proof [ ${batch_explorer_urls[@]} ]"
+        echo "$message"
+        send_pagerduty_alert "$message"
+        break
+      elif echo "$verification" | grep -q verified; then
+        echo "Proof verification succeeded for $proof"
+      fi
+    done
+
+    slack_message="$REPETITIONS Proofs submitted. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+  else
+    slack_message="$REPETITIONS Proofs submitted but not verified. Partial spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+  fi
+
+  ## Send Update to Slack
   echo "$slack_message"
-  
   send_slack_message "$slack_message"
 
   ## Remove Proof Data
