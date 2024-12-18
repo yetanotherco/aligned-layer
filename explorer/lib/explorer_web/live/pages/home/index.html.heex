@@ -41,15 +41,9 @@
     </.card>
     <.live_component module={ContractsComponent} id="contracts_card" class="sm:col-span-2" />
     <div class="relative truncate sm:col-span-2">
-        <h1 class="text-4xl sm:text-4xl font-bold font-foreground text-left py-2">
+        <h1 class="text-xl font-bold font-foreground text-left py-2">
         Recent Batches
         </h1>
-        <.link
-          navigate={~p"/batches"}
-          class="absolute top-5 right-5 hover:underline font-medium text-muted-foreground capitalize text-sm"
-        >
-          View All <.icon name="hero-arrow-top-right-on-square-solid" class="size-3.5 mb-1" />
-        </.link>
     </div>
     <%= if @latest_batches != :empty and @latest_batches != [] do %>
         <.table id="latest_batches" rows={@latest_batches} class="sm:col-span-2">
@@ -75,6 +69,13 @@
         <:col :let={latest_batch} label="Submission Block Number">
           <%= latest_batch.submission_block_number |> Helpers.format_number() %>
         </:col>
+        <:footer>
+          <div class="flex justify-center py-3">    
+            <.link navigate={~p"/batches"} class="absolute hover:underline font-medium text-muted-foreground capitalize text-sm">
+                View All <.icon name="hero-arrow-top-right-on-square-solid" class="size-3.5 mb-1" />
+            </.link>
+          </div>
+        </:footer>
       </.table>
     <% else %>
       <.empty_card_background text="No Batches To Display." class="sm:col-span-2"/>

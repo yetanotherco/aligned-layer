@@ -727,6 +727,7 @@ defmodule ExplorerWeb.CoreComponents do
 
   slot(:action, doc: "the slot for showing user actions in the last table column")
   slot(:header, default: nil, doc: "optional header for the table")
+  slot(:footer, default: nil, doc: "optional footer for the table")
 
   def table(assigns) do
     assigns =
@@ -785,6 +786,7 @@ defmodule ExplorerWeb.CoreComponents do
           </tr>
         </tbody>
       </table>
+      <%= render_slot(@footer) %>
     </.card_background>
     """
   end
