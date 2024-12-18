@@ -11,6 +11,7 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 /// @title Claimable Airdrop
 /// @notice This contract is the implementation of the Claimable Airdrop
 /// @dev This contract is upgradeable and should be used only through the proxy contract
+/// @custom:security-contact security@alignedfoundation.org
 contract ClaimableAirdrop is
     Initializable,
     ReentrancyGuardUpgradeable,
