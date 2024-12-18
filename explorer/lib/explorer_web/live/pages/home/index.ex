@@ -14,6 +14,14 @@ defmodule ExplorerWeb.Home.Index do
             {:error, _} -> 0
           end
         end),
+    }
+  end
+
+  def get_batch_size_chart_data() do
+    data = Batches.get_batch_size_of_last_n_batches(100)
+
+    %{
+      data: Enum.map(data, fn{batch_size, _} -> batch_size end),
       labels: Enum.map(data, fn {_, submission_block_number} -> submission_block_number end)
     }
   end
@@ -43,7 +51,8 @@ defmodule ExplorerWeb.Home.Index do
        verified_proofs: verified_proofs,
        restaked_amount_eth: restaked_amount_eth,
        restaked_amount_usd: restaked_amount_usd,
-       cost_per_proof_chart: get_cost_per_proof_chart_data()
+       cost_per_proof_chart: get_cost_per_proof_chart_data(),
+       batch_size_chart_data: get_batch_size_chart_data()
      )}
   end
 
@@ -76,6 +85,7 @@ defmodule ExplorerWeb.Home.Index do
        restaked_amount_eth: restaked_amount_eth,
        restaked_amount_usd: restaked_amount_usd,
        cost_per_proof_chart: get_cost_per_proof_chart_data(),
+       batch_size_chart_data: get_batch_size_chart_data(),
        page_title: "Welcome"
      )}
   rescue
