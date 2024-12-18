@@ -59,7 +59,11 @@ defmodule FooterComponent do
               <div class="flex flex-col items-start gap-2">
                 <h3 class="text-foreground font-bold text-lg"><%= title %></h3>
                 <%= for {value, link} <- links do %>
-                  <.link class="text-md text-foreground/80 hover:underline" navigate={link}>
+                  <.link
+                    class="text-md text-foreground/80 hover:underline"
+                    href={link}
+                    _target="blank"
+                  >
                     <%= value %>
                   </.link>
                 <% end %>
