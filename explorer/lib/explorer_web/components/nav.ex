@@ -40,7 +40,7 @@ defmodule NavComponent do
             class="text-foreground/80 hover:text-foreground font-semibold"
             navigate={~p"/restake"}
           >
-            Restaking
+            Assets
           </.link>
         </div>
         <.live_component module={SearchComponent} id="nav_search" />
