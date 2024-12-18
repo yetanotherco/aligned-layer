@@ -135,7 +135,6 @@ defmodule ExplorerWeb.Helpers do
 
   def get_batch_status(batch) do
     cond do
-      batch == nil -> :invalid
       not batch.is_valid -> :invalid
       batch.is_verified -> :verified
       is_stale?(batch) -> :stale
