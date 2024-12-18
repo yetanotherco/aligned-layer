@@ -101,15 +101,15 @@ do
   # Get all the batches merkle roots
   batch_merkle_roots=$(echo "$submit" | grep "Batch merkle root: " | grep -oE "0x[[:alnum:]]{64}" | uniq)
 
-  batch_explorer_urls=()
-
   # Fetch the logs of both submission and response
-  from_block_number=$((current_block_number - LOGS_BLOCK_RANGE))
+  current_block_number=$(cast block-number --rpc-url $RPC_URL)
+  from_block_number=$(($current_block_number - LOGS_BLOCK_RANGE))
   if [ $from_block_number -lt 0 ]; then
     from_block_number=0
   fi
 
   total_fee_in_wei=0
+  batch_explorer_urls=()
   for batch_merkle_root in $batch_merkle_roots 
   do
 
