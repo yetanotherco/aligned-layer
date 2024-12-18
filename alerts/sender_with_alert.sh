@@ -159,12 +159,12 @@ do
 
   ## Send Update to Slack
   eth_usd=$(curl -s https://cryptoprices.cc/ETH/)
-  spent_ammount_usd=$(echo "$spent_amount * $eth_usd" | bc | awk '{printf "%.2f", $1}')
-  slack_meesage="$REPETITIONS Proofs submitted and verified. Spent amount: $spent_amount ETH ($ $spent_ammount_usd) [ ${batch_explorer_urls[@]} ]"
+  spent_amount_usd=$(echo "$spent_amount * $eth_usd" | bc | awk '{printf "%.2f", $1}')
+  slack_message="$REPETITIONS Proofs submitted. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
   
-  echo "$slack_meesage"
+  echo "$slack_message"
   
-  send_slack_message "$slack_meesage"
+  send_slack_message "$slack_message"
 
   ## Remove Proof Data
   rm -rf ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/*
