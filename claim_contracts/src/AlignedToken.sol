@@ -33,7 +33,7 @@ contract AlignedToken is
     /// @notice Event emitted when tokens are minted.
     /// @param to address to which the tokens are minted.
     /// @param amount amount of tokens minted.
-    event TokensMinted(address indexed to, uint256 amount);
+    event TokensMinted(address indexed to, uint256 indexed amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
