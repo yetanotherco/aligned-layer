@@ -6,6 +6,7 @@ import "../src/ClaimableAirdrop.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "forge-std/Script.sol";
+
 import {Vm} from "forge-std/Vm.sol";
 import {Utils} from "./Utils.sol";
 
