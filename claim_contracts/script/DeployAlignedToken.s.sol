@@ -20,21 +20,30 @@ contract DeployAlignedToken is Script {
         );
         string memory config_json = vm.readFile(path);
 
-        bytes32 _salt = stdJson.readBytes32(config_json, ".salt");
-        address _deployer = stdJson.readAddress(config_json, ".deployer");
         address _foundation = stdJson.readAddress(config_json, ".foundation");
         address _tokenDistributor = stdJson.readAddress(
             config_json,
             ".tokenDistributor"
         );
 
-        TransparentUpgradeableProxy _tokenProxy = deployAlignedTokenProxy(
-            _foundation,
-            _salt,
-            _deployer,
-            _foundation,
-            _tokenDistributor
-        );
+        vm.broadcast();
+        AlignedToken _token = new AlignedToken();
+
+        console.log("Aligned Token deployed at address:", address(_token));
+
+        vm.broadcast();
+        TransparentUpgradeableProxy _tokenProxy = new TransparentUpgradeableProxy(
+                address(_token),
+                _foundation,
+                Utils.alignedTokenInitData(_foundation, _tokenDistributor)
+            );
+
+        bytes memory _alignedTokenProxyConstructorData = Utils
+            .alignedTokenProxyConstructorData(
+                address(_token),
+                _foundation,
+                _tokenDistributor
+            );
 
         console.log(
             string.concat(
@@ -43,58 +52,10 @@ contract DeployAlignedToken is Script {
                 " with proxy admin: ",
                 vm.toString(Utils.getAdminAddress(address(_tokenProxy))),
                 " and owner: ",
-                vm.toString(_foundation)
+                vm.toString(_foundation),
+                " with constructor args: ",
+                vm.toString(_alignedTokenProxyConstructorData)
             )
         );
-
-        string memory deployedAddressesJson = "deployedAddressesJson";
-        string memory finalJson = vm.serializeAddress(
-            deployedAddressesJson,
-            "tokenProxy",
-            address(_tokenProxy)
-        );
-
-        vm.writeJson(
-            finalJson,
-            _getOutputPath("deployed_token_addresses.json")
-        );
-    }
-
-    function _getOutputPath(
-        string memory fileName
-    ) internal returns (string memory) {
-        string memory outputDir = "script-out/";
-
-        // Create output directory if it doesn't exist
-        if (!vm.exists(outputDir)) {
-            vm.createDir(outputDir, true);
-        }
-
-        return string.concat(outputDir, fileName);
-    }
-
-    function deployAlignedTokenProxy(
-        address _proxyAdminOwner,
-        bytes32 _salt,
-        address _deployer,
-        address _foundation,
-        address _claim
-    ) internal returns (TransparentUpgradeableProxy) {
-        vm.broadcast();
-        AlignedToken _token = new AlignedToken();
-
-        bytes memory _alignedTokenDeploymentData = Utils
-            .alignedTokenProxyDeploymentData(
-                _proxyAdminOwner,
-                address(_token),
-                _foundation,
-                _claim
-            );
-        address _alignedTokenProxy = Utils.deployWithCreate2(
-            _alignedTokenDeploymentData,
-            _salt,
-            _deployer
-        );
-        return TransparentUpgradeableProxy(payable(_alignedTokenProxy));
     }
 }
