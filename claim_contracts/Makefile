@@ -40,6 +40,34 @@ deploy-token-prod: ## 🚀 Deploy the token contract
 	--broadcast \
 	--verbosity 3
 
+deploy-claimable-local: ## 🚀 Deploy the airdrop contract in localnet
+	cd script && \
+	forge script DeployClaimableAirdrop.s.sol \
+	--sig "run(string)" example \
+	--private-key $(PRIVATE_KEY) \
+	--rpc-url http://localhost:8545 \
+	--broadcast
+
+deploy-claimable-testnet: ## 🚀 Deploy the airdrop contract in Sepolia
+	cd script && \
+	forge script DeployClaimableAirdrop.s.sol \
+	--sig "run(string)" sepolia \
+	--private-key $(PRIVATE_KEY) \
+	--rpc-url $(RPC_URL) \
+	--broadcast \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY)
+
+deploy-claimable-mainnet: ## 🚀 Deploy the airdrop contract in Mainnet
+	cd script && \
+	forge script DeployClaimableAirdrop.s.sol \
+	--sig "run(string)" mainnet \
+	--keystore $(KEYSTORE_PATH) \
+	--rpc-url https://eth.llamarpc.com \
+	--broadcast \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY)
+
 
 update_token_proxy:
 	@NEW_TOKEN_PROXY=$$(jq -r '.tokenProxy' "script-out/deployed_token_addresses.json") && \
@@ -85,6 +113,11 @@ test-claimed:
 	cast balance --erc20 $(TOKEN) $(CLAIMER) --rpc-url $(RPC_URL)
 
 OWNER_PRIVATE_KEY?=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+
+test-airdrop:
+	cast call $(AIRDROP) "paused()(bool)" --rpc-url $(RPC_URL)
+	cast call $(AIRDROP) "owner()(address)" --rpc-url $(RPC_URL)
 
 test-pause:
 	cast send $(AIRDROP) --private-key $(OWNER_PRIVATE_KEY) "pause()" --rpc-url $(RPC_URL)
