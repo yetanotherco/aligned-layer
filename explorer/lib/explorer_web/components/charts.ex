@@ -35,7 +35,7 @@ defmodule ExplorerWeb.ChartComponents do
       tooltip={%{title: "Exchange details", body: "Month: {{label}}\nRate: {{value}}"}}
     />
     !Note:
-    - id can be used to apply custom styles and configurations only possible via javascript
+    - id can be used to reference the chart on javascript to apply custom styles and configurations only possible via javascript
     - {{label}} and {{value}} will get replaced with their respective values, the alternative would be to pass raw JS...
   """
   attr(:id, :string, required: true)
