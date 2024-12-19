@@ -14,6 +14,35 @@ const tooltipComponent = ({ title, items }) => `
   </div>
 `;
 
+/**
+ * Displays and positions a custom tooltip on the page based on the provided chart context.
+ * This function creates the tooltip element if it doesn't exist, updates its content,
+ * and positions it correctly based on the chart's canvas and tooltip model.
+ *
+ * @param {Object} context - The chart.js context, typically passed as `this` within chart hooks.
+ * @param {Object} params - An object containing configuration for the tooltip.
+ * @param {string} params.title - The title text to display in the tooltip.
+ * @param {Array} params.items - An array of items (with ids) to be displayed inside the tooltip.
+ * @param {Function} params.onTooltipUpdate - A callback function that updates the tooltip values based on the tooltip model.
+ *                                           It is called with the `tooltipModel` as an argument and should return an object containing updated values for each tooltip item by their respective `id`.
+ *
+ * @returns {void} - This function doesn't return any value. It manipulates the DOM directly to show the tooltip.
+ *
+ * @example
+ * alignedTooltip(context, {
+ *   title: "Tooltip Title",
+ *   items: [{ title: "Cost", id: "cost_id" }, { title: "Timestamp", id: "timestamp_id" }],
+ *   onTooltipUpdate: (tooltipModel) => {
+ * 	   const cost = tooltipModel.dataPoints[0].raw;
+ * 	   const timestamp = tooltipModel.dataPoints[0].label;
+ *
+ *     return {
+ *       cost_id: cost,
+ *       timestamp_id: label
+ *     };
+ *   }
+ * });
+ */
 export const alignedTooltip = (context, { title, items, onTooltipUpdate }) => {
 	let tooltipEl = document.getElementById("chartjs-tooltip");
 	if (!tooltipEl) {
