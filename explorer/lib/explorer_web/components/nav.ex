@@ -67,7 +67,12 @@ defmodule NavComponent do
             Operators
           </.link>
           <.link
-            class="text-foreground/80 hover:text-foreground font-semibold"
+            class={
+                active_view_class(assigns.socket.view, [
+                  ExplorerWeb.Restakes.Index,
+                  ExplorerWeb.Restake.Index
+                ])
+              }
             navigate={~p"/restakes"}
           >
             Restakes
@@ -143,7 +148,12 @@ defmodule NavComponent do
               Operators
             </.link>
             <.link
-              class="text-foreground/80 hover:text-foreground font-semibold"
+              class={
+                active_view_class(assigns.socket.view, [
+                  ExplorerWeb.Restakes.Index,
+                  ExplorerWeb.Restake.Index
+                ])
+              }
               navigate={~p"/restakes"}
             >
               Restakes
