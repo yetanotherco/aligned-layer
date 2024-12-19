@@ -23,7 +23,7 @@ defmodule NavComponent do
         >
           🟩 <span class="sr-only">Aligned Explorer Home</span>
         </.link>
-        <div class={["items-center gap-8 [&>a]:drop-shadow-md", "hidden md:inline-flex"]}>
+        <div class={["items-center gap-4 [&>a]:drop-shadow-md hidden sm:inline-flex"]}>
           <.link
             class="text-foreground/80 hover:text-foreground font-semibold"
             navigate={~p"/batches"}
@@ -39,7 +39,7 @@ defmodule NavComponent do
         </div>
         <.live_component module={SearchComponent} id="nav_search" />
       </div>
-      <div class="items-center gap-4 font-semibold leading-6 text-foreground/80 flex [&>a]:hidden lg:[&>a]:inline-block [&>a]:drop-shadow-md">
+      <div class="items-center gap-4 font-semibold leading-6 text-foreground/80 flex [&>a]:hidden sm:[&>a]:inline-block [&>a]:drop-shadow-md">
         <.link class="hover:text-foreground" target="_blank" href="https://docs.alignedlayer.com">
           Docs
         </.link>
@@ -51,14 +51,14 @@ defmodule NavComponent do
           GitHub
         </.link>
         <DarkMode.button />
-        <.badge :if={@latest_release != nil} class="hidden md:inline">
+        <.badge :if={@latest_release != nil} class="hidden flex">
           <%= @latest_release %>
           <.tooltip>
             Latest Aligned version
           </.tooltip>
         </.badge>
         <button
-          class="md:hidden z-50"
+          class="z-50"
           id="menu-toggle"
           phx-click={toggle_menu()}
           aria-label="Toggle hamburger menu"
