@@ -25,14 +25,6 @@ contract DeployAlignedToken is Script {
             ".tokenDistributor"
         );
         address _tokenProxy = stdJson.readAddress(config_json, ".tokenProxy");
-        uint256 _limitTimestampToClaim = stdJson.readUint(
-            config_json,
-            ".limitTimestampToClaim"
-        );
-        bytes32 _claimMerkleRoot = stdJson.readBytes32(
-            config_json,
-            ".claimMerkleRoot"
-        );
 
         vm.broadcast();
         ClaimableAirdrop _airdrop = new ClaimableAirdrop();
@@ -50,9 +42,7 @@ contract DeployAlignedToken is Script {
                     address(_airdrop),
                     _foundation,
                     _tokenProxy,
-                    _tokenDistributor,
-                    _limitTimestampToClaim,
-                    _claimMerkleRoot
+                    _tokenDistributor
                 )
             );
 
@@ -61,9 +51,7 @@ contract DeployAlignedToken is Script {
                 address(_airdrop),
                 _foundation,
                 _tokenProxy,
-                _tokenDistributor,
-                _limitTimestampToClaim,
-                _claimMerkleRoot
+                _tokenDistributor
             );
 
         console.log(
