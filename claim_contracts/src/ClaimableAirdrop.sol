@@ -57,14 +57,10 @@ contract ClaimableAirdrop is
     /// @param _owner address of the owner of the token.
     /// @param _tokenProxy address of the token contract.
     /// @param _tokenDistributor address of the wallet that has the tokens to distribute to the claimants.
-    /// @param _limitTimestampToClaim timestamp until which the claimants can claim the tokens.
-    /// @param _claimMerkleRoot Merkle root of the claimants.
     function initialize(
         address _owner,
         address _tokenProxy,
-        address _tokenDistributor,
-        uint256 _limitTimestampToClaim,
-        bytes32 _claimMerkleRoot
+        address _tokenDistributor
     ) external initializer {
         require(_owner != address(0), "Invalid owner address");
         require(
@@ -76,8 +72,6 @@ contract ClaimableAirdrop is
                 _tokenDistributor != address(this),
             "Invalid token owner address"
         );
-        require(_limitTimestampToClaim > block.timestamp, "Invalid timestamp");
-        require(_claimMerkleRoot != 0, "Invalid Merkle root");
 
         __Ownable_init(_owner);
         __Pausable_init();
@@ -85,8 +79,10 @@ contract ClaimableAirdrop is
 
         tokenProxy = _tokenProxy;
         tokenDistributor = _tokenDistributor;
-        limitTimestampToClaim = _limitTimestampToClaim;
-        claimMerkleRoot = _claimMerkleRoot;
+        limitTimestampToClaim = 0;
+        claimMerkleRoot = 0;
+
+        _pause();
     }
 
     /// @notice Claim the tokens.
