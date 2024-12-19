@@ -86,7 +86,7 @@ upgrade-token: ## 🚀 Upgrade the token contract
 
 approve-claimable: ## 🚀 Approve the claimable airdrop contract to spend the token
 	cast send \
-		--rpc-url http://localhost:8545 \
+		--rpc-url $(RPC_URL) \
 		--private-key $(PRIVATE_KEY) \
 		$(TOKEN) \
 		'approve(address,uint256)' $(AIRDROP) 2600000000000000000000000000
