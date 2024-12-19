@@ -18,28 +18,30 @@ defmodule NavComponent do
     }>
       <div class="gap-x-6 inline-flex">
         <.link
-          class={
-            classes([
-              "hover:scale-105",
-              "transform",
-              "duration-150",
-              "active:scale-95",
-              active_view_class(assigns.socket.view, ExplorerWeb.Home.Index)
-            ])
-          }
+          class="hover:scale-105 transform duration-150 active:scale-95 text-3xl"
           navigate={~p"/"}
         >
           🟩 <span class="sr-only">Aligned Explorer Home</span>
         </.link>
         <div class={["items-center gap-8 [&>a]:drop-shadow-md", "hidden md:inline-flex"]}>
           <.link
-            class={active_view_class(assigns.socket.view, ExplorerWeb.Batches.Index)}
+            class={
+              active_view_class(assigns.socket.view, [
+                ExplorerWeb.Batches.Index,
+                ExplorerWeb.Batch.Index
+              ])
+            }
             navigate={~p"/batches"}
           >
             Batches
           </.link>
           <.link
-            class={active_view_class(assigns.socket.view, ExplorerWeb.Operators.Index)}
+            class={
+              active_view_class(assigns.socket.view, [
+                ExplorerWeb.Operators.Index,
+                ExplorerWeb.Operator.Index
+              ])
+            }
             navigate={~p"/operators"}
           >
             Operators
@@ -86,7 +88,10 @@ defmodule NavComponent do
             <.link
               class={
                 classes([
-                  active_view_class(assigns.socket.view, ExplorerWeb.Batches.Index),
+                  active_view_class(assigns.socket.view, [
+                    ExplorerWeb.Batches.Index,
+                    ExplorerWeb.Batch.Index
+                  ]),
                   "text-foreground/80 hover:text-foreground font-semibold"
                 ])
               }
@@ -95,7 +100,12 @@ defmodule NavComponent do
               Batches
             </.link>
             <.link
-              class={active_view_class(assigns.socket.view, ExplorerWeb.Operators.Index)}
+              class={
+                active_view_class(assigns.socket.view, [
+                  ExplorerWeb.Operators.Index,
+                  ExplorerWeb.Operator.Index
+                ])
+              }
               navigate={~p"/operators"}
             >
               Operators
@@ -123,15 +133,9 @@ defmodule NavComponent do
     |> JS.toggle(to: ".toggle-close")
   end
 
-  defp active_view_class(ExplorerWeb.Home.Index, ExplorerWeb.Home.Index), do: "text-4xl"
-  defp active_view_class(_other, ExplorerWeb.Home.Index), do: "text-3xl"
-
-  defp active_view_class(ExplorerWeb.Batches.Index, ExplorerWeb.Batches.Index ), do: "text-green-500 font-bold"
-  defp active_view_class(ExplorerWeb.Batch.Index, ExplorerWeb.Batches.Index ), do: "text-green-500 font-bold"
-  defp active_view_class(_other, ExplorerWeb.Batches.Index ), do: "text-foreground/80 hover:text-foreground font-semibold"
-
-  defp active_view_class(ExplorerWeb.Operators.Index, ExplorerWeb.Operators.Index ), do: "text-green-500 font-bold"
-  defp active_view_class(ExplorerWeb.Operator.Index, ExplorerWeb.Operators.Index ), do: "text-green-500 font-bold"
-  defp active_view_class(_other, ExplorerWeb.Operators.Index ), do: "text-foreground/80 hover:text-foreground font-semibold"
-
+  defp active_view_class(current_view, target_views) do
+    if current_view in target_views,
+      do: "text-green-500 font-bold",
+      else: "text-foreground/80 hover:text-foreground font-semibold"
+  end
 end
