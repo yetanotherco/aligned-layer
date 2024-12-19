@@ -68,4 +68,24 @@ defmodule BatcherPaymentServiceManager do
         raise("Unexpected response on fee per proof events.")
     end
   end
+
+  def get_user_balance(user_address) do
+    case BatcherPaymentServiceManager.user_balances(user_address)
+      |> Ethers.call() do
+        {:ok, data} ->
+          data
+        error ->
+          {:error, error}
+      end
+  end
+
+  def get_user_nonce(user_address) do
+    case BatcherPaymentServiceManager.user_nonces(user_address)
+      |> Ethers.call() do
+        {:ok, data} ->
+          data
+        error ->
+          {:error, error}
+      end
+  end
 end
