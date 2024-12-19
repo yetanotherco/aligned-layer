@@ -20,8 +20,9 @@ defmodule ExplorerWeb.Home.Index do
             {:ok, value} ->
               value
 
+            # Nil values are ignored by the chart
             {:error, _} ->
-              0
+              nil
           end
 
         %{x: b.submission_block_number, y: fee_per_proof}

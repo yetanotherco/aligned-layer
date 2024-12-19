@@ -5,12 +5,17 @@ const tooltipItem = (title, valueId) => `
   </div>
 `;
 
-const tooltipComponent = ({ title, items }) => `
+const tooltipComponent = ({ title, isTooltipClickable, items }) => `
   <div class="chart-tooltip-container">
-    <p class="chart-tooltip-title">${title}</p>
-    <div class="chart-tooltip-items">
-      ${items.map((item) => tooltipItem(item.title, item.id)).join("")}
-    </div>
+	<div class="chart-tooltip-dot" 
+		 style="pointer-events: ${isTooltipClickable ? "auto" : "none"}">
+	</div>
+	<div class="chart-tooltip-items-container">
+		<p class="chart-tooltip-title">${title}</p>
+		<div class="chart-tooltip-items">
+		${items.map((item) => tooltipItem(item.title, item.id)).join("")}
+		</div>
+	</div>
   </div>
 `;
 
@@ -23,6 +28,7 @@ const tooltipComponent = ({ title, items }) => `
  * @param {Object} params - An object containing configuration for the tooltip.
  * @param {string} params.title - The title text to display in the tooltip.
  * @param {Array} params.items - An array of items (with ids) to be displayed inside the tooltip.
+ * @param {Array} params.onTooltipClick - A callback that receives `tooltipModel` and gets triggered when the tooltip is clicked.
  * @param {Function} params.onTooltipUpdate - A callback function that updates the tooltip values based on the tooltip model.
  *                                           It is called with the `tooltipModel` as an argument and should return an object containing updated values for each tooltip item by their respective `id`.
  *
@@ -32,6 +38,13 @@ const tooltipComponent = ({ title, items }) => `
  * alignedTooltip(context, {
  *   title: "Tooltip Title",
  *   items: [{ title: "Cost", id: "cost_id" }, { title: "Timestamp", id: "timestamp_id" }],
+ *   onTooltipClick: (tooltipModel) => {
+ * 		const dataset = tooltipModel.dataPoints[0].dataset;
+		const idx = tooltipModel.dataPoints[0].dataIndex;
+
+ * 		const y = tooltipModel.dataPoints[0].data[idx].y
+ * 		window.location.href = `/batches/${y}`
+ *   }
  *   onTooltipUpdate: (tooltipModel) => {
  * 	   const cost = tooltipModel.dataPoints[0].raw;
  * 	   const timestamp = tooltipModel.dataPoints[0].label;
@@ -43,20 +56,36 @@ const tooltipComponent = ({ title, items }) => `
  *   }
  * });
  */
-export const alignedTooltip = (context, { title, items, onTooltipUpdate }) => {
+export const alignedTooltip = (
+	context,
+	{ title, items, onTooltipClick, onTooltipUpdate }
+) => {
+	const tooltipModel = context.tooltip;
 	let tooltipEl = document.getElementById("chartjs-tooltip");
 	if (!tooltipEl) {
 		tooltipEl = document.createElement("div");
 		tooltipEl.style = "transition: opacity 0.3s;";
 		tooltipEl.style = "transition: left 0.1s;";
 		tooltipEl.id = "chartjs-tooltip";
-		tooltipEl.innerHTML = tooltipComponent({ title, items });
+		tooltipEl.innerHTML = tooltipComponent({
+			title,
+			isTooltipClickable: !!onTooltipClick,
+			items,
+		});
 		document.body.appendChild(tooltipEl);
+		tooltipEl.onmouseenter = () => {
+			window.isTooltipBeingHovered = true;
+		};
+		tooltipEl.onmouseleave = () => {
+			window.isTooltipBeingHovered = false;
+		};
+		if (onTooltipClick)
+			tooltipEl.querySelector(".chart-tooltip-dot").onclick = () =>
+				onTooltipClick(tooltipModel);
 	}
 
-	const tooltipModel = context.tooltip;
 	// Hide element if no tooltip
-	if (tooltipModel.opacity === 0) {
+	if (tooltipModel.opacity == 0 && !window.isTooltipBeingHovered) {
 		tooltipEl.style.opacity = 0;
 		return;
 	}
@@ -84,5 +113,4 @@ export const alignedTooltip = (context, { title, items, onTooltipUpdate }) => {
 		"px";
 	tooltipEl.style.top =
 		position.top + window.scrollY + tooltipModel.caretY + "px";
-	tooltipEl.style.pointerEvents = "none";
 };
