@@ -1,7 +1,7 @@
 # Register as an Aligned operator in testnet
 
 > **CURRENT VERSION:**
-> Aligned Operator [v0.12.1](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.12.1)
+> Aligned Operator [v0.12.2](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.12.2)
 
 > **IMPORTANT:** 
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
@@ -21,12 +21,16 @@ Minimum hardware requirements:
 | **Bandwidth** | 1 Gbps            |
 | **Storage**   | 256 GB disk space |
 
+## Supported Strategies
+
+The list of supported strategies can be found [here](../3_guides/7_contract_addresses.md).
+
 ## Step 1 - Clone the repo
 
 To start with, clone the Aligned repository and move inside it
 
 ```bash
-git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.12.1
+git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.12.2
 cd aligned_layer
 ```
 

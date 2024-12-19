@@ -16,6 +16,7 @@ defmodule ExplorerWeb.Home.Index do
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
     restaked_amount_eth = Restakings.get_restaked_amount_eth()
+    restaked_amount_usd = Restakings.get_restaked_amount_usd()
 
     {:noreply,
      assign(
@@ -24,7 +25,8 @@ defmodule ExplorerWeb.Home.Index do
        operators_registered: operators_registered,
        latest_batches: latest_batches,
        verified_proofs: verified_proofs,
-       restaked_amount_eth: restaked_amount_eth
+       restaked_amount_eth: restaked_amount_eth,
+       restaked_amount_usd: restaked_amount_usd
      )}
   end
 
@@ -42,6 +44,7 @@ defmodule ExplorerWeb.Home.Index do
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
     restaked_amount_eth = Restakings.get_restaked_amount_eth()
+    restaked_amount_usd = Restakings.get_restaked_amount_usd()
 
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
@@ -54,6 +57,7 @@ defmodule ExplorerWeb.Home.Index do
        service_manager_address:
          AlignedLayerServiceManager.get_aligned_layer_service_manager_address(),
        restaked_amount_eth: restaked_amount_eth,
+       restaked_amount_usd: restaked_amount_usd,
        page_title: "Welcome"
      )}
   rescue
@@ -98,5 +102,5 @@ defmodule ExplorerWeb.Home.Index do
       {:ok, socket |> put_flash(:error, "Something went wrong, please try again later.")}
   end
 
-  embed_templates "*"
+  embed_templates("*")
 end

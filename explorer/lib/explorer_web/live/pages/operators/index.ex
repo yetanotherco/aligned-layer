@@ -4,13 +4,15 @@ defmodule ExplorerWeb.Operators.Index do
   @impl true
   def handle_info(_, socket) do
     operators = Operators.get_operators_with_their_weights()
-    total_staked = Restakings.get_restaked_amount_eth()
+    total_staked_eth = Restakings.get_restaked_amount_eth()
+    total_staked_usd = Restakings.get_restaked_amount_usd()
     operators_registered = Operators.get_amount_of_operators()
 
     {:noreply,
      assign(socket,
        operators: operators,
-       total_staked: total_staked,
+       total_staked_eth: total_staked_eth,
+       total_staked_usd: total_staked_usd,
        operators_registered: operators_registered
      )}
   end
@@ -24,14 +26,16 @@ defmodule ExplorerWeb.Operators.Index do
   @impl true
   def handle_params(_params, _url, socket) do
     operators = Operators.get_operators_with_their_weights()
-    total_staked = Restakings.get_restaked_amount_eth()
+    total_staked_eth = Restakings.get_restaked_amount_eth()
+    total_staked_usd = Restakings.get_restaked_amount_usd()
     operators_registered = Operators.get_amount_of_operators()
     operator_versions = OperatorVersionTracker.get_operators_version()
 
     {:noreply,
      assign(socket,
        operators: operators,
-       total_staked: total_staked,
+       total_staked_eth: total_staked_eth,
+       total_staked_usd: total_staked_usd,
        operators_registered: operators_registered,
        operator_versions: operator_versions
      )}
@@ -45,7 +49,8 @@ defmodule ExplorerWeb.Operators.Index do
       <.live_component
         module={AssetsCTAComponent}
         id="operators_cta"
-        total_staked={@total_staked}
+        total_staked_eth={@total_staked_eth}
+        total_staked_usd={@total_staked_usd}
         operators_registered={@operators_registered}
       />
       <%= if @operators != [] do %>
@@ -79,8 +84,11 @@ defmodule ExplorerWeb.Operators.Index do
           <:col :let={operator} label="Restake Concentration">
             <%= operator.weight |> Numbers.show_percentage() %>
           </:col>
-          <:col :let={operator} label="Total ETH Restaked">
-            <%= operator.total_stake |> EthConverter.wei_to_eth(2) |> Helpers.format_number() %> ETH
+          <:col :let={operator} label="Total Restaked">
+            <div class="flex flex-col">
+              <p><%= operator.total_stake_usd |> Helpers.format_number() %> USD</p>
+              <p class="text-gray-500 font-normal"><%= operator.total_stake_eth |> Helpers.format_number() %> ETH</p>
+            </div>
           </:col>
           <:col :let={operator} label="Status">
             <.dynamic_badge_boolean status={operator.is_active} truthy_text="Active" falsy_text="Inactive" />
