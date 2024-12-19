@@ -28,19 +28,19 @@ defmodule ExplorerWeb.ChartComponents do
   ## Examples
     <.line
       id="exchanges"
-      data={[1, 2, 3, 4]}
-      labels={["January", "February", "March", "April"]}
+      points={%{x: [1, 2, 3, 4], y: [january_timestamp, february_timestamp, march_timestamp, april_timestamp]},}
       show_ticks={%{x: true, y: true}}
-      extra_data={%{merkle_roots: [1, 2, 3]}} # this data can be accessed later via javascript
+      extra_data={%{merkle_roots: [1, 2, 3]}}
     />
     !Note:
     - id is used to reference the chart on javascript to apply custom styles, configurations, tooltip, that are possible only via javascript
+    - points: nil values are automatically ignored and not displayed
+    - extra_data: any other data you might want to retrieve via javascript later
   """
   attr(:id, :string, required: true)
-  attr(:labels, :list, required: true)
-  attr(:data, :list, required: true)
-  attr(:show_ticks, :map, default: %{x: true, y: true})
+  attr(:points, :map, required: true)
   attr(:extra_data, :map, default: %{})
+  attr(:show_ticks, :map, default: %{x: true, y: true})
 
   def line_chart(assigns) do
     ~H"""
@@ -49,8 +49,8 @@ defmodule ExplorerWeb.ChartComponents do
       chart_type="line"
       chart_data={
         Jason.encode!(%{
-          labels: @labels,
-          datasets: [Map.merge(%{data: @data, borderColor: "rgb(24, 255, 127)", fill: false, tension: 0.1}, @extra_data)]
+          labels: @points,
+          datasets: [Map.merge(%{data: @points, borderColor: "rgb(24, 255, 127)", fill: false, tension: 0.1}, @extra_data)]
         })
       }
       chart_options={

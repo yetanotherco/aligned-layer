@@ -2,31 +2,6 @@ import Chart from "chart.js/auto";
 import { costPerProofCustomOptions } from "./cost_per_proof";
 
 const applyCommonChartOptions = (options, data) => {
-	// generally, we want to show only the min and max values on the y axis
-	if (options.scales.x.ticks.display) {
-		// Note: scales are inverted intentionally to display min/max on the Y-axis
-		// while the data is shown on the X-axis.
-		options.scales.y.ticks.callback = (_value, index, values) => {
-			if (index === 0) return Math.min(...data.datasets[0].data);
-			if (index === values.length - 1) {
-				return Math.max(...data.datasets[0].data);
-			}
-			return "";
-		};
-	}
-
-	// on the x axes we want to show: the min, mean, max
-	if (options.scales.y.ticks.display) {
-		options.scales.x.ticks.callback = (_value, index, values) => {
-			if (index === 0) return data.labels[0];
-			if (index === Math.floor((data.labels.length - 1) / 2))
-				return data.labels[Math.floor((data.labels.length - 1) / 2)];
-			if (index === values.length - 1)
-				return data.labels[data.labels.length - 1];
-			return "";
-		};
-	}
-
 	// tooltip disabled by default, each chart should implement its own with alignedTooltip
 	options.plugins.tooltip = {
 		enabled: false,
@@ -56,10 +31,7 @@ export default {
 			this.chart.destroy();
 		}
 
-		window.removeEventListener(
-			"theme-changed",
-			this.reinitChart.bind(this)
-		);
+		window.removeEventListener("theme-changed", this.reinitChart.bind(this));
 	},
 
 	initChart() {

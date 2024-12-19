@@ -1,12 +1,23 @@
 import { alignedTooltip } from "./tooltip";
 
 export const costPerProofCustomOptions = (options, data) => {
-	// add USD suffix
+	// show only min and max values
 	options.scales.y.ticks.callback = (_value, index, values) => {
-		if (index === 0) return `${Math.min(...data.datasets[0].data)} USD`;
+		const dataY = data.datasets[0].data.map((point) => parseFloat(point.y));
+		if (index === 0) return `${Math.min(...dataY)} USD`;
 		if (index === values.length - 1) {
-			return `${Math.max(...data.datasets[0].data)} USD`;
+			return `${Math.max(...dataY)} USD`;
 		}
+		return "";
+	};
+
+	// show age min, mean and max age in x axis
+	options.scales.x.ticks.callback = (_value, index, values) => {
+		const age = data.datasets[0].age;
+		if (index === 0) return age[0];
+		if (index === Math.floor((age.length - 1) / 2))
+			return age[Math.floor((age.length - 1) / 2)];
+		if (index === values.length - 1) return age[age.length - 1];
 		return "";
 	};
 
@@ -24,13 +35,13 @@ export const costPerProofCustomOptions = (options, data) => {
 				const dataset = tooltipModel.dataPoints[0].dataset;
 				const idx = tooltipModel.dataPoints[0].dataIndex;
 
-				const cost = `${dataset.data[idx]} USD`;
-				const age = tooltipModel.dataPoints[0].label;
+				const cost = `${dataset.data[idx].y} USD`;
+				const age = dataset.age[idx];
 				const merkleRootHash = dataset.merkle_root[idx];
 				const merkle_root = `${merkleRootHash.slice(0, 6)}...${merkleRootHash.slice(
 					merkleRootHash.length - 4
 				)}`;
-				const block_number = dataset.submission_block_number[idx];
+				const block_number = dataset.data[idx].x;
 				const amount_of_proofs = dataset.amount_of_proofs[idx];
 
 				return {

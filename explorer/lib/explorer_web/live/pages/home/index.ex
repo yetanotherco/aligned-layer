@@ -10,28 +10,25 @@ defmodule ExplorerWeb.Home.Index do
       %{
         merkle_root: Enum.map(batches, fn b -> b.merkle_root end),
         amount_of_proofs: Enum.map(batches, fn b -> b.amount_of_proofs end),
-        submission_block_number: Enum.map(batches, fn b -> b.submission_block_number end)
+        age: Enum.map(batches, fn b -> Helpers.parse_timeago(b.submission_timestamp) end)
       }
 
-    data =
+    points =
       Enum.map(batches, fn b ->
-        case EthConverter.wei_to_usd(b.fee_per_proof, 2) do
-          {:ok, value} ->
-            value
+        fee_per_proof =
+          case EthConverter.wei_to_usd(b.fee_per_proof, 2) do
+            {:ok, value} ->
+              value
 
-          {:error, _} ->
-            0
-        end
-      end)
+            {:error, _} ->
+              0
+          end
 
-    labels =
-      Enum.map(batches, fn b ->
-        Helpers.parse_timeago(b.submission_timestamp)
+        %{x: b.submission_block_number, y: fee_per_proof}
       end)
 
     %{
-      data: data,
-      labels: labels,
+      points: points,
       extra_data: extra_data
     }
   end
