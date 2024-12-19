@@ -31,19 +31,22 @@ defmodule NavComponent do
     ~H"""
     <nav class={
       classes([
-        "gap-2 px-4 sm:px-6 lg:px-8 fixed top-0 p-3 z-50",
-        "flex justify-between items-center w-full",
+        "flex fixed justify-center items-center w-full",
         "border-b border-foreground/10 backdrop-blur-lg backdrop-saturate-200"
       ])
-    }>
-      <div class="gap-x-6 inline-flex">
+    }
+    style="z-index: 1"
+    >
+    <div class={classes(["gap-5 lg:gap-10 px-4 sm:px-6 lg:px-8 top-0 p-3 z-50",
+        "flex justify-between items-center w-full"])} style="max-width: 1200px;">
+      <div class="gap-x-6 flex">
         <.link
           class="hover:scale-105 transform duration-150 active:scale-95 text-3xl"
           navigate={~p"/"}
         >
           🟩 <span class="sr-only">Aligned Explorer Home</span>
         </.link>
-        <div class={["items-center gap-4 [&>a]:drop-shadow-md hidden sm:inline-flex"]}>
+        <div class={["items-center gap-5 hidden md:inline-flex"]}>
           <.link
             class={
               active_view_class(assigns.socket.view, [
@@ -78,9 +81,11 @@ defmodule NavComponent do
             Restakes
           </.link>
         </div>
+      </div>
+      <div style="max-width: 600px; width: 100%;">
         <.live_component module={SearchComponent} id="nav_search" />
       </div>
-      <div class="items-center gap-4 font-semibold leading-6 text-foreground/80 flex [&>a]:hidden sm:[&>a]:inline-block [&>a]:drop-shadow-md">
+      <div class="items-center gap-4 font-semibold leading-6 text-foreground/80 flex [&>a]:hidden lg:[&>a]:inline-block">
         <.link class="hover:text-foreground" target="_blank" href="https://docs.alignedlayer.com">
           Docs
         </.link>
@@ -92,20 +97,14 @@ defmodule NavComponent do
           GitHub
         </.link>
         <DarkMode.button />
-        <.badge :if={@latest_release != nil} class="hidden flex">
-          <%= @latest_release %>
-          <.tooltip>
-            Latest Aligned version
-          </.tooltip>
-        </.badge>
         <.hover_dropdown_selector
           current_value={get_current_network(@host)}
-          variant="foreground"
+          variant="accent"
           options={@networks}
           icon="hero-cube-transparent-micro"
         />
         <button
-          class="z-50"
+          class="md:hidden z-50"
           id="menu-toggle"
           phx-click={toggle_menu()}
           aria-label="Toggle hamburger menu"
@@ -170,6 +169,7 @@ defmodule NavComponent do
             </.link>
           </div>
         </div>
+      </div>
       </div>
     </nav>
     """
