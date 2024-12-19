@@ -4,23 +4,35 @@ defmodule ExplorerWeb.Home.Index do
   use ExplorerWeb, :live_view
 
   def get_cost_per_proof_chart_data() do
-    data = Batches.get_fee_per_proofs_of_last_n_batches(100)
+    batches = Batches.get_latest_batches(%{amount: 100, order_by: :asc})
 
-    {data, labels} =
-      Enum.reduce(data, {[], []}, fn {fee_per_proof, submission_timestamp},
-                                     {acc_data, acc_labels} ->
-        case EthConverter.wei_to_usd(fee_per_proof, 2) do
+    extra_data =
+      %{
+        merkle_root: Enum.map(batches, fn b -> b.merkle_root end),
+        amount_of_proofs: Enum.map(batches, fn b -> b.amount_of_proofs end),
+        submission_block_number: Enum.map(batches, fn b -> b.submission_block_number end)
+      }
+
+    data =
+      Enum.map(batches, fn b ->
+        case EthConverter.wei_to_usd(b.fee_per_proof, 2) do
           {:ok, value} ->
-            {acc_data ++ [value], acc_labels ++ [submission_timestamp |> Helpers.parse_timeago()]}
+            value
 
           {:error, _} ->
-            {acc_data, acc_labels}
+            0
         end
+      end)
+
+    labels =
+      Enum.map(batches, fn b ->
+        Helpers.parse_timeago(b.submission_timestamp)
       end)
 
     %{
       data: data,
-      labels: labels
+      labels: labels,
+      extra_data: extra_data
     }
   end
 
@@ -31,7 +43,7 @@ defmodule ExplorerWeb.Home.Index do
     operators_registered = Operators.get_amount_of_operators()
 
     latest_batches =
-      Batches.get_latest_batches(%{amount: 5})
+      Batches.get_latest_batches(%{amount: 5, order_by: :desc})
       # extract only the merkle root
       |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
 
@@ -60,7 +72,7 @@ defmodule ExplorerWeb.Home.Index do
     operators_registered = Operators.get_amount_of_operators()
 
     latest_batches =
-      Batches.get_latest_batches(%{amount: 5})
+      Batches.get_latest_batches(%{amount: 5, order_by: :desc})
       # extract only the merkle root
       |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
 

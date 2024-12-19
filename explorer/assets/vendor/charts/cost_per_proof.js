@@ -16,14 +16,29 @@ export const costPerProofCustomOptions = (options, data) => {
 			items: [
 				{ title: "Cost", id: "cost" },
 				{ title: "Age", id: "age" },
+				{ title: "Merkle root", id: "merkle_root" },
+				{ title: "Block number", id: "block_number" },
+				{ title: "Amount of proofs", id: "amount_of_proofs" },
 			],
 			onTooltipUpdate: (tooltipModel) => {
-				const value = tooltipModel.dataPoints[0].raw;
-				const label = tooltipModel.dataPoints[0].label;
+				const dataset = tooltipModel.dataPoints[0].dataset;
+				const idx = tooltipModel.dataPoints[0].dataIndex;
+
+				const cost = `${dataset.data[idx]} USD`;
+				const age = tooltipModel.dataPoints[0].label;
+				const merkleRootHash = dataset.merkle_root[idx];
+				const merkle_root = `${merkleRootHash.slice(0, 6)}...${merkleRootHash.slice(
+					merkleRootHash.length - 4
+				)}`;
+				const block_number = dataset.submission_block_number[idx];
+				const amount_of_proofs = dataset.amount_of_proofs[idx];
 
 				return {
-					cost: value,
-					age: label,
+					cost,
+					age,
+					merkle_root,
+					block_number,
+					amount_of_proofs,
 				};
 			},
 		});
