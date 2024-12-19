@@ -68,4 +68,34 @@ defmodule BatcherPaymentServiceManager do
         raise("Unexpected response on fee per proof events.")
     end
   end
+
+  def get_latest_activity() do
+    # event PaymentReceived(address indexed sender, uint256 amount);
+    # event FundsWithdrawn(address indexed recipient, uint256 amount);
+    # event BalanceLocked(address indexed user);
+    # event BalanceUnlocked(address indexed user, uint256 unlockBlockTime);
+    BatcherPaymentServiceManager.EventFilters.payment_received(nil)
+    |> Ethers.get_logs(fromBlock: @first_block)
+    |> case do
+      {:ok, []} ->
+        Logger.warning("No latest activity found.")
+        []
+
+      {:ok, events} -> dbg events
+        # events
+        # |> Enum.map(fn event ->
+        #   merkle_root = event.topics[1]
+        #   fee_per_proof = event.data |> hd()
+        #   {merkle_root, fee_per_proof}
+        # end)
+
+      {:error, reason} ->
+        Logger.error("Error getting latest activity: #{inspect(reason)}.")
+        raise("Error getting latest activity events.")
+
+      other ->
+        Logger.error("Unexpected response on latest activity events: #{inspect(other)}")
+        raise("Unexpected response on latest activity events.")
+    end
+  end
 end

@@ -46,6 +46,8 @@ defmodule ExplorerWeb.Home.Index do
     restaked_amount_eth = Restakings.get_restaked_amount_eth()
     restaked_amount_usd = Restakings.get_restaked_amount_usd()
 
+    latest_batcher_payment_movements = BatcherPaymentServiceManager.get_latest_activity()
+
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
     {:ok,
