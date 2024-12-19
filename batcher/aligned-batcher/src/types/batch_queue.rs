@@ -514,13 +514,14 @@ mod test {
             try_build_batch(batch_queue, gas_price, 5000000, 2).unwrap();
 
         assert!(resulting_batch_queue.len() == 1); //nonce_3
-        assert!(resulting_batch_queue.clone().pop() == Some((entry_3.clone(), batch_priority_3.clone()))); //nonce_3
+        assert!(
+            resulting_batch_queue.clone().pop()
+                == Some((entry_3.clone(), batch_priority_3.clone()))
+        ); //nonce_3
 
         assert_eq!(batch[0].nonced_verification_data.nonce, nonce_2);
         assert_eq!(batch[1].nonced_verification_data.nonce, nonce_1);
     }
-
-
 
     #[test]
     fn batch_finalization_algorithm_works_from_different_senders() {
