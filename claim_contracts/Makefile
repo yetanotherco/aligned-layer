@@ -169,4 +169,4 @@ test-airdrop:
 	cast call $(AIRDROP) "owner()(address)" --rpc-url $(RPC_URL)
 
 # Requires MERKLE_ROOT, TIMESTAMP
-deploy-example: deploy-token deploy-claimable-local claimable-update-root claimable-update-timestamp approve-claimable unpause
+deploy-example: deploy-token deploy-claimable-local claimable-update-root claimable-update-timestamp approve-claimable claimable-unpause
