@@ -370,12 +370,17 @@ defmodule TelemetryApi.Traces do
   defp add_missing_operators([]), do: :ok
 
   defp add_missing_operators(missing_operators) do
+    # Concatenate name + address
+    missing_operators =
+      missing_operators
+      |> Enum.map(fn op -> op.name <> " - " <> String.slice(op.address, 0..7) end)
+
     # Send to prometheus
     missing_operators
-    |> Enum.map(fn o -> PrometheusMetrics.missing_operator(o.name) end)
+    |> Enum.map(fn o -> PrometheusMetrics.missing_operator(o) end)
 
     missing_operators =
-      missing_operators |> Enum.map(fn o -> o.name end) |> Enum.join(";")
+      missing_operators |> Enum.join(";")
 
     Tracer.add_event("Missing Operators", [{:operators, missing_operators}])
   end
