@@ -54,15 +54,15 @@ contract ClaimableAirdrop is
 
     /// @notice Initializes the contract.
     /// @dev This initializer should be called only once.
-    /// @param _owner address of the owner of the token.
+    /// @param _foundation address of the Aligned foundation.
     /// @param _tokenProxy address of the token contract.
     /// @param _tokenDistributor address of the wallet that has the tokens to distribute to the claimants.
     function initialize(
-        address _owner,
+        address _foundation,
         address _tokenProxy,
         address _tokenDistributor
     ) external initializer {
-        require(_owner != address(0), "Invalid owner address");
+        require(_foundation != address(0), "Invalid foundation address");
         require(
             _tokenProxy != address(0) && _tokenProxy != address(this),
             "Invalid token contract address"
@@ -73,7 +73,7 @@ contract ClaimableAirdrop is
             "Invalid token owner address"
         );
 
-        __Ownable_init(_owner);
+        __Ownable_init(_foundation);
         __Pausable_init();
         __ReentrancyGuard_init();
 
