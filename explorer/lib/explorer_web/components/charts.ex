@@ -79,7 +79,6 @@ defmodule ExplorerWeb.ChartComponents do
                 display: false,
                 autoSkip: false,
                 sampleSize: 1,
-                autoSkipPadding: 10,
                 maxRotation: 0,
                 font: %{
                   weight: "700"
@@ -95,11 +94,12 @@ defmodule ExplorerWeb.ChartComponents do
             y: %{
               ticks: %{
                 display: false,
+                autoSkip: false,
                 sampleSize: 1,
+                maxRotation: 0,
                 font: %{
                   weight: "700"
-                },
-                offset: true
+                }
               },
               grid: %{
                 display: false
