@@ -63,15 +63,8 @@ contract ClaimableAirdrop is
         address _tokenDistributor
     ) external initializer {
         require(_foundation != address(0), "Invalid foundation address");
-        require(
-            _tokenProxy != address(0) && _tokenProxy != address(this),
-            "Invalid token contract address"
-        );
-        require(
-            _tokenDistributor != address(0) &&
-                _tokenDistributor != address(this),
-            "Invalid token owner address"
-        );
+        require(_tokenProxy != address(0), "Invalid token contract address");
+        require(_tokenDistributor != address(0), "Invalid token owner address");
 
         __Ownable_init(_foundation);
         __Pausable_init();
