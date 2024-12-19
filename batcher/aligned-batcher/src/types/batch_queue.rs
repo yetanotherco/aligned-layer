@@ -408,17 +408,19 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let (resulting_batch_queue, batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+        let finalized_batch =
+            try_build_batch(batch_queue.clone(), gas_price, 5000000, 50).unwrap();
 
-        assert!(resulting_batch_queue.is_empty());
+        // All entries from the batch queue should be in
+        // the finalized batch.
+        assert!(batch_queue.len() == 3);
 
-        assert_eq!(batch[0].nonced_verification_data.nonce, nonce_3);
-        assert_eq!(batch[1].nonced_verification_data.nonce, nonce_2);
-        assert_eq!(batch[2].nonced_verification_data.nonce, nonce_1);
+        assert_eq!(finalized_batch[0].nonced_verification_data.nonce, nonce_3);
+        assert_eq!(finalized_batch[1].nonced_verification_data.nonce, nonce_2);
+        assert_eq!(finalized_batch[2].nonced_verification_data.nonce, nonce_1);
 
         // sanity check
-        assert_eq!(batch[2].nonced_verification_data.max_fee, max_fee);
+        assert_eq!(finalized_batch[2].nonced_verification_data.max_fee, max_fee);
     }
 
     #[test]
@@ -510,17 +512,15 @@ mod test {
         batch_queue.push(entry_3.clone(), batch_priority_3.clone());
 
         let gas_price = U256::from(1);
-        let (resulting_batch_queue, batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, 2).unwrap();
+        let finalized_batch =
+            try_build_batch(batch_queue.clone(), gas_price, 5000000, 2).unwrap();
 
-        assert!(resulting_batch_queue.len() == 1); //nonce_3
-        assert!(
-            resulting_batch_queue.clone().pop()
-                == Some((entry_3.clone(), batch_priority_3.clone()))
-        ); //nonce_3
+        // One Entry from the batch_queue should not be in the finalized batch
+        // Particularly, nonce_3 is not in the finalized batch
+        assert!(batch_queue.len() == 3);
 
-        assert_eq!(batch[0].nonced_verification_data.nonce, nonce_2);
-        assert_eq!(batch[1].nonced_verification_data.nonce, nonce_1);
+        assert_eq!(finalized_batch[0].nonced_verification_data.nonce, nonce_2);
+        assert_eq!(finalized_batch[1].nonced_verification_data.nonce, nonce_1);
     }
 
     #[test]
