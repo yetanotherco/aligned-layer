@@ -31,7 +31,7 @@ defmodule NavComponent do
     ~H"""
     <nav class={
       classes([
-        "px-4 sm:px-6 lg:px-8 fixed top-0 p-3 z-50",
+        "gap-2 px-4 sm:px-6 lg:px-8 fixed top-0 p-3 z-50",
         "flex justify-between items-center w-full",
         "border-b border-foreground/10 backdrop-blur-lg backdrop-saturate-200"
       ])
