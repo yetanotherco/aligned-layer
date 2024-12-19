@@ -42,14 +42,11 @@
     </.card>
     <.live_component module={ContractsComponent} id="contracts_card" class="sm:col-span-2" />
     <.card title="Cost per proof" class="w-full sm:col-span-2">
-      <div style="height: 200px;">
+      <div style="height: 200px;" class="mt-4">
         <.line_chart
           id="cost_per_proof_chart"
           data={@cost_per_proof_chart.data}
           labels={@cost_per_proof_chart.labels}
-          tooltip={
-            %{title: "Cost per proof", body: "Cost: {{value}} USD\nBlock Number: {{label}}"}
-          }
         />
       </div>
     </.card>

@@ -5,7 +5,6 @@ defmodule ExplorerWeb.ChartComponents do
   attr(:chart_type, :string, required: true)
   attr(:chart_data, :string, required: true)
   attr(:chart_options, :string, required: true)
-  attr(:chart_tooltip, :string, required: true)
 
   defp basic_chart(assigns) do
     ~H"""
@@ -16,7 +15,6 @@ defmodule ExplorerWeb.ChartComponents do
         data-chart-type={@chart_type}
         data-chart-data={@chart_data}
         data-chart-options={@chart_options}
-        data-chart-tooltip={@chart_tooltip}
         style="height: 100%; width: 100%;"
       >
       </canvas>
@@ -32,16 +30,14 @@ defmodule ExplorerWeb.ChartComponents do
       id="exchanges"
       data={[1, 2, 3, 4]}
       labels={["January", "February", "March", "April"]}
-      tooltip={%{title: "Exchange details", body: "Month: {{label}}\nRate: {{value}}"}}
     />
     !Note:
-    - id can be used to reference the chart on javascript to apply custom styles and configurations only possible via javascript
-    - {{label}} and {{value}} will get replaced with their respective values, the alternative would be to pass raw JS...
+    - id is used to reference the chart on javascript to apply custom styles, configurations, tooltip, that are possible only via javascript
   """
   attr(:id, :string, required: true)
   attr(:labels, :list, required: true)
   attr(:data, :list, required: true)
-  attr(:tooltip, :map, required: true)
+  attr(:show_ticks, :boolean, default: false)
 
   def line_chart(assigns) do
     ~H"""
@@ -54,7 +50,6 @@ defmodule ExplorerWeb.ChartComponents do
           datasets: [%{data: @data, borderColor: "rgb(24, 255, 127)", fill: false, tension: 0.1}]
         })
       }
-      chart_tooltip={Jason.encode!(@tooltip)}
       chart_options={
         Jason.encode!(%{
           maintainAspectRatio: false,
@@ -76,7 +71,7 @@ defmodule ExplorerWeb.ChartComponents do
             x: %{
               offset: true,
               ticks: %{
-                display: false,
+                display: @show_ticks,
                 autoSkip: false,
                 sampleSize: 1,
                 maxRotation: 0,
@@ -93,7 +88,7 @@ defmodule ExplorerWeb.ChartComponents do
             },
             y: %{
               ticks: %{
-                display: false,
+                display: @show_ticks,
                 autoSkip: false,
                 sampleSize: 1,
                 maxRotation: 0,

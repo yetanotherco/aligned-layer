@@ -1,3 +1,5 @@
+import { alignedTooltip } from "./tooltip";
+
 const getDateInTimesAgo = (isoDate) => {
 	const now = new Date();
 	const date = new Date(isoDate);
@@ -37,14 +39,29 @@ export const costPerProofCustomOptions = (options, data) => {
 	// x axis
 	options.scales.x.ticks.display = true;
 	options.scales.x.ticks.callback = (_value, index, values) => {
-		if (index === 0) return getDateInTimesAgo(data.labels[0]);
+		if (index === 0) return data.labels[0];
 		if (index === Math.floor((data.labels.length - 1) / 2))
-			return getDateInTimesAgo(
-				data.labels[Math.floor((data.labels.length - 1) / 2)]
-			);
+			return data.labels[Math.floor((data.labels.length - 1) / 2)];
 		if (index === values.length - 1)
-			return getDateInTimesAgo(data.labels[data.labels.length - 1]);
+			return data.labels[data.labels.length - 1];
 
 		return "";
 	};
+
+	options.plugins.tooltip.external = (context) =>
+		alignedTooltip(context, {
+			title: "Cost per proof",
+			items: [
+				{ title: "Cost", id: "cost" },
+				{ title: "Age", id: "age" },
+			],
+			onTooltipUpdate: (tooltipModel) => {
+				const value = tooltipModel.dataPoints[0].raw;
+				const label = tooltipModel.dataPoints[0].label;
+				return {
+					cost: value,
+					age: label,
+				};
+			},
+		});
 };
