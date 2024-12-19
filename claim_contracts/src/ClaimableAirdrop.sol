@@ -11,6 +11,7 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 /// @title Claimable Airdrop
 /// @notice This contract is the implementation of the Claimable Airdrop
 /// @dev This contract is upgradeable and should be used only through the proxy contract
+/// @custom:security-contact security@alignedfoundation.org
 contract ClaimableAirdrop is
     Initializable,
     ReentrancyGuardUpgradeable,
@@ -53,39 +54,28 @@ contract ClaimableAirdrop is
 
     /// @notice Initializes the contract.
     /// @dev This initializer should be called only once.
-    /// @param _owner address of the owner of the token.
+    /// @param _foundation address of the Aligned foundation.
     /// @param _tokenProxy address of the token contract.
     /// @param _tokenDistributor address of the wallet that has the tokens to distribute to the claimants.
-    /// @param _limitTimestampToClaim timestamp until which the claimants can claim the tokens.
-    /// @param _claimMerkleRoot Merkle root of the claimants.
     function initialize(
-        address _owner,
+        address _foundation,
         address _tokenProxy,
-        address _tokenDistributor,
-        uint256 _limitTimestampToClaim,
-        bytes32 _claimMerkleRoot
+        address _tokenDistributor
     ) external initializer {
-        require(_owner != address(0), "Invalid owner address");
-        require(
-            _tokenProxy != address(0) && _tokenProxy != address(this),
-            "Invalid token contract address"
-        );
-        require(
-            _tokenDistributor != address(0) &&
-                _tokenDistributor != address(this),
-            "Invalid token owner address"
-        );
-        require(_limitTimestampToClaim > block.timestamp, "Invalid timestamp");
-        require(_claimMerkleRoot != 0, "Invalid Merkle root");
+        require(_foundation != address(0), "Invalid foundation address");
+        require(_tokenProxy != address(0), "Invalid token contract address");
+        require(_tokenDistributor != address(0), "Invalid token owner address");
 
-        __Ownable_init(_owner);
+        __Ownable_init(_foundation);
         __Pausable_init();
         __ReentrancyGuard_init();
 
         tokenProxy = _tokenProxy;
         tokenDistributor = _tokenDistributor;
-        limitTimestampToClaim = _limitTimestampToClaim;
-        claimMerkleRoot = _claimMerkleRoot;
+        limitTimestampToClaim = 0;
+        claimMerkleRoot = 0;
+
+        _pause();
     }
 
     /// @notice Claim the tokens.
@@ -111,6 +101,9 @@ contract ClaimableAirdrop is
 
         require(verifies, "Invalid Merkle proof");
 
+        // Done before the transfer call to make sure the reentrancy bug is not possible
+        hasClaimed[msg.sender] = true;
+
         bool success = IERC20(tokenProxy).transferFrom(
             tokenDistributor,
             msg.sender,
@@ -118,8 +111,6 @@ contract ClaimableAirdrop is
         );
 
         require(success, "Failed to transfer funds");
-
-        hasClaimed[msg.sender] = true;
 
         emit TokensClaimed(msg.sender, amount);
     }

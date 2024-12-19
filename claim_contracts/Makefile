@@ -8,23 +8,21 @@ help: ## 📚 Show help for each of the Makefile recipes
 
 RPC_URL?=http://localhost:8545
 PRIVATE_KEY?=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
-
-deploy-all: ## 🚀 Deploy all contracts
-	cd script && \
-	forge script DeployAll.s.sol \
-	--sig "run(string)" \
-	$(CONFIG) \
-	--private-key $(PRIVATE_KEY) \
-	--rpc-url $(RPC_URL) \
-	--broadcast \
-	-vvv
-
 CONFIG?=example
 deploy-token: ## 🚀 Deploy the token contract
 	cd script && \
 	forge script DeployAlignedToken.s.sol \
 	--sig "run(string)" \
 	$(CONFIG) \
+	--private-key $(PRIVATE_KEY) \
+	--rpc-url $(RPC_URL) \
+	--broadcast \
+	--verbosity 3
+
+deploy-token-testnet: ## 🚀 Deploy the token contract
+	cd script && \
+	forge script DeployAlignedToken.s.sol \
+	--sig "run(string)" sepolia
 	--private-key $(PRIVATE_KEY) \
 	--rpc-url $(RPC_URL) \
 	--broadcast \
@@ -39,6 +37,34 @@ deploy-token-prod: ## 🚀 Deploy the token contract
 	--rpc-url $(PROD_RPC_URL) \
 	--broadcast \
 	--verbosity 3
+
+deploy-claimable-local: ## 🚀 Deploy the airdrop contract in localnet
+	cd script && \
+	forge script DeployClaimableAirdrop.s.sol \
+	--sig "run(string)" example \
+	--private-key $(PRIVATE_KEY) \
+	--rpc-url http://localhost:8545 \
+	--broadcast
+
+deploy-claimable-testnet: ## 🚀 Deploy the airdrop contract in Sepolia
+	cd script && \
+	forge script DeployClaimableAirdrop.s.sol \
+	--sig "run(string)" sepolia \
+	--private-key $(PRIVATE_KEY) \
+	--rpc-url $(RPC_URL) \
+	--broadcast \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY)
+
+deploy-claimable-mainnet: ## 🚀 Deploy the airdrop contract in Mainnet
+	cd script && \
+	forge script DeployClaimableAirdrop.s.sol \
+	--sig "run(string)" mainnet \
+	--keystore $(KEYSTORE_PATH) \
+	--rpc-url https://eth.llamarpc.com \
+	--broadcast \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY)
 
 
 update_token_proxy:
@@ -55,6 +81,55 @@ upgrade-token: ## 🚀 Upgrade the token contract
 	--rpc-url $(RPC_URL) \
 	--broadcast \
 	--verbosity 3
+
+# Miscellaneous
+
+DISTRIBUTOR_PRIVATE_KEY?=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+
+approve-claimable: ## 🚀 Approve the ClaimableAirdrop contract to spend the token
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(DISTRIBUTOR_PRIVATE_KEY) \
+		$(TOKEN) \
+		'approve(address,uint256)' $(AIRDROP) 2600000000000000000000000000
+
+claimable-update-root: ## 🚀 Update the merkle root of the ClaimableAirdrop contract
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(PRIVATE_KEY) \
+		$(AIRDROP) \
+		'updateMerkleRoot(bytes32)' $(MERKLE_ROOT)
+
+claimable-get-root: ## 🚀 Get the merkle root of the ClaimableAirdrop contract
+	cast call \
+		--rpc-url $(RPC_URL) \
+		$(AIRDROP) \
+		"claimMerkleRoot()(bytes32)"
+
+claimable-update-timestamp: ## 🚀 Update the limit timestamp of the ClaimableAirdrop contract
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(PRIVATE_KEY) \
+		$(AIRDROP) \
+		'extendClaimPeriod(uint256)' $(TIMESTAMP)
+
+claimable-get-timestamp: ## 🚀 Get the limit timestamp of the ClaimableAirdrop contract
+	cast call \
+		--rpc-url $(RPC_URL) \
+		$(AIRDROP) \
+		"limitTimestampToClaim()(uint256)"
+
+pause:
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(PRIVATE_KEY) \
+		$(AIRDROP) "pause()"
+
+unpause:
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(PRIVATE_KEY) \
+		$(AIRDROP) "unpause()"
 
 # Upgrades
 
@@ -86,8 +161,6 @@ test-claimed:
 
 OWNER_PRIVATE_KEY?=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
-test-pause:
-	cast send $(AIRDROP) --private-key $(OWNER_PRIVATE_KEY) "pause()" --rpc-url $(RPC_URL)
-
-test-unpause:
-	cast send $(AIRDROP) --private-key $(OWNER_PRIVATE_KEY) "unpause()" --rpc-url $(RPC_URL)
+test-airdrop:
+	cast call $(AIRDROP) "paused()(bool)" --rpc-url $(RPC_URL)
+	cast call $(AIRDROP) "owner()(address)" --rpc-url $(RPC_URL)

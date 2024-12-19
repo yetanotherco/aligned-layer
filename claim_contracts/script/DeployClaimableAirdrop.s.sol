@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "../src/AlignedToken.sol";
 import "../src/ClaimableAirdrop.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -25,32 +24,42 @@ contract DeployAlignedToken is Script {
             config_json,
             ".tokenDistributor"
         );
+        address _tokenProxy = stdJson.readAddress(config_json, ".tokenProxy");
 
         vm.broadcast();
-        AlignedToken _token = new AlignedToken();
+        ClaimableAirdrop _airdrop = new ClaimableAirdrop();
 
-        console.log("Aligned Token deployed at address:", address(_token));
+        console.log(
+            "Claimable Airdrop deployed at address:",
+            address(_airdrop)
+        );
 
         vm.broadcast();
-        TransparentUpgradeableProxy _tokenProxy = new TransparentUpgradeableProxy(
-                address(_token),
+        TransparentUpgradeableProxy _airdropProxy = new TransparentUpgradeableProxy(
+                address(_airdrop),
                 _foundation,
-                Utils.alignedTokenInitData(_foundation, _tokenDistributor)
+                Utils.claimableAirdropInitData(
+                    address(_airdrop),
+                    _foundation,
+                    _tokenProxy,
+                    _tokenDistributor
+                )
             );
 
         bytes memory _alignedTokenProxyConstructorData = Utils
-            .alignedTokenProxyConstructorData(
-                address(_token),
+            .claimableAirdropProxyConstructorData(
+                address(_airdrop),
                 _foundation,
+                _tokenProxy,
                 _tokenDistributor
             );
 
         console.log(
             string.concat(
-                "Aligned Token Proxy deployed at address: ",
-                vm.toString(address(_tokenProxy)),
+                "Claimable Airdrop Proxy deployed at address: ",
+                vm.toString(address(_airdropProxy)),
                 " with proxy admin: ",
-                vm.toString(Utils.getAdminAddress(address(_tokenProxy))),
+                vm.toString(Utils.getAdminAddress(address(_airdropProxy))),
                 " and owner: ",
                 vm.toString(_foundation),
                 " with constructor args: ",
