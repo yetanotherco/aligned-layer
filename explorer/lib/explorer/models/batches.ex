@@ -138,24 +138,6 @@ defmodule Batches do
       result -> result
     end
   end
-  
-  def get_fee_per_proofs_of_last_n_batches(n) do
-    query =
-      from(b in Batches,
-        where: b.is_verified == true,
-        select: {b.fee_per_proof, b.submission_timestamp},
-        limit: ^n,
-        order_by: [asc: b.submission_timestamp]
-      )
-
-    case Explorer.Repo.all(query) do
-      nil ->
-        []
-
-      result ->
-        result
-    end
-  end
 
   def insert_or_update(batch_changeset, proofs) do
     merkle_root = batch_changeset.changes.merkle_root
