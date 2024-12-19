@@ -28,9 +28,9 @@ defmodule ExplorerWeb.ChartComponents do
   ## Examples
     <.line
       id="exchanges"
-      points={%{x: [1, 2, 3, 4], y: [january_timestamp, february_timestamp, march_timestamp, april_timestamp]},}
+      points={%{x: [1, 2, 3, 4], y: ["01-01-2024", "01-02-2024", "01-03-2024", "01-04-2024"]},}
       show_ticks={%{x: true, y: true}}
-      extra_data={%{merkle_roots: [1, 2, 3]}}
+      extra_data={%{merkle_roots: [0x1, 0x2, 0x3, 0x4]}}
     />
     !Note:
     - id is used to reference the chart on javascript to apply custom styles, configurations, tooltip, that are possible only via javascript
