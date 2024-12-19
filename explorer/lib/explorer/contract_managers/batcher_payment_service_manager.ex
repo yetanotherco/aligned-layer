@@ -70,32 +70,26 @@ defmodule BatcherPaymentServiceManager do
   end
 
   def get_latest_activity() do
-    # event PaymentReceived(address indexed sender, uint256 amount);
-    # event FundsWithdrawn(address indexed recipient, uint256 amount);
-    # event BalanceLocked(address indexed user);
-    # event BalanceUnlocked(address indexed user, uint256 unlockBlockTime);
-    BatcherPaymentServiceManager.EventFilters.payment_received(nil)
-    |> Ethers.get_logs(fromBlock: @first_block)
-    |> case do
-      {:ok, []} ->
-        Logger.warning("No latest activity found.")
-        []
+    # event TaskCreated(bytes32 indexed batchMerkleRoot, uint256 feePerProof);
 
-      {:ok, events} -> dbg events
-        # events
-        # |> Enum.map(fn event ->
-        #   merkle_root = event.topics[1]
-        #   fee_per_proof = event.data |> hd()
-        #   {merkle_root, fee_per_proof}
-        # end)
+    event_filters = [
+      BatcherPaymentServiceManager.EventFilters.payment_received(nil),
+      BatcherPaymentServiceManager.EventFilters.funds_withdrawn(nil),
+      BatcherPaymentServiceManager.EventFilters.balance_locked(nil),
+      BatcherPaymentServiceManager.EventFilters.balance_unlocked(nil)
+      # BatcherPaymentServiceManager.EventFilters.task_created(nil) // We don't need this event for this feature
+    ]
 
-      {:error, reason} ->
-        Logger.error("Error getting latest activity: #{inspect(reason)}.")
-        raise("Error getting latest activity events.")
+    events =
+      event_filters
+      |> Enum.map(fn filter ->
+        filter |> Ethers.get_logs(fromBlock: @first_block)
+      end)
+      |> Enum.flat_map(fn
+        {:ok, logs} -> logs
+        {:error, _} -> [] # Handle errors by skipping them
+      end)
 
-      other ->
-        Logger.error("Unexpected response on latest activity events: #{inspect(other)}")
-        raise("Unexpected response on latest activity events.")
-    end
+    events |> dbg
   end
 end
