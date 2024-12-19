@@ -140,9 +140,7 @@ library Utils {
         address _implementation,
         address _owner,
         address _tokenContractAddress,
-        address _tokenOwnerAddress,
-        uint256 _limitTimestampToClaim,
-        bytes32 _claimMerkleRoot
+        address _tokenOwnerAddress
     ) internal pure returns (bytes memory) {
         return
             abi.encodePacked(
@@ -154,9 +152,7 @@ library Utils {
                         _implementation,
                         _owner,
                         _tokenContractAddress,
-                        _tokenOwnerAddress,
-                        _limitTimestampToClaim,
-                        _claimMerkleRoot
+                        _tokenOwnerAddress
                     )
                 )
             );
@@ -166,9 +162,7 @@ library Utils {
         address _implementation,
         address _foundation,
         address _tokenContractAddress,
-        address _tokenOwnerAddress,
-        uint256 _limitTimestampToClaim,
-        bytes32 _claimMerkleRoot
+        address _tokenOwnerAddress
     ) internal pure returns (bytes memory) {
         return
             abi.encodeCall(
@@ -176,9 +170,7 @@ library Utils {
                 (
                     _foundation,
                     _tokenContractAddress,
-                    _tokenOwnerAddress,
-                    _limitTimestampToClaim,
-                    _claimMerkleRoot
+                    _tokenOwnerAddress
                 )
             );
     }
@@ -187,9 +179,7 @@ library Utils {
         address _implementation,
         address _foundation,
         address _tokenProxy,
-        address _tokenDistributor,
-        uint256 _limitTimestampToClaim,
-        bytes32 _claimMerkleRoot
+        address _tokenDistributor
     ) internal pure returns (bytes memory) {
         return
             abi.encode(
@@ -199,9 +189,7 @@ library Utils {
                     _implementation,
                     _foundation,
                     _tokenProxy,
-                    _tokenDistributor,
-                    _limitTimestampToClaim,
-                    _claimMerkleRoot
+                    _tokenDistributor
                 )
             );
     }

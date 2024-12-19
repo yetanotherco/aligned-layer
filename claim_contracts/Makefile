@@ -82,14 +82,54 @@ upgrade-token: ## 🚀 Upgrade the token contract
 	--broadcast \
 	--verbosity 3
 
-# Approve
+# Miscellaneous
 
-approve-claimable: ## 🚀 Approve the claimable airdrop contract to spend the token
+DISTRIBUTOR_PRIVATE_KEY?=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+
+approve-claimable: ## 🚀 Approve the ClaimableAirdrop contract to spend the token
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(DISTRIBUTOR_PRIVATE_KEY) \
+		$(TOKEN) \
+		'approve(address,uint256)' $(AIRDROP) 2600000000000000000000000000
+
+claimable-update-root: ## 🚀 Update the merkle root of the ClaimableAirdrop contract
 	cast send \
 		--rpc-url $(RPC_URL) \
 		--private-key $(PRIVATE_KEY) \
-		$(TOKEN) \
-		'approve(address,uint256)' $(AIRDROP) 2600000000000000000000000000
+		$(AIRDROP) \
+		'updateMerkleRoot(bytes32)' $(MERKLE_ROOT)
+
+claimable-get-root: ## 🚀 Get the merkle root of the ClaimableAirdrop contract
+	cast call \
+		--rpc-url $(RPC_URL) \
+		$(AIRDROP) \
+		"claimMerkleRoot()(bytes32)"
+
+claimable-update-timestamp: ## 🚀 Update the limit timestamp of the ClaimableAirdrop contract
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(PRIVATE_KEY) \
+		$(AIRDROP) \
+		'extendClaimPeriod(uint256)' $(TIMESTAMP)
+
+claimable-get-timestamp: ## 🚀 Get the limit timestamp of the ClaimableAirdrop contract
+	cast call \
+		--rpc-url $(RPC_URL) \
+		$(AIRDROP) \
+		"limitTimestampToClaim()(uint256)"
+
+pause:
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(PRIVATE_KEY) \
+		$(AIRDROP) "pause()"
+
+unpause:
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(PRIVATE_KEY) \
+		$(AIRDROP) "unpause()"
 
 # Upgrades
 
@@ -124,9 +164,3 @@ OWNER_PRIVATE_KEY?=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f
 test-airdrop:
 	cast call $(AIRDROP) "paused()(bool)" --rpc-url $(RPC_URL)
 	cast call $(AIRDROP) "owner()(address)" --rpc-url $(RPC_URL)
-
-test-pause:
-	cast send $(AIRDROP) --private-key $(OWNER_PRIVATE_KEY) "pause()" --rpc-url $(RPC_URL)
-
-test-unpause:
-	cast send $(AIRDROP) --private-key $(OWNER_PRIVATE_KEY) "unpause()" --rpc-url $(RPC_URL)

@@ -1,8 +1,5 @@
 {
   "foundation": "",
   "tokenDistributor": "",
-
-  "limitTimestampToClaim": 2733427549,
-  "claimMerkleRoot": "",
   "tokenProxy": "0x0000000000000000000000000000000000000000"
 }
