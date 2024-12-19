@@ -499,13 +499,14 @@ mod test {
         let mut batch_queue = BatchQueue::new();
         batch_queue.push(entry_1, batch_priority_1);
         batch_queue.push(entry_2, batch_priority_2);
-        batch_queue.push(entry_3, batch_priority_3);
+        batch_queue.push(entry_3.clone(), batch_priority_3.clone());
 
         let gas_price = U256::from(1);
         let (resulting_batch_queue, batch) =
             try_build_batch(batch_queue, gas_price, 5000000, 2).unwrap();
 
         assert!(resulting_batch_queue.len() == 1); //nonce_3
+        assert!(resulting_batch_queue.clone().pop() == Some((entry_3.clone(), batch_priority_3.clone()))); //nonce_3
 
         assert_eq!(batch[0].nonced_verification_data.nonce, nonce_2);
         assert_eq!(batch[1].nonced_verification_data.nonce, nonce_1);
