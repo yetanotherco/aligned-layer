@@ -38,26 +38,41 @@ defmodule NavComponent do
     }>
       <div class="gap-x-6 inline-flex">
         <.link
-          class="text-3xl hover:scale-105 transform duration-150 active:scale-95"
+          class="hover:scale-105 transform duration-150 active:scale-95 text-3xl"
           navigate={~p"/"}
         >
           🟩 <span class="sr-only">Aligned Explorer Home</span>
         </.link>
         <div class={["items-center gap-8 [&>a]:drop-shadow-md", "hidden md:inline-flex"]}>
           <.link
-            class="text-foreground/80 hover:text-foreground font-semibold"
+            class={
+              active_view_class(assigns.socket.view, [
+                ExplorerWeb.Batches.Index,
+                ExplorerWeb.Batch.Index
+              ])
+            }
             navigate={~p"/batches"}
           >
             Batches
           </.link>
           <.link
-            class="text-foreground/80 hover:text-foreground font-semibold"
+            class={
+              active_view_class(assigns.socket.view, [
+                ExplorerWeb.Operators.Index,
+                ExplorerWeb.Operator.Index
+              ])
+            }
             navigate={~p"/operators"}
           >
             Operators
           </.link>
           <.link
-            class="text-foreground/80 hover:text-foreground font-semibold"
+            class={
+                active_view_class(assigns.socket.view, [
+                  ExplorerWeb.Restakes.Index,
+                  ExplorerWeb.Restake.Index
+                ])
+              }
             navigate={~p"/restakes"}
           >
             Restakes
@@ -108,19 +123,37 @@ defmodule NavComponent do
               <%= @latest_release %>
             </.badge>
             <.link
-              class="text-foreground/80 hover:text-foreground font-semibold"
+              class={
+                classes([
+                  active_view_class(assigns.socket.view, [
+                    ExplorerWeb.Batches.Index,
+                    ExplorerWeb.Batch.Index
+                  ]),
+                  "text-foreground/80 hover:text-foreground font-semibold"
+                ])
+              }
               navigate={~p"/batches"}
             >
               Batches
             </.link>
             <.link
-              class="text-foreground/80 hover:text-foreground font-semibold"
+              class={
+                active_view_class(assigns.socket.view, [
+                  ExplorerWeb.Operators.Index,
+                  ExplorerWeb.Operator.Index
+                ])
+              }
               navigate={~p"/operators"}
             >
               Operators
             </.link>
             <.link
-              class="text-foreground/80 hover:text-foreground font-semibold"
+              class={
+                active_view_class(assigns.socket.view, [
+                  ExplorerWeb.Restakes.Index,
+                  ExplorerWeb.Restake.Index
+                ])
+              }
               navigate={~p"/restakes"}
             >
               Restakes
@@ -146,5 +179,11 @@ defmodule NavComponent do
     JS.toggle(to: "#menu-overlay")
     |> JS.toggle(to: ".toggle-open")
     |> JS.toggle(to: ".toggle-close")
+  end
+
+  defp active_view_class(current_view, target_views) do
+    if current_view in target_views,
+      do: "text-green-500 font-bold",
+      else: "text-foreground/80 hover:text-foreground font-semibold"
   end
 end
