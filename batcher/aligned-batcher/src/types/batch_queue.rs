@@ -100,8 +100,15 @@ impl PartialOrd for BatchQueueEntryPriority {
 
 impl Ord for BatchQueueEntryPriority {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let ord = other.max_fee.cmp(&self.max_fee);
+        // Implementation of lowest-first:
+        let ord: std::cmp::Ordering = other.max_fee.cmp(&self.max_fee);
+        // This means, less max_fee will go first
+        // We want this because we will .pop() to remove unwanted elements, low fee submitions.
+
         if ord == std::cmp::Ordering::Equal {
+            // Case of same max_fee:
+            // Implementation of biggest-first:
+            // Since we want to .pop() entries with biggest nonce first, because we want to submit low nonce first
             self.nonce.cmp(&other.nonce)
         } else {
             ord
@@ -157,6 +164,7 @@ pub(crate) fn try_build_batch(
         let batch_len = batch_queue.len();
         let fee_per_proof = calculate_fee_per_proof(batch_len, gas_price);
 
+        // if batch is not acceptable:
         if batch_size > max_batch_byte_size
             || fee_per_proof > entry.nonced_verification_data.max_fee
             || batch_len > max_batch_proof_qty
