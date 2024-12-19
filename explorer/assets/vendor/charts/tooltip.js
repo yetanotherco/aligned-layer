@@ -78,6 +78,7 @@ export const alignedTooltip = (
 		};
 		tooltipEl.onmouseleave = () => {
 			window.isTooltipBeingHovered = false;
+			tooltipEl.style.opacity = 0;
 		};
 		if (onTooltipClick)
 			tooltipEl.querySelector(".chart-tooltip-dot").onclick = () =>
