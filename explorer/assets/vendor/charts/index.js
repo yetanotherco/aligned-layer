@@ -4,6 +4,8 @@ import { costPerProofCustomOptions } from "./cost_per_proof";
 const applyCommonChartOptions = (options, data) => {
 	// generally, we want to show only the min and max values on the y axis
 	if (options.scales.x.ticks.display) {
+		// Note: scales are inverted intentionally to display min/max on the Y-axis
+		// while the data is shown on the X-axis.
 		options.scales.y.ticks.callback = (_value, index, values) => {
 			if (index === 0) return Math.min(...data.datasets[0].data);
 			if (index === values.length - 1) {
@@ -32,11 +34,11 @@ const applyCommonChartOptions = (options, data) => {
 };
 
 const applyOptionsByChartId = (id, options, data) => {
-	const defs = {
+	const idOptionsMap = {
 		cost_per_proof_chart: () => costPerProofCustomOptions(options, data),
 	};
 
-	return defs[id] ? defs[id]() : {};
+	idOptionsMap[id] && idOptionsMap[id]();
 };
 
 export default {
