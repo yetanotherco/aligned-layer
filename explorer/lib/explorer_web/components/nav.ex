@@ -40,7 +40,7 @@ defmodule NavComponent do
             class="text-foreground/80 hover:text-foreground font-semibold"
             navigate={~p"/restake"}
           >
-            Assets
+            Restakings
           </.link>
         </div>
         <.live_component module={SearchComponent} id="nav_search" />
@@ -97,7 +97,7 @@ defmodule NavComponent do
               class="text-foreground/80 hover:text-foreground font-semibold"
               navigate={~p"/restake"}
             >
-              Assets
+              Restakings
             </.link>
             <.link class="hover:text-foreground" target="_blank" href="https://docs.alignedlayer.com">
               Docs
