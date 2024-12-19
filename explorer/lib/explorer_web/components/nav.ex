@@ -1,9 +1,29 @@
 defmodule NavComponent do
   use ExplorerWeb, :live_component
 
+  def get_current_network(host) do
+    case host do
+      "explorer.alignedlayer.com" -> "Mainnet"
+      "holesky.explorer.alignedlayer.com" -> "Testnet"
+      "stage.explorer.alignedlayer.com" -> "Stage"
+      _ -> "Devnet"
+    end
+  end
+
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, latest_release: ReleasesHelper.get_latest_release())}
+    networks = ExplorerWeb.Helpers.get_aligned_networks()
+
+    networks =
+      Enum.map(networks, fn {name, link} ->
+        {name, "window.location.href='#{link}'"}
+      end)
+
+    {:ok,
+     assign(socket,
+       latest_release: ReleasesHelper.get_latest_release(),
+       networks: networks
+     )}
   end
 
   @impl true
@@ -46,6 +66,12 @@ defmodule NavComponent do
           >
             Operators
           </.link>
+          <.link
+            class="text-foreground/80 hover:text-foreground font-semibold"
+            navigate={~p"/restakes"}
+          >
+            Restakes
+          </.link>
         </div>
         <.live_component module={SearchComponent} id="nav_search" />
       </div>
@@ -67,6 +93,12 @@ defmodule NavComponent do
             Latest Aligned version
           </.tooltip>
         </.badge>
+        <.hover_dropdown_selector
+          current_value={get_current_network(@host)}
+          variant="foreground"
+          options={@networks}
+          icon="hero-cube-transparent-micro"
+        />
         <button
           class="md:hidden z-50"
           id="menu-toggle"
@@ -109,6 +141,12 @@ defmodule NavComponent do
               navigate={~p"/operators"}
             >
               Operators
+            </.link>
+            <.link
+              class="text-foreground/80 hover:text-foreground font-semibold"
+              navigate={~p"/restakes"}
+            >
+              Restakes
             </.link>
             <.link class="hover:text-foreground" target="_blank" href="https://docs.alignedlayer.com">
               Docs
