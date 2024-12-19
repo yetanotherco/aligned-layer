@@ -11,7 +11,7 @@ defmodule ExplorerWeb.Home.Index do
                                      {acc_data, acc_labels} ->
         case EthConverter.wei_to_usd(fee_per_proof, 2) do
           {:ok, value} ->
-            {acc_data ++ [value], acc_labels ++ [submission_timestamp]}
+            {acc_data ++ [value], acc_labels ++ [submission_timestamp |> Helpers.parse_timeago()]}
 
           {:error, _} ->
             {acc_data, acc_labels}

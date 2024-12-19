@@ -37,7 +37,7 @@ defmodule ExplorerWeb.ChartComponents do
   attr(:id, :string, required: true)
   attr(:labels, :list, required: true)
   attr(:data, :list, required: true)
-  attr(:show_ticks, :boolean, default: false)
+  attr(:show_ticks, :map, default: %{x: true, y: true})
 
   def line_chart(assigns) do
     ~H"""
@@ -71,7 +71,7 @@ defmodule ExplorerWeb.ChartComponents do
             x: %{
               offset: true,
               ticks: %{
-                display: @show_ticks,
+                display: @show_ticks.x,
                 autoSkip: false,
                 sampleSize: 1,
                 maxRotation: 0,
@@ -88,7 +88,7 @@ defmodule ExplorerWeb.ChartComponents do
             },
             y: %{
               ticks: %{
-                display: @show_ticks,
+                display: @show_ticks.y,
                 autoSkip: false,
                 sampleSize: 1,
                 maxRotation: 0,
