@@ -722,6 +722,106 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Accumulated cost in ETH the Batcher paid when sending Create Task or Cancel Task transactions.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ETH"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 8,
+        "x": 0,
+        "y": 14
+      },
+      "id": 49,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.1.10",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "increase(batcher_gas_cost_create_task_total{bot=\"batcher\"}[$__range]) * 10 ^ -9",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[$__range]) * 10 ^ -9",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Accumulated Batcher Cost Paid [ETH]",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {}
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "Total"
+              ]
+            }
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "description": "Accumulated gas cost in ETH the Aggregator paid when sending RespondToTask transactions.",
       "fieldConfig": {
         "defaults": {
@@ -745,7 +845,7 @@
       "gridPos": {
         "h": 3,
         "w": 7,
-        "x": 0,
+        "x": 8,
         "y": 14
       },
       "id": 48,
@@ -793,7 +893,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Accumulated gas cost in ETH the Batcher paid when sending Create Task or Cancel Task transactions.",
+      "description": "Historical accumulated cost in ETH the Batcher paid when sending Create Task or Cancel Task transactions.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -816,10 +916,10 @@
       "gridPos": {
         "h": 3,
         "w": 8,
-        "x": 7,
+        "x": 16,
         "y": 14
       },
-      "id": 49,
+      "id": 52,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -846,7 +946,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "increase(batcher_gas_cost_create_task_total{bot=\"batcher\"}[10y]) * 10 ^ -18",
+          "expr": "increase(batcher_gas_cost_create_task_total{bot=\"batcher\"}[10y]) * 10 ^ -9",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -861,7 +961,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[10y]) * 10 ^ -18",
+          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[10y]) * 10 ^ -9",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -869,7 +969,7 @@
           "refId": "B"
         }
       ],
-      "title": "Accumulated Batcher Gas Cost Paid [ETH]",
+      "title": "Historical Accumulated Batcher Cost Paid [ETH]",
       "transformations": [
         {
           "id": "calculateField",
@@ -886,6 +986,78 @@
           }
         }
       ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Accumulated cost in ETH the Batcher paid when sending Cancel Task transactions.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ETH"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 8,
+        "x": 0,
+        "y": 17
+      },
+      "id": 51,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.1.10",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[$__range]) * 10 ^ (-9)",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Accumulated Batcher Cancel Task Cost [ETH]",
+      "transformations": [],
       "type": "stat"
     },
     {
@@ -916,7 +1088,7 @@
       "gridPos": {
         "h": 3,
         "w": 7,
-        "x": 0,
+        "x": 8,
         "y": 17
       },
       "id": 30,
@@ -964,7 +1136,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Accumulated gas cost in ETH the Batcher paid when Canceling a Task",
+      "description": "Historical accumulated cost in ETH the Batcher paid when Canceling a Task",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -987,7 +1159,7 @@
       "gridPos": {
         "h": 3,
         "w": 8,
-        "x": 7,
+        "x": 16,
         "y": 17
       },
       "id": 50,
@@ -1017,7 +1189,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[10y]) * 10 ^ -18",
+          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[10y]) * 10 ^ -9",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -1027,7 +1199,7 @@
           "useBackend": false
         }
       ],
-      "title": "Accumulated Batcher Cancel Task Gas Cost [ETH]",
+      "title": "Historical Accumulated Batcher Cancel Task Cost [ETH]",
       "type": "stat"
     },
     {
@@ -1057,7 +1229,7 @@
       "gridPos": {
         "h": 3,
         "w": 7,
-        "x": 0,
+        "x": 8,
         "y": 20
       },
       "id": 26,
@@ -1591,7 +1763,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "dark-red",
@@ -1698,7 +1871,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1765,7 +1939,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           }
@@ -1864,7 +2039,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1931,7 +2107,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "#FF9830",
@@ -2038,7 +2215,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2104,7 +2282,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           }
@@ -2204,7 +2383,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2271,7 +2451,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "#EAB839",
@@ -2378,7 +2559,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2476,7 +2658,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -3329,13 +3512,13 @@
     "list": []
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "System Data",
   "uid": "aggregator",
-  "version": 6,
+  "version": 2,
   "weekStart": ""
 }
