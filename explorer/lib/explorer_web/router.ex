@@ -33,7 +33,7 @@ defmodule ExplorerWeb.Router do
     pipe_through :browser
 
     # https://fly.io/phoenix-files/live-session/
-    live_session :default do
+    live_session :default, on_mount: [{ExplorerWeb.HostHook, :add_host}] do
       live "/", Home.Index
       live "/batches/:merkle_root", Batch.Index
       live "/batches", Batches.Index
