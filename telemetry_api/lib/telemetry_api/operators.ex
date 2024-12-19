@@ -98,12 +98,14 @@ defmodule TelemetryApi.Operators do
 
       # Initialize new_operators metrics
       Enum.map(new_operators, fn {_, op_data} ->
-        PrometheusMetrics.initialize_operator_metrics(op_data.name)
+        op_name_address = op_data.name <> " - " <> String.slice(op_data.address, 0..7)
+        PrometheusMetrics.initialize_operator_metrics(op_name_address)
       end)
 
       # If the server was restarted, initialize old_operators metrics
       Enum.map(old_operators, fn {op, _} ->
-        PrometheusMetrics.initialize_operator_metrics(op.name)
+        op_name_address = op.name <> " - " <> String.slice(op.address, 0..7)
+        PrometheusMetrics.initialize_operator_metrics(op_name_address)
       end)
 
       # Merge both lists
