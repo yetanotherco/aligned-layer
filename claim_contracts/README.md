@@ -41,7 +41,7 @@
    ```
    make deploy-token-testnet RPC_URL=<sepolia-rpc-url> PRIVATE_KEY=<sepolia-funded-account-private-key>
    ```
-3. Write down the `token-proxy-address` that is printed in the console output.
+3. Write down the `token-proxy-address` that is printed in the console output. Do this in the `config.sepolia.json` file, under the `tokenProxy` key.
 4. Deploy the claimable contract
    ```
    make deploy-claimable-testnet RPC_URL=<sepolia-rpc-url> PRIVATE_KEY=<sepolia-funded-account-private-key> ETHERSCAN_API_KEY=<etherscan-api-key>
