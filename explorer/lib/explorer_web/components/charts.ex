@@ -5,7 +5,6 @@ defmodule ExplorerWeb.ChartComponents do
   attr(:chart_type, :string, required: true)
   attr(:chart_data, :string, required: true)
   attr(:chart_options, :string, required: true)
-  attr(:chart_tooltip, :string, required: true)
 
   defp basic_chart(assigns) do
     ~H"""
@@ -16,7 +15,6 @@ defmodule ExplorerWeb.ChartComponents do
         data-chart-type={@chart_type}
         data-chart-data={@chart_data}
         data-chart-options={@chart_options}
-        data-chart-tooltip={@chart_tooltip}
         style="height: 100%; width: 100%;"
       >
       </canvas>
@@ -29,16 +27,19 @@ defmodule ExplorerWeb.ChartComponents do
   ## Examples
     <.line
       id="exchanges"
-      data={[1, 2, 3, 4]}
-      labels={["January", "February", "March", "April"]}
-      tooltip={%{title: "Exchange details", body: "Month: {{label}}\nRate: {{value}}"}}
+      points={%{x: [1, 2, 3, 4], y: ["01-01-2024", "01-02-2024", "01-03-2024", "01-04-2024"]},}
+      show_ticks={%{x: true, y: true}}
+      extra_data={%{merkle_roots: [0x1, 0x2, 0x3, 0x4]}}
     />
-    !Note that {{label}} and {{value}} will get replaced with their respective values, the alternative would be to pass raw JS...
+    !Note:
+    - id is used to reference the chart on javascript to apply custom styles, configurations, tooltip, that are possible only via javascript
+    - points: nil values are automatically ignored and not displayed
+    - extra_data: any other data you might want to retrieve via javascript later
   """
   attr(:id, :string, required: true)
-  attr(:labels, :list, required: true)
-  attr(:data, :list, required: true)
-  attr(:tooltip, :map, required: true)
+  attr(:points, :map, required: true)
+  attr(:extra_data, :map, default: %{})
+  attr(:show_ticks, :map, default: %{x: true, y: true})
 
   def line_chart(assigns) do
     ~H"""
@@ -47,11 +48,10 @@ defmodule ExplorerWeb.ChartComponents do
       chart_type="line"
       chart_data={
         Jason.encode!(%{
-          labels: @labels,
-          datasets: [%{data: @data, borderColor: "rgb(24, 255, 127)", fill: false, tension: 0.1}]
+          labels: @points,
+          datasets: [Map.merge(%{data: @points, borderColor: "rgb(24, 255, 127)", fill: false, tension: 0.1}, @extra_data)]
         })
       }
-      chart_tooltip={Jason.encode!(@tooltip)}
       chart_options={
         Jason.encode!(%{
           maintainAspectRatio: false,
@@ -71,8 +71,15 @@ defmodule ExplorerWeb.ChartComponents do
           },
           scales: %{
             x: %{
+              offset: true,
               ticks: %{
-                display: false
+                display: @show_ticks.x,
+                autoSkip: false,
+                sampleSize: 1,
+                maxRotation: 0,
+                font: %{
+                  weight: "700"
+                }
               },
               grid: %{
                 display: false
@@ -83,7 +90,13 @@ defmodule ExplorerWeb.ChartComponents do
             },
             y: %{
               ticks: %{
-                display: false
+                display: @show_ticks.y,
+                autoSkip: false,
+                sampleSize: 1,
+                maxRotation: 0,
+                font: %{
+                  weight: "700"
+                }
               },
               grid: %{
                 display: false

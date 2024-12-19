@@ -7,7 +7,7 @@ import darkModeHook from "../vendor/dark_mode";
 import searchFocusHook from "../vendor/search_focus";
 import tooltipHook from "../vendor/tooltip";
 import copyToClipboardHook from "../vendor/clipboard";
-import chartHook from "../vendor/chart";
+import chartHook from "../vendor/charts";
 
 let hooks = {};
 hooks.DarkThemeToggle = darkModeHook;

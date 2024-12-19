@@ -76,20 +76,19 @@ defmodule Batches do
     Explorer.Repo.one(query)
   end
 
-  def get_latest_batches(%{amount: amount}) do
+  def get_latest_batches(%{amount: amount} = %{order_by: :desc}) do
     query = from(b in Batches,
       order_by: [desc: b.submission_block_number],
       limit: ^amount,
       select: b)
 
     Explorer.Repo.all(query)
-  end
-
-  def get_paginated_batches(%{page: page, page_size: page_size}) do
+  end 
+  
+  def get_latest_batches(%{amount: amount} = %{order_by: :asc}) do
     query = from(b in Batches,
-      order_by: [desc: b.submission_block_number],
-      limit: ^page_size,
-      offset: ^((page - 1) * page_size),
+      order_by: [asc: b.submission_block_number],
+      limit: ^amount,
       select: b)
 
     Explorer.Repo.all(query)
@@ -137,24 +136,6 @@ defmodule Batches do
     case Explorer.Repo.one(query) do
       nil -> 0
       result -> result
-    end
-  end
-  
-  def get_fee_per_proofs_of_last_n_batches(n) do
-    query =
-      from(b in Batches,
-        where: b.is_verified == true,
-        select: {b.fee_per_proof, b.submission_block_number},
-        limit: ^n,
-        order_by: [asc: b.submission_block_number]
-      )
-
-    case Explorer.Repo.all(query) do
-      nil ->
-        []
-
-      result ->
-        result
     end
   end
 

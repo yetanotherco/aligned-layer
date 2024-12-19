@@ -4,17 +4,33 @@ defmodule ExplorerWeb.Home.Index do
   use ExplorerWeb, :live_view
 
   def get_cost_per_proof_chart_data() do
-    data = Batches.get_fee_per_proofs_of_last_n_batches(100)
+    batches = Batches.get_latest_batches(%{amount: 100, order_by: :asc})
+
+    extra_data =
+      %{
+        merkle_root: Enum.map(batches, fn b -> b.merkle_root end),
+        amount_of_proofs: Enum.map(batches, fn b -> b.amount_of_proofs end),
+        age: Enum.map(batches, fn b -> Helpers.parse_timeago(b.submission_timestamp) end)
+      }
+
+    points =
+      Enum.map(batches, fn b ->
+        fee_per_proof =
+          case EthConverter.wei_to_usd(b.fee_per_proof, 2) do
+            {:ok, value} ->
+              value
+
+            # Nil values are ignored by the chart
+            {:error, _} ->
+              nil
+          end
+
+        %{x: b.submission_block_number, y: fee_per_proof}
+      end)
 
     %{
-      data:
-        Enum.map(data, fn {fee_per_proof, _} ->
-          case EthConverter.wei_to_usd(fee_per_proof) do
-            {:ok, value} -> value
-            {:error, _} -> 0
-          end
-        end),
-      labels: Enum.map(data, fn {_, submission_block_number} -> submission_block_number end)
+      points: points,
+      extra_data: extra_data
     }
   end
 
@@ -34,7 +50,7 @@ defmodule ExplorerWeb.Home.Index do
     operators_registered = Operators.get_amount_of_operators()
 
     latest_batches =
-      Batches.get_latest_batches(%{amount: 5})
+      Batches.get_latest_batches(%{amount: 5, order_by: :desc})
       # extract only the merkle root
       |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
 
@@ -64,7 +80,7 @@ defmodule ExplorerWeb.Home.Index do
     operators_registered = Operators.get_amount_of_operators()
 
     latest_batches =
-      Batches.get_latest_batches(%{amount: 5})
+      Batches.get_latest_batches(%{amount: 5, order_by: :desc})
       # extract only the merkle root
       |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
 
