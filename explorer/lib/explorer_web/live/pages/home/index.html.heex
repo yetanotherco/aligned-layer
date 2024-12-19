@@ -41,7 +41,7 @@
       <% end %>
     </.card>
     <.live_component module={ContractsComponent} id="contracts_card" class="sm:col-span-2" />
-    <.card title="Cost per proof" class="w-full sm:col-span-2">
+    <.card title="Cost per proof" class="col-span-auto">
       <div style="height: 200px;" class="mt-4">
         <.line_chart
           id="cost_per_proof_chart"
@@ -50,15 +50,12 @@
         />
       </div>
     </.card>
-    <.card title="Batch Size" class="w-full sm:col-span-1">
-      <div style="height: 200px;">
+    <.card title="Batch Size" class="col-span-auto">
+      <div style="height: 200px;" class="mt-4">
         <.line_chart
-          id="salesChart"
-          data={@batch_size_chart_data.data}
-          labels={@batch_size_chart_data.labels}
-          tooltip={
-            %{title: "Batch Size", body: ": {{value}} Proofs\nBlock Number: {{label}}"}
-          }
+          id="batch_size_chart"
+          points={@batch_size_chart_data.points}
+          extra_data={@batch_size_chart_data.extra_data}
         />
       </div>
     </.card>

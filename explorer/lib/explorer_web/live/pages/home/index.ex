@@ -35,11 +35,23 @@ defmodule ExplorerWeb.Home.Index do
   end
 
   def get_batch_size_chart_data() do
-    data = Batches.get_batch_size_of_last_n_batches(100)
+    batches = Batches.get_latest_batches(%{amount: 100, order_by: :asc})
+
+    extra_data =
+      %{
+        merkle_root: Enum.map(batches, fn b -> b.merkle_root end),
+        amount_of_proofs: Enum.map(batches, fn b -> b.amount_of_proofs end),
+        age: Enum.map(batches, fn b -> Helpers.parse_timeago(b.submission_timestamp) end)
+      }
+
+    points =
+      Enum.map(batches, fn b ->
+        %{x: b.submission_block_number, y: b.amount_of_proofs}
+      end)
 
     %{
-      data: Enum.map(data, fn{batch_size, _} -> batch_size end),
-      labels: Enum.map(data, fn {_, submission_block_number} -> submission_block_number end)
+      points: points,
+      extra_data: extra_data
     }
   end
 
