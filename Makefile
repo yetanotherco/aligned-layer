@@ -306,7 +306,7 @@ batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
 
 batcher_create_self_signed_cert:
 	@echo "Creating TLS certificate for localhost"
-	@openssl req -x509 -days 1825 -newkey rsa:2048 -keyout rootCA.key -out rootCA.crt -nodes -subj '/CN=localhost'
+	@mkcert -install -cert-file rootCA.crt -key-file rootCA.key localhost
 	@echo "TLS certificate created"
 
 batcher_start_local: user_fund_payment_service batcher_create_self_signed_cert

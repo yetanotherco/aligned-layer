@@ -9,6 +9,7 @@ Ensure you have the following installed:
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
 - [jq](https://jqlang.github.io/jq/)
 - [yq](https://github.com/mikefarah/yq)
+- [mkcert](https://github.com/FiloSottile/mkcert)
 
 After installing foundryup, you need to install a specific Foundry version:
 
