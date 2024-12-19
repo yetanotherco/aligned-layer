@@ -16,7 +16,7 @@
    ```
    make deploy-token
    ```
-3. Write down the token proxy address that is printed in the console output.
+3. Write down the token proxy address that is printed in the console output. Do this in the `config.example.json` file, under the `tokenProxy` key.
 4. Deploy the claimable contract
    ```
    make deploy-claimable-local
