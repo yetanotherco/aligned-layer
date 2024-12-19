@@ -1,9 +1,29 @@
 defmodule NavComponent do
   use ExplorerWeb, :live_component
 
+  def get_current_network(host) do
+    case host do
+      "explorer.alignedlayer.com" -> "Mainnet"
+      "holesky.explorer.alignedlayer.com" -> "Testnet"
+      "stage.explorer.alignedlayer.com" -> "Stage"
+      _ -> "Devnet"
+    end
+  end
+
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, latest_release: ReleasesHelper.get_latest_release())}
+    networks = ExplorerWeb.Helpers.get_aligned_networks()
+
+    networks =
+      Enum.map(networks, fn {name, link} ->
+        {name, "window.location.href='#{link}'"}
+      end)
+
+    {:ok,
+     assign(socket,
+       latest_release: ReleasesHelper.get_latest_release(),
+       networks: networks
+     )}
   end
 
   @impl true
@@ -18,23 +38,44 @@ defmodule NavComponent do
     }>
       <div class="gap-x-6 inline-flex">
         <.link
-          class="text-3xl hover:scale-105 transform duration-150 active:scale-95"
+          class="hover:scale-105 transform duration-150 active:scale-95 text-3xl"
           navigate={~p"/"}
         >
           🟩 <span class="sr-only">Aligned Explorer Home</span>
         </.link>
         <div class={["items-center gap-4 [&>a]:drop-shadow-md hidden sm:inline-flex"]}>
           <.link
-            class="text-foreground/80 hover:text-foreground font-semibold"
+            class={
+              active_view_class(assigns.socket.view, [
+                ExplorerWeb.Batches.Index,
+                ExplorerWeb.Batch.Index
+              ])
+            }
             navigate={~p"/batches"}
           >
             Batches
           </.link>
           <.link
-            class="text-foreground/80 hover:text-foreground font-semibold"
+            class={
+              active_view_class(assigns.socket.view, [
+                ExplorerWeb.Operators.Index,
+                ExplorerWeb.Operator.Index
+              ])
+            }
             navigate={~p"/operators"}
           >
             Operators
+          </.link>
+          <.link
+            class={
+                active_view_class(assigns.socket.view, [
+                  ExplorerWeb.Restakes.Index,
+                  ExplorerWeb.Restake.Index
+                ])
+              }
+            navigate={~p"/restakes"}
+          >
+            Restakes
           </.link>
         </div>
         <.live_component module={SearchComponent} id="nav_search" />
@@ -57,6 +98,12 @@ defmodule NavComponent do
             Latest Aligned version
           </.tooltip>
         </.badge>
+        <.hover_dropdown_selector
+          current_value={get_current_network(@host)}
+          variant="foreground"
+          options={@networks}
+          icon="hero-cube-transparent-micro"
+        />
         <button
           class="z-50"
           id="menu-toggle"
@@ -76,16 +123,40 @@ defmodule NavComponent do
               <%= @latest_release %>
             </.badge>
             <.link
-              class="text-foreground/80 hover:text-foreground font-semibold"
+              class={
+                classes([
+                  active_view_class(assigns.socket.view, [
+                    ExplorerWeb.Batches.Index,
+                    ExplorerWeb.Batch.Index
+                  ]),
+                  "text-foreground/80 hover:text-foreground font-semibold"
+                ])
+              }
               navigate={~p"/batches"}
             >
               Batches
             </.link>
             <.link
-              class="text-foreground/80 hover:text-foreground font-semibold"
+              class={
+                active_view_class(assigns.socket.view, [
+                  ExplorerWeb.Operators.Index,
+                  ExplorerWeb.Operator.Index
+                ])
+              }
               navigate={~p"/operators"}
             >
               Operators
+            </.link>
+            <.link
+              class={
+                active_view_class(assigns.socket.view, [
+                  ExplorerWeb.Restakes.Index,
+                  ExplorerWeb.Restake.Index
+                ])
+              }
+              navigate={~p"/restakes"}
+            >
+              Restakes
             </.link>
             <.link class="hover:text-foreground" target="_blank" href="https://docs.alignedlayer.com">
               Docs
@@ -108,5 +179,11 @@ defmodule NavComponent do
     JS.toggle(to: "#menu-overlay")
     |> JS.toggle(to: ".toggle-open")
     |> JS.toggle(to: ".toggle-close")
+  end
+
+  defp active_view_class(current_view, target_views) do
+    if current_view in target_views,
+      do: "text-green-500 font-bold",
+      else: "text-foreground/80 hover:text-foreground font-semibold"
   end
 end

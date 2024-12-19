@@ -25,7 +25,7 @@ defmodule AssetsCTAComponent do
             View all active operators
           </.tooltip>
         </.link>
-        <.link navigate={~p"/restake"} class="flex-1 flex flex-col justify-start gap-0.5 group">
+        <.link navigate={~p"/restakes"} class="flex-1 flex flex-col justify-start gap-0.5 group">
           <div class="text-muted-foreground font-semibold flex gap-2 items-center">
             <h2>
               Total Restaked
