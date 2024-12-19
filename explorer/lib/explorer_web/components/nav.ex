@@ -38,9 +38,9 @@ defmodule NavComponent do
           </.link>
           <.link
             class="text-foreground/80 hover:text-foreground font-semibold"
-            navigate={~p"/restake"}
+            navigate={~p"/restakes"}
           >
-            Restakings
+            Restakes
           </.link>
         </div>
         <.live_component module={SearchComponent} id="nav_search" />
@@ -95,9 +95,9 @@ defmodule NavComponent do
             </.link>
             <.link
               class="text-foreground/80 hover:text-foreground font-semibold"
-              navigate={~p"/restake"}
+              navigate={~p"/restakes"}
             >
-              Restakings
+              Restakes
             </.link>
             <.link class="hover:text-foreground" target="_blank" href="https://docs.alignedlayer.com">
               Docs
