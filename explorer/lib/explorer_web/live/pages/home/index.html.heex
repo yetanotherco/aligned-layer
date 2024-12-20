@@ -14,12 +14,11 @@
         0
       <% end %>
     </.card_link>
-    <.card_link
-      icon="hero-arrow-right-solid"
-      navigate={~p"/restake"}
-      title="Total Restaked"
-      subtitle={"(#{@restaked_amount_eth |> Helpers.format_number()} ETH)"}
-    >
+    <.card_link 
+      icon="hero-arrow-right-solid" 
+      navigate={~p"/restakes"} 
+      title="Total Restaked" 
+      subtitle={"(#{@restaked_amount_eth |> Helpers.format_number()} ETH)"}>
       <%= if @restaked_amount_eth != :nil do %>
         <%= @restaked_amount_usd |> Helpers.format_number() %> USD
       <% else %>
@@ -59,30 +58,45 @@
         />
       </div>
     </.card>
+    <div class="relative truncate sm:col-span-2">
+        <h1 class="text-xl font-bold font-foreground text-left py-2">
+        Recent Batches
+        </h1>
+    </div>
     <%= if @latest_batches != :empty and @latest_batches != [] do %>
-      <.card
-        class="relative sm:col-span-2 w-full flex flex-col space-y-1"
-        inner_class="text-ellipsis overflow-hidden text-lg flex flex-col space-y-1"
-        title="Recent Batches"
-      >
-        <.link
-          navigate={~p"/batches"}
-          class="absolute top-4 right-5 hover:underline font-medium text-muted-foreground capitalize text-sm"
-        >
-          View All
-        </.link>
-        <%= for batch <- @latest_batches do %>
-          <.link class="flex justify-between group" navigate={~p"/batches/#{batch}"}>
-            <span class="group-hover:text-foreground/80">
-              <%= Helpers.shorten_hash(batch) %>
+        <.table id="latest_batches" rows={@latest_batches} class="sm:col-span-2">
+        <:col :let={latest_batch} label="Batch Hash" class="text-left">
+          <.link navigate={~p"/batches/#{latest_batch.merkle_root}"}>
+            <span class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80">
+              <%= Helpers.shorten_hash(latest_batch.merkle_root, 6) %>
+              <.right_arrow />
+              <.tooltip>
+                <%= latest_batch.merkle_root %>
+              </.tooltip>
             </span>
-            <.right_arrow />
-            <.tooltip>
-              <%= batch %>
-            </.tooltip>
           </.link>
-        <% end %>
-      </.card>
+        </:col>
+        <:col :let={latest_batch} label="Status">
+          <.dynamic_badge_for_batcher status={Helpers.get_batch_status(latest_batch)} />
+        </:col>
+        <:col :let={latest_batch} label="Age">
+          <span class="md:px-0" title={latest_batch.submission_timestamp}>
+            <%= latest_batch.submission_timestamp |> Helpers.parse_timeago() %>
+          </span>
+        </:col>
+        <:col :let={latest_batch} label="Submission Block Number">
+          <%= latest_batch.submission_block_number |> Helpers.format_number() %>
+        </:col>
+        <:footer>
+          <div class="flex justify-center py-3">    
+            <.link navigate={~p"/batches"} class="absolute hover:underline font-medium text-muted-foreground capitalize text-sm">
+                View All <.icon name="hero-arrow-top-right-on-square-solid" class="size-3.5 mb-1" />
+            </.link>
+          </div>
+        </:footer>
+      </.table>
+    <% else %>
+      <.empty_card_background text="No Batches To Display." class="sm:col-span-2"/>
     <% end %>
   </div>
 </section>

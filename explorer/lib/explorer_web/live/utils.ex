@@ -109,6 +109,18 @@ defmodule ExplorerWeb.Helpers do
   end
 
   @doc """
+    Returns a list of available AlignedLayer networks with their names and explorer URLs.
+  """
+  def get_aligned_networks() do
+    [
+      {"Mainnet", "https://explorer.alignedlayer.com"},
+      {"Holesky", "https://holesky.explorer.alignedlayer.com"},
+      {"Stage", "https://stage.explorer.alignedlayer.com"},
+      {"Devnet", "http://localhost:4000/"}
+    ]
+  end
+
+  @doc """
   Get the Etherscan URL based on the environment.
   - `holesky` -> https://holesky.etherscan.io
   - `mainnet` -> https://etherscan.io
@@ -128,10 +140,17 @@ defmodule ExplorerWeb.Helpers do
     Utils.binary_to_hex_string(binary)
   end
 
+  def is_stale?(batch) do
+    ttl = Utils.batch_ttl_minutes()
+    DateTime.add(batch.submission_timestamp, ttl, :minute)
+    |> DateTime.before?(DateTime.utc_now())
+  end
+
   def get_batch_status(batch) do
     cond do
       not batch.is_valid -> :invalid
       batch.is_verified -> :verified
+      is_stale?(batch) -> :stale
       true -> :pending
     end
   end
@@ -270,6 +289,11 @@ defmodule Utils do
       _other ->
         false
     end
+  end
+
+  def batch_ttl_minutes() do
+    System.get_env("BATCH_TTL_MINUTES")
+    |> String.to_integer()
   end
 
   def process_batch(%BatchDB{} = batch) do

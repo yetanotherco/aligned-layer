@@ -49,7 +49,12 @@ defmodule ExplorerWeb.ChartComponents do
       chart_data={
         Jason.encode!(%{
           labels: @points,
-          datasets: [Map.merge(%{data: @points, borderColor: "rgb(24, 255, 127)", fill: false, tension: 0.1}, @extra_data)]
+          datasets: [
+            Map.merge(
+              %{data: @points, borderColor: "rgb(24, 255, 127)", fill: false, tension: 0.1},
+              @extra_data
+            )
+          ]
         })
       }
       chart_options={
@@ -71,6 +76,7 @@ defmodule ExplorerWeb.ChartComponents do
           },
           scales: %{
             x: %{
+              type: "linear",
               offset: true,
               ticks: %{
                 display: @show_ticks.x,
@@ -89,6 +95,7 @@ defmodule ExplorerWeb.ChartComponents do
               }
             },
             y: %{
+              type: "linear",
               ticks: %{
                 display: @show_ticks.y,
                 autoSkip: false,

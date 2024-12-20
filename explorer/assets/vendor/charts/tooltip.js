@@ -13,7 +13,7 @@ const tooltipComponent = ({ title, isTooltipClickable, items }) => `
 	<div class="chart-tooltip-items-container">
 		<p class="chart-tooltip-title">${title}</p>
 		<div class="chart-tooltip-items">
-		${items.map((item) => tooltipItem(item.title, item.id)).join("")}
+			${items.map((item) => tooltipItem(item.title, item.id)).join("")}
 		</div>
 	</div>
   </div>
@@ -79,6 +79,7 @@ export const alignedTooltip = (
 		tooltipEl.onmouseleave = () => {
 			window.isTooltipBeingHovered = false;
 			tooltipEl.style.opacity = 0;
+			tooltipEl.style.zIndex = -1;
 		};
 		if (onTooltipClick)
 			tooltipEl.querySelector(".chart-tooltip-dot").onclick = () =>
@@ -105,6 +106,7 @@ export const alignedTooltip = (
 	const position = context.chart.canvas.getBoundingClientRect();
 
 	tooltipEl.style.opacity = 1;
+	tooltipEl.style.zIndex = 1;
 	tooltipEl.style.position = "absolute";
 	tooltipEl.style.left =
 		position.left -
