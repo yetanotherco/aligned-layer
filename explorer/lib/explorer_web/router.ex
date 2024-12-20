@@ -1,5 +1,6 @@
 defmodule ExplorerWeb.Router do
   use ExplorerWeb, :router
+  import ExplorerWeb.Plugs
 
   # https://furlough.merecomplexities.com/elixir/phoenix/security/2021/02/26/content-security-policy-configuration-in-phoenix.html
 
@@ -21,6 +22,7 @@ defmodule ExplorerWeb.Router do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
+    plug :load_theme_cookie_in_session
     plug :put_root_layout, html: {ExplorerWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers, %{"content-security-policy" => @content_security_policy}
@@ -34,7 +36,8 @@ defmodule ExplorerWeb.Router do
     pipe_through :browser
 
     # https://fly.io/phoenix-files/live-session/
-    live_session :default, on_mount: [{ExplorerWeb.HostHook, :add_host}] do
+    live_session :default, 
+      on_mount: [{ExplorerWeb.Hooks, :add_host}, {ExplorerWeb.Hooks, :add_theme}] do
       live "/", Home.Index
       live "/batches/:merkle_root", Batch.Index
       live "/batches", Batches.Index
