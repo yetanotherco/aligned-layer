@@ -16,7 +16,7 @@ defmodule Explorer.Periodically do
     one_second = 1000
     seconds_in_an_hour = 60 * 60
 
-    :timer.send_interval(one_second * 60, :next_block_progress) # every 12 seconds, once per block
+    :timer.send_interval(one_second * 60, :next_block_progress) # every minute
     :timer.send_interval(one_second * 12, :batches) # every 12 seconds, once per block
     :timer.send_interval(one_second * seconds_in_an_hour, :restakings) # every 1 hour
   end
