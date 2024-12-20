@@ -91,7 +91,7 @@ defmodule TelemetryApi.Traces do
       })
 
       IO.inspect(
-        "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
+        "Operator response included. merkle_root: #{inspect(merkle_root)} operator_id: #{inspect(operator_id)}"
       )
 
       :ok
@@ -123,11 +123,6 @@ defmodule TelemetryApi.Traces do
         trace
         | subspans: Map.delete(trace.subspans, :batcher)
       })
-
-      with {:ok, _trace} <- set_current_trace(merkle_root) do
-        Tracer.end_span()
-        TraceStore.delete_trace(merkle_root)
-      end
 
       :ok
     end
@@ -208,7 +203,6 @@ defmodule TelemetryApi.Traces do
       :ok
     end
   end
-  
 
   @doc """
   Registers the sending of a batcher task to Ethereum in the task trace.
@@ -298,7 +292,7 @@ defmodule TelemetryApi.Traces do
       :ok
     end
   end
-  
+
   @doc """
   Registers a bump in the gas price when the aggregator tries to respond to a task in the task trace.
 
