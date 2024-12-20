@@ -8,8 +8,8 @@ defmodule LabeledProgressBarComponent do
   def render(assigns) do
     ~H"""
     <div class="w-full relative weight-700 rounded-lg">
-      <div class="w-full bg-accent/20 rounded-2xl">
-        <p class="ml-2 text-center relative text-foreground font-bold z-10">
+      <div class="w-full bg-accent/30 rounded-2xl">
+        <p class="ml-2 text-center relative text-accent-foreground font-bold z-10">
           <%= @label %>
         </p>
       </div>
