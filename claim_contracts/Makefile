@@ -170,3 +170,13 @@ test-airdrop:
 
 # Requires MERKLE_ROOT, TIMESTAMP
 deploy-example: deploy-token deploy-claimable-local claimable-update-root claimable-update-timestamp approve-claimable claimable-unpause
+
+deploy-test-claimable-local: ## 🚀 Deploy the airdrop contract in localnet
+	cd script && \
+	forge script DeployTestClaimableAirdrop.s.sol \
+	--sig "run(string)" example \
+	--private-key $(DEPLOYER_PRIVATE_KEY) \
+	--rpc-url http://localhost:8545 \
+	--broadcast
+
+deploy-test: deploy-token deploy-test-claimable-local claimable-update-root claimable-update-timestamp approve-claimable claimable-unpause
