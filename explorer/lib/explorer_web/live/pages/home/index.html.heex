@@ -1,7 +1,9 @@
 <section class="mx-auto" style="max-width: 1200px;">
-  <h1 class="text-5xl text-center font-medium tracking-tighter drop-shadow-lg text-primary mt-3">
-    Aligned Explorer
-  </h1>
+  <div class="flex justify-center items-center">
+    <h1 class="text-5xl w-fit font-normal p-2 px-4 selection:bg-accent-foreground/20 selection:text-accent-foreground/80 rounded-xl tracking-tighter bg-accent drop-shadow-lg text-black mt-3">
+      Aligned Layer Explorer
+    </h1>
+  </div>
   <div class="mt-8 text-foreground px-2 flex flex-col justify-center gap-3">
     <.card_background class="flex lg:justify-between gap-10 px-20 py-8 flex-wrap">
       <%= for %{title: title, value: value, tooltip_text: tooltip_text} <- @stats do %>
