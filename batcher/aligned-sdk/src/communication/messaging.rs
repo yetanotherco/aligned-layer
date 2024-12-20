@@ -99,7 +99,7 @@ pub async fn receive(
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream = response_stream.lock().await;
     let mut aligned_submitted_data: Vec<Result<AlignedVerificationData, SubmitError>> = Vec::new();
-    let last_proof_nonce = get_biggest_nonce(&sent_verification_data_rev);
+    let mut last_proof_nonce = get_biggest_nonce(&sent_verification_data_rev);
 
     // read from WS
     while let Some(Ok(msg)) = response_stream.next().await {
@@ -123,9 +123,18 @@ pub async fn receive(
         let batch_inclusion_data_message = match handle_batcher_response(msg).await {
             Ok(data) => data,
             Err(e) => {
-                warn!("Error while handling batcher response: {:?}", e);
-                aligned_submitted_data.push(Err(e));
-                break;
+                // In the case of an insufficient balance we still want to read and return the proofs.
+                // `last_valid_nonce` corresponds to the nonce of the proof that triggered InsufficientBalance. 
+                // Therefore the other proofs are in order and we set the last_proof_nonce to the nonce of the InsufficientBalance.
+                if let SubmitError::InsufficientBalance(_, last_valid_nonce) = e {
+                    aligned_submitted_data.push(Err(e));
+                    last_proof_nonce = last_valid_nonce - 1;
+                    continue;
+                } else {
+                    warn!("Error while handling batcher response: {:?}", e);
+                    aligned_submitted_data.push(Err(e));
+                    break;
+                }
             }
         };
 
@@ -191,6 +200,7 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             Err(SubmitError::InvalidMaxFee)
         }
         Ok(SubmitProofResponseMessage::InsufficientBalance(addr, last_sent_valid_nonce)) => {
+            // If we receive an invalid balance we should grab the last_sent_valid_nonce.
             error!("Batcher responded with insufficient balance");
             Err(SubmitError::InsufficientBalance(addr, last_sent_valid_nonce))
         }

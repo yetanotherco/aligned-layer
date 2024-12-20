@@ -612,7 +612,7 @@ async fn handle_submit_err(err: SubmitError) {
         SubmitError::InvalidProof(reason) => error!("Submitted proof is invalid: {}", reason),
         SubmitError::InsufficientBalance(sender_address, last_sent_valid_nonce) => {
             error!(
-                "Insufficient balance to pay for the transaction, address: {} nonce: {}",
+                "Insufficient balance to pay for the transaction, address: {} last_valid_nonce: {}",
                 sender_address,
                 last_sent_valid_nonce
             )
