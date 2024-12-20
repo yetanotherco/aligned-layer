@@ -162,6 +162,21 @@ defmodule Batches do
     end
   end
 
+  def get_batch_size_of_last_n_batches(n) do
+    query =
+      from(b in Batches,
+        where: b.is_verified == true,
+        select: {b.amount_of_proofs, b.submission_block_number},
+        limit: ^n,
+        order_by: [asc: b.submission_block_number]
+      )
+
+    case Explorer.Repo.all(query) do
+      nil -> []
+      result -> result
+    end
+  end
+
   def insert_or_update(batch_changeset, proofs) do
     merkle_root = batch_changeset.changes.merkle_root
     stored_proofs = Proofs.get_proofs_from_batch(%{merkle_root: merkle_root})
