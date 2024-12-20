@@ -1,32 +1,30 @@
 defmodule LabeledProgressBarComponent do
   use ExplorerWeb, :live_component
 
-  attr :progress, :float, required: true
+  attr :percent_progress, :float, required: true
   attr :label, :string, required: true
 
   @impl true
   def render(assigns) do
-  ~H"""
-  <div class="progress-with-labels">
-    <div
-    class="progress-foreground"
-    style={"clip-path: inset(0 #{100 - @progress}% 0 0);"}
-    >
-    <%= @label %>
+    ~H"""
+    <div class="w-full relative weight-700 rounded-lg">
+      <div class="w-full bg-accent/20 rounded-2xl">
+        <p class="ml-2 text-center relative text-foreground font-bold z-10">
+          <%= @label %>
+        </p>
+      </div>
+      <div
+        class="top-0 left-0 h-full bg-accent p-1 rounded-2xl absolute transition-all"
+        style={"width: #{@percent_progress}%"}
+      >
+      </div>
     </div>
-    <div
-    class="progress-background"
-    style={"clip-path: inset(0 0 0 #{@progress}%);"}
-    >
-    <%= @label %>
-    </div>
-  </div>
-  """
+    """
   end
 
   def update_assigns(assigns, socket) do
-    progress = assigns[:progress] || 0
+    progress = assigns[:percent_progress] || 0
     label = assigns[:label] || ""
-    {:ok, assign(socket, progress: progress, label: label)}
+    {:ok, assign(socket, percent_progress: progress, label: label)}
   end
 end

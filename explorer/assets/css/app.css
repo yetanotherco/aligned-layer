@@ -66,29 +66,5 @@
         width: 100%;
         position: relative;
         font-weight: bold;
-
-        .progress-foreground {
-            border-radius: 25px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            color: hsl(var(--accent-foreground));
-            background-color: hsl(var(--accent));
-        }
-
-        .progress-background {
-            border-radius: 25px;
-            position: absolute;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            left: 0;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            background: lightgray;
-            color: black;
-        }
     }
 }

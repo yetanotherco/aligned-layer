@@ -24,7 +24,6 @@ defmodule ExplorerWeb.Batches.Index do
      )}
   end
 
-  # 12.22222 316
   @impl true
   def handle_info(%{block_wait_progress: progress, time_to_next_block: remaining} = _params, socket) do
     Logger.debug("updating block progress: remaining=#{remaining} progress=#{progress}%")

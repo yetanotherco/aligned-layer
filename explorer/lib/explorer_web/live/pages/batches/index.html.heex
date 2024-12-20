@@ -4,7 +4,7 @@
   <.live_component
   id="labeled-progress-bar"
   module={LabeledProgressBarComponent}
-  progress={@next_batch_countdown_progress}
+  percent_progress={@next_batch_countdown_progress}
   label={"Next batch in #{@time_to_next_block} minutes"}/>
   <%= if @batches != :empty and @batches != [] do %>
     <.table id="batches" rows={@batches}>
