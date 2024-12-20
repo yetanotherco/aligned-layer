@@ -18,7 +18,7 @@
       </:col>
       <:col :let={batch} label="Age">
         <span class="md:px-0" title={batch.submission_timestamp}>
-          <%= batch.submission_timestamp |> Helpers.parse_timeago() %>
+          <%= batch.age %>
         </span>
       </:col>
       <:col :let={batch} label="Submission Block Number">

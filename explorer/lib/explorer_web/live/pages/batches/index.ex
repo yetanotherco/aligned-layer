@@ -10,6 +10,7 @@ defmodule ExplorerWeb.Batches.Index do
     current_page = get_current_page(params)
 
     batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
+    |> Helpers.enrich_batches_with_age()
 
     if connected?(socket), do: PubSub.subscribe(Explorer.PubSub, "update_views")
 
@@ -27,6 +28,7 @@ defmodule ExplorerWeb.Batches.Index do
     current_page = socket.assigns.current_page
 
     batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
+    |> Helpers.enrich_batches_with_age()
 
     {:noreply, assign(socket, batches: batches, last_page: Batches.get_last_page(@page_size))}
   end
