@@ -561,7 +561,7 @@ defmodule ExplorerWeb.CoreComponents do
             <button
               class={
                 classes([
-                  "text-card-foreground w-full rounded-lg p-4 text-center hover:bg-accent",
+                  "text-foreground w-full rounded-lg p-4 text-center hover:bg-accent",
                   case @current_value do
                     ^value -> "text-accent hover:text-accent-foreground"
                     _ -> ""
