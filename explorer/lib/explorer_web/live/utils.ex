@@ -161,13 +161,14 @@ defmodule ExplorerWeb.Helpers do
     end
   end
 
-  def enrich_batches_with_age(batches) do
+  def enrich_batches(batches) do
     batches
     |> Enum.map(
       fn batch -> batch
-      |> Map.put(
-        :age,
-        batch.submission_timestamp |> parse_timeago())
+      |> Map.merge(%{
+        age: batch.submission_timestamp |> parse_timeago(),
+        status: batch |> get_batch_status
+      })
       end)
   end
 end
