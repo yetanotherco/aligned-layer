@@ -4,25 +4,33 @@ defmodule NavComponent do
   def get_current_network(host) do
     case host do
       "explorer.alignedlayer.com" -> "Mainnet"
-      "holesky.explorer.alignedlayer.com" -> "Testnet"
+      "holesky.explorer.alignedlayer.com" -> "Holesky"
       "stage.explorer.alignedlayer.com" -> "Stage"
       _ -> "Devnet"
     end
   end
 
-  @impl true
-  def mount(socket) do
-    networks = ExplorerWeb.Helpers.get_aligned_networks()
-
+  def get_networks(current_network) do
     networks =
-      Enum.map(networks, fn {name, link} ->
+      Helpers.get_aligned_networks()
+      |> Enum.filter(fn {name, _link} ->
+        case current_network do
+          # Filter staging networks if we are in mainnet or holesky
+          "Mainnet" -> name in ["Mainnet", "Holesky"]
+          "Holesky" -> name in ["Mainnet", "Holesky"]
+          _ -> true
+        end
+      end)
+      |> Enum.map(fn {name, link} ->
         {name, "window.location.href='#{link}'"}
       end)
+  end
 
+  @impl true
+  def mount(socket) do
     {:ok,
      assign(socket,
-       latest_release: ReleasesHelper.get_latest_release(),
-       networks: networks
+       latest_release: ReleasesHelper.get_latest_release()
      )}
   end
 
@@ -68,11 +76,11 @@ defmodule NavComponent do
           </.link>
           <.link
             class={
-                active_view_class(assigns.socket.view, [
-                  ExplorerWeb.Restakes.Index,
-                  ExplorerWeb.Restake.Index
-                ])
-              }
+              active_view_class(assigns.socket.view, [
+                ExplorerWeb.Restakes.Index,
+                ExplorerWeb.Restake.Index
+              ])
+            }
             navigate={~p"/restakes"}
           >
             Restakes
@@ -101,7 +109,7 @@ defmodule NavComponent do
         <.hover_dropdown_selector
           current_value={get_current_network(@host)}
           variant="foreground"
-          options={@networks}
+          options={get_networks(get_current_network(@host))}
           icon="hero-cube-transparent-micro"
         />
         <button
