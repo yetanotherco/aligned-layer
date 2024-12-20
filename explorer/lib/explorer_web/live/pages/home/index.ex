@@ -85,7 +85,7 @@ defmodule ExplorerWeb.Home.Index do
   @impl true
   def handle_info(_, socket) do
     latest_batches =
-      Batches.get_latest_batches(%{amount: 10})
+      Batches.get_latest_batches(%{amount: 10, order_by: :desc})
 
     {:noreply,
      assign(
@@ -99,7 +99,7 @@ defmodule ExplorerWeb.Home.Index do
   @impl true
   def mount(_, _, socket) do
     latest_batches =
-      Batches.get_latest_batches(%{amount: 10})
+      Batches.get_latest_batches(%{amount: 10, order_by: :desc})
 
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 

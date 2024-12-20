@@ -4,7 +4,7 @@
       Aligned Layer Explorer
     </h1>
   </div>
-  <div class="mt-8 text-foreground px-2 flex flex-col justify-center gap-3">
+  <div class="mt-8 text-foreground px-2 flex flex-col justify-center gap-5">
     <.card_background class="flex lg:justify-between gap-10 px-20 py-8 flex-wrap">
       <%= for %{title: title, value: value, tooltip_text: tooltip_text} <- @stats do %>
         <div>
@@ -18,9 +18,28 @@
         </div>
       <% end %>
     </.card_background>
-    <div>
-      <.card title="Cost per proof" class="w-full sm:col-span-2">
-        <div style="height: 200px;" class="mt-4">
+    <div class="flex flex-wrap gap-5">
+      <.card
+        title="Cost per proof"
+        subtitle="Cost of proving over time"
+        class="p-0 flex-1"
+        header_container_class="px-10 pt-8"
+      >
+        <div style="height: 175px;" class="px-4 pb-8">
+          <.line_chart
+            id="cost_per_proof_chart"
+            points={@cost_per_proof_chart.points}
+            extra_data={@cost_per_proof_chart.extra_data}
+          />
+        </div>
+      </.card>
+      <.card
+        title="Batch size"
+        subtitle="Number of proofs in last batches"
+        class="p-0 flex-1"
+        header_container_class="px-10 pt-8"
+      >
+        <div style="height: 175px;" class="px-4 pb-8">
           <.line_chart
             id="cost_per_proof_chart"
             points={@cost_per_proof_chart.points}

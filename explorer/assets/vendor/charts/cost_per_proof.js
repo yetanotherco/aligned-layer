@@ -4,9 +4,9 @@ export const costPerProofCustomOptions = (options, data) => {
 	// show only min and max values
 	options.scales.y.ticks.callback = (_value, index, values) => {
 		const dataY = data.datasets[0].data.map((point) => parseFloat(point.y));
-		if (index === 0) return `${Math.min(...dataY)} USD`;
+		if (index === 0) return Math.min(...dataY);
 		if (index === values.length - 1) {
-			return `${Math.max(...dataY)} USD`;
+			return Math.max(...dataY);
 		}
 		return "";
 	};
@@ -15,8 +15,6 @@ export const costPerProofCustomOptions = (options, data) => {
 	options.scales.x.ticks.callback = (_value, index, values) => {
 		const age = data.datasets[0].age;
 		if (index === 0) return age[0];
-		if (index === Math.floor((age.length - 1) / 2))
-			return age[Math.floor((age.length - 1) / 2)];
 		if (index === values.length - 1) return age[age.length - 1];
 		return "";
 	};

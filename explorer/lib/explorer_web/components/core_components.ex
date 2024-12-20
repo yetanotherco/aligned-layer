@@ -306,14 +306,14 @@ defmodule ExplorerWeb.CoreComponents do
   attr(:class, :string, default: nil)
   attr(:title, :string, default: nil)
   attr(:subtitle, :string, default: nil)
-  attr(:inner_class, :string, default: nil)
+  attr(:header_container_class, :string, default: nil)
 
   slot(:inner_block, default: nil)
 
   def card(assigns) do
     ~H"""
     <.card_background class={classes(["px-10 py-8", @class])}>
-      <div class="mb-6">
+      <div class={classes(["mb-6", @header_container_class])}>
         <h2 class="text-2xl mb-1 text-foreground font-bold">
           <%= @title %>
         </h2>
