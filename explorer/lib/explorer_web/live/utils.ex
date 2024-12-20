@@ -141,7 +141,8 @@ defmodule ExplorerWeb.Helpers do
   end
 
   def is_stale?(batch) do
-    DateTime.add(batch.submission_timestamp, 5, :minute)
+    ttl = Utils.batch_ttl_minutes()
+    DateTime.add(batch.submission_timestamp, ttl, :minute)
     |> DateTime.before?(DateTime.utc_now())
   end
 
@@ -288,6 +289,11 @@ defmodule Utils do
       _other ->
         false
     end
+  end
+
+  def batch_ttl_minutes() do
+    System.get_env("BATCH_TTL_MINUTES")
+    |> String.to_integer()
   end
 
   def process_batch(%BatchDB{} = batch) do
