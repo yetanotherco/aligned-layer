@@ -1,86 +1,50 @@
-<section class="md:max-w-[50rem] mx-auto">
+<section class="mx-auto" style="max-width: 1200px;">
   <h1 class="text-5xl text-center font-medium tracking-tighter drop-shadow-lg text-primary mt-3">
     Aligned Explorer
   </h1>
   <div class="mt-8 text-foreground px-2 flex flex-col justify-center gap-3">
-    <.card_link
-      icon="hero-arrow-right-solid"
-      navigate={~p"/operators"}
-      title="Registered Active Operators"
-    >
-      <%= if @operators_registered != :empty do %>
-        <%= @operators_registered %>
-      <% else %>
-        0
-      <% end %>
-    </.card_link>
-    <.card_link
-      icon="hero-arrow-right-solid"
-      navigate={~p"/restakes"}
-      title="Total Restaked"
-      subtitle={"(#{@restaked_amount_eth |> Helpers.format_number()} ETH)"}
-    >
-      <%= if @restaked_amount_eth != :nil do %>
-        <%= @restaked_amount_usd |> Helpers.format_number() %> USD
-      <% else %>
-        0
-      <% end %>
-    </.card_link>
-    <.card title="verified batches">
-      <%= if @verified_batches != :empty do %>
-        <%= @verified_batches |> Helpers.format_number() %>
-      <% else %>
-        0
-      <% end %>
-    </.card>
-    <.card title="Verified Proofs" class="-mt-0.5 md:mt-0">
-      <%= if @verified_proofs != :empty do %>
-        <%= @verified_proofs |> Helpers.format_number() %>
-      <% else %>
-        0
-      <% end %>
-    </.card>
-    <.live_component module={ContractsComponent} id="contracts_card" />
-    <div class="relative truncate">
-      <h1 class="text-xl font-bold font-foreground text-left py-2">
-        Recent Batches
-      </h1>
-    </div>
     <%= if @latest_batches != :empty and @latest_batches != [] do %>
-      <.table id="latest_batches" rows={@latest_batches}>
-        <:col :let={latest_batch} label="Batch Hash" class="text-left">
-          <.link navigate={~p"/batches/#{latest_batch.merkle_root}"}>
-            <span class="inline-flex gap-x-3 items-center group-hover:text-foreground/80">
-              <%= Helpers.shorten_hash(latest_batch.merkle_root, 6) %>
-              <.right_arrow />
-              <.tooltip>
-                <%= latest_batch.merkle_root %>
-              </.tooltip>
-            </span>
-          </.link>
-        </:col>
-        <:col :let={latest_batch} label="Status">
-          <.dynamic_badge_for_batcher status={Helpers.get_batch_status(latest_batch)} />
-        </:col>
-        <:col :let={latest_batch} label="Age">
-          <span class="md:px-0" title={latest_batch.submission_timestamp}>
-            <%= latest_batch.submission_timestamp |> Helpers.parse_timeago() %>
-          </span>
-        </:col>
-        <:col :let={latest_batch} label="Submission Block Number">
-          <%= latest_batch.submission_block_number |> Helpers.format_number() %>
-        </:col>
-        <:footer>
-          <div class="flex justify-center py-3">
-            <.link
-              navigate={~p"/batches"}
-              class="absolute hover:underline font-medium text-muted-foreground capitalize text-sm"
-            >
-              View All <.icon name="hero-arrow-top-right-on-square-solid" class="size-3.5 mb-1" />
+      <.card
+        title="Latest batches"
+        subtitle="The most recent verified batches on aligned"
+        class="overflow-x-auto"
+      >
+        <.table id="latest_batches" rows={@latest_batches}>
+          <:col :let={latest_batch} label="Batch Hash" class="text-left">
+            <.link navigate={~p"/batches/#{latest_batch.merkle_root}"}>
+              <span class="inline-flex gap-x-3 items-center group-hover:text-foreground/80">
+                <%= Helpers.shorten_hash(latest_batch.merkle_root, 6) %>
+                <.right_arrow />
+                <.tooltip>
+                  <%= latest_batch.merkle_root %>
+                </.tooltip>
+              </span>
             </.link>
-          </div>
-        </:footer>
-      </.table>
+          </:col>
+          <:col :let={latest_batch} label="Status">
+            <.dynamic_badge_for_batcher status={Helpers.get_batch_status(latest_batch)} />
+          </:col>
+          <:col :let={latest_batch} label="Age">
+            <span class="md:px-0" title={latest_batch.submission_timestamp}>
+              <%= latest_batch.submission_timestamp |> Helpers.parse_timeago() %>
+            </span>
+          </:col>
+          <:col :let={latest_batch} label="Block Number">
+            <%= latest_batch.submission_block_number |> Helpers.format_number() %>
+          </:col>
+          <:footer>
+            <div class="flex justify-center py-3">
+              <.link
+                navigate={~p"/batches"}
+                class="absolute hover:underline font-medium text-muted-foreground capitalize text-sm"
+              >
+                View All
+                <.icon name="hero-arrow-top-right-on-square-solid" class="size-3.5 mb-1" />
+              </.link>
+            </div>
+          </:footer>
+        </.table>
+      </.card>
     <% else %>
       <.empty_card_background text="No Batches To Display." />
     <% end %>
