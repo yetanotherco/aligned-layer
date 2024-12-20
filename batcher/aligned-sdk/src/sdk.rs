@@ -340,7 +340,7 @@ async fn _submit_multiple(
             nonce,
         )
         .await;
-        receive(response_stream, sent_verification_data_rev).await
+        receive(response_stream, sent_verification_data_rev, nonce).await
     }
     .await;
 

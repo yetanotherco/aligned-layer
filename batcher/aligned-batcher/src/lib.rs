@@ -658,6 +658,7 @@ impl Batcher {
         if self.user_balance_is_unlocked(&addr).await {
             send_message(
                 ws_conn_sink.clone(),
+                // last_valid_nonce = client_msg.verification_data.nonce - 1. 
                 SubmitProofResponseMessage::InsufficientBalance(addr, nonced_verification_data.nonce),
             )
             .await;
@@ -750,7 +751,8 @@ impl Batcher {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(addr, nonced_verification_data.nonce),
+                // last_valid_nonce = client_msg.verification_data.nonce - 1. 
+                SubmitProofResponseMessage::InsufficientBalance(addr, nonced_verification_data.nonce - 1),
             )
             .await;
             self.metrics.user_error(&["insufficient_balance", ""]);
@@ -1685,7 +1687,8 @@ impl Batcher {
             error!("Could not get balance for non-paying address {replacement_addr:?}");
             send_message(
                 ws_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(replacement_addr, client_msg.verification_data.nonce),
+                // last_valid_nonce = client_msg.verification_data.nonce - 1. 
+                SubmitProofResponseMessage::InsufficientBalance(replacement_addr, client_msg.verification_data.nonce - 1),
             )
             .await;
             return Ok(());
@@ -1695,7 +1698,8 @@ impl Batcher {
             error!("Insufficient funds for non-paying address {replacement_addr:?}");
             send_message(
                 ws_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(replacement_addr, client_msg.verification_data.nonce),
+                // last_valid_nonce = client_msg.verification_data.nonce - 1. 
+                SubmitProofResponseMessage::InsufficientBalance(replacement_addr, client_msg.verification_data.nonce - 1),
             )
             .await;
             return Ok(());

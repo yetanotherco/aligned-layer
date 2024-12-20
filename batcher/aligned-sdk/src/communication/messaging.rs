@@ -95,11 +95,14 @@ pub async fn send_messages(
 pub async fn receive(
     response_stream: Arc<Mutex<ResponseStream>>,
     mut sent_verification_data_rev: Vec<Result<NoncedVerificationData, SubmitError>>,
+    first_nonce: U256,
 ) -> Vec<Result<AlignedVerificationData, SubmitError>> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream = response_stream.lock().await;
     let mut aligned_submitted_data: Vec<Result<AlignedVerificationData, SubmitError>> = Vec::new();
-    let mut last_proof_nonce = get_biggest_nonce(&sent_verification_data_rev);
+    let last_sent_proof_nonce = get_biggest_nonce(&sent_verification_data_rev);
+    let mut last_proof_nonce = last_sent_proof_nonce;
+    info!("last_sent_proof_nonce: {}", last_sent_proof_nonce);
 
     // read from WS
     while let Some(Ok(msg)) = response_stream.next().await {
@@ -123,18 +126,25 @@ pub async fn receive(
         let batch_inclusion_data_message = match handle_batcher_response(msg).await {
             Ok(data) => data,
             Err(e) => {
-                // In the case of an insufficient balance we still want to read and return the proofs.
+                warn!("Error while handling batcher response: {:?}", e);
+                // In the case of submitting multiple proofs we can have an multiple proofs be submitted but there 
+                // insufficient balance we still want to read and return the `batch_inclusion_data` of the proofs that were approved.
                 // `last_valid_nonce` corresponds to the nonce of the proof that triggered InsufficientBalance. 
                 // Therefore the other proofs are in order and we set the last_proof_nonce to the nonce of the InsufficientBalance.
                 if let SubmitError::InsufficientBalance(_, last_valid_nonce) = e {
                     aligned_submitted_data.push(Err(e));
-                    last_proof_nonce = last_valid_nonce - 1;
+                    // last_valid_nonce = last_nonce - 1. In the case 
+                    info!("last_proof_nonce: {}", last_proof_nonce);
+                    info!("last_valid_nonce: {}", last_valid_nonce);
+                    // In the case all proofs are insufficient balance we go over them.
+                    last_proof_nonce -= U256::from(1);
+                    if last_proof_nonce <= first_nonce {
+                        break;
+                    }
                     continue;
-                } else {
-                    warn!("Error while handling batcher response: {:?}", e);
-                    aligned_submitted_data.push(Err(e));
-                    break;
                 }
+                aligned_submitted_data.push(Err(e));
+                break;
             }
         };
 
@@ -167,6 +177,9 @@ pub async fn receive(
 
         aligned_submitted_data.push(Ok(aligned_verification_data));
         debug!("Message response handled successfully");
+
+        info!("last_proof_nonce: {}", last_proof_nonce);
+        info!("batch_inclusion_data_message.user_nonce: {}", batch_inclusion_data_message.user_nonce);
 
         if batch_inclusion_data_message.user_nonce == last_proof_nonce {
             break;
