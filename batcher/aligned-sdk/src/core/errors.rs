@@ -2,7 +2,7 @@ use core::fmt;
 use ethers::providers::ProviderError;
 use ethers::signers::WalletError;
 use ethers::types::transaction::eip712::Eip712Error;
-use ethers::types::{SignatureError, H160};
+use ethers::types::{SignatureError, H160, U256};
 use serde::{Deserialize, Serialize};
 use std::io;
 use std::path::PathBuf;
@@ -90,7 +90,7 @@ pub enum SubmitError {
     InvalidProof(ProofInvalidReason),
     ProofTooLarge,
     InvalidReplacementMessage,
-    InsufficientBalance(H160),
+    InsufficientBalance(H160, U256),
     InvalidPaymentServiceAddress(H160, H160),
     BatchSubmissionFailed(String),
     AddToBatchError,
@@ -195,8 +195,8 @@ impl fmt::Display for SubmitError {
             SubmitError::InvalidProof(reason) => write!(f, "Invalid proof {}", reason),
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
             SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
-            SubmitError::InsufficientBalance(addr) => {
-                write!(f, "Insufficient balance, address: {}", addr)
+            SubmitError::InsufficientBalance(addr, last_sent_valid_nonce) => {
+                write!(f, "Insufficient balance, address: {} last_sent_valid_nonce: {}", addr, last_sent_valid_nonce)
             }
             SubmitError::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
                 write!(

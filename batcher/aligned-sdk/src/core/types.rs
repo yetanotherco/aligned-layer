@@ -381,7 +381,7 @@ pub enum SubmitProofResponseMessage {
     InvalidSignature,
     ProofTooLarge,
     InvalidMaxFee,
-    InsufficientBalance(Address),
+    InsufficientBalance(Address, U256),
     InvalidChainId,
     InvalidReplacementMessage,
     AddToBatchError,

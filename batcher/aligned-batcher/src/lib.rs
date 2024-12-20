@@ -628,6 +628,7 @@ impl Batcher {
                 return Ok(());
             }
 
+            // If there is one invalid proof we send message with one out of batch and send rejected one.
             if !zk_utils::verify(verification_data).await {
                 error!("Invalid proof detected. Verification failed");
                 send_message(
@@ -657,7 +658,7 @@ impl Batcher {
         if self.user_balance_is_unlocked(&addr).await {
             send_message(
                 ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(addr),
+                SubmitProofResponseMessage::InsufficientBalance(addr, nonced_verification_data.nonce),
             )
             .await;
             self.metrics.user_error(&["insufficient_balance", ""]);
@@ -749,7 +750,7 @@ impl Batcher {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(addr),
+                SubmitProofResponseMessage::InsufficientBalance(addr, nonced_verification_data.nonce),
             )
             .await;
             self.metrics.user_error(&["insufficient_balance", ""]);
@@ -1684,7 +1685,7 @@ impl Batcher {
             error!("Could not get balance for non-paying address {replacement_addr:?}");
             send_message(
                 ws_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(replacement_addr),
+                SubmitProofResponseMessage::InsufficientBalance(replacement_addr, client_msg.verification_data.nonce),
             )
             .await;
             return Ok(());
@@ -1694,7 +1695,7 @@ impl Batcher {
             error!("Insufficient funds for non-paying address {replacement_addr:?}");
             send_message(
                 ws_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(replacement_addr),
+                SubmitProofResponseMessage::InsufficientBalance(replacement_addr, client_msg.verification_data.nonce),
             )
             .await;
             return Ok(());
