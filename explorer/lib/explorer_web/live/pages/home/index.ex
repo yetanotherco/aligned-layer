@@ -1,6 +1,38 @@
 defmodule ExplorerWeb.Home.Index do
   require Logger
+  import ExplorerWeb.ChartComponents
   use ExplorerWeb, :live_view
+
+  def get_cost_per_proof_chart_data() do
+    batches = Batches.get_latest_batches(%{amount: 100, order_by: :asc})
+
+    extra_data =
+      %{
+        merkle_root: Enum.map(batches, fn b -> b.merkle_root end),
+        amount_of_proofs: Enum.map(batches, fn b -> b.amount_of_proofs end),
+        age: Enum.map(batches, fn b -> Helpers.parse_timeago(b.submission_timestamp) end)
+      }
+
+    points =
+      Enum.map(batches, fn b ->
+        fee_per_proof =
+          case EthConverter.wei_to_usd(b.fee_per_proof, 2) do
+            {:ok, value} ->
+              value
+
+            # Nil values are ignored by the chart
+            {:error, _} ->
+              nil
+          end
+
+        %{x: b.submission_block_number, y: fee_per_proof}
+      end)
+
+    %{
+      points: points,
+      extra_data: extra_data
+    }
+  end
 
   def get_stats() do
     verified_proofs = Batches.get_amount_of_verified_proofs()
@@ -59,7 +91,8 @@ defmodule ExplorerWeb.Home.Index do
      assign(
        socket,
        latest_batches: latest_batches,
-       stats: get_stats()
+       stats: get_stats(),
+       cost_per_proof_chart: get_cost_per_proof_chart_data()
      )}
   end
 
@@ -74,6 +107,7 @@ defmodule ExplorerWeb.Home.Index do
      assign(socket,
        stats: get_stats(),
        latest_batches: latest_batches,
+       cost_per_proof_chart: get_cost_per_proof_chart_data(),
        page_title: "Welcome"
      )}
   rescue

@@ -18,7 +18,17 @@
         </div>
       <% end %>
     </.card_background>
-
+    <div>
+      <.card title="Cost per proof" class="w-full sm:col-span-2">
+        <div style="height: 200px;" class="mt-4">
+          <.line_chart
+            id="cost_per_proof_chart"
+            points={@cost_per_proof_chart.points}
+            extra_data={@cost_per_proof_chart.extra_data}
+          />
+        </div>
+      </.card>
+    </div>
     <%= if @latest_batches != :empty and @latest_batches != [] do %>
       <.card
         title="Latest batches"
