@@ -18,6 +18,12 @@
         </div>
       <% end %>
     </.card_background>
+    <.live_component
+      id="labeled-progress-bar"
+      module={LabeledProgressBarComponent}
+      percent_progress={@next_batch_countdown_progress}
+      label={"Next batch in #{@time_to_next_block} minutes"}
+    />
     <div class="flex flex-wrap gap-5">
       <.card
         title="Cost per proof"

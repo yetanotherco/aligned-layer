@@ -114,7 +114,9 @@ defmodule ExplorerWeb.Home.Index do
        latest_batches: latest_batches,
        stats: get_stats(),
        cost_per_proof_chart: get_cost_per_proof_chart_data(),
-       batch_size_chart_data: get_batch_size_chart_data()
+       batch_size_chart_data: get_batch_size_chart_data(),
+       next_batch_countdown_progress: Helpers.next_block_progress(),
+       time_to_next_block: Helpers.time_to_next_block()
      )}
   end
 
@@ -131,6 +133,8 @@ defmodule ExplorerWeb.Home.Index do
        latest_batches: latest_batches,
        cost_per_proof_chart: get_cost_per_proof_chart_data(),
        batch_size_chart_data: get_batch_size_chart_data(),
+       next_batch_countdown_progress: Helpers.next_block_progress(),
+       time_to_next_block: Helpers.time_to_next_block(),
        page_title: "Welcome"
      )}
   rescue
