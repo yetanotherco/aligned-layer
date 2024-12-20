@@ -1,19 +1,19 @@
 defmodule ContractsComponent do
   use ExplorerWeb, :live_component
 
-  attr :class, :string, default: nil
-
   @impl true
   def mount(socket) do
     {:ok,
      assign(socket,
        service_manager_address:
-          AlignedLayerServiceManager.get_aligned_layer_service_manager_address(),
+         AlignedLayerServiceManager.get_aligned_layer_service_manager_address(),
        batcher_payment_service_address:
-          BatcherPaymentServiceManager.get_batcher_payment_service_address(),
+         BatcherPaymentServiceManager.get_batcher_payment_service_address(),
        network: System.get_env("ENVIRONMENT")
      )}
   end
+
+  attr :class, :string, default: ""
 
   @impl true
   def render(assigns) do
