@@ -3,6 +3,20 @@
     Aligned Explorer
   </h1>
   <div class="mt-8 text-foreground px-2 flex flex-col justify-center gap-3">
+    <.card_background class="flex lg:justify-between gap-10 px-20 py-8 flex-wrap">
+      <%= for %{title: title, value: value, tooltip_text: tooltip_text} <- @stats do %>
+        <div>
+          <p class="mb-2 text-md text-muted-foreground"><%= title %></p>
+          <h3 class="text-2xl text-foreground font-bold"><%= value %></h3>
+          <%= if tooltip_text do %>
+            <.tooltip>
+              <%= tooltip_text %>
+            </.tooltip>
+          <% end %>
+        </div>
+      <% end %>
+    </.card_background>
+
     <%= if @latest_batches != :empty and @latest_batches != [] do %>
       <.card
         title="Latest batches"

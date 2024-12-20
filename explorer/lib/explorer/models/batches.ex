@@ -111,6 +111,17 @@ defmodule Batches do
       result -> result
     end
   end
+  
+  def get_avg_fee_per_proof() do
+    query = from(b in Batches,
+      where: b.is_verified == true,
+      select: avg(b.fee_per_proof))
+
+    case Explorer.Repo.one(query) do
+      nil -> 0
+      result -> result
+    end
+  end
 
   def get_unverified_batches() do
     threshold_datetime = DateTime.utc_now() |> DateTime.add(-43200, :second) # 12 hours ago

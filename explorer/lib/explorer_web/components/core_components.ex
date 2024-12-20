@@ -312,7 +312,7 @@ defmodule ExplorerWeb.CoreComponents do
 
   def card(assigns) do
     ~H"""
-    <.card_background class={classes(["px-10 py-6", @class])}>
+    <.card_background class={classes(["px-10 py-8", @class])}>
       <div class="mb-6">
         <h2 class="text-2xl mb-1 text-foreground font-bold">
           <%= @title %>
