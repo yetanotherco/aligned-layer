@@ -50,21 +50,13 @@
 }
 
 @layer components {
-    .tooltip {
-        display: none;
-    }
+	.tooltip {
+		display: none;
+	}
 
-    .tooltip[data-show] {
-        position: absolute;
-        display: block;
-        z-index: 9999;
-    }
-
-    /* Progress bar based on https://dev.to/mikekennedydev/progress-bar-text-colour-1gg6
-     * Foreground color removed to use the accent colors */
-    .progress-with-labels {
-        width: 100%;
-        position: relative;
-        font-weight: bold;
-    }
+	.tooltip[data-show] {
+		position: absolute;
+		display: block;
+		z-index: 9999;
+	}
 }
