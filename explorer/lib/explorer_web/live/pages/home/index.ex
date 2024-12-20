@@ -10,6 +10,7 @@ defmodule ExplorerWeb.Home.Index do
 
     latest_batches =
       Batches.get_latest_batches(%{amount: 10})
+      |> Helpers.enrich_batches()
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
@@ -36,6 +37,7 @@ defmodule ExplorerWeb.Home.Index do
 
     latest_batches =
       Batches.get_latest_batches(%{amount: 10})
+      |> Helpers.enrich_batches()
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
