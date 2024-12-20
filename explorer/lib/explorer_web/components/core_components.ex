@@ -473,6 +473,7 @@ defmodule ExplorerWeb.CoreComponents do
           :invalid -> "destructive"
           :verified -> "accent"
           :pending -> "foreground"
+          :stale -> "destructive"
         end
       }
       class={
@@ -485,9 +486,76 @@ defmodule ExplorerWeb.CoreComponents do
         :invalid -> "Invalid"
         :verified -> "Verified"
         :pending -> "Pending"
+        :stale -> "Unverified"
       end %>
       <%= render_slot(@inner_block) %>
     </.badge>
+    """
+  end
+
+  @doc """
+    Renders a selector dropdown on hover component with buttons that trigger actions on click.
+
+    The selector allows you to display a list of options and enables the user to select a value by clicking on a button.
+    The component supports different styling variants, and the current selected value can be displayed as part of the selector.
+
+    ## Attributes
+
+    - `:class` (optional, :string) - Additional custom CSS classes to apply to the outermost div container.
+
+    - `:variant` (optional, :string, default: "accent") - The style variant of the selector.
+    - `:current_value` (required, :string) - The current value being displayed in the selector. This is usually the name of the currently selected option.
+    - `:icon` (required, :string) - The icon to show on small devices instead of `current_value`.
+    - `:options` (required, :list of tuples) - A list of options to render. Each option is a tuple containing:
+      - `name`: The display name of the option (string).
+      - `on_click`: The JavaScript `onclick` action to trigger when the option is clicked (string).
+  """
+  attr(:class, :string, default: nil)
+  attr(:variant, :string, default: "accent")
+  attr(:current_value, :list, doc: "the current selector value")
+  attr(:options, :string, doc: "the options to render")
+  attr(:icon, :string, doc: "hero icon to render on small devices")
+
+  def hover_dropdown_selector(assigns) do
+    ~H"""
+    <div class={
+      classes([
+        "px-3 py-1 rounded-full font-semibold relative group",
+        case @variant do
+          "accent" -> "color-accent text-accent-foreground bg-accent group-hover:bg-accent/80"
+          "primary" -> "color-primary text-primary-foreground bg-primary group-hover:bg-primary/80"
+          "secondary" -> "color-secondary text-secondary-foreground bg-secondary group-hover:bg-secondary/80"
+          "destructive" -> "color-destructive text-destructive-foreground bg-destructive group-hover:bg-destructive/80"
+          "foreground" -> "color-foreground text-background bg-foreground group-hover:bg-foreground/80"
+          "card" -> "color-card text-card-foreground bg-card group-hover:bg-card/80"
+          _ -> "color-accent text-accent-foreground bg-accent group-hover:bg-accent/80"
+        end,
+        @class
+      ])
+    }>
+      <.icon name={@icon} class="h-5 w-5 hidden max-md:block" />
+      <p class="pointer hidden md:block"><%= @current_value %></p>
+      <div
+        class="hidden absolute w-full right-0 group-hover:block hidden pt-3"
+        style="min-width: 100px;"
+      >
+        <div class="w-full bg-card border border-muted-foreground/30 rounded-lg">
+          <%= for {value, on_click} <- @options do %>
+            <button class={classes([
+              "text-card-foreground w-full rounded-lg p-4 text-center hover:bg-accent",
+              case @current_value do
+                ^value -> "text-accent hover:text-accent-foreground"
+                _ -> ""
+                end
+              ])}
+              onclick={on_click}
+            >
+              <%= value %>
+            </button>
+          <% end %>
+        </div>
+      </div>
+    </div>
     """
   end
 
@@ -713,6 +781,7 @@ defmodule ExplorerWeb.CoreComponents do
   attr(:rows, :list, required: true)
   attr(:row_id, :any, default: nil, doc: "the function for generating the row id")
   attr(:row_click, :any, default: nil, doc: "the function for handling phx-click on each row")
+  attr(:class, :any, default: nil, doc: "css class attributes for the card background")
 
   attr(:row_item, :any,
     default: &Function.identity/1,
@@ -725,6 +794,8 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   slot(:action, doc: "the slot for showing user actions in the last table column")
+  slot(:header, default: nil, doc: "optional header for the table")
+  slot(:footer, default: nil, doc: "optional footer for the table")
 
   def table(assigns) do
     assigns =
@@ -733,7 +804,8 @@ defmodule ExplorerWeb.CoreComponents do
       end
 
     ~H"""
-    <.card_background class="overflow-x-auto">
+    <.card_background class={classes(["overflow-x-auto", @class])}>
+      <%= render_slot(@header) %>
       <table class="table-auto border-collapse w-full">
         <thead>
           <tr class="text-muted-foreground font-normal truncate">
@@ -782,6 +854,7 @@ defmodule ExplorerWeb.CoreComponents do
           </tr>
         </tbody>
       </table>
+      <%= render_slot(@footer) %>
     </.card_background>
     """
   end
