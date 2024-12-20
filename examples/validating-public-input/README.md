@@ -8,6 +8,9 @@ This example is designed to do either with SP1 or risc0 proofs these are the com
 
 ### Risc0
 
+> [NOTE]  
+> In running on MacOS you may need to install xcode or update `metal` dependencies.
+
 1. `make generate_risc0_fibonacci_proof`
 
 2. `make submit_fibonacci_risc0_proof_devnet`
@@ -54,6 +57,9 @@ transactionHash         <TX_HASH>
 ```
 
 ### SP1
+
+> [NOTE]  
+> In running on MacOS you may need to install xcode or update `metal` dependencies.
 
 1. `make generate_sp1_fibonacci_proof`
 
