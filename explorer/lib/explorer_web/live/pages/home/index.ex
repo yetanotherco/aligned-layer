@@ -2,6 +2,18 @@ defmodule ExplorerWeb.Home.Index do
   require Logger
   use ExplorerWeb, :live_view
 
+  defp set_empty_values(socket) do
+    Logger.info("Setting empty values")
+    socket |> assign(
+      verified_batches: :empty,
+      operators_registered: :empty,
+      latest_batches: :empty,
+      verified_proofs: :empty,
+      restaked_amount_eth: :empty,
+      restaked_amount_usd: :empty
+    )
+  end
+
   @impl true
   def handle_info(_, socket) do
     verified_batches = Batches.get_amount_of_verified_batches()
@@ -62,44 +74,41 @@ defmodule ExplorerWeb.Home.Index do
      )}
   rescue
     e in Mint.TransportError ->
+      Logger.error("Error: Mint.TransportError: #{inspect(e)}")
       case e do
         %Mint.TransportError{reason: :econnrefused} ->
           {
             :ok,
-            assign(socket,
-              verified_batches: :empty,
-              operators_registered: :empty,
-              latest_batches: :empty,
-              verified_proofs: :empty
-            )
+            set_empty_values(socket)
             |> put_flash(:error, "Could not connect to the backend, please try again later.")
           }
 
         _ ->
-          "Other transport error: #{inspect(e)}" |> Logger.error()
-          {:ok, socket |> put_flash(:error, "Something went wrong, please try again later.")}
+          {
+            :ok,
+            set_empty_values(socket)
+            |> put_flash(:error, "Something went wrong, please try again later.")}
       end
 
     e in FunctionClauseError ->
+      Logger.error("Error: FunctionClauseError: #{inspect(e)}")
       case e do
         %FunctionClauseError{
           module: ExplorerWeb.Home.Index
         } ->
           {
             :ok,
-            assign(socket,
-              verified_batches: :empty,
-              operators_registered: :empty,
-              latest_batches: :empty,
-              verified_proofs: :empty
-            )
+            set_empty_values(socket)
             |> put_flash(:error, "Something went wrong with the RPC, please try again later.")
           }
       end
 
     e ->
-      Logger.error("Other error: #{inspect(e)}")
-      {:ok, socket |> put_flash(:error, "Something went wrong, please try again later.")}
+      Logger.error("Error: other error: #{inspect(e)}")
+      {
+        :ok,
+        set_empty_values(socket)
+        |> put_flash(:error, "Something went wrong, please try again later.")}
   end
 
   embed_templates("*")
