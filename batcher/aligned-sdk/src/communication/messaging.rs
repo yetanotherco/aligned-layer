@@ -137,10 +137,15 @@ pub async fn receive(
                     info!("last_proof_nonce: {}", last_proof_nonce);
                     info!("last_valid_nonce: {}", last_valid_nonce);
                     // In the case all proofs are insufficient balance we go over them.
-                    last_proof_nonce -= U256::from(1);
-                    if last_proof_nonce <= first_nonce {
+                    //last_proof_nonce -= U256::from(1);
+                    if last_valid_nonce < last_proof_nonce {
+                        last_proof_nonce = last_valid_nonce;
+                    }
+
+                    if last_proof_nonce < first_nonce {
                         break;
                     }
+
                     continue;
                 }
                 aligned_submitted_data.push(Err(e));

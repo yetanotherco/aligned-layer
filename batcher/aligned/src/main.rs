@@ -393,7 +393,7 @@ async fn main() -> Result<(), AlignedError> {
                     Err(e) => {
                         warn!("Error while submitting proof: {:?}", e);
                         handle_submit_err(&e).await;
-                        // In the case of an InsufficientBalance error we record and process the entire msg queue.
+                        // In the case of an InsufficientBalance error we record and continue processing the entire msg queue.
                         // This covers the case of multiple submissions that succeed but fail for a comulative balance of all max_fee's.
                         if let SubmitError::InsufficientBalance(_,_) = e {
                             continue;
@@ -406,6 +406,8 @@ async fn main() -> Result<(), AlignedError> {
 
             match unique_batch_merkle_roots.len() {
                 1 => info!("Proofs submitted to aligned. See the batch in the explorer:"),
+                // If no verification data we do not log the msg.
+                0 => (),
                 _ => info!("Proofs submitted to aligned. See the batches in the explorer:"),
             }
 
