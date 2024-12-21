@@ -127,13 +127,13 @@ pub async fn receive(
             Ok(data) => data,
             Err(e) => {
                 warn!("Error while handling batcher response: {:?}", e);
-                // In the case of submitting multiple proofs we can have an multiple proofs be submitted but there 
+                // In the case of submitting multiple proofs we can have an multiple proofs be submitted but there
                 // insufficient balance we still want to read and return the `batch_inclusion_data` of the proofs that were approved.
-                // `last_valid_nonce` corresponds to the nonce of the proof that triggered InsufficientBalance. 
+                // `last_valid_nonce` corresponds to the nonce of the proof that triggered InsufficientBalance.
                 // Therefore the other proofs are in order and we set the last_proof_nonce to the nonce of the InsufficientBalance.
                 if let SubmitError::InsufficientBalance(_, last_valid_nonce) = e {
                     aligned_submitted_data.push(Err(e));
-                    // last_valid_nonce = last_nonce - 1. In the case 
+                    // last_valid_nonce = last_nonce - 1. In the case
                     info!("last_proof_nonce: {}", last_proof_nonce);
                     info!("last_valid_nonce: {}", last_valid_nonce);
                     // In the case all proofs are insufficient balance we go over them.
@@ -184,7 +184,10 @@ pub async fn receive(
         debug!("Message response handled successfully");
 
         info!("last_proof_nonce: {}", last_proof_nonce);
-        info!("batch_inclusion_data_message.user_nonce: {}", batch_inclusion_data_message.user_nonce);
+        info!(
+            "batch_inclusion_data_message.user_nonce: {}",
+            batch_inclusion_data_message.user_nonce
+        );
 
         if batch_inclusion_data_message.user_nonce == last_proof_nonce {
             break;
@@ -220,7 +223,10 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
         Ok(SubmitProofResponseMessage::InsufficientBalance(addr, last_sent_valid_nonce)) => {
             // If we receive an invalid balance we should grab the last_sent_valid_nonce.
             error!("Batcher responded with insufficient balance");
-            Err(SubmitError::InsufficientBalance(addr, last_sent_valid_nonce))
+            Err(SubmitError::InsufficientBalance(
+                addr,
+                last_sent_valid_nonce,
+            ))
         }
         Ok(SubmitProofResponseMessage::InvalidChainId) => {
             error!("Batcher responded with invalid chain id");

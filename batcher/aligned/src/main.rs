@@ -395,7 +395,7 @@ async fn main() -> Result<(), AlignedError> {
                         handle_submit_err(&e).await;
                         // In the case of an InsufficientBalance error we record and continue processing the entire msg queue.
                         // This covers the case of multiple submissions that succeed but fail for a comulative balance of all max_fee's.
-                        if let SubmitError::InsufficientBalance(_,_) = e {
+                        if let SubmitError::InsufficientBalance(_, _) = e {
                             continue;
                         } else {
                             return Ok(());
@@ -621,8 +621,7 @@ async fn handle_submit_err(err: &SubmitError) {
         SubmitError::InsufficientBalance(sender_address, last_sent_valid_nonce) => {
             error!(
                 "Insufficient balance to pay for the transaction, address: {} last_valid_nonce: {}",
-                sender_address,
-                last_sent_valid_nonce
+                sender_address, last_sent_valid_nonce
             )
         }
         _ => {}
