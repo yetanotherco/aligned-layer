@@ -70,7 +70,10 @@ defmodule Operators do
     |> Enum.map(fn operator ->
       case operator.is_active do
         false ->
-          Map.from_struct(operator) |> Map.put(:weight, 0)
+          Map.from_struct(operator)
+          |> Map.put(:weight, 0)
+          |> Map.put(:total_stake_eth, 0)
+          |> Map.put(:total_stake_usd, 0)
 
         true ->
           weight = Decimal.div(operator.total_stake, total_stake)
