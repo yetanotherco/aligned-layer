@@ -4,6 +4,23 @@
 help: ## 📚 Show help for each of the Makefile recipes
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+# Calldata
+
+calldata-update-merkle-root: ## 💾 Calldata for the method `updateMerkleRoot` to use in a transaction
+	cast calldata "updateMerkleRoot(bytes32)" $(MERKLE_ROOT)
+
+calldata-update-limit-timestamp: ## 💾 Calldata for the method `extendClaimPeriod` to use in a transaction
+	cast calldata "extendClaimPeriod(uint256)" $(LIMIT_TIMESTAMP)
+
+calldata-approve-spending: ## 💾 Calldata for the method `approve` to use in a transaction
+	cast calldata "approve(address,uint256)" $(CLAIM_PROXY_ADDRESS) 2600000000000000000000000000
+
+calldata-unpause: ## 💾 Calldata for the method `unpause` to use in a transaction
+	cast calldata "unpause()"
+
+calldata-pause: ## 💾 Calldata for the method `pause` to use in a transaction
+	cast calldata "pause()"
+
 # Deployments
 
 RPC_URL?=http://localhost:8545
