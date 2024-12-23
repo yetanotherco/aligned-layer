@@ -838,7 +838,7 @@ defmodule ExplorerWeb.CoreComponents do
           <td
             :for={{col, _i} <- Enum.with_index(@col)}
             phx-click={@row_click && @row_click.(row)}
-            class={classes(["p-0", @row_click && "hover:cursor-pointer"])}
+            class={classes(["p-0 pr-10", @row_click && "hover:cursor-pointer"])}
           >
             <div class={
               classes([
