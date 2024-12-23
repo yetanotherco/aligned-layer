@@ -56,21 +56,22 @@
 > - Step 3 must be done by the token distributor multisig as it is the one that has the tokens to be claimed.
 
 > [!WARNING]
->
 > - Double-check the data you passing into the commands, any mistake can lead to undesired behavior.
-> - The data below is an example and should be replaced with the actual data.
 
 1. Update the merkle root
    ```
-   cast calldata "updateMerkleRoot(bytes32)" 0x97619aea42a289b94acc9fb98f5030576fa7449f1dd6701275815a6e99441927
+   // Example merkle_root = 0x97619aea42a289b94acc9fb98f5030576fa7449f1dd6701275815a6e99441927
+   cast calldata "updateMerkleRoot(bytes32)" <merkle_root>
    ```
 2. Update the claim time limit
    ```
-   cast calldata "extendClaimPeriod(uint256)" 2733427550
+   // Example timestamp = 2733427549
+   cast calldata "extendClaimPeriod(uint256)" <timestamp>
    ```
 3. Approve the claimable proxy contract to spend the token from the distributor (_2.6B, taking into account the 18 decimals_)
    ```
-   cast calldata "approve(address,uint256)" 0x0234947ce63d1a5E731e5700b911FB32ec54C3c3 2600000000000000000000000000
+   // Example claim_proxy_address = 0x0234947ce63d1a5E731e5700b911FB32ec54C3c6
+   cast calldata "approve(address,uint256)" <claim_proxy_address> 2600000000000000000000000000
    ```
 4. Unpause the claimable contract (it is paused by default)
    ```
