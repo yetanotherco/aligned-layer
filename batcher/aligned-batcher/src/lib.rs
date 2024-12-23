@@ -628,7 +628,6 @@ impl Batcher {
                 return Ok(());
             }
 
-            // If there is one invalid proof we send message with one out of batch and send rejected one.
             if !zk_utils::verify(verification_data).await {
                 error!("Invalid proof detected. Verification failed");
                 send_message(
@@ -661,7 +660,7 @@ impl Batcher {
                 // last_valid_nonce = client_msg.verification_data.nonce - 1.
                 SubmitProofResponseMessage::InsufficientBalance(
                     addr,
-                    nonced_verification_data.nonce,
+                    nonced_verification_data.nonce - 1,
                 ),
             )
             .await;
