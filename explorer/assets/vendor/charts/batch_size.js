@@ -4,9 +4,9 @@ export const batchSizeCustomOptions = (options, data) => {
 	// show only min and max values
 	options.scales.y.ticks.callback = (_value, index, values) => {
 		const dataY = data.datasets[0].data.map((point) => parseFloat(point.y));
-		if (index === 0) return `${Math.min(...dataY)} USD`;
+		if (index === 0) return `${Math.min(...dataY)} proofs`;
 		if (index === values.length - 1) {
-			return `${Math.max(...dataY)} USD`;
+			return `${Math.max(...dataY)} proofs`;
 		}
 		return "";
 	};
