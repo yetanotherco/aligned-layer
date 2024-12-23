@@ -305,19 +305,23 @@ defmodule ExplorerWeb.CoreComponents do
   """
   attr(:class, :string, default: nil)
   attr(:title, :string, default: nil)
+  attr(:subtitle, :string, default: nil)
   attr(:inner_class, :string, default: nil)
-
+  attr(:header_container_class, :string, default: nil)
   slot(:inner_block, default: nil)
 
   def card(assigns) do
     ~H"""
-    <.card_background class={@class}>
-      <h2 class="font-medium text-muted-foreground capitalize">
-        <%= @title %>
-      </h2>
-      <span class={classes(["text-4xl font-bold slashed-zero", @inner_class])}>
+    <.card_background class={classes(["px-10 py-8", @class])}>
+      <div class={classes(["mb-6", @header_container_class])}>
+        <h2 class="text-2xl mb-1 text-foreground font-bold">
+          <%= @title %>
+        </h2>
+        <p class="text-md text-muted-foreground"><%= @subtitle %></p>
+      </div>
+      <div class={classes(["w-full", @inner_class])}>
         <%= render_slot(@inner_block) %>
-      </span>
+      </div>
     </.card_background>
     """
   end
