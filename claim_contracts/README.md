@@ -46,6 +46,38 @@
 
 ## Enabling Claimability
 
+### By Calldata
+
+> [!IMPORTANT]
+>
+> - This step-by-step **assumes** that the claimable proxy contract **is already deployed** and that **is already paused**. If it is not paused, the first transaction should be to pause it using this calldata `cast calldata "pause()"`.
+> - This method **only** generates the necessary calldata to call the methods through transactions. It does **not** actually call the methods. This method is useful for copy-pasting the calldata into a multisig wallet.
+> - Steps 1, 2, and 4 can be batched into a single transaction in a multisig wallet. This multisig must be the `ClaimableAirdrop` contract owner.
+> - Step 3 must be done by the token distributor multisig as it is the one that has the tokens to be claimed.
+
+> [!WARNING]
+> - Double-check the data you passing into the commands, any mistake can lead to undesired behavior.
+
+1. Update the merkle root
+   ```
+   // Example merkle_root = 0x97619aea42a289b94acc9fb98f5030576fa7449f1dd6701275815a6e99441927
+   cast calldata "updateMerkleRoot(bytes32)" <merkle_root>
+   ```
+2. Update the claim time limit
+   ```
+   // Example timestamp = 2733427549
+   cast calldata "extendClaimPeriod(uint256)" <timestamp>
+   ```
+3. Approve the claimable proxy contract to spend the token from the distributor (_2.6B, taking into account the 18 decimals_)
+   ```
+   // Example claim_proxy_address = 0x0234947ce63d1a5E731e5700b911FB32ec54C3c6
+   cast calldata "approve(address,uint256)" <claim_proxy_address> 2600000000000000000000000000
+   ```
+4. Unpause the claimable contract (it is paused by default)
+   ```
+   cast calldata "unpause()"
+   ```
+
 ### Local
 
 1. Deploy the claimable contract as explained above.
