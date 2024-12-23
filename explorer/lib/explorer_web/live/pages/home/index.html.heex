@@ -12,10 +12,10 @@
         <%= @operators_registered %>
       <% end %>
     </.card_link>
-    <.card_link 
-        icon="hero-arrow-right-solid" 
-        navigate={~p"/restake"} 
-        title="Total Restaked" 
+    <.card_link
+        icon="hero-arrow-right-solid"
+        navigate={~p"/restakes"}
+        title="Total Restaked"
         subtitle={
           if @restaked_amount_eth |> Helpers.format_number() != nil do
             "(#{@restaked_amount_eth |> Helpers.format_number()} ETH)"
@@ -64,18 +64,18 @@
           </.link>
         </:col>
         <:col :let={latest_batch} label="Status">
-          <.dynamic_badge_for_batcher status={Helpers.get_batch_status(latest_batch)} />
+          <.dynamic_badge_for_batcher status={latest_batch.status} />
         </:col>
         <:col :let={latest_batch} label="Age">
           <span class="md:px-0" title={latest_batch.submission_timestamp}>
-            <%= latest_batch.submission_timestamp |> Helpers.parse_timeago() %>
+            <%= latest_batch.age %>
           </span>
         </:col>
         <:col :let={latest_batch} label="Submission Block Number">
           <%= latest_batch.submission_block_number |> Helpers.format_number() %>
         </:col>
         <:footer>
-          <div class="flex justify-center py-3">    
+          <div class="flex justify-center py-3">
             <.link navigate={~p"/batches"} class="absolute hover:underline font-medium text-muted-foreground capitalize text-sm">
                 View All <.icon name="hero-arrow-top-right-on-square-solid" class="size-3.5 mb-1" />
             </.link>
