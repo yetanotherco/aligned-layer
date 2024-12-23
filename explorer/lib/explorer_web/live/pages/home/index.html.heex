@@ -36,6 +36,15 @@
       <% end %>
     </.card>
     <.live_component module={ContractsComponent} id="contracts_card" class="sm:col-span-2" />
+    <.card title="Cost per proof" class="w-full sm:col-span-2">
+      <div style="height: 200px;" class="mt-4">
+        <.line_chart
+          id="cost_per_proof_chart"
+          points={@cost_per_proof_chart.points}
+          extra_data={@cost_per_proof_chart.extra_data}
+        />
+      </div>
+    </.card>
     <div class="relative truncate sm:col-span-2">
         <h1 class="text-xl font-bold font-foreground text-left py-2">
         Recent Batches

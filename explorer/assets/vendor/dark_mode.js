@@ -41,6 +41,8 @@ const setupThemeToggle = () => {
 		.getElementById("theme-toggle")
 		.addEventListener("click", function () {
 			toggleVisibility(!isDark());
+			// chart.js listens for this event to re-render the chart and update its colors
+			window.dispatchEvent(new Event("theme-changed"));
 		});
 };
 
