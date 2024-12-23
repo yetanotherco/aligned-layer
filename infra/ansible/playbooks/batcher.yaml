@@ -23,11 +23,6 @@
   vars:
     host: batcher
 
-- name: Run node_exporter playbook
-  ansible.builtin.import_playbook: node_exporter.yaml
-  vars:
-    host: batcher
-
 - hosts: batcher
 
   tasks:
@@ -139,3 +134,8 @@
         state: restarted
       vars:
         ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Run node_exporter playbook
+      ansible.builtin.import_playbook: node_exporter.yaml
+      vars:
+        host: batcher

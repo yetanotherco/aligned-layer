@@ -8,11 +8,6 @@
   vars:
     host: aggregator
 
-- name: Run node_exporter playbook
-  ansible.builtin.import_playbook: node_exporter.yaml
-  vars:
-    host: aggregator
-
 - hosts: aggregator
   vars:
     service: "aggregator"
@@ -114,3 +109,8 @@
         state: started
         enabled: true
         scope: user
+
+    - name: Run node_exporter playbook
+      ansible.builtin.import_playbook: node_exporter.yaml
+      vars:
+        host: aggregator
