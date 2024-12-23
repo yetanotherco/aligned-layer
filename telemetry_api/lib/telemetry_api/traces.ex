@@ -91,6 +91,10 @@ defmodule TelemetryApi.Traces do
           current_stake: new_stake
       })
 
+      PrometheusMetrics.operator_response(
+        operator.name <> " - " <> String.slice(operator.address, 0..7)
+      )
+
       IO.inspect(
         "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
       )
