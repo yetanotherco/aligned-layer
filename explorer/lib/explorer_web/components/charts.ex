@@ -59,6 +59,7 @@ defmodule ExplorerWeb.ChartComponents do
       }
       chart_options={
         Jason.encode!(%{
+          animation: false,
           responsive: false,
           maintainAspectRatio: false,
           interaction: %{
