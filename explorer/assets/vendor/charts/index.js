@@ -48,6 +48,8 @@ export default {
 			data,
 			options,
 		});
+
+		this.char.resize();
 	},
 
 	reinitChart() {
