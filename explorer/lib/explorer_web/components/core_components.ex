@@ -522,13 +522,26 @@ defmodule ExplorerWeb.CoreComponents do
       classes([
         "px-3 py-1 rounded-full font-semibold relative group",
         case @variant do
-          "accent" -> "color-accent text-accent-foreground bg-accent group-hover:bg-accent/80"
-          "primary" -> "color-primary text-primary-foreground bg-primary group-hover:bg-primary/80"
-          "secondary" -> "color-secondary text-secondary-foreground bg-secondary group-hover:bg-secondary/80"
-          "destructive" -> "color-destructive text-destructive-foreground bg-destructive group-hover:bg-destructive/80"
-          "foreground" -> "color-foreground text-background bg-foreground group-hover:bg-foreground/80"
-          "card" -> "color-card text-card-foreground bg-card group-hover:bg-card/80"
-          _ -> "color-accent text-accent-foreground bg-accent group-hover:bg-accent/80"
+          "accent" ->
+            "color-accent text-accent-foreground bg-accent group-hover:bg-accent/80"
+
+          "primary" ->
+            "color-primary text-primary-foreground bg-primary group-hover:bg-primary/80"
+
+          "secondary" ->
+            "color-secondary text-secondary-foreground bg-secondary group-hover:bg-secondary/80"
+
+          "destructive" ->
+            "color-destructive text-destructive-foreground bg-destructive group-hover:bg-destructive/80"
+
+          "foreground" ->
+            "color-foreground text-background bg-foreground group-hover:bg-foreground/80"
+
+          "card" ->
+            "color-card text-card-foreground bg-card group-hover:bg-card/80"
+
+          _ ->
+            "color-accent text-accent-foreground bg-accent group-hover:bg-accent/80"
         end,
         @class
       ])
@@ -541,13 +554,16 @@ defmodule ExplorerWeb.CoreComponents do
       >
         <div class="w-full bg-card border border-muted-foreground/30 rounded-lg">
           <%= for {value, on_click} <- @options do %>
-            <button class={classes([
-              "text-card-foreground w-full rounded-lg p-4 text-center hover:bg-accent",
-              case @current_value do
-                ^value -> "text-accent hover:text-accent-foreground"
-                _ -> ""
-                end
-              ])}
+            <button
+              class={
+                classes([
+                  "text-card-foreground w-full rounded-lg p-4 text-center hover:bg-accent",
+                  case @current_value do
+                    ^value -> "text-accent hover:text-accent-foreground"
+                    _ -> ""
+                  end
+                ])
+              }
               onclick={on_click}
             >
               <%= value %>
@@ -794,8 +810,6 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   slot(:action, doc: "the slot for showing user actions in the last table column")
-  slot(:header, default: nil, doc: "optional header for the table")
-  slot(:footer, default: nil, doc: "optional footer for the table")
 
   def table(assigns) do
     assigns =
@@ -804,58 +818,46 @@ defmodule ExplorerWeb.CoreComponents do
       end
 
     ~H"""
-    <.card_background class={classes(["overflow-x-auto", @class])}>
-      <%= render_slot(@header) %>
-      <table class="table-auto border-collapse w-full">
-        <thead>
-          <tr class="text-muted-foreground font-normal truncate">
-            <th
-              :for={{col, i} <- Enum.with_index(@col)}
-              class={classes(["pr-4", i == 0 && "text-left", i != 0 && "text-center"])}
-            >
-              <%= col[:label] %>
-            </th>
-            <th :if={@action != []} class="p-0 pb-4">
-              <span class="sr-only"><%= gettext("Actions") %></span>
-            </th>
-          </tr>
-        </thead>
-        <tbody id={@id} phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}>
-          <tr
-            :for={row <- @rows}
-            id={@row_id && @row_id.(row)}
-            class="gap-y-2 [&>td]:pt-3 animate-in fade-in-0 duration-700 truncate"
+    <table class="table-auto border-collapse w-full">
+      <thead>
+        <tr class="text-muted-foreground truncate">
+          <th :for={{col, i} <- Enum.with_index(@col)} class="text-left font-normal">
+            <%= col[:label] %>
+          </th>
+          <th :if={@action != []} class="p-0 pb-4">
+            <span class="sr-only"><%= gettext("Actions") %></span>
+          </th>
+        </tr>
+      </thead>
+      <tbody id={@id} phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}>
+        <tr
+          :for={row <- @rows}
+          id={@row_id && @row_id.(row)}
+          class="gap-y-2 [&>td]:pt-3 animate-in fade-in-0 duration-700 truncate"
+        >
+          <td
+            :for={{col, _i} <- Enum.with_index(@col)}
+            phx-click={@row_click && @row_click.(row)}
+            class={classes(["p-0", @row_click && "hover:cursor-pointer"])}
           >
-            <td
-              :for={{col, _i} <- Enum.with_index(@col)}
-              phx-click={@row_click && @row_click.(row)}
-              class={classes(["p-0", @row_click && "hover:cursor-pointer"])}
-            >
-              <div class={
-                classes([
-                  "group block normal-case font-medium text-base min-w-28",
-                  col[:class] != nil && col[:class],
-                  col[:class] == nil && "text-center font-semibold"
-                ])
-              }>
-                <%= render_slot(col, @row_item.(row)) %>
-              </div>
-            </td>
-            <td :if={@action != []} class="w-14 p-0">
-              <div class="whitespace-nowrap py-4 text-right text-sm font-medium">
-                <span
-                  :for={action <- @action}
-                  class="ml-4 font-semibold leading-6 text-muted-foreground"
-                >
-                  <%= render_slot(action, @row_item.(row)) %>
-                </span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <%= render_slot(@footer) %>
-    </.card_background>
+            <div class={
+              classes([
+                "group block normal-case  text-base min-w-28"
+              ])
+            }>
+              <%= render_slot(col, @row_item.(row)) %>
+            </div>
+          </td>
+          <td :if={@action != []} class="w-14 p-0">
+            <div class="whitespace-nowrap py-4 text-left text-sm">
+              <span :for={action <- @action} class="ml-4 leading-6 text-muted-foreground">
+                <%= render_slot(action, @row_item.(row)) %>
+              </span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
     """
   end
 

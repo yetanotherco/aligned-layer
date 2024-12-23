@@ -1,6 +1,7 @@
 defmodule ExplorerWeb.Home.Index do
   require Logger
   import ExplorerWeb.ChartComponents
+  import ExplorerWeb.BatchesTable
   use ExplorerWeb, :live_view
 
   def get_cost_per_proof_chart_data() do

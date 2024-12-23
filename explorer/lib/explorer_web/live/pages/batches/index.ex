@@ -1,6 +1,7 @@
 defmodule ExplorerWeb.Batches.Index do
   alias Phoenix.PubSub
   require Logger
+  import ExplorerWeb.BatchesTable
   use ExplorerWeb, :live_view
 
   @page_size 15
