@@ -45,6 +45,15 @@
         />
       </div>
     </.card>
+    <.card title="Batch Size" class="w-full  sm:col-span-2">
+      <div style="height: 200px;" class="mt-4">
+        <.line_chart
+          id="batch_size_chart"
+          points={@batch_size_chart_data.points}
+          extra_data={@batch_size_chart_data.extra_data}
+        />
+      </div>
+    </.card>
     <div class="relative truncate sm:col-span-2">
         <h1 class="text-xl font-bold font-foreground text-left py-2">
         Recent Batches

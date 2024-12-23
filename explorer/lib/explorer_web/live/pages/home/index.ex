@@ -34,6 +34,27 @@ defmodule ExplorerWeb.Home.Index do
     }
   end
 
+  def get_batch_size_chart_data() do
+    batches = Enum.reverse(Batches.get_latest_batches(%{amount: 100, order_by: :desc}))
+
+    extra_data =
+      %{
+        merkle_root: Enum.map(batches, fn b -> b.merkle_root end),
+        amount_of_proofs: Enum.map(batches, fn b -> b.amount_of_proofs end),
+        age: Enum.map(batches, fn b -> Helpers.parse_timeago(b.submission_timestamp) end)
+      }
+
+    points =
+      Enum.map(batches, fn b ->
+        %{x: b.submission_block_number, y: b.amount_of_proofs}
+      end)
+
+    %{
+      points: points,
+      extra_data: extra_data
+    }
+  end
+
   defp set_empty_values(socket) do
     Logger.info("Setting empty values")
 
@@ -45,7 +66,8 @@ defmodule ExplorerWeb.Home.Index do
       verified_proofs: :empty,
       restaked_amount_eth: :empty,
       restaked_amount_usd: :empty,
-      cost_per_proof_data: %{points: [], extra_data: %{}}
+      cost_per_proof_data: %{points: [], extra_data: %{}},
+      batch_size_chart_data: %{points: [], extra_data: %{}}
     )
   end
 
@@ -73,7 +95,8 @@ defmodule ExplorerWeb.Home.Index do
        verified_proofs: verified_proofs,
        restaked_amount_eth: restaked_amount_eth,
        restaked_amount_usd: restaked_amount_usd,
-       cost_per_proof_chart: get_cost_per_proof_chart_data()
+       cost_per_proof_chart: get_cost_per_proof_chart_data(),
+       batch_size_chart_data: get_batch_size_chart_data()
      )}
   end
 
@@ -105,6 +128,7 @@ defmodule ExplorerWeb.Home.Index do
        restaked_amount_eth: restaked_amount_eth,
        restaked_amount_usd: restaked_amount_usd,
        cost_per_proof_chart: get_cost_per_proof_chart_data(),
+       batch_size_chart_data: get_batch_size_chart_data(),
        page_title: "Welcome"
      )}
   rescue

@@ -24,7 +24,6 @@ defmodule ExplorerWeb.ChartComponents do
 
   @doc """
   Renders a line chart with aligned style.
-
   ## Examples
     <.line
       id="exchanges"
@@ -83,7 +82,6 @@ defmodule ExplorerWeb.ChartComponents do
               ticks: %{
                 display: @show_ticks.x,
                 autoSkip: false,
-                sampleSize: 1,
                 maxRotation: 0,
                 font: %{
                   weight: "700"
@@ -102,7 +100,6 @@ defmodule ExplorerWeb.ChartComponents do
               ticks: %{
                 display: @show_ticks.y,
                 autoSkip: false,
-                sampleSize: 1,
                 maxRotation: 0,
                 font: %{
                   weight: "700"
