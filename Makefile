@@ -562,7 +562,7 @@ metrics_remove_containers:
         @docker stop prometheus grafana
         @docker rm prometheus grafana
 metrics_clean_db: metrics_remove_containers
-	@docker volume rm aligned_layer_grafana_data aligned_layer_prometheus_data || true
+        @docker volume rm aligned_layer_grafana_data aligned_layer_prometheus_data
 
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
