@@ -4,7 +4,7 @@ defmodule ExplorerWeb.Home.Index do
   use ExplorerWeb, :live_view
 
   def get_cost_per_proof_chart_data() do
-    batches = Batches.get_latest_batches(%{amount: 100, order_by: :asc})
+    batches = Enum.reverse(Batches.get_latest_batches(%{amount: 100, order_by: :desc}))
 
     extra_data =
       %{
