@@ -35,7 +35,7 @@ defmodule ExplorerWeb.Home.Index do
   end
 
   def get_batch_size_chart_data() do
-    batches = Batches.get_latest_batches(%{amount: 100, order_by: :desc})
+    batches = Enum.reverse(Batches.get_latest_batches(%{amount: 100, order_by: :desc}))
 
     extra_data =
       %{
