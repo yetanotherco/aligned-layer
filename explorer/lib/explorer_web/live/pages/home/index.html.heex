@@ -1,6 +1,6 @@
 <section class="mx-auto" style="max-width: 1200px;">
   <div class="flex justify-center items-center">
-    <h1 class="text-5xl w-fit font-normal p-2 px-4 selection:bg-accent-foreground/20 selection:text-accent-foreground/80 rounded-xl tracking-tighter bg-accent drop-shadow-lg text-black mt-3">
+    <h1 class="text-5xl w-fit text-center font-normal p-2 px-4 selection:bg-accent-foreground/20 selection:text-accent-foreground/80 rounded-xl tracking-tighter bg-accent drop-shadow-lg text-black mt-3">
       Aligned Layer Explorer
     </h1>
   </div>
@@ -18,27 +18,57 @@
         </div>
       <% end %>
     </.card_background>
-    <.live_component module={ContractsComponent} id="contracts_card" class="" />
-    <.card title="Cost per proof" class="w-full">
-      <div style="height: 200px;" class="mt-4">
-        <.line_chart
-          id="cost_per_proof_chart"
-          points={@cost_per_proof_chart.points}
-          extra_data={@cost_per_proof_chart.extra_data}
-        />
-      </div>
-    </.card>
-    <div class="relative truncate">
-      <h1 class="text-xl font-bold font-foreground text-left py-2">
-        Recent Batches
-      </h1>
+    <div class="flex flex-wrap md:flex-row flex-col gap-5">
+      <.card
+        title="Cost per proof"
+        subtitle="Cost of proving over time"
+        class="p-0 flex-1"
+        header_container_class="px-10 pt-8"
+      >
+        <div style="height: 200px;" class="px-4 pb-8">
+          <.line_chart
+            id="cost_per_proof_chart"
+            points={@cost_per_proof_chart.points}
+            extra_data={@cost_per_proof_chart.extra_data}
+          />
+        </div>
+      </.card>
+      <.card
+        title="Batch size"
+        subtitle="Number of proofs in last batches"
+        class="p-0 flex-1"
+        header_container_class="px-10 pt-8"
+      >
+        <div style="height: 200px;" class="px-4 pb-8">
+          <.line_chart
+            id="cost_per_proof_chart"
+            points={@cost_per_proof_chart.points}
+            extra_data={@cost_per_proof_chart.extra_data}
+          />
+        </div>
+      </.card>
     </div>
+
     <%= if @latest_batches != :empty and @latest_batches != [] do %>
-      <.card_background class="w-full overflow-x-auto">
+      <.card
+        title="Latest batches"
+        subtitle="The most recent verified batches on aligned"
+        class="overflow-x-auto"
+      >
         <.batches_table batches={@latest_batches} />
-      </.card_background>
+        <div class="flex justify-center my-5">
+          <.link
+            navigate={~p"/batches"}
+            class="absolute hover:underline font-medium text-muted-foreground capitalize text-sm"
+          >
+            View All <.icon name="hero-arrow-top-right-on-square-solid" class="size-3.5 mb-1" />
+          </.link>
+        </div>
+      </.card>
     <% else %>
       <.empty_card_background text="No Batches To Display." />
     <% end %>
+
+    <.live_component module={ContractsComponent} id="contracts_card" class="" />
   </div>
 </section>

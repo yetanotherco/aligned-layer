@@ -60,6 +60,7 @@ defmodule ExplorerWeb.ChartComponents do
       }
       chart_options={
         Jason.encode!(%{
+          responsive: true,
           maintainAspectRatio: false,
           interaction: %{
             mode: "index",
@@ -83,7 +84,6 @@ defmodule ExplorerWeb.ChartComponents do
               ticks: %{
                 display: @show_ticks.x,
                 autoSkip: false,
-                sampleSize: 1,
                 maxRotation: 0,
                 font: %{
                   weight: "700"
@@ -102,7 +102,6 @@ defmodule ExplorerWeb.ChartComponents do
               ticks: %{
                 display: @show_ticks.y,
                 autoSkip: false,
-                sampleSize: 1,
                 maxRotation: 0,
                 font: %{
                   weight: "700"
