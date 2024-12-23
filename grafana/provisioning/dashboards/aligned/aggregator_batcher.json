@@ -2731,6 +2731,13 @@
           "color": {
             "mode": "continuous-GrYlRd"
           },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
           "mappings": [],
           "noValue": "none",
           "thresholds": {
@@ -2747,7 +2754,22 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -2757,20 +2779,16 @@
       },
       "id": 49,
       "options": {
-        "displayMode": "gradient",
-        "minVizHeight": 13,
-        "minVizWidth": 0,
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
           "fields": "",
-          "values": false
+          "reducer": [
+            "sum"
+          ],
+          "show": false
         },
-        "showUnfilled": true,
-        "text": {},
-        "valueMode": "color"
+        "showHeader": false
       },
       "pluginVersion": "10.1.10",
       "targets": [
@@ -2797,11 +2815,28 @@
       "title": "# Operator Missing Tasks",
       "transformations": [
         {
-          "id": "calculateField",
-          "options": {}
+          "id": "reduce",
+          "options": {
+            "labelsToFields": false,
+            "reducers": [
+              "max"
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "Max"
+              }
+            ]
+          }
         }
       ],
-      "type": "bargauge"
+      "type": "table"
     },
     {
       "datasource": {
@@ -3258,13 +3293,13 @@
     "list": []
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-30m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "System Data",
   "uid": "aggregator",
-  "version": 7,
+  "version": 1,
   "weekStart": ""
 }
