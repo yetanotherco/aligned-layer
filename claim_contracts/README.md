@@ -62,6 +62,10 @@
 > [!WARNING]
 > The data below is an example and should be replaced with the actual data.
 
+0. Pause the claimable proxy contract (if it is not already paused)
+   ```
+   cast calldata "pause()"
+   ```
 1. Update the merkle root
    ```
    cast calldata "updateMerkleRoot(bytes32)" 0x97619aea42a289b94acc9fb98f5030576fa7449f1dd6701275815a6e99441927
