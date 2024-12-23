@@ -76,21 +76,32 @@ defmodule Batches do
     Explorer.Repo.one(query)
   end
 
-  def get_latest_batches(%{amount: amount}) do
+  def get_latest_batches(%{amount: amount} = %{order_by: :desc}) do
     query = from(b in Batches,
       order_by: [desc: b.submission_block_number],
       limit: ^amount,
       select: b)
 
     Explorer.Repo.all(query)
-  end
-
-  def get_paginated_batches(%{page: page, page_size: page_size}) do
+  end 
+  
+  def get_latest_batches(%{amount: amount} = %{order_by: :asc}) do
     query = from(b in Batches,
-      order_by: [desc: b.submission_block_number],
-      limit: ^page_size,
-      offset: ^((page - 1) * page_size),
+      order_by: [asc: b.submission_block_number],
+      limit: ^amount,
       select: b)
+
+    Explorer.Repo.all(query)
+  end
+  
+  def get_paginated_batches(%{page: page, page_size: page_size}) do
+    query =
+      from(b in Batches,
+        order_by: [desc: b.submission_block_number],
+        limit: ^page_size,
+        offset: ^((page - 1) * page_size),
+        select: b
+      )
 
     Explorer.Repo.all(query)
   end

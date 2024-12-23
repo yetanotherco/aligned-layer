@@ -10,6 +10,12 @@ Ensure you have the following installed:
 - [jq](https://jqlang.github.io/jq/)
 - [yq](https://github.com/mikefarah/yq)
 
+After installing foundryup, you need to install a specific Foundry version:
+
+```shell
+foundryup -i nightly-a428ba6ad8856611339a6319290aade3347d25d9
+```
+
 Then run:
 
 ```shell

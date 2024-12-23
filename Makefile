@@ -7,7 +7,7 @@ CONFIG_FILE?=config-files/config.yaml
 export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.12.1
+OPERATOR_VERSION=v0.12.2
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -52,7 +52,7 @@ deps: submodules go_deps build_all_ffi ## Install deps
 
 go_deps:
 	@echo "Installing Go dependencies..."
-	go install github.com/maoueh/zap-pretty@latest
+	go install github.com/maoueh/zap-pretty@v0.3.0
 	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
 	go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 

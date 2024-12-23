@@ -14,6 +14,11 @@ library Utils {
         address(uint160(uint256(keccak256("hevm cheat code"))));
     Vm internal constant vm = Vm(VM_ADDRESS);
 
+    function getAdminAddress(address proxy) internal view returns (address) {
+        bytes32 adminSlot = vm.load(proxy, ERC1967Utils.ADMIN_SLOT);
+        return address(uint160(uint256(adminSlot)));
+    }
+
     /// @notice Address of the deterministic create2 factory.
     /// @dev This address corresponds to a contracts that is set in the storage
     /// in the genesis file. The same contract with the same address is deployed
@@ -82,32 +87,43 @@ library Utils {
         return address(_implementation);
     }
 
-    function alignedTokenProxyDeploymentData(
-        address _proxyAdmin,
+    function alignedTokenProxyConstructorData(
         address _implementation,
         address _foundation,
         address _claim
     ) internal pure returns (bytes memory) {
         return
+            abi.encode(
+                _implementation,
+                _foundation,
+                alignedTokenInitData(_foundation, _claim)
+            );
+    }
+
+    function alignedTokenProxyDeploymentData(
+        address _implementation,
+        address _foundation,
+        address _tokenDistributor
+    ) internal pure returns (bytes memory) {
+        return
             abi.encodePacked(
                 type(TransparentUpgradeableProxy).creationCode,
-                abi.encode(
+                alignedTokenProxyConstructorData(
                     _implementation,
-                    _proxyAdmin,
-                    alignedTokenInitData(_implementation, _foundation, _claim)
+                    _foundation,
+                    _tokenDistributor
                 )
             );
     }
 
     function alignedTokenInitData(
-        address _implementation,
         address _foundation,
-        address _claim
+        address _tokenDistributor
     ) internal pure returns (bytes memory) {
         return
             abi.encodeCall(
-                AlignedToken(_implementation).initialize,
-                (_foundation, _claim)
+                AlignedToken.initialize,
+                (_foundation, _tokenDistributor)
             );
     }
 
@@ -120,27 +136,23 @@ library Utils {
     }
 
     function claimableAirdropProxyDeploymentData(
-        address _proxyAdmin,
+        address _proxyAdminOwner,
         address _implementation,
         address _owner,
         address _tokenContractAddress,
-        address _tokenOwnerAddress,
-        uint256 _limitTimestampToClaim,
-        bytes32 _claimMerkleRoot
+        address _tokenOwnerAddress
     ) internal pure returns (bytes memory) {
         return
             abi.encodePacked(
                 type(TransparentUpgradeableProxy).creationCode,
                 abi.encode(
                     _implementation,
-                    _proxyAdmin,
+                    _proxyAdminOwner,
                     claimableAirdropInitData(
                         _implementation,
                         _owner,
                         _tokenContractAddress,
-                        _tokenOwnerAddress,
-                        _limitTimestampToClaim,
-                        _claimMerkleRoot
+                        _tokenOwnerAddress
                     )
                 )
             );
@@ -148,21 +160,36 @@ library Utils {
 
     function claimableAirdropInitData(
         address _implementation,
-        address _owner,
+        address _foundation,
         address _tokenContractAddress,
-        address _tokenOwnerAddress,
-        uint256 _limitTimestampToClaim,
-        bytes32 _claimMerkleRoot
+        address _tokenOwnerAddress
     ) internal pure returns (bytes memory) {
         return
             abi.encodeCall(
                 ClaimableAirdrop(_implementation).initialize,
                 (
-                    _owner,
+                    _foundation,
                     _tokenContractAddress,
-                    _tokenOwnerAddress,
-                    _limitTimestampToClaim,
-                    _claimMerkleRoot
+                    _tokenOwnerAddress
+                )
+            );
+    }
+
+    function claimableAirdropProxyConstructorData(
+        address _implementation,
+        address _foundation,
+        address _tokenProxy,
+        address _tokenDistributor
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encode(
+                _implementation,
+                _foundation,
+                claimableAirdropInitData(
+                    _implementation,
+                    _foundation,
+                    _tokenProxy,
+                    _tokenDistributor
                 )
             );
     }
