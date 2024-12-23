@@ -14,7 +14,7 @@ defmodule ExplorerWeb.Home.Index do
         _ -> 0
       end
 
-    avg_fee_per_proof_eth = EthConverter.wei_to_eth(avg_fee_per_proof, 6)
+    avg_fee_per_proof_eth = EthConverter.wei_to_eth(avg_fee_per_proof, 4)
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
     operators_registered = Operators.get_amount_of_operators()
