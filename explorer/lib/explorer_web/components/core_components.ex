@@ -821,7 +821,7 @@ defmodule ExplorerWeb.CoreComponents do
     <table class="table-auto border-collapse w-full">
       <thead>
         <tr class="text-muted-foreground truncate">
-          <th :for={{col, i} <- Enum.with_index(@col)} class="text-left font-normal">
+          <th :for={{col, i} <- Enum.with_index(@col)} class="text-left font-normal pb-5">
             <%= col[:label] %>
           </th>
           <th :if={@action != []} class="p-0 pb-4">
@@ -833,7 +833,7 @@ defmodule ExplorerWeb.CoreComponents do
         <tr
           :for={row <- @rows}
           id={@row_id && @row_id.(row)}
-          class="gap-y-2 [&>td]:pt-3 animate-in fade-in-0 duration-700 truncate"
+          class="gap-y-2 [&>td]:pb-4 animate-in fade-in-0 duration-700 truncate"
         >
           <td
             :for={{col, _i} <- Enum.with_index(@col)}
