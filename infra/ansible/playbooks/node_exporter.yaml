@@ -6,6 +6,7 @@
       make:
         chdir: /home/{{ ansible_user }}/repos/{{ host }}/aligned_layer
         target: install_node_exporter
+        version: add-node-exporter # Temporary branch pin to test changes on the server. Remove this line before merging.
 
     - name: Create systemd services directory
       file:
