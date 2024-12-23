@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 3,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -775,7 +775,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "increase(batcher_gas_cost_create_task_total{bot=\"batcher\"}[$__range]) * 10 ^ -9",
+          "expr": "increase(batcher_gas_cost_create_task_total{bot=\"batcher\"}[$__range])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -946,7 +946,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "increase(batcher_gas_cost_create_task_total{bot=\"batcher\"}[10y]) * 10 ^ -9",
+          "expr": "increase(batcher_gas_cost_create_task_total{bot=\"batcher\"}[10y])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -1046,7 +1046,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[$__range]) * 10 ^ (-9)",
+          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[$__range])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -1189,7 +1189,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[10y]) * 10 ^ -9",
+          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[10y])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -1763,8 +1763,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "dark-red",
@@ -1871,8 +1870,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1939,8 +1937,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -2039,8 +2036,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2107,8 +2103,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#FF9830",
@@ -2215,8 +2210,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2282,8 +2276,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -2383,8 +2376,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2451,8 +2443,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -2559,8 +2550,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2658,8 +2648,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -3512,7 +3501,7 @@
     "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},

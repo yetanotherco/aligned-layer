@@ -1557,11 +1557,10 @@ impl Batcher {
                 {
                     warn!("Failed to send task status to telemetry: {:?}", e);
                 }
-                let gas_cost =
-                    Self::gas_cost_in_gwei(receipt.effective_gas_price, receipt.gas_used);
+                let gas_cost = Self::gas_cost_in_eth(receipt.effective_gas_price, receipt.gas_used);
                 self.metrics
                     .batcher_gas_cost_create_task_total
-                    .inc_by(gas_cost.as_u64());
+                    .inc_by(gas_cost);
                 Ok(receipt)
             }
             Err(RetryError::Permanent(BatcherError::ReceiptNotFoundError)) => {
@@ -1653,11 +1652,10 @@ impl Batcher {
         {
             Ok(receipt) => {
                 info!("createNewTask transaction successfully canceled");
-                let gas_cost =
-                    Self::gas_cost_in_gwei(receipt.effective_gas_price, receipt.gas_used);
+                let gas_cost = Self::gas_cost_in_eth(receipt.effective_gas_price, receipt.gas_used);
                 self.metrics
                     .batcher_gas_cost_cancel_task_total
-                    .inc_by(gas_cost.as_u64());
+                    .inc_by(gas_cost);
             }
             Err(e) => error!("Could not cancel createNewTask transaction: {e}"),
         };
@@ -1666,13 +1664,16 @@ impl Batcher {
             .set(start.elapsed().as_millis() as i64);
     }
 
-    fn gas_cost_in_gwei(gas_price: Option<U256>, gas_used: Option<U256>) -> U256 {
+    fn gas_cost_in_eth(gas_price: Option<U256>, gas_used: Option<U256>) -> f64 {
         if let (Some(gas_price), Some(gas_used)) = (gas_price, gas_used) {
-            let wei_gas_cost = gas_price * gas_used;
-            let gwei_gas_cost = wei_gas_cost / U256::from(1e9 as i64);
-            return gwei_gas_cost;
+            let wei_gas_cost = gas_price
+                .checked_mul(gas_used)
+                .unwrap_or_else(|| U256::max_value());
+            let wei_gas_cost_f64 = wei_gas_cost.as_u128() as f64;
+            let eth_gas_cost = wei_gas_cost_f64 / 1e18;
+            return eth_gas_cost;
         }
-        U256::zero()
+        0.0
     }
 
     /// Only relevant for testing and for users to easily use Aligned
