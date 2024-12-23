@@ -11,8 +11,7 @@ defmodule NavComponent do
   end
 
   def get_networks(current_network) do
-    networks =
-      Helpers.get_aligned_networks()
+    Helpers.get_aligned_networks()
       |> Enum.filter(fn {name, _link} ->
         case current_network do
           # Filter dev networks if we are in mainnet or holesky
@@ -104,7 +103,7 @@ defmodule NavComponent do
         >
           GitHub
         </.link>
-        <DarkMode.button />
+        <DarkMode.button theme={@theme} />
         <.hover_dropdown_selector
           current_value={get_current_network(@host)}
           variant="accent"

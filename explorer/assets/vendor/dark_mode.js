@@ -36,6 +36,7 @@ const setupThemeToggle = () => {
 			setThemeCookie("light");
 		}
 	};
+	toggleVisibility(isDark());
 	document
 		.getElementById("theme-toggle")
 		.addEventListener("click", function () {

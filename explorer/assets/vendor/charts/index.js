@@ -33,10 +33,7 @@ export default {
 			this.chart.destroy();
 		}
 
-		window.removeEventListener(
-			"theme-changed",
-			this.reinitChart.bind(this)
-		);
+		window.removeEventListener("theme-changed", this.reinitChart.bind(this));
 	},
 
 	initChart() {
