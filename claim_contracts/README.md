@@ -104,18 +104,3 @@ or
 ```
 make deploy-example MERKLE_ROOT=<claims-merkle-root> TIMESTAMP=2733427549
 ```
-
-### Testnet (using Safe Wallets)
-
-> [!IMPORTANT]
-> This assumes that the token and claimable contracts have already been deployed.
-
-#### Treasury
-
-- Approve the claimable contract to spend the token from the distributor.
-
-#### Foundation
-
-- Set the Merkle root
-- Set claim time limit
-- Unpause
