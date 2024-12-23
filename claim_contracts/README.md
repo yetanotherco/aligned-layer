@@ -76,6 +76,9 @@ make deploy-example MERKLE_ROOT=<claims-merkle-root> TIMESTAMP=2733427549
 
 To upgrade a contract, first make sure you pause the contract if it's not paused already (NOTE: the erc20 cannot be paused, the claim contract can though). Once that's done, clone the `aligned_layer` repo and go into the `claim_contracts` directory:
 
+> [!NOTE]
+> The ERC20 cannot be paused. Only the claimable airdrop proxy can be paused.
+
 ```
 git clone git@github.com:yetanotherco/aligned_layer.git && cd aligned_layer/claim_contracts
 ```
@@ -86,6 +89,9 @@ This implementation will most likely be a copy paste of the old implementation, 
 
 - Add a public `reinitalize function` with a `reinitializer()` modifier that takes in the next version number of the contract (the first version is `1`). As an example, if this is the first upgrade being done, you should add this function to the contract:
 
+> [!WARNING]
+> DO NOT UPDATE STORAGE VARIABLES IN THIS AND FOLLOWING UPGRADES, ONLY ADD NEW ONES.
+
 ```solidity
 function reinitialize() public reinitializer(2) {
         if (!paused()) {
@@ -95,7 +101,6 @@ function reinitialize() public reinitializer(2) {
 ```
 
 Put the new implementation in a file inside the `src` directory with an appropriate name.
-
 
 ## Write the deployment script
 
@@ -165,18 +170,16 @@ then fill in the missing parts (between `<>` brackets), putting the path to the 
 
 Go into the `config.mainnet.json` file inside the `script-config` directory and fill in the following values:
 
-
 ```
 {
     "foundation": "",
     "contractProxy": "",
  }
-  
+
 ```
 
 - `foundation` is the address of the foundation safe.
 - `contractProxy` is the address of the contract proxy to upgrade.
-
 
 ## Run the deployment script
 
@@ -195,7 +198,6 @@ cd script && \
 ```
 
 After running this script, it will show a message like this:
-
 
 ```
 Proxy Admin to call: 0xf447FD34D97317759777E242fF64cEAe9C58Bf9A
