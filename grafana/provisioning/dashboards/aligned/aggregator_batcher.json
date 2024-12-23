@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 4,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -2732,7 +2732,7 @@
             "mode": "continuous-GrYlRd"
           },
           "custom": {
-            "align": "auto",
+            "align": "left",
             "cellOptions": {
               "type": "auto"
             },
@@ -2846,7 +2846,15 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-GrYlRd"
+            "fixedColor": "dark-green",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
           },
           "mappings": [],
           "noValue": "none",
@@ -2856,103 +2864,28 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
         },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 61
-      },
-      "id": 49,
-      "options": {
-        "displayMode": "gradient",
-        "minVizHeight": 13,
-        "minVizWidth": 0,
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showUnfilled": true,
-        "text": {},
-        "valueMode": "color"
-      },
-      "pluginVersion": "10.1.10",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "disableTextWrap": false,
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "floor(increase(missing_operator_count{job=\"aligned-tracker\"}[$__range]))",
-          "format": "time_series",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "interval": "1",
-          "legendFormat": "{{operator}}",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "# Operator Missing Tasks",
-      "transformations": [
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Total Missed Responses",
-            "mode": "reduceRow",
-            "reduce": {
-              "reducer": "sum"
-            }
-          }
-        }
-      ],
-      "type": "bargauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-greens"
-          },
-          "mappings": [],
-          "noValue": "none",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last"
+            },
+            "properties": [
               {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "lcd",
+                  "type": "gauge",
+                  "valueDisplayMode": "text"
+                }
               }
             ]
           }
-        },
-        "overrides": []
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -2960,22 +2893,18 @@
         "x": 12,
         "y": 69
       },
-      "id": 50,
+      "id": 51,
       "options": {
-        "displayMode": "gradient",
-        "minVizHeight": 13,
-        "minVizWidth": 0,
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
           "fields": "",
-          "values": false
+          "reducer": [
+            "sum"
+          ],
+          "show": false
         },
-        "showUnfilled": true,
-        "text": {},
-        "valueMode": "color"
+        "showHeader": false
       },
       "pluginVersion": "10.1.10",
       "targets": [
@@ -2997,24 +2926,33 @@
           "range": true,
           "refId": "A",
           "useBackend": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "expr": "floor(increase(aligned_aggregator_received_tasks_count{bot=\"aggregator\"}[$__range]))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "Tasks received",
-          "range": true,
-          "refId": "B"
         }
       ],
       "title": "# Operator Responses",
-      "transformations": [],
-      "type": "bargauge"
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "labelsToFields": false,
+            "reducers": [
+              "last"
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "Last"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "table"
     },
     {
       "datasource": {
@@ -3471,13 +3409,13 @@
     "list": []
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "System Data",
   "uid": "aggregator",
-  "version": 1,
+  "version": 3,
   "weekStart": ""
 }
