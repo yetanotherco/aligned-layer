@@ -168,6 +168,9 @@ contract UpgradeContract is Script {
 
 then fill in the missing parts (between `<>` brackets), putting the path to the new contract code and the name of it.
 
+> [!IMPORTANT]
+> Remember to fill the missing parts (between `<>` brackets) in the script, putting the path to the new contract code and the name of it where needed.
+
 Go into the `config.mainnet.json` file inside the `script-config` directory and fill in the following values:
 
 ```
