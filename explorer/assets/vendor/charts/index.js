@@ -1,5 +1,6 @@
 import Chart from "chart.js/auto";
 import { costPerProofCustomOptions } from "./cost_per_proof";
+import { batchSizeCustomOptions } from "./batch_size";
 
 const applyCommonChartOptions = (options, data) => {
 	// tooltip disabled by default, each chart should implement its own with alignedTooltip
@@ -11,6 +12,7 @@ const applyCommonChartOptions = (options, data) => {
 const applyOptionsByChartId = (id, options, data) => {
 	const idOptionsMap = {
 		cost_per_proof_chart: () => costPerProofCustomOptions(options, data),
+		batch_size_chart: () => batchSizeCustomOptions(options, data),
 	};
 
 	idOptionsMap[id] && idOptionsMap[id]();

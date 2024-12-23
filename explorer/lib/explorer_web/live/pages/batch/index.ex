@@ -18,7 +18,10 @@ defmodule ExplorerWeb.Batch.Index do
             batch
             | fee_per_proof: EthConverter.wei_to_eth(fee_per_proof)
           }
-          |> Map.put(:fee_per_proof_usd, fee_per_proof_usd)
+          |> Map.merge(%{
+            fee_per_proof_usd: fee_per_proof_usd,
+            status: batch |> Helpers.get_batch_status
+          })
       end
 
     {
@@ -61,7 +64,10 @@ defmodule ExplorerWeb.Batch.Index do
             batch
             | fee_per_proof: EthConverter.wei_to_eth(fee_per_proof)
           }
-          |> Map.put(:fee_per_proof_usd, fee_per_proof_usd)
+          |> Map.merge(%{
+            fee_per_proof_usd: fee_per_proof_usd,
+            status: batch |> Helpers.get_batch_status
+          })
 
       end
 

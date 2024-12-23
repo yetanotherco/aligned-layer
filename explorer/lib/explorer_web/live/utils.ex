@@ -154,6 +154,17 @@ defmodule ExplorerWeb.Helpers do
       true -> :pending
     end
   end
+
+  def enrich_batches(batches) do
+    batches
+    |> Enum.map(
+      fn batch -> batch
+      |> Map.merge(%{
+        age: batch.submission_timestamp |> parse_timeago(),
+        status: batch |> get_batch_status
+      })
+      end)
+  end
 end
 
 # Backend utils

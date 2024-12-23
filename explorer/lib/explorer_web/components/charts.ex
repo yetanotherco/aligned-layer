@@ -24,7 +24,6 @@ defmodule ExplorerWeb.ChartComponents do
 
   @doc """
   Renders a line chart with aligned style.
-
   ## Examples
     <.line
       id="exchanges"
