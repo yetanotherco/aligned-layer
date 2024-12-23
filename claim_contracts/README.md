@@ -59,17 +59,20 @@
 > Steps 1, 2, and 4 can be batched into a single transaction in a multisig wallet. This multisig must be the `ClaimableAirdrop` contract owner.
 > Step 3 must be done by the token distributor multisig as it is the one that has the tokens to be claimed.
 
+> [!WARNING]
+> The data below is an example and should be replaced with the actual data.
+
 1. Update the merkle root
    ```
-   cast calldata "updateMerkleRoot(bytes32)" <merkle_root>
+   cast calldata "updateMerkleRoot(bytes32)" 0x97619aea42a289b94acc9fb98f5030576fa7449f1dd6701275815a6e99441927
    ```
 2. Update the claim time limit
    ```
-   cast calldata "extendClaimPeriod(uint256)" <new_timestamp>
+   cast calldata "extendClaimPeriod(uint256)" 2733427550
    ```
 3. Approve the claimable proxy contract to spend the token from the distributor (_2.6B, taking into account the 18 decimals_)
    ```
-   cast calldata "approve(address,uint256)" <claimable_proxy_address> 2600000000000000000000000000
+   cast calldata "approve(address,uint256)" 0x0234947ce63d1a5E731e5700b911FB32ec54C3c3 2600000000000000000000000000
    ```
 4. Unpause the claimable contract (it is paused by default)
    ```
