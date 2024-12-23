@@ -66,7 +66,7 @@ defmodule ExplorerWeb.Home.Index do
 
     operators_registered = Operators.get_amount_of_operators()
 
-    latest_batches = Batches.get_latest_batches(%{amount: 5, order_by: :desc})
+    latest_batches = Batches.get_latest_batches(%{amount: 10, order_by: :desc})
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
