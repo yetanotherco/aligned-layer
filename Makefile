@@ -559,9 +559,8 @@ generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
 __METRICS__:
 # Prometheus and Grafana
 metrics_remove_containers:
-	@docker stop prometheus grafana|| true  && \
-		docker rm prometheus grafana || true
-
+        @docker stop prometheus grafana
+        @docker rm prometheus grafana
 metrics_clean_db: metrics_remove_containers
 	@docker volume rm aligned_layer_grafana_data aligned_layer_prometheus_data || true
 
