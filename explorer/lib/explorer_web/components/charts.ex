@@ -62,7 +62,7 @@ defmodule ExplorerWeb.ChartComponents do
         Jason.encode!(%{
           maintainAspectRatio: false,
           interaction: %{
-            mode: "nearest",
+            mode: "index",
             intersect: false
           },
           plugins: %{
@@ -78,7 +78,8 @@ defmodule ExplorerWeb.ChartComponents do
           scales: %{
             x: %{
               type: "linear",
-              offset: true,
+              bounds: "data",
+              offset: false,
               ticks: %{
                 display: @show_ticks.x,
                 autoSkip: false,
@@ -97,6 +98,7 @@ defmodule ExplorerWeb.ChartComponents do
             },
             y: %{
               type: "linear",
+              offset: false,
               ticks: %{
                 display: @show_ticks.y,
                 autoSkip: false,
