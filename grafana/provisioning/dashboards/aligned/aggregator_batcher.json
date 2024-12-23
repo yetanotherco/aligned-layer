@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 4,
+  "id": 2,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -2758,7 +2758,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Max"
+              "options": "Last *"
             },
             "properties": [
               {
@@ -2819,7 +2819,7 @@
           "options": {
             "labelsToFields": false,
             "reducers": [
-              "max"
+              "lastNotNull"
             ]
           }
         },
@@ -2830,7 +2830,7 @@
             "sort": [
               {
                 "desc": true,
-                "field": "Max"
+                "field": "Last *"
               }
             ]
           }
@@ -2872,7 +2872,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Last"
+              "options": "Last *"
             },
             "properties": [
               {
@@ -2935,7 +2935,7 @@
           "options": {
             "labelsToFields": false,
             "reducers": [
-              "last"
+              "lastNotNull"
             ]
           }
         },
@@ -2946,7 +2946,7 @@
             "sort": [
               {
                 "desc": false,
-                "field": "Last"
+                "field": "Last *"
               }
             ]
           }
@@ -3416,6 +3416,6 @@
   "timezone": "browser",
   "title": "System Data",
   "uid": "aggregator",
-  "version": 3,
+  "version": 1,
   "weekStart": ""
 }
