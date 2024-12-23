@@ -103,7 +103,7 @@ defmodule NavComponent do
         >
           GitHub
         </.link>
-        <DarkMode.button />
+        <DarkMode.button theme={@theme} />
         <.hover_dropdown_selector
           current_value={get_current_network(@host)}
           variant="accent"
