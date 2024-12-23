@@ -49,7 +49,7 @@ export default {
 			options,
 		});
 
-		this.char.resize();
+		this.chart.resize();
 	},
 
 	reinitChart() {
