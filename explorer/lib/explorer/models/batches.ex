@@ -139,6 +139,19 @@ defmodule Batches do
       result -> result
     end
   end
+  
+  def get_avg_fee_per_proof() do
+    query =
+      from(b in Batches,
+        where: b.is_verified == true,
+        select: avg(b.fee_per_proof)
+      )
+
+    case Explorer.Repo.one(query) do
+      nil -> 0
+      result -> result
+    end
+  end
 
   def get_amount_of_verified_proofs() do
     query = from(b in Batches,

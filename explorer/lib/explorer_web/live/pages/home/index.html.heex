@@ -5,39 +5,19 @@
     </h1>
   </div>
   <div class="mt-8 text-foreground px-2 flex flex-col justify-center gap-5">
-    <.card_link
-      icon="hero-arrow-right-solid"
-      navigate={~p"/operators"}
-      title="Registered Active Operators"
-    >
-      <%= if @operators_registered != :empty do %>
-        <%= @operators_registered %>
+    <.card_background class="flex lg:justify-between gap-10 px-20 py-8 flex-wrap">
+      <%= for %{title: title, value: value, tooltip_text: tooltip_text} <- @stats do %>
+        <div>
+          <p class="mb-2 text-md text-muted-foreground"><%= title %></p>
+          <h3 class="text-2xl text-foreground font-bold"><%= value %></h3>
+          <%= if tooltip_text do %>
+            <.tooltip>
+              <%= tooltip_text %>
+            </.tooltip>
+          <% end %>
+        </div>
       <% end %>
-    </.card_link>
-    <.card_link
-      icon="hero-arrow-right-solid"
-      navigate={~p"/restakes"}
-      title="Total Restaked"
-      subtitle={
-        if @restaked_amount_eth |> Helpers.format_number() != nil do
-          "(#{@restaked_amount_eth |> Helpers.format_number()} ETH)"
-        end
-      }
-    >
-      <%= if @restaked_amount_usd |> Helpers.format_number() != nil do %>
-        <%= @restaked_amount_usd |> Helpers.format_number() %> USD
-      <% end %>
-    </.card_link>
-    <.card title="verified batches">
-      <%= if @verified_batches != :empty do %>
-        <%= @verified_batches |> Helpers.format_number() %>
-      <% end %>
-    </.card>
-    <.card title="Verified Proofs" class="-mt-0.5 md:mt-0">
-      <%= if @verified_proofs != :empty do %>
-        <%= @verified_proofs |> Helpers.format_number() %>
-      <% end %>
-    </.card>
+    </.card_background>
     <.live_component module={ContractsComponent} id="contracts_card" class="" />
     <.card title="Cost per proof" class="w-full">
       <div style="height: 200px;" class="mt-4">

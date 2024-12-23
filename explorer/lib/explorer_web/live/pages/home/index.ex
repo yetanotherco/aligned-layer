@@ -4,6 +4,54 @@ defmodule ExplorerWeb.Home.Index do
   import ExplorerWeb.BatchesTable
   use ExplorerWeb, :live_view
 
+  def get_stats() do
+    verified_batches = Batches.get_amount_of_verified_batches()
+    avg_fee_per_proof = Batches.get_avg_fee_per_proof()
+
+    avg_fee_per_proof_usd =
+      case EthConverter.wei_to_usd(avg_fee_per_proof, 2) do
+        {:ok, value} -> value
+        _ -> 0
+      end
+
+    avg_fee_per_proof_eth = EthConverter.wei_to_eth(avg_fee_per_proof, 4)
+
+    verified_proofs = Batches.get_amount_of_verified_proofs()
+    operators_registered = Operators.get_amount_of_operators()
+
+    restaked_amount_eth = Restakings.get_restaked_amount_eth()
+    restaked_amount_usd = Restakings.get_restaked_amount_usd()
+    operator_latest_release = ReleasesHelper.get_latest_release()
+
+    [
+      %{
+        title: "Proofs verified",
+        value: Helpers.convert_number_to_shorthand(verified_proofs),
+        tooltip_text: nil
+      },
+      %{
+        title: "Total batches",
+        value: Helpers.convert_number_to_shorthand(verified_batches),
+        tooltip_text: nil
+      },
+      %{
+        title: "AVG proof cost",
+        value: "#{avg_fee_per_proof_usd} USD",
+        tooltip_text: "~= #{avg_fee_per_proof_eth} ETH"
+      },
+      %{
+        title: "Operators",
+        value: operators_registered,
+        tooltip_text: "Current version #{operator_latest_release}"
+      },
+      %{
+        title: "Total restake",
+        value: "#{restaked_amount_usd} USD",
+        tooltip_text: "~= #{restaked_amount_eth} ETH"
+      }
+    ]
+  end
+
   def get_cost_per_proof_chart_data() do
     batches = Enum.reverse(Batches.get_latest_batches(%{amount: 100, order_by: :desc}))
 
@@ -40,67 +88,35 @@ defmodule ExplorerWeb.Home.Index do
 
     socket
     |> assign(
-      verified_batches: :empty,
-      operators_registered: :empty,
-      latest_batches: :empty,
-      verified_proofs: :empty,
-      restaked_amount_eth: :empty,
-      restaked_amount_usd: :empty,
+      stats: [],
+      latest_batches: [],
       cost_per_proof_data: %{points: [], extra_data: %{}}
     )
   end
 
   @impl true
   def handle_info(_, socket) do
-    verified_batches = Batches.get_amount_of_verified_batches()
-
-    operators_registered = Operators.get_amount_of_operators()
-
     latest_batches = Batches.get_latest_batches(%{amount: 5, order_by: :desc})
-
-    verified_proofs = Batches.get_amount_of_verified_proofs()
-
-    restaked_amount_eth = Restakings.get_restaked_amount_eth()
-    restaked_amount_usd = Restakings.get_restaked_amount_usd()
 
     {:noreply,
      assign(
        socket,
-       verified_batches: verified_batches,
-       operators_registered: operators_registered,
+       stats: get_stats(),
        latest_batches: latest_batches,
-       verified_proofs: verified_proofs,
-       restaked_amount_eth: restaked_amount_eth,
-       restaked_amount_usd: restaked_amount_usd,
        cost_per_proof_chart: get_cost_per_proof_chart_data()
      )}
   end
 
   @impl true
   def mount(_, _, socket) do
-    verified_batches = Batches.get_amount_of_verified_batches()
-
-    operators_registered = Operators.get_amount_of_operators()
-
     latest_batches = Batches.get_latest_batches(%{amount: 10, order_by: :desc})
-
-    verified_proofs = Batches.get_amount_of_verified_proofs()
-
-    restaked_amount_eth = Restakings.get_restaked_amount_eth()
-    restaked_amount_usd = Restakings.get_restaked_amount_usd()
 
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
     {:ok,
      assign(socket,
-       verified_batches: verified_batches,
-       operators_registered: operators_registered,
+       stats: get_stats(),
        latest_batches: latest_batches,
-       verified_proofs: verified_proofs,
-       service_manager_address:
-         AlignedLayerServiceManager.get_aligned_layer_service_manager_address(),
-       restaked_amount_eth: restaked_amount_eth,
-       restaked_amount_usd: restaked_amount_usd,
        cost_per_proof_chart: get_cost_per_proof_chart_data(),
        page_title: "Welcome"
      )}
