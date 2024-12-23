@@ -44,7 +44,7 @@ defmodule NavComponent do
     }
     style="z-index: 1"
     >
-    <div class={classes(["gap-5 lg:gap-10 px-4 sm:px-6 lg:px-8 top-0 p-3 z-50",
+    <div class={classes(["gap-5  mx-4 top-0 p-3 z-50",
         "flex justify-between items-center w-full"])} style="max-width: 1200px;">
       <div class="gap-x-6 flex">
         <.link
@@ -104,6 +104,12 @@ defmodule NavComponent do
           GitHub
         </.link>
         <DarkMode.button theme={@theme} />
+        <.badge :if={@latest_release != nil} class="hidden md:inline">
+          <%= @latest_release %>
+          <.tooltip>
+            Latest Aligned version
+          </.tooltip>
+        </.badge>
         <.hover_dropdown_selector
           current_value={get_current_network(@host)}
           variant="accent"

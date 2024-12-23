@@ -21,7 +21,6 @@ const applyOptionsByChartId = (id, options, data) => {
 export default {
 	mounted() {
 		this.initChart();
-		window.addEventListener("theme-changed", this.reinitChart.bind(this));
 	},
 
 	updated() {
@@ -32,8 +31,6 @@ export default {
 		if (this.chart) {
 			this.chart.destroy();
 		}
-
-		window.removeEventListener("theme-changed", this.reinitChart.bind(this));
 	},
 
 	initChart() {
