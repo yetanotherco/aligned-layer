@@ -46,6 +46,32 @@
 
 ## Enabling Claimability
 
+### By Calldata
+
+> [!IMPORTANT]
+> This method **only** generates the necessary calldata to call the methods through transactions. It does **not** actually call the methods.
+> This method is useful for copy-pasting the calldata into a multisig wallet.
+
+> [!WARNING]
+> Double-check the data you passing into the commands, any mistake can lead to undesired behavior.
+
+1. Update the merkle root
+   ```
+   cast calldata "updateMerkleRoot(bytes32)" <merkle_root>
+   ```
+2. Update the claim time limit
+   ```
+   cast calldata "extendClaimPeriod(uint256)" <new_timestamp>
+   ```
+3. Approve the claimable proxy contract to spend the token from the distributor (_2.6B, taking into account the 18 decimals_)
+   ```
+   cast calldata "approve(address,uint256)" <claimable_proxy_address> 2600000000000000000000000000
+   ```
+4. Unpause the claimable contract (it is paused by default)
+   ```
+   cast calldata "unpause()"
+   ```
+
 ### Local
 
 1. Deploy the claimable contract as explained above.
@@ -71,3 +97,18 @@ or
 ```
 make deploy-example MERKLE_ROOT=<claims-merkle-root> TIMESTAMP=2733427549
 ```
+
+### Testnet (using Safe Wallets)
+
+> [!IMPORTANT]
+> This assumes that the token and claimable contracts have already been deployed.
+
+#### Treasury
+
+- Approve the claimable contract to spend the token from the distributor.
+
+#### Foundation
+
+- Set the Merkle root
+- Set claim time limit
+- Unpause
