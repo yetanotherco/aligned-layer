@@ -176,7 +176,7 @@ Go into the `config.mainnet.json` file inside the `script-config` directory and 
 ```
 {
     "foundation": "",
-    "contractProxy": "",
+    "contractProxy": ""
  }
 
 ```
@@ -190,7 +190,7 @@ Run the script with
 
 ```
 cd script && \
-	forge script <path_to_script.s.sol> \
+	forge script <name_of_the_script.s.sol> \
 	--sig "run(string)" \
 	mainnet \
 	--private-key <private_key> \
