@@ -31,7 +31,15 @@ defmodule ExplorerWeb.BatchesTable do
       </:col>
 
       <:col :let={batch} label="Fee per proof">
-        <%= batch.fee_per_proof |> EthConverter.wei_to_eth(6) %> ETH
+        <%= case EthConverter.wei_to_usd(batch.fee_per_proof, 6) do %>
+          <% {:ok, usd} -> %>
+            <%= "#{usd} USD" %>
+          <% {:error, _} -> %>
+            <%= "N/A" %>
+        <% end %>
+        <.tooltip>
+          ~= <%= EthConverter.wei_to_eth(batch.fee_per_proof, 6) %> ETH
+        </.tooltip>
       </:col>
 
       <:col :let={batch} label="Number of proofs">
