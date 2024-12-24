@@ -91,12 +91,6 @@ export const alignedTooltip = (
 		tooltipEl.style.opacity = 0;
 		return;
 	}
-	tooltipEl.classList.remove("above", "below", "no-transform");
-	if (tooltipModel.yAlign) {
-		tooltipEl.classList.add(tooltipModel.yAlign);
-	} else {
-		tooltipEl.classList.add("no-transform");
-	}
 
 	const values = onTooltipUpdate(tooltipModel);
 	items.forEach((item) => {
@@ -115,5 +109,9 @@ export const alignedTooltip = (
 		tooltipModel.caretX +
 		"px";
 	tooltipEl.style.top =
-		position.top + window.scrollY + tooltipModel.caretY + "px";
+		position.top -
+		tooltipEl.offsetHeight +
+		window.scrollY +
+		tooltipModel.caretY +
+		"px";
 };

@@ -8,16 +8,14 @@
 .chart-tooltip-dot {
 	height: 10px;
 	width: 10px;
-	top: -5px;
+	bottom: -5px;
 	border-radius: 100%;
-	background-color: hsl(var(--foreground));
-	opacity: 0.2;
+	background-color: hsl(var(--accent));
 	position: absolute;
 	transition: all 0.2s;
 }
 
 .chart-tooltip-dot:hover {
-	opacity: 0.5;
 	transform: scale(1.2);
 	cursor: pointer;
 }
@@ -26,7 +24,7 @@
 	min-height: 50px;
 	min-width: 250px;
 	padding: 20px;
-	margin-top: 8px;
+	margin-bottom: 8px;
 	background-color: hsl(var(--card));
 	border-radius: 8px;
 	border-width: 1px;
@@ -49,6 +47,7 @@
 .chart-tooltip-item {
 	display: flex;
 	justify-content: space-between;
+	gap: 5px;
 	width: 100%;
 }
 
@@ -59,3 +58,4 @@
 .chart-tooltip-item-value {
 	color: hsl(var(--foreground));
 }
+
