@@ -27,27 +27,32 @@ defmodule ExplorerWeb.Home.Index do
       %{
         title: "Proofs verified",
         value: Helpers.convert_number_to_shorthand(verified_proofs),
-        tooltip_text: nil
+        tooltip_text: nil,
+        link: nil
       },
       %{
         title: "Total batches",
         value: Helpers.convert_number_to_shorthand(verified_batches),
-        tooltip_text: nil
+        tooltip_text: nil,
+        link: nil
       },
       %{
         title: "AVG proof cost",
         value: "#{avg_fee_per_proof_usd} USD",
-        tooltip_text: "~= #{avg_fee_per_proof_eth} ETH"
+        tooltip_text: "~= #{avg_fee_per_proof_eth} ETH",
+        link: nil
       },
       %{
         title: "Operators",
         value: operators_registered,
-        tooltip_text: "Current version #{operator_latest_release}"
+        tooltip_text: "Current version #{operator_latest_release}",
+        link: "/operators"
       },
       %{
         title: "Total restake",
         value: "#{restaked_amount_usd} USD",
-        tooltip_text: "~= #{restaked_amount_eth} ETH"
+        tooltip_text: "~= #{restaked_amount_eth} ETH",
+        link: "/restakes"
       }
     ]
   end
