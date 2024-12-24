@@ -26,7 +26,7 @@ export const batchSizeCustomOptions = (options, data) => {
 			name: "batch-size",
 			title: "Batch size",
 			items: [
-				{ title: "Cost", id: "cost" },
+				{ title: "Fee per proof", id: "cost" },
 				{ title: "Age", id: "age" },
 				{ title: "Merkle root", id: "merkle_root" },
 				{ title: "Block number", id: "block_number" },
@@ -41,8 +41,7 @@ export const batchSizeCustomOptions = (options, data) => {
 			onTooltipUpdate: (tooltipModel) => {
 				const dataset = tooltipModel.dataPoints[0].dataset;
 				const idx = tooltipModel.dataPoints[0].dataIndex;
-
-				const cost = `${dataset.data[idx].y} USD`;
+				const amount_of_proofs = dataset.data[idx].y;
 				const age = dataset.age[idx];
 				const merkleRootHash = dataset.merkle_root[idx];
 				const merkle_root = `${merkleRootHash.slice(
@@ -50,7 +49,7 @@ export const batchSizeCustomOptions = (options, data) => {
 					6
 				)}...${merkleRootHash.slice(merkleRootHash.length - 4)}`;
 				const block_number = dataset.data[idx].x;
-				const amount_of_proofs = dataset.amount_of_proofs[idx];
+				const cost = `${dataset.fee_per_proof[idx]} USD`;
 
 				return {
 					cost,

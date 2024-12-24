@@ -26,7 +26,7 @@ export const costPerProofCustomOptions = (options, data) => {
 			name: "cost-per-proof",
 			title: "Cost per proof",
 			items: [
-				{ title: "Cost", id: "cost" },
+				{ title: "Fee per proof", id: "cost" },
 				{ title: "Age", id: "age" },
 				{ title: "Merkle root", id: "merkle_root" },
 				{ title: "Block number", id: "block_number" },

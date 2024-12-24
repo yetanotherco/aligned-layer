@@ -94,7 +94,16 @@ defmodule ExplorerWeb.Home.Index do
     extra_data =
       %{
         merkle_root: Enum.map(batches, fn b -> b.merkle_root end),
-        amount_of_proofs: Enum.map(batches, fn b -> b.amount_of_proofs end),
+        fee_per_proof:
+          Enum.map(batches, fn b ->
+            case EthConverter.wei_to_usd(b.fee_per_proof, 2) do
+              {:ok, value} ->
+                value
+
+              {:error, _} ->
+                nil
+            end
+          end),
         age: Enum.map(batches, fn b -> Helpers.parse_timeago(b.submission_timestamp) end)
       }
 
