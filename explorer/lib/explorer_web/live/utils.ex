@@ -136,12 +136,19 @@ defmodule ExplorerWeb.Helpers do
     end
   end
 
+  def get_aligned_contracts_addresses() do
+    aligned_config_file = System.get_env("ALIGNED_CONFIG_FILE")
+    {_, config_json_string} = File.read(aligned_config_file)
+    Jason.decode!(config_json_string) |> Map.get("addresses")
+  end
+
   def binary_to_hex_string(binary) do
     Utils.binary_to_hex_string(binary)
   end
 
   def is_stale?(batch) do
     ttl = Utils.batch_ttl_minutes()
+
     DateTime.add(batch.submission_timestamp, ttl, :minute)
     |> DateTime.before?(DateTime.utc_now())
   end
@@ -157,13 +164,13 @@ defmodule ExplorerWeb.Helpers do
 
   def enrich_batches(batches) do
     batches
-    |> Enum.map(
-      fn batch -> batch
+    |> Enum.map(fn batch ->
+      batch
       |> Map.merge(%{
         age: batch.submission_timestamp |> parse_timeago(),
         status: batch |> get_batch_status
       })
-      end)
+    end)
   end
 end
 

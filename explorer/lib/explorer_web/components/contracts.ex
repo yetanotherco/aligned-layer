@@ -5,13 +5,40 @@ defmodule ContractsComponent do
 
   @impl true
   def mount(socket) do
+    addresses = Helpers.get_aligned_contracts_addresses()
+
     {:ok,
      assign(socket,
-       service_manager_address:
-         AlignedLayerServiceManager.get_aligned_layer_service_manager_address(),
-       batcher_payment_service_address:
-         BatcherPaymentServiceManager.get_batcher_payment_service_address(),
-       network: System.get_env("ENVIRONMENT")
+       contracts: [
+         %{
+           contract_name: "AlignedServiceManager",
+           address: addresses["alignedLayerServiceManager"]
+         },
+         %{
+           contract_name: "BatcherPaymentService",
+           address: addresses["batcherPaymentService"]
+         },
+         %{
+           contract_name: "BlsApkRegistry",
+           address: addresses["blsApkRegistry"]
+         },
+         %{
+           contract_name: "IndexRegistry",
+           address: addresses["indexRegistry"]
+         },
+         %{
+           contract_name: "OperatorStateRetriever",
+           address: addresses["operatorStateRetriever"]
+         },
+         %{
+           contract_name: "RegistryCoordinator",
+           address: addresses["registryCoordinator"]
+         },
+         %{
+           contract_name: "StakeRegistry",
+           address: addresses["stakeRegistry"]
+         }
+       ]
      )}
   end
 
@@ -22,7 +49,7 @@ defmodule ContractsComponent do
       <.card
         inner_class="text-base leading-9 flex flex-wrap sm:flex-row overflow-x-auto gap-x-2"
         title="Contract Addresses"
-        subtitle="Main Aligned contracts addresses"
+        subtitle="All Aligned contracts addresses"
       >
         <.link
           href="https://docs.alignedlayer.com/guides/6_contract_addresses"
@@ -30,37 +57,35 @@ defmodule ContractsComponent do
           target="_blank"
           rel="noopener noreferrer"
         >
-          View All <.icon name="hero-arrow-top-right-on-square-solid" class="size-3.5 mb-1" />
+          See more <.icon name="hero-arrow-top-right-on-square-solid" class="size-3.5 mb-1" />
         </.link>
         <div class="flex flex-col w-full">
-          <div class="flex flex-wrap gap-x-3 w-full justify-between">
-            <h3>
-              <.icon name="hero-cpu-chip" class="size-4 mb-0.5" /> Service Manager:
-            </h3>
-            <.a
-              href={"#{Helpers.get_etherescan_url()}/address/#{@service_manager_address}"}
-              class="hover:text-foreground/80"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <%= @service_manager_address %>
-            </.a>
-          </div>
-          <div class="flex flex-wrap gap-x-3 w-full justify-between">
-            <h3>
-              <.icon name="hero-wallet" class="size-4 mb-0.5" /> Batcher Payment Service:
-            </h3>
-            <.a
-              href={"#{Helpers.get_etherescan_url()}/address/#{@batcher_payment_service_address}"}
-              class="hover:text-foreground/80"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <%= @batcher_payment_service_address %>
-            </.a>
-          </div>
+          <%= for %{contract_name: contract_name, address: address} <- @contracts do %>
+            <.contract contract_name={contract_name} address={address} />
+          <% end %>
         </div>
       </.card>
+    </div>
+    """
+  end
+
+  attr(:contract_name, :string)
+  attr(:address, :string)
+
+  def contract(assigns) do
+    ~H"""
+    <div class="flex flex-wrap gap-x-3 w-full justify-between">
+      <h3>
+        <%= @contract_name %>
+      </h3>
+      <.a
+        href={"#{Helpers.get_etherescan_url()}/address/#{@address}"}
+        class="hover:text-foreground/80"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <%= @address %>
+      </.a>
     </div>
     """
   end
