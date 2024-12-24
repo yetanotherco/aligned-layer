@@ -825,7 +825,7 @@ defmodule ExplorerWeb.CoreComponents do
     <table class="table-auto border-collapse w-full">
       <thead>
         <tr class="text-muted-foreground truncate">
-          <th :for={{col, i} <- Enum.with_index(@col)} class="text-left font-normal pb-5">
+          <th :for={{col, _i} <- Enum.with_index(@col)} class="text-left font-normal pb-5">
             <%= col[:label] %>
           </th>
           <th :if={@action != []} class="p-0 pb-4">
