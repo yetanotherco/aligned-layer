@@ -23,6 +23,7 @@ export const batchSizeCustomOptions = (options, data) => {
 
 	options.plugins.tooltip.external = (context) =>
 		alignedTooltip(context, {
+			name: "batch-size",
 			title: "Batch size",
 			items: [
 				{ title: "Cost", id: "cost" },

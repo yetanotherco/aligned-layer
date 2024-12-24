@@ -23,6 +23,7 @@ export const costPerProofCustomOptions = (options, data) => {
 
 	options.plugins.tooltip.external = (context) =>
 		alignedTooltip(context, {
+			name: "cost-per-proof",
 			title: "Cost per proof",
 			items: [
 				{ title: "Cost", id: "cost" },
