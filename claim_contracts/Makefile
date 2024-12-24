@@ -39,11 +39,13 @@ deploy-token: ## 🚀 Deploy the token contract
 deploy-token-testnet: ## 🚀 Deploy the token contract
 	cd script && \
 	forge script DeployAlignedToken.s.sol \
-	--sig "run(string)" sepolia
+	--sig "run(string)" sepolia \
 	--private-key $(DEPLOYER_PRIVATE_KEY) \
 	--rpc-url $(RPC_URL) \
 	--broadcast \
-	--verbosity 3
+	--verbosity 3 \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY)
 
 deploy-token-prod: ## 🚀 Deploy the token contract
 	cd script && \

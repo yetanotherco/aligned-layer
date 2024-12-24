@@ -103,3 +103,141 @@ or
 ```
 make deploy-example MERKLE_ROOT=<claims-merkle-root> TIMESTAMP=2733427549
 ```
+
+# Contract upgrade instructions
+
+To upgrade a contract, first make sure you pause the contract if it's not paused already (NOTE: the erc20 cannot be paused, the claim contract can though). Once that's done, clone the `aligned_layer` repo and go into the `claim_contracts` directory:
+
+> [!NOTE]
+> The ERC20 cannot be paused. Only the claimable airdrop proxy can be paused.
+
+```
+git clone git@github.com:yetanotherco/aligned_layer.git && cd aligned_layer/claim_contracts
+```
+
+## Write the new contract implementation
+
+This implementation will most likely be a copy paste of the old implementation, only with one or few changes. In addition to that, there is one thing that MUST be done on this new contract:
+
+- Add a public `reinitalize function` with a `reinitializer()` modifier that takes in the next version number of the contract (the first version is `1`). As an example, if this is the first upgrade being done, you should add this function to the contract:
+
+> [!WARNING]
+> DO NOT UPDATE STORAGE VARIABLES IN THIS AND FOLLOWING UPGRADES, ONLY ADD NEW ONES.
+
+```solidity
+function reinitialize() public reinitializer(2) {
+        if (!paused()) {
+            _pause();
+        }
+    }
+```
+
+Put the new implementation in a file inside the `src` directory with an appropriate name.
+
+## Write the deployment script
+
+Under the `script` directory, create a new forge script (with the `.s.sol` extension) with a name like `UpgradeContract.s.sol`, with this code in it:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import <path_to_upgrade_contract>;
+import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
+import "forge-std/Script.sol";
+import {Vm} from "forge-std/Vm.sol";
+import {Utils} from "./Utils.sol";
+
+/// @notice Upgrade contract template
+contract UpgradeContract is Script {
+    function run(string memory config) public {
+        string memory root = vm.projectRoot();
+        string memory path = string.concat(
+            root,
+            "/script-config/config.",
+            config,
+            ".json"
+        );
+        string memory config_json = vm.readFile(path);
+
+        address _currentContractProxy = stdJson.readAddress(
+            config_json,
+            ".contractProxy"
+        );
+
+        vm.broadcast();
+        <NameOfUpgradeContract> _newContract = new <NameOfUpgradeContract>();
+
+        bytes memory _upgradeCalldata = abi.encodeCall(
+            ProxyAdmin.upgradeAndCall,
+            (
+                ITransparentUpgradeableProxy(_currentContractProxy),
+                address(_newContract),
+                abi.encodeCall(<NameOfUpgradeContract>.reinitialize, ())
+            )
+        );
+
+        console.log(
+            "Proxy Admin to call:",
+            getAdminAddress(_currentContractProxy)
+        );
+        console.log("Calldata of the transaction: ");
+        console.logBytes(_upgradeCalldata);
+    }
+
+    function getAdminAddress(address proxy) internal view returns (address) {
+        address CHEATCODE_ADDRESS = 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D;
+        Vm vm = Vm(CHEATCODE_ADDRESS);
+
+        bytes32 adminSlot = vm.load(proxy, ERC1967Utils.ADMIN_SLOT);
+        return address(uint160(uint256(adminSlot)));
+    }
+}
+
+```
+
+then fill in the missing parts (between `<>` brackets), putting the path to the new contract code and the name of it.
+
+> [!IMPORTANT]
+> Remember to fill the missing parts (between `<>` brackets) in the script, putting the path to the new contract code and the name of it where needed.
+
+Go into the `config.mainnet.json` file inside the `script-config` directory and fill in the following values:
+
+```
+{
+    "foundation": "",
+    "contractProxy": ""
+ }
+
+```
+
+- `foundation` is the address of the foundation safe.
+- `contractProxy` is the address of the contract proxy to upgrade.
+
+## Run the deployment script
+
+Run the script with
+
+```
+cd script && \
+	forge script <name_of_the_script.s.sol> \
+	--sig "run(string)" \
+	mainnet \
+	--private-key <private_key> \
+	--rpc-url <mainnet_rpc_url> \
+	--broadcast \
+	--verify \
+	--etherscan-api-key <etherscan_api_key>
+```
+
+After running this script, it will show a message like this:
+
+```
+Proxy Admin to call: 0xf447FD34D97317759777E242fF64cEAe9C58Bf9A
+Calldata of the transaction:
+0x9623609d0000000000000000000000000234947ce63d1a5e731e5700b911fb32ec54c3c3000000000000000000000000f7ac74dbc77e1afda093598c912a6b082dabc31a000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000046c2eb35000000000000000000000000000000000000000000000000000000000
+```
+
+Go into the foundation safe, create a new transaction calling the proxy admin address shown in the message with the message's calldata. Done.
