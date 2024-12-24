@@ -132,7 +132,7 @@ defmodule ExplorerWeb.Home.Index do
 
   @impl true
   def handle_info(_, socket) do
-    latest_batches = Batches.get_latest_batches(%{amount: 5, order_by: :desc})
+    latest_batches = Batches.get_latest_batches(%{amount: 10, order_by: :desc})
 
     {:noreply,
      assign(
