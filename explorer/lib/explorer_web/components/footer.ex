@@ -10,7 +10,7 @@ defmodule FooterComponent do
           [
             {"Batches", "/batches"},
             {"Operators", "/operators"},
-            {"Restake", "/restakes"}
+            {"Restake", "/restaked"}
           ]},
          {"Social",
           [

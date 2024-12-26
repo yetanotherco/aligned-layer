@@ -49,10 +49,10 @@ defmodule ExplorerWeb.Home.Index do
         link: "/operators"
       },
       %{
-        title: "Total restake",
+        title: "Total restaked",
         value: "#{restaked_amount_usd} USD",
         tooltip_text: "~= #{restaked_amount_eth} ETH",
-        link: "/restakes"
+        link: "/restaked"
       }
     ]
   end

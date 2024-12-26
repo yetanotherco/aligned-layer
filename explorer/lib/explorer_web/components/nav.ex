@@ -83,9 +83,9 @@ defmodule NavComponent do
                 ExplorerWeb.Restake.Index
               ])
             }
-            navigate={~p"/restakes"}
+            navigate={~p"/restaked"}
           >
-            Restakes
+            Restaked
           </.link>
         </div>
       </div>
@@ -166,9 +166,9 @@ defmodule NavComponent do
                   ExplorerWeb.Restake.Index
                 ])
               }
-              navigate={~p"/restakes"}
+              navigate={~p"/restaked"}
             >
-              Restakes
+              Restaked
             </.link>
             <.link class="hover:text-foreground" target="_blank" href="https://docs.alignedlayer.com">
               Docs
