@@ -8,15 +8,13 @@ defmodule ExplorerWeb.Helpers do
   end
 
   def convert_number_to_shorthand(number) when number >= 1_000_000 do
-    "#{div(number, 1_000_000)}M"
-  end
-
-  def convert_number_to_shorthand(number) when number >= 10_000 do
-    "#{div(number, 10_000)}k"
+    formatted_number = Float.round(number / 1_000_000, 2)
+    "#{formatted_number}M"
   end
 
   def convert_number_to_shorthand(number) when number >= 1_000 do
-    "#{div(number, 1_000)}k"
+    formatted_number = Float.round(number / 1_000, 2)
+    "#{formatted_number}k"
   end
 
   def convert_number_to_shorthand(number) when number >= 0 do
@@ -119,7 +117,7 @@ defmodule ExplorerWeb.Helpers do
       {"Devnet", "http://localhost:4000/"}
     ]
   end
-  
+
   def get_current_network_from_host(host) do
     case host do
       "explorer.alignedlayer.com" -> "Mainnet"
