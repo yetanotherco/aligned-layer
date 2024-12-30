@@ -250,11 +250,6 @@ struct Sender {
 }
 
 pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
-    if matches!(args.network.into(), Network::Holesky) {
-        error!("Network not supported this infinite proof sender");
-        return;
-    }
-
     info!("Loading wallets");
     let mut senders = vec![];
     let Ok(eth_rpc_provider) = Provider::<Http>::try_from(args.eth_rpc_url.clone()) else {
@@ -372,6 +367,8 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                     }
                 }
                 info!("All responses received for sender {}", i);
+
+                info!("Sleeping for {} seconds, before submitting another burst of proofs", args.burst_time_secs);
 
                 tokio::time::sleep(Duration::from_secs(args.burst_time_secs)).await;
             }
