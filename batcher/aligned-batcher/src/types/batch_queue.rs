@@ -160,6 +160,7 @@ pub(crate) fn try_build_batch(
         if batch_size > max_batch_byte_size
             || fee_per_proof > entry.nonced_verification_data.max_fee
             || batch_len > max_batch_proof_qty
+            || batch_len < 1000
         {
             // Update the state for the next iteration:
             // * Subtract this entry size to the size of the batch size.
