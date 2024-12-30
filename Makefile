@@ -525,6 +525,18 @@ task_sender_test_connections_holesky_stage:
 	--batcher-url wss://stage.batcher.alignedlayer.com \
 	--num-senders $(NUM_SENDERS)
 
+# ===== HOLESKY =====
+task_sender_send_infinite_proofs_holesky:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- send-infinite-proofs \
+	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
+	--max-fee $(MAX_FEE) \
+	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
+	--batcher-url wss://batcher.alignedlayer.com  \
+	--network holesky \
+	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky
+
 __UTILS__:
 aligned_get_user_balance_devnet:
 	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
