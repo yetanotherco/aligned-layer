@@ -4,7 +4,7 @@ Make sure you have Aligned installed as specified [here](../1_introduction/1_try
 
 If you run the examples below, make sure you are in Aligned's repository root.
 
-You can check your submitted proofs on our explorer at https://explorer.alignedlayer.com (for Holesky: https://holesky.explorer.alignedlayer.com).
+You can check your submitted proofs on [Mainnet Explorer](https://explorer.alignedlayer.com) and [Holesky Explorer](https://holesky.explorer.alignedlayer.com).
 
 ## Supported Verifiers
 
