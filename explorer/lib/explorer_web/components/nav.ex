@@ -1,28 +1,19 @@
 defmodule NavComponent do
   use ExplorerWeb, :live_component
 
-  def get_current_network(host) do
-    case host do
-      "explorer.alignedlayer.com" -> "Mainnet"
-      "holesky.explorer.alignedlayer.com" -> "Holesky"
-      "stage.explorer.alignedlayer.com" -> "Stage"
-      _ -> "Devnet"
-    end
-  end
-
   def get_networks(current_network) do
     Helpers.get_aligned_networks()
-      |> Enum.filter(fn {name, _link} ->
-        case current_network do
-          # Filter dev networks if we are in mainnet or holesky
-          "Mainnet" -> name in ["Mainnet", "Holesky"]
-          "Holesky" -> name in ["Mainnet", "Holesky"]
-          _ -> true
-        end
-      end)
-      |> Enum.map(fn {name, link} ->
-        {name, "window.location.href='#{link}'"}
-      end)
+    |> Enum.filter(fn {name, _link} ->
+      case current_network do
+        # Filter dev networks if we are in mainnet or holesky
+        "Mainnet" -> name in ["Mainnet", "Holesky"]
+        "Holesky" -> name in ["Mainnet", "Holesky"]
+        _ -> true
+      end
+    end)
+    |> Enum.map(fn {name, link} ->
+      {name, "window.location.href='#{link}'"}
+    end)
   end
 
   @impl true
@@ -44,7 +35,7 @@ defmodule NavComponent do
     }
     style="z-index: 1"
     >
-    <div class={classes(["gap-5 lg:gap-10 px-4 sm:px-6 lg:px-8 top-0 p-3 z-50",
+    <div class={classes(["gap-5  mx-4 top-0 p-3 z-50",
         "flex justify-between items-center w-full"])} style="max-width: 1200px;">
       <div class="gap-x-6 flex">
         <.link
@@ -83,9 +74,9 @@ defmodule NavComponent do
                 ExplorerWeb.Restake.Index
               ])
             }
-            navigate={~p"/restakes"}
+            navigate={~p"/restaked"}
           >
-            Restakes
+            Restaked
           </.link>
         </div>
       </div>
@@ -104,10 +95,16 @@ defmodule NavComponent do
           GitHub
         </.link>
         <DarkMode.button theme={@theme} />
+        <.badge :if={@latest_release != nil} class="hidden md:inline">
+          <%= @latest_release %>
+          <.tooltip>
+            Latest Aligned version
+          </.tooltip>
+        </.badge>
         <.hover_dropdown_selector
-          current_value={get_current_network(@host)}
+          current_value={Helpers.get_current_network_from_host(@host)}
           variant="accent"
-          options={get_networks(get_current_network(@host))}
+          options={get_networks(Helpers.get_current_network_from_host(@host))}
           icon="hero-cube-transparent-micro"
         />
         <button
@@ -160,9 +157,9 @@ defmodule NavComponent do
                   ExplorerWeb.Restake.Index
                 ])
               }
-              navigate={~p"/restakes"}
+              navigate={~p"/restaked"}
             >
-              Restakes
+              Restaked
             </.link>
             <.link class="hover:text-foreground" target="_blank" href="https://docs.alignedlayer.com">
               Docs

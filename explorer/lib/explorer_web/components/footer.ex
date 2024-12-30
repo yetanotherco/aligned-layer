@@ -10,7 +10,7 @@ defmodule FooterComponent do
           [
             {"Batches", "/batches"},
             {"Operators", "/operators"},
-            {"Restake", "/restakes"}
+            {"Restake", "/restaked"}
           ]},
          {"Social",
           [
@@ -46,10 +46,10 @@ defmodule FooterComponent do
       >
         <div class="hidden sm:inline-block flex-1">
           <.link
-            class="text-md font-bold hover:scale-105 transform duration-150 active:scale-95"
+            class="text-xl font-medium hover:scale-105 transform duration-150 active:scale-95"
             navigate={~p"/"}
           >
-            🟩 <span class="text-foreground">Aligned Layer</span>
+            🟩 <span class="text-lg text-foreground ml-2">Aligned Layer</span>
           </.link>
         </div>
 

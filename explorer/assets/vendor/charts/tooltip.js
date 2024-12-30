@@ -26,6 +26,7 @@ const tooltipComponent = ({ title, isTooltipClickable, items }) => `
  *
  * @param {Object} context - The chart.js context, typically passed as `this` within chart hooks.
  * @param {Object} params - An object containing configuration for the tooltip.
+ * @param {Object} params.name - A string that serves as an identifier for the tooltip.
  * @param {string} params.title - The title text to display in the tooltip.
  * @param {Array} params.items - An array of items (with ids) to be displayed inside the tooltip.
  * @param {Array} params.onTooltipClick - A callback that receives `tooltipModel` and gets triggered when the tooltip is clicked.
@@ -36,6 +37,7 @@ const tooltipComponent = ({ title, isTooltipClickable, items }) => `
  *
  * @example
  * alignedTooltip(context, {
+ *   name: "my-chart",
  *   title: "Tooltip Title",
  *   items: [{ title: "Cost", id: "cost_id" }, { title: "Timestamp", id: "timestamp_id" }],
  *   onTooltipClick: (tooltipModel) => {
@@ -58,15 +60,15 @@ const tooltipComponent = ({ title, isTooltipClickable, items }) => `
  */
 export const alignedTooltip = (
 	context,
-	{ title, items, onTooltipClick, onTooltipUpdate }
+	{ name, title, items, onTooltipClick, onTooltipUpdate }
 ) => {
 	const tooltipModel = context.tooltip;
-	let tooltipEl = document.getElementById("chartjs-tooltip");
+	let tooltipEl = document.getElementById(`chartjs-tooltip-${name}`);
 	if (!tooltipEl) {
 		tooltipEl = document.createElement("div");
 		tooltipEl.style = "transition: opacity 0.3s;";
 		tooltipEl.style = "transition: left 0.1s;";
-		tooltipEl.id = "chartjs-tooltip";
+		tooltipEl.id = `chartjs-tooltip-${name}`;
 		tooltipEl.innerHTML = tooltipComponent({
 			title,
 			isTooltipClickable: !!onTooltipClick,
@@ -81,6 +83,10 @@ export const alignedTooltip = (
 			tooltipEl.style.opacity = 0;
 			tooltipEl.style.zIndex = -1;
 		};
+		// this is needed to maintain responsiveness
+		window.addEventListener("resize", () => {
+			tooltipEl.remove();
+		});
 		if (onTooltipClick)
 			tooltipEl.querySelector(".chart-tooltip-dot").onclick = () =>
 				onTooltipClick(tooltipModel);
@@ -90,12 +96,6 @@ export const alignedTooltip = (
 	if (tooltipModel.opacity == 0 && !window.isTooltipBeingHovered) {
 		tooltipEl.style.opacity = 0;
 		return;
-	}
-	tooltipEl.classList.remove("above", "below", "no-transform");
-	if (tooltipModel.yAlign) {
-		tooltipEl.classList.add(tooltipModel.yAlign);
-	} else {
-		tooltipEl.classList.add("no-transform");
 	}
 
 	const values = onTooltipUpdate(tooltipModel);
@@ -115,5 +115,9 @@ export const alignedTooltip = (
 		tooltipModel.caretX +
 		"px";
 	tooltipEl.style.top =
-		position.top + window.scrollY + tooltipModel.caretY + "px";
+		position.top -
+		tooltipEl.offsetHeight +
+		window.scrollY +
+		tooltipModel.caretY +
+		"px";
 };
