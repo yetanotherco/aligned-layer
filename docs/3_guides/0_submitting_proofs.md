@@ -112,6 +112,7 @@ Proof submission is done via the `submit` command of the Aligned CLI. The argume
 * `batcher_url`: The batcher websocket URL. Can be:
   * mainnet: `wss://mainnet.batcher.alignedlayer.com`
   * holesky: `wss://batcher.alignedlayer.com`
+  * devnet: `ws://localhost:8080`
 * `network` to specify the network to be used. Can be `devnet`, `holesky` or `mainnet`.
 * `rpc_url`: The RPC Ethereum node URL.
 * `proof_generator_addr`: An optional parameter that can be used in some applications to avoid front-running.
