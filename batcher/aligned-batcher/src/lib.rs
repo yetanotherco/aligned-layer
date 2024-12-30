@@ -23,11 +23,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use aligned_sdk::core::constants::{
-    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, BUMP_BACKOFF_FACTOR,
-    BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONNECTION_TIMEOUT,
-    CONSTANT_GAS_COST, DEFAULT_MAX_FEE_PER_PROOF, ETHEREUM_CALL_BACKOFF_FACTOR,
-    ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY, ETHEREUM_CALL_MIN_RETRY_DELAY,
-    GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
+    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST,
+    BATCHER_SUBMISSION_BASE_GAS_COST, BUMP_BACKOFF_FACTOR, BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY,
+    BUMP_MIN_RETRY_DELAY, CONNECTION_TIMEOUT, DEFAULT_MAX_FEE_PER_PROOF,
+    ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
+    ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
@@ -1163,6 +1163,7 @@ impl Batcher {
             gas_price,
             self.max_batch_byte_size,
             self.max_batch_proof_qty,
+            self.constant_gas_cost(),
         )
         .inspect_err(|e| {
             *batch_posting = false;
@@ -1435,7 +1436,7 @@ impl Batcher {
         let batch_data_pointer: String = "".to_owned() + &self.download_endpoint + "/" + &file_name;
 
         let num_proofs_in_batch = leaves.len();
-        let gas_per_proof = (CONSTANT_GAS_COST
+        let gas_per_proof = (self.constant_gas_cost()
             + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
             / num_proofs_in_batch as u128;
         let fee_per_proof = U256::from(gas_per_proof) * gas_price;
@@ -1865,5 +1866,10 @@ impl Batcher {
                 RetryError::Transient(e.to_string())
             })?;
         Ok(())
+    }
+
+    fn constant_gas_cost(&self) -> u128 {
+        (self.aggregator_fee_percentage_multiplier * AGGREGATOR_GAS_COST) / PERCENTAGE_DIVIDER
+            + BATCHER_SUBMISSION_BASE_GAS_COST
     }
 }

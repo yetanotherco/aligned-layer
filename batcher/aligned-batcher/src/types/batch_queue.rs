@@ -154,13 +154,14 @@ pub(crate) fn try_build_batch(
     gas_price: U256,
     max_batch_byte_size: usize,
     max_batch_proof_qty: usize,
+    constant_gas_cost: u128,
 ) -> Result<Vec<BatchQueueEntry>, BatcherError> {
     let mut finalized_batch = batch_queue;
     let mut batch_size = calculate_batch_size(&finalized_batch)?;
 
     while let Some((entry, _)) = finalized_batch.peek() {
         let batch_len = finalized_batch.len();
-        let fee_per_proof = calculate_fee_per_proof(batch_len, gas_price);
+        let fee_per_proof = calculate_fee_per_proof(batch_len, gas_price, constant_gas_cost);
 
         // if batch is not acceptable:
         if batch_size > max_batch_byte_size
@@ -197,8 +198,8 @@ pub(crate) fn try_build_batch(
     Ok(finalized_batch.clone().into_sorted_vec())
 }
 
-fn calculate_fee_per_proof(batch_len: usize, gas_price: U256) -> U256 {
-    let gas_per_proof = (crate::CONSTANT_GAS_COST
+fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost: u128) -> U256 {
+    let gas_per_proof = (constant_gas_cost
         + crate::ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * batch_len as u128)
         / batch_len as u128;
 
@@ -207,6 +208,7 @@ fn calculate_fee_per_proof(batch_len: usize, gas_price: U256) -> U256 {
 
 #[cfg(test)]
 mod test {
+    use aligned_sdk::core::constants::CONSTANT_GAS_COST;
     use aligned_sdk::core::types::ProvingSystemId;
     use aligned_sdk::core::types::VerificationData;
     use ethers::types::Address;
@@ -303,7 +305,14 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let finalized_batch = try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(
+            batch_queue.clone(),
+            gas_price,
+            5000000,
+            50,
+            CONSTANT_GAS_COST,
+        )
+        .unwrap();
 
         assert_eq!(
             finalized_batch[0].nonced_verification_data.max_fee,
@@ -408,7 +417,14 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let finalized_batch = try_build_batch(batch_queue.clone(), gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(
+            batch_queue.clone(),
+            gas_price,
+            5000000,
+            50,
+            CONSTANT_GAS_COST,
+        )
+        .unwrap();
 
         // All entries from the batch queue should be in
         // the finalized batch.
@@ -511,7 +527,14 @@ mod test {
         batch_queue.push(entry_3.clone(), batch_priority_3.clone());
 
         let gas_price = U256::from(1);
-        let finalized_batch = try_build_batch(batch_queue.clone(), gas_price, 5000000, 2).unwrap();
+        let finalized_batch = try_build_batch(
+            batch_queue.clone(),
+            gas_price,
+            5000000,
+            2,
+            CONSTANT_GAS_COST,
+        )
+        .unwrap();
 
         // One Entry from the batch_queue should not be in the finalized batch
         // Particularly, nonce_3 is not in the finalized batch
@@ -614,7 +637,14 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let finalized_batch = try_build_batch(batch_queue.clone(), gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(
+            batch_queue.clone(),
+            gas_price,
+            5000000,
+            50,
+            CONSTANT_GAS_COST,
+        )
+        .unwrap();
 
         // All entries from the batch queue should be in
         // the finalized batch.
@@ -723,7 +753,14 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let finalized_batch = try_build_batch(batch_queue.clone(), gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(
+            batch_queue.clone(),
+            gas_price,
+            5000000,
+            50,
+            CONSTANT_GAS_COST,
+        )
+        .unwrap();
 
         // All but one entries from the batch queue should be in the finalized batch.
         assert_eq!(batch_queue.len(), 3);
@@ -832,8 +869,14 @@ mod test {
         // The max batch len is 2, so the algorithm should stop at the second entry.
         let max_batch_proof_qty = 2;
 
-        let finalized_batch =
-            try_build_batch(batch_queue.clone(), gas_price, 5000000, max_batch_proof_qty).unwrap();
+        let finalized_batch = try_build_batch(
+            batch_queue.clone(),
+            gas_price,
+            5000000,
+            max_batch_proof_qty,
+            CONSTANT_GAS_COST,
+        )
+        .unwrap();
 
         assert_eq!(batch_queue.len(), 3);
         assert_eq!(finalized_batch.len(), 2);
