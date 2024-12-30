@@ -69,8 +69,9 @@ defmodule ExplorerWeb.Home.Index do
     ]
   end
 
-  def get_cost_per_proof_chart_data() do
-    batches = Enum.reverse(Batches.get_latest_batches(%{amount: 15, order_by: :desc}))
+  def get_cost_per_proof_chart_data(amount) do
+    batches =
+      Enum.reverse(Batches.get_latest_batches(%{amount: amount, order_by: :desc}))
 
     extra_data =
       %{
@@ -100,8 +101,9 @@ defmodule ExplorerWeb.Home.Index do
     }
   end
 
-  def get_batch_size_chart_data() do
-    batches = Enum.reverse(Batches.get_latest_batches(%{amount: 15, order_by: :desc}))
+  def get_batch_size_chart_data(amount) do
+    batches =
+      Enum.reverse(Batches.get_latest_batches(%{amount: amount, order_by: :desc}))
 
     extra_data =
       %{
@@ -145,20 +147,22 @@ defmodule ExplorerWeb.Home.Index do
   @impl true
   def handle_info(_, socket) do
     latest_batches = Batches.get_latest_batches(%{amount: 10, order_by: :desc})
+    charts_query_limit = 20
 
     {:noreply,
      assign(
        socket,
        stats: get_stats(),
        latest_batches: latest_batches,
-       cost_per_proof_chart: get_cost_per_proof_chart_data(),
-       batch_size_chart_data: get_batch_size_chart_data()
+       cost_per_proof_chart: get_cost_per_proof_chart_data(charts_query_limit),
+       batch_size_chart_data: get_batch_size_chart_data(charts_query_limit)
      )}
   end
 
   @impl true
   def mount(_, _, socket) do
     latest_batches = Batches.get_latest_batches(%{amount: 10, order_by: :desc})
+    charts_query_limit = 20
 
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
@@ -166,8 +170,8 @@ defmodule ExplorerWeb.Home.Index do
      assign(socket,
        stats: get_stats(),
        latest_batches: latest_batches,
-       cost_per_proof_chart: get_cost_per_proof_chart_data(),
-       batch_size_chart_data: get_batch_size_chart_data(),
+       cost_per_proof_chart: get_cost_per_proof_chart_data(charts_query_limit),
+       batch_size_chart_data: get_batch_size_chart_data(charts_query_limit),
        page_title: "Welcome"
      )}
   rescue
