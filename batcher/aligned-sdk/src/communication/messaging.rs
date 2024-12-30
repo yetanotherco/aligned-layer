@@ -127,11 +127,11 @@ pub async fn receive(
             Ok(data) => data,
             Err(e) => {
                 warn!("Error while handling batcher response: {:?}", e);
-                // When submitting multiple batches a InsufficientBalance error may occur when the `max_balance` of a user within the
-                // BatcherPaymentService.sol is exceeded. This leads to a scenario where some proofs are verified and others rejected with
-                // The SubmitError::InsufficientBalance(error_nonce) thrown. To ensure the user is notified that some of their proofs were rejected
-                // we return upon erroring the nonce of the proof that has errored (is returned earlier) and set that as the new `last_proof_nonce`.
-                // This ensures the client messaging protocol continues receivng verification and error responses until all messages are received.
+                // When submitting multiple batches, an InsufficientBalance error may occur, when the required balance of a user would exceed his balance in the BatcherPaymentService.sol
+                // This leads to a scenario where some of the submitted proofs are accepted and others rejected, with
+                // the SubmitError::InsufficientBalance(error_nonce) thrown. To ensure the user is notified that some of their proofs were rejected,
+                // we return upon erroring the nonce of the proof that has errored and set the new `last_proof_nonce` value accordingly.
+                // This ensures the client messaging protocol continues receiving verification and error responses until all messages are received.
                 if let SubmitError::InsufficientBalance(_, error_nonce) = e {
                     aligned_submitted_data.push(Err(e));
 
