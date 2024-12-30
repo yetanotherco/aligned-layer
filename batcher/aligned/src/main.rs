@@ -618,10 +618,10 @@ async fn handle_submit_err(err: &SubmitError) {
             error!("Batch was reset. try resubmitting the proof");
         }
         SubmitError::InvalidProof(reason) => error!("Submitted proof is invalid: {}", reason),
-        SubmitError::InsufficientBalance(sender_address, last_sent_valid_nonce) => {
+        SubmitError::InsufficientBalance(sender_address, error_nonce) => {
             error!(
-                "Insufficient balance to pay for the transaction, address: {} last_valid_nonce: {}",
-                sender_address, last_sent_valid_nonce
+                "Insufficient balance to pay for the transaction, address: {} error_nonce: {}",
+                sender_address, error_nonce
             )
         }
         _ => {}

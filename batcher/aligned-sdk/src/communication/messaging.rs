@@ -2,6 +2,7 @@ use ethers::signers::Signer;
 use ethers::types::Address;
 use futures_util::{stream::SplitStream, SinkExt, StreamExt};
 use log::{debug, error, info, warn};
+use std::error;
 use std::sync::Arc;
 use tokio::{net::TcpStream, sync::Mutex};
 
@@ -21,7 +22,7 @@ use crate::{
             SubmitProofResponseMessage, VerificationData, VerificationDataCommitment,
         },
     },
-};
+    };
 
 pub type ResponseStream = TryFilter<
     SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
@@ -211,12 +212,12 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             error!("Batcher responded with invalid max fee");
             Err(SubmitError::InvalidMaxFee)
         }
-        Ok(SubmitProofResponseMessage::InsufficientBalance(addr, last_sent_valid_nonce)) => {
-            // If we receive an invalid balance we should grab the last_sent_valid_nonce.
+        Ok(SubmitProofResponseMessage::InsufficientBalance(addr, error_nonce)) => {
+            // If we receive an invalid balance we should grab the error_nonce.
             error!("Batcher responded with insufficient balance");
             Err(SubmitError::InsufficientBalance(
                 addr,
-                last_sent_valid_nonce,
+                error_nonce,
             ))
         }
         Ok(SubmitProofResponseMessage::InvalidChainId) => {
