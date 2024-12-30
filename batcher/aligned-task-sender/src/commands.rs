@@ -368,7 +368,10 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                 }
                 info!("All responses received for sender {}", i);
 
-                info!("Sleeping for {} seconds, before submitting another burst of proofs", args.burst_time_secs);
+                info!(
+                    "Sleeping for {} seconds, before submitting another burst of proofs",
+                    args.burst_time_secs
+                );
 
                 tokio::time::sleep(Duration::from_secs(args.burst_time_secs)).await;
             }
