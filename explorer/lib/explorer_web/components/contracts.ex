@@ -2,6 +2,7 @@ defmodule ContractsComponent do
   use ExplorerWeb, :live_component
 
   attr(:class, :string, default: nil)
+  attr(:host, :string, default: nil)
 
   @impl true
   def mount(socket) do
@@ -49,7 +50,7 @@ defmodule ContractsComponent do
       <.card
         inner_class="text-base leading-9 flex flex-wrap sm:flex-row overflow-x-auto gap-x-2"
         title="Contract Addresses"
-        subtitle="All Aligned contracts addresses"
+        subtitle={"All Aligned contracts addresses on #{Helpers.get_current_network_from_host(@host)}"}
       >
         <.link
           href="https://docs.alignedlayer.com/guides/6_contract_addresses"

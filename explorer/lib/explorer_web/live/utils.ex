@@ -119,6 +119,15 @@ defmodule ExplorerWeb.Helpers do
       {"Devnet", "http://localhost:4000/"}
     ]
   end
+  
+  def get_current_network_from_host(host) do
+    case host do
+      "explorer.alignedlayer.com" -> "Mainnet"
+      "holesky.explorer.alignedlayer.com" -> "Holesky"
+      "stage.explorer.alignedlayer.com" -> "Stage"
+      _ -> "Devnet"
+    end
+  end
 
   @doc """
   Get the Etherscan URL based on the environment.

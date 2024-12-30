@@ -1,28 +1,19 @@
 defmodule NavComponent do
   use ExplorerWeb, :live_component
 
-  def get_current_network(host) do
-    case host do
-      "explorer.alignedlayer.com" -> "Mainnet"
-      "holesky.explorer.alignedlayer.com" -> "Holesky"
-      "stage.explorer.alignedlayer.com" -> "Stage"
-      _ -> "Devnet"
-    end
-  end
-
   def get_networks(current_network) do
     Helpers.get_aligned_networks()
-      |> Enum.filter(fn {name, _link} ->
-        case current_network do
-          # Filter dev networks if we are in mainnet or holesky
-          "Mainnet" -> name in ["Mainnet", "Holesky"]
-          "Holesky" -> name in ["Mainnet", "Holesky"]
-          _ -> true
-        end
-      end)
-      |> Enum.map(fn {name, link} ->
-        {name, "window.location.href='#{link}'"}
-      end)
+    |> Enum.filter(fn {name, _link} ->
+      case current_network do
+        # Filter dev networks if we are in mainnet or holesky
+        "Mainnet" -> name in ["Mainnet", "Holesky"]
+        "Holesky" -> name in ["Mainnet", "Holesky"]
+        _ -> true
+      end
+    end)
+    |> Enum.map(fn {name, link} ->
+      {name, "window.location.href='#{link}'"}
+    end)
   end
 
   @impl true
@@ -111,9 +102,9 @@ defmodule NavComponent do
           </.tooltip>
         </.badge>
         <.hover_dropdown_selector
-          current_value={get_current_network(@host)}
+          current_value={Helpers.get_current_network_from_host(@host)}
           variant="accent"
-          options={get_networks(get_current_network(@host))}
+          options={get_networks(Helpers.get_current_network_from_host(@host))}
           icon="hero-cube-transparent-micro"
         />
         <button
