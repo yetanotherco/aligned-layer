@@ -181,12 +181,6 @@ pub async fn receive(
         aligned_submitted_data.push(Ok(aligned_verification_data));
         debug!("Message response handled successfully");
 
-        info!("last_proof_nonce: {}", last_proof_nonce);
-        info!(
-            "batch_inclusion_data_message.user_nonce: {}",
-            batch_inclusion_data_message.user_nonce
-        );
-
         if batch_inclusion_data_message.user_nonce == last_proof_nonce {
             break;
         }
