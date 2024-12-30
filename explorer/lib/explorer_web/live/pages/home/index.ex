@@ -20,7 +20,19 @@ defmodule ExplorerWeb.Home.Index do
     operators_registered = Operators.get_amount_of_operators()
 
     restaked_amount_eth = Restakings.get_restaked_amount_eth()
-    restaked_amount_usd = Restakings.get_restaked_amount_usd()
+
+    restaked_amount_usd =
+      case Restakings.get_restaked_amount_usd() do
+        nil ->
+          "0"
+
+        amount ->
+          amount
+          |> Decimal.new()
+          |> Decimal.to_integer()
+          |> Helpers.convert_number_to_shorthand()
+      end
+
     operator_latest_release = ReleasesHelper.get_latest_release()
 
     [
