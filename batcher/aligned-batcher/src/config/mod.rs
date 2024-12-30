@@ -42,6 +42,7 @@ pub struct BatcherConfigFromYaml {
     pub max_proof_size: usize,
     pub max_batch_byte_size: usize,
     pub max_batch_proof_qty: usize,
+    pub min_batch_proof_qty: usize,
     pub pre_verification_is_enabled: bool,
     pub metrics_port: u16,
     pub telemetry_ip_port_address: String,

@@ -86,6 +86,7 @@ pub struct Batcher {
     max_proof_size: usize,
     max_batch_byte_size: usize,
     max_batch_proof_qty: usize,
+    min_batch_proof_qty: usize,
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
@@ -249,6 +250,7 @@ impl Batcher {
             max_proof_size: config.batcher.max_proof_size,
             max_batch_byte_size: config.batcher.max_batch_byte_size,
             max_batch_proof_qty: config.batcher.max_batch_proof_qty,
+            min_batch_proof_qty: config.batcher.min_batch_proof_qty,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
@@ -1157,6 +1159,7 @@ impl Batcher {
             gas_price,
             self.max_batch_byte_size,
             self.max_batch_proof_qty,
+            self.min_batch_proof_qty,
         )
         .inspect_err(|e| {
             *batch_posting = false;

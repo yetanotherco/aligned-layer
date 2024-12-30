@@ -148,6 +148,7 @@ pub(crate) fn try_build_batch(
     gas_price: U256,
     max_batch_byte_size: usize,
     max_batch_proof_qty: usize,
+    min_batch_proof_qty: usize,
 ) -> Result<(BatchQueue, Vec<BatchQueueEntry>), BatcherError> {
     let mut batch_queue = batch_queue;
     let mut batch_size = calculate_batch_size(&batch_queue)?;
@@ -160,7 +161,7 @@ pub(crate) fn try_build_batch(
         if batch_size > max_batch_byte_size
             || fee_per_proof > entry.nonced_verification_data.max_fee
             || batch_len > max_batch_proof_qty
-            || batch_len < 1000
+            || batch_len < min_batch_proof_qty
         {
             // Update the state for the next iteration:
             // * Subtract this entry size to the size of the batch size.
@@ -303,7 +304,7 @@ mod test {
 
         let gas_price = U256::from(1);
         let (resulting_batch_queue, batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+            try_build_batch(batch_queue, gas_price, 5000000, 50, 1).unwrap();
 
         assert!(resulting_batch_queue.is_empty());
 
@@ -406,7 +407,7 @@ mod test {
 
         let gas_price = U256::from(1);
         let (resulting_batch_queue, finalized_batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+            try_build_batch(batch_queue, gas_price, 5000000, 50, 1).unwrap();
 
         // The resulting batch queue (entries from the old batch queue that were not willing to pay
         // in this batch), should be empty and hence, all entries from the batch queue should be in
@@ -517,7 +518,7 @@ mod test {
 
         let gas_price = U256::from(1);
         let (resulting_batch_queue, finalized_batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+            try_build_batch(batch_queue, gas_price, 5000000, 50, 1).unwrap();
 
         // The resulting batch queue (entries from the old batch queue that were not willing to pay
         // in this batch), should be empty and hence, all entries from the batch queue should be in
@@ -630,7 +631,7 @@ mod test {
         let max_batch_proof_qty = 2;
 
         let (resulting_batch_queue, finalized_batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, max_batch_proof_qty).unwrap();
+            try_build_batch(batch_queue, gas_price, 5000000, max_batch_proof_qty, 1).unwrap();
 
         assert_eq!(resulting_batch_queue.len(), 1);
         assert_eq!(finalized_batch.len(), 2);
@@ -640,6 +641,287 @@ mod test {
         );
         assert_eq!(
             finalized_batch[1].nonced_verification_data.max_fee,
+            max_fee_1
+        );
+    }
+
+    #[test]
+    fn batch_finalization_algorithm_works_not_smaller_than_min_batch_proof_qty() {
+        // The following information will be the same for each entry, it is just some dummy data to see
+        // algorithm working.
+
+        let proof_generator_addr = Address::random();
+        let payment_service_addr = Address::random();
+        let sender_addr = Address::random();
+        let bytes_for_verification_data = vec![42_u8; 10];
+        let dummy_signature = Signature {
+            r: U256::from(1),
+            s: U256::from(2),
+            v: 3,
+        };
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::Risc0,
+            proof: bytes_for_verification_data.clone(),
+            pub_input: Some(bytes_for_verification_data.clone()),
+            verification_key: Some(bytes_for_verification_data.clone()),
+            vm_program_code: Some(bytes_for_verification_data),
+            proof_generator_addr,
+        };
+        let chain_id = U256::from(42);
+
+        // Here we create different entries for the batch queue.
+        // Since we are sending with the same address, the low nonces should have higher max fees.
+
+        // Entry 1
+        let nonce_1 = U256::from(1);
+        let max_fee_1 = U256::from(1_300_000_000_000_002u128);
+        let nonced_verification_data_1 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_1,
+            max_fee_1,
+            chain_id,
+            payment_service_addr,
+        );
+        let vd_commitment_1: VerificationDataCommitment = nonced_verification_data_1.clone().into();
+        let entry_1 = BatchQueueEntry::new_for_testing(
+            nonced_verification_data_1,
+            vd_commitment_1,
+            dummy_signature,
+            sender_addr,
+        );
+        let batch_priority_1 = BatchQueueEntryPriority::new(max_fee_1, nonce_1);
+
+        // Entry 2
+        let nonce_2 = U256::from(2);
+        let max_fee_2 = U256::from(1_300_000_000_000_001u128);
+        let nonced_verification_data_2 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_2,
+            max_fee_2,
+            chain_id,
+            payment_service_addr,
+        );
+        let vd_commitment_2: VerificationDataCommitment = nonced_verification_data_2.clone().into();
+        let entry_2 = BatchQueueEntry::new_for_testing(
+            nonced_verification_data_2,
+            vd_commitment_2,
+            dummy_signature,
+            sender_addr,
+        );
+        let batch_priority_2 = BatchQueueEntryPriority::new(max_fee_2, nonce_2);
+
+        let mut batch_queue = BatchQueue::new();
+        batch_queue.push(entry_1, batch_priority_1);
+        batch_queue.push(entry_2, batch_priority_2);
+
+        let gas_price = U256::from(1);
+
+        // The min batch len is 3, so the algorithm should not build a batch of size 2.
+        let min_batch_proof_qty = 3;
+
+        let should_not_build =
+            try_build_batch(batch_queue, gas_price, 5000000, 1000, min_batch_proof_qty);
+
+        assert!(should_not_build.is_err());
+    }
+
+    #[test]
+    fn batch_finalization_algorithm_works_size_at_least_min_batch_proof_qty() {
+        // The following information will be the same for each entry, it is just some dummy data to see
+        // algorithm working.
+
+        let proof_generator_addr = Address::random();
+        let payment_service_addr = Address::random();
+        let sender_addr = Address::random();
+        let bytes_for_verification_data = vec![42_u8; 10];
+        let dummy_signature = Signature {
+            r: U256::from(1),
+            s: U256::from(2),
+            v: 3,
+        };
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::Risc0,
+            proof: bytes_for_verification_data.clone(),
+            pub_input: Some(bytes_for_verification_data.clone()),
+            verification_key: Some(bytes_for_verification_data.clone()),
+            vm_program_code: Some(bytes_for_verification_data),
+            proof_generator_addr,
+        };
+        let chain_id = U256::from(42);
+
+        // Here we create different entries for the batch queue.
+        // Since we are sending with the same address, the low nonces should have higher max fees.
+
+        // Entry 1
+        let nonce_1 = U256::from(1);
+        let max_fee_1 = U256::from(1_300_000_000_000_002u128);
+        let nonced_verification_data_1 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_1,
+            max_fee_1,
+            chain_id,
+            payment_service_addr,
+        );
+        let vd_commitment_1: VerificationDataCommitment = nonced_verification_data_1.clone().into();
+        let entry_1 = BatchQueueEntry::new_for_testing(
+            nonced_verification_data_1,
+            vd_commitment_1,
+            dummy_signature,
+            sender_addr,
+        );
+        let batch_priority_1 = BatchQueueEntryPriority::new(max_fee_1, nonce_1);
+
+        // Entry 2
+        let nonce_2 = U256::from(2);
+        let max_fee_2 = U256::from(1_300_000_000_000_001u128);
+        let nonced_verification_data_2 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_2,
+            max_fee_2,
+            chain_id,
+            payment_service_addr,
+        );
+        let vd_commitment_2: VerificationDataCommitment = nonced_verification_data_2.clone().into();
+        let entry_2 = BatchQueueEntry::new_for_testing(
+            nonced_verification_data_2,
+            vd_commitment_2,
+            dummy_signature,
+            sender_addr,
+        );
+        let batch_priority_2 = BatchQueueEntryPriority::new(max_fee_2, nonce_2);
+
+        let mut batch_queue = BatchQueue::new();
+        batch_queue.push(entry_1, batch_priority_1);
+        batch_queue.push(entry_2, batch_priority_2);
+
+        let gas_price = U256::from(1);
+
+        // The min batch len is 2, so the algorithm should work with 2 entries.
+        let min_batch_proof_qty = 2;
+
+        let (resulting_batch_queue, finalized_batch) =
+            try_build_batch(batch_queue, gas_price, 5000000, 1000, min_batch_proof_qty).unwrap();
+
+        assert_eq!(resulting_batch_queue.len(), 0);
+        assert_eq!(finalized_batch.len(), 2);
+        assert_eq!(
+            finalized_batch[0].nonced_verification_data.max_fee,
+            max_fee_2
+        );
+        assert_eq!(
+            finalized_batch[1].nonced_verification_data.max_fee,
+            max_fee_1
+        );
+    }
+    #[test]
+    fn batch_finalization_algorithm_works_size_bigger_than_min_batch_proof_qty() {
+        // The following information will be the same for each entry, it is just some dummy data to see
+        // algorithm working.
+
+        let proof_generator_addr = Address::random();
+        let payment_service_addr = Address::random();
+        let sender_addr = Address::random();
+        let bytes_for_verification_data = vec![42_u8; 10];
+        let dummy_signature = Signature {
+            r: U256::from(1),
+            s: U256::from(2),
+            v: 3,
+        };
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::Risc0,
+            proof: bytes_for_verification_data.clone(),
+            pub_input: Some(bytes_for_verification_data.clone()),
+            verification_key: Some(bytes_for_verification_data.clone()),
+            vm_program_code: Some(bytes_for_verification_data),
+            proof_generator_addr,
+        };
+        let chain_id = U256::from(42);
+
+        // Here we create different entries for the batch queue.
+        // Since we are sending with the same address, the low nonces should have higher max fees.
+
+        // Entry 1
+        let nonce_1 = U256::from(1);
+        let max_fee_1 = U256::from(1_300_000_000_000_002u128);
+        let nonced_verification_data_1 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_1,
+            max_fee_1,
+            chain_id,
+            payment_service_addr,
+        );
+        let vd_commitment_1: VerificationDataCommitment = nonced_verification_data_1.clone().into();
+        let entry_1 = BatchQueueEntry::new_for_testing(
+            nonced_verification_data_1,
+            vd_commitment_1,
+            dummy_signature,
+            sender_addr,
+        );
+        let batch_priority_1 = BatchQueueEntryPriority::new(max_fee_1, nonce_1);
+
+        // Entry 2
+        let nonce_2 = U256::from(2);
+        let max_fee_2 = U256::from(1_300_000_000_000_001u128);
+        let nonced_verification_data_2 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_2,
+            max_fee_2,
+            chain_id,
+            payment_service_addr,
+        );
+        let vd_commitment_2: VerificationDataCommitment = nonced_verification_data_2.clone().into();
+        let entry_2 = BatchQueueEntry::new_for_testing(
+            nonced_verification_data_2,
+            vd_commitment_2,
+            dummy_signature,
+            sender_addr,
+        );
+        let batch_priority_2 = BatchQueueEntryPriority::new(max_fee_2, nonce_2);
+
+        // Entry 3
+        let nonce_3 = U256::from(3);
+        let max_fee_3 = U256::from(1_300_000_000_000_000u128);
+        let nonced_verification_data_3 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_3,
+            max_fee_3,
+            chain_id,
+            payment_service_addr,
+        );
+        let vd_commitment_3: VerificationDataCommitment = nonced_verification_data_3.clone().into();
+        let entry_3 = BatchQueueEntry::new_for_testing(
+            nonced_verification_data_3,
+            vd_commitment_3,
+            dummy_signature,
+            sender_addr,
+        );
+        let batch_priority_3 = BatchQueueEntryPriority::new(max_fee_3, nonce_3);
+
+        let mut batch_queue = BatchQueue::new();
+        batch_queue.push(entry_1, batch_priority_1);
+        batch_queue.push(entry_2, batch_priority_2);
+        batch_queue.push(entry_3, batch_priority_3);
+
+        let gas_price = U256::from(1);
+
+        // The min batch len is 2, so the algorithm should work with 3 entries.
+        let min_batch_proof_qty = 2;
+
+        let (resulting_batch_queue, finalized_batch) =
+            try_build_batch(batch_queue, gas_price, 5000000, 1000, min_batch_proof_qty).unwrap();
+
+        assert_eq!(resulting_batch_queue.len(), 0);
+        assert_eq!(finalized_batch.len(), 3);
+        assert_eq!(
+            finalized_batch[0].nonced_verification_data.max_fee,
+            max_fee_3
+        );
+        assert_eq!(
+            finalized_batch[1].nonced_verification_data.max_fee,
+            max_fee_2
+        );
+        assert_eq!(
+            finalized_batch[2].nonced_verification_data.max_fee,
             max_fee_1
         );
     }
