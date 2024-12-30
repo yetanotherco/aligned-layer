@@ -25,9 +25,9 @@ use std::time::Duration;
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, BUMP_BACKOFF_FACTOR,
     BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONNECTION_TIMEOUT,
-    CONSTANT_GAS_COST, DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
-    ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
-    ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
+    CONSTANT_GAS_COST, DEFAULT_MAX_FEE_PER_PROOF, ETHEREUM_CALL_BACKOFF_FACTOR,
+    ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY, ETHEREUM_CALL_MIN_RETRY_DELAY,
+    GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
@@ -92,6 +92,7 @@ pub struct Batcher {
     non_paying_config: Option<NonPayingConfig>,
     posting_batch: Mutex<bool>,
     disabled_verifiers: Mutex<U256>,
+    aggregator_fee_percentage_multiplier: u128,
     pub metrics: metrics::BatcherMetrics,
     pub telemetry: TelemetrySender,
 }
@@ -253,6 +254,9 @@ impl Batcher {
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
+            aggregator_fee_percentage_multiplier: config
+                .batcher
+                .aggregator_fee_percentage_multiplier,
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
             disabled_verifiers: Mutex::new(disabled_verifiers),
@@ -1437,7 +1441,7 @@ impl Batcher {
         let fee_per_proof = U256::from(gas_per_proof) * gas_price;
         let fee_for_aggregator = (U256::from(AGGREGATOR_GAS_COST)
             * gas_price
-            * U256::from(DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER))
+            * U256::from(self.aggregator_fee_percentage_multiplier))
             / U256::from(PERCENTAGE_DIVIDER);
         let respond_to_task_fee_limit = (fee_for_aggregator
             * U256::from(RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER))

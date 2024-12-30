@@ -16,6 +16,7 @@ ecdsa:
 
 ## Batcher configurations
 batcher:
+  aggregator_fee_percentage_multiplier: 125
   block_interval: 3
   batch_size_interval: 10
   transaction_wait_timeout: 96000 # 8 blocks
