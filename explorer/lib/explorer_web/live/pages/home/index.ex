@@ -28,10 +28,13 @@ defmodule ExplorerWeb.Home.Index do
 
         amount ->
           amount
-          |> Decimal.new()
-          |> Decimal.to_integer()
-          |> Helpers.convert_number_to_shorthand()
       end
+
+    restaked_amount_usd_shorthand =
+      restaked_amount_usd
+      |> Decimal.new()
+      |> Decimal.to_integer()
+      |> Helpers.convert_number_to_shorthand()
 
     operator_latest_release = ReleasesHelper.get_latest_release()
 
@@ -39,13 +42,13 @@ defmodule ExplorerWeb.Home.Index do
       %{
         title: "Proofs verified",
         value: Helpers.convert_number_to_shorthand(verified_proofs),
-        tooltip_text: nil,
+        tooltip_text: "= #{Helpers.format_number(verified_proofs)} proofs",
         link: nil
       },
       %{
         title: "Total batches",
         value: Helpers.convert_number_to_shorthand(verified_batches),
-        tooltip_text: nil,
+        tooltip_text: "= #{Helpers.format_number(verified_batches)} batches",
         link: nil
       },
       %{
@@ -62,8 +65,12 @@ defmodule ExplorerWeb.Home.Index do
       },
       %{
         title: "Total restaked",
-        value: "#{restaked_amount_usd} USD",
-        tooltip_text: "~= #{restaked_amount_eth} ETH",
+        value: "#{restaked_amount_usd_shorthand} USD",
+        # Using HTML.raw to break paragraph line with <br>
+        tooltip_text:
+          Phoenix.HTML.raw(
+            "= #{Helpers.format_number(restaked_amount_usd)} USD<br>~= #{restaked_amount_eth} ETH"
+          ),
         link: "/restaked"
       }
     ]
