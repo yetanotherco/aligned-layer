@@ -1668,7 +1668,7 @@ impl Batcher {
         if let (Some(gas_price), Some(gas_used)) = (gas_price, gas_used) {
             let wei_gas_cost = gas_price
                 .checked_mul(gas_used)
-                .unwrap_or_else(|| U256::max_value());
+                .unwrap_or_else(U256::max_value);
 
             // f64 is typically sufficient for transaction gas costs.
             let max_f64_u256 = U256::from(f64::MAX as u64);
