@@ -70,8 +70,8 @@ To use it, you can use the `aligned` CLI, as shown with the following example:
 
 ```bash
 aligned deposit-to-batcher \
---rpc_url https://ethereum-rpc.publicnode.com \
---network mainnet \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--network holesky \
 --keystore_path <keystore_path> \
 --amount 0.1ether
 ```
@@ -79,7 +79,7 @@ aligned deposit-to-batcher \
 This command allows the usage of the following flags:
 
 - `--rpc_url` to specify the rpc url to be used.
-- `--network` to specify the netowrk to be used. Can be `devnet`, `holesky` or `mainnet`.
+- `--network` to specify the network to be used. Can be `devnet`, `holesky` or `mainnet`.
 - `--keystore_path` the path to the keystore.
 - `--amount` the number of ethers to transfer to the Batcher.
 - Note: `--amount` flag parameter must be with the shown format, `XX.XXether`.
@@ -88,15 +88,15 @@ After depositing funds, you can verify the Service has correctly received them b
 
 ```bash
 aligned get-user-balance \
---rpc_url https://ethereum-rpc.publicnode.com \
---network mainnet \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--network holesky \
 --user_addr <user_addr>
 ```
 
 These commands allow the usage of the following flags:
 
 - `--rpc_url` to specify the rpc url to be used.
-- `--network` to specify the netowrk to be used. Can be `devnet`, `holesky` or `mainnet`.
+- `--network` to specify the network to be used. Can be `devnet`, `holesky` or `mainnet`.
 - `--user_addr` the address of the user that funded the Batcher.
 
 ## 3. Submit your proof to the batcher
@@ -129,12 +129,12 @@ aligned submit \
 --proving_system SP1 \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
---batcher_url wss://mainnet.batcher.alignedlayer.com \
+--batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
---network mainnet \
---rpc_url https://ethereum-rpc.publicnode.com
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 **Example**
@@ -145,10 +145,10 @@ aligned submit \
 --proving_system SP1 \
 --proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
 --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
---batcher_url wss://mainnet.batcher.alignedlayer.com \
+--batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
---network mainnet \
---rpc_url https://ethereum-rpc.publicnode.com
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 ### Risc0 proof
@@ -164,12 +164,12 @@ aligned submit \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
 --pub_input <pub_input_file> \
---batcher_url wss://mainnet.batcher.alignedlayer.com \
+--batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
---network mainnet \
---rpc_url https://ethereum-rpc.publicnode.com
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 **NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v1.1.2`. For generating proofs using `cargo risc-zero` please ensure you are using `v1.1.2` or your proof will not be verified. 
@@ -192,11 +192,11 @@ aligned submit \
 --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
 --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
 --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
---batcher_url wss://mainnet.batcher.alignedlayer.com \
+--batcher_url wss://batcher.alignedlayer.com \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --keystore_path ~/.aligned_keystore/keystore0 \
---network mainnet \
---rpc_url https://ethereum-rpc.publicnode.com
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 ### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
@@ -210,12 +210,12 @@ aligned submit \
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
---batcher_url wss://mainnet.batcher.alignedlayer.com \
+--batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
---network mainnet \
---rpc_url https://ethereum-rpc.publicnode.com
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 **Examples**:
@@ -227,10 +227,10 @@ aligned submit \
 --proof ./scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
 --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
 --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
---batcher_url wss://mainnet.batcher.alignedlayer.com \
+--batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
---network mainnet \
---rpc_url https://ethereum-rpc.publicnode.com
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 ```bash
@@ -240,10 +240,10 @@ aligned submit \
 --proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
 --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
 --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
---batcher_url wss://mainnet.batcher.alignedlayer.com \
+--batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
---network mainnet \
---rpc_url https://ethereum-rpc.publicnode.com
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 ```bash
@@ -253,8 +253,8 @@ aligned submit \
 --proof ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
 --public_input ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
 --vk ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
---batcher_url wss://mainnet.batcher.alignedlayer.com \
+--batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
---network mainnet \
---rpc_url https://ethereum-rpc.publicnode.com
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
