@@ -102,7 +102,6 @@ pub async fn receive(
     let mut aligned_submitted_data: Vec<Result<AlignedVerificationData, SubmitError>> = Vec::new();
     let last_sent_proof_nonce = get_biggest_nonce(&sent_verification_data_rev);
     let mut last_proof_nonce = last_sent_proof_nonce;
-    info!("last_sent_proof_nonce: {}", last_sent_proof_nonce);
 
     // read from WS
     while let Some(Ok(msg)) = response_stream.next().await {
