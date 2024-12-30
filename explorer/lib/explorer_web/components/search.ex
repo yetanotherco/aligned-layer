@@ -42,7 +42,7 @@ defmodule SearchComponent do
         id={"input_#{assigns.id}"}
         class="pr-10 w-full rounded-lg border-foreground/20 bg-card focus:border-foreground/20 focus:ring-accent text-sm"
         type="search"
-        placeholder="Search by batch hash, proof hash, address"
+        placeholder="Search batch by batch hash or proof hash"
         name="batch[merkle_root]"
       />
       <.icon name="hero-magnifying-glass-solid" class="absolute right-3 text-foreground/20 size-5 hover:text-foreground" />
