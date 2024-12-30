@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 3,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -722,7 +722,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Accumulated gas cost the aggregator paid for the batcher when the tx cost was higher than the respondToTaskFeeLimit.",
+      "description": "Accumulated cost in ETH the Batcher paid when sending Create Task or Cancel Task transactions.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -744,11 +744,11 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 7,
+        "w": 8,
         "x": 0,
         "y": 14
       },
-      "id": 30,
+      "id": 49,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -775,7 +775,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "increase(aligned_aggregator_gas_cost_paid_for_batcher_sum{bot=\"aggregator\"}[10y])",
+          "expr": "increase(batcher_gas_cost_create_task_total{bot=\"batcher\"}[$__range])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -783,9 +783,38 @@
           "range": true,
           "refId": "A",
           "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[$__range]) * 10 ^ -9",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
         }
       ],
-      "title": "Accumulated Aggregator Extra Cost Paid [ETH]",
+      "title": "Accumulated Batcher Cost Paid [ETH]",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {}
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "Total"
+              ]
+            }
+          }
+        }
+      ],
       "type": "stat"
     },
     {
@@ -816,7 +845,7 @@
       "gridPos": {
         "h": 3,
         "w": 7,
-        "x": 7,
+        "x": 8,
         "y": 14
       },
       "id": 48,
@@ -864,6 +893,320 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Historical accumulated cost in ETH the Batcher paid when sending Create Task or Cancel Task transactions.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ETH"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 8,
+        "x": 16,
+        "y": 14
+      },
+      "id": 52,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.1.10",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "increase(batcher_gas_cost_create_task_total{bot=\"batcher\"}[10y])",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[10y]) * 10 ^ -9",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Historical Accumulated Batcher Cost Paid [ETH]",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {}
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "Total"
+              ]
+            }
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Accumulated cost in ETH the Batcher paid when sending Cancel Task transactions.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ETH"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 8,
+        "x": 0,
+        "y": 17
+      },
+      "id": 53,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.1.10",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[$__range])",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Accumulated Batcher Cancel Task Cost [ETH]",
+      "transformations": [],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Accumulated gas cost the aggregator paid for the batcher when the tx cost was higher than the respondToTaskFeeLimit.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ETH"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 7,
+        "x": 8,
+        "y": 17
+      },
+      "id": 30,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.1.10",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "increase(aligned_aggregator_gas_cost_paid_for_batcher_sum{bot=\"aggregator\"}[10y])",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Accumulated Aggregator Extra Cost Paid [ETH]",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Historical accumulated cost in ETH the Batcher paid when Canceling a Task",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ETH"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 8,
+        "x": 16,
+        "y": 17
+      },
+      "id": 50,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.1.10",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[10y])",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Historical Accumulated Batcher Cancel Task Cost [ETH]",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "description": "Number of times the aggregator paid for the batcher when the tx cost was higher than the respondToTaskFeeLimit",
       "fieldConfig": {
         "defaults": {
@@ -886,8 +1229,8 @@
       "gridPos": {
         "h": 3,
         "w": 7,
-        "x": 0,
-        "y": 17
+        "x": 8,
+        "y": 20
       },
       "id": 26,
       "options": {
@@ -938,7 +1281,7 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 23
       },
       "id": 38,
       "options": {
@@ -985,7 +1328,7 @@
         "h": 5,
         "w": 3,
         "x": 7,
-        "y": 22
+        "y": 25
       },
       "id": 17,
       "options": {
@@ -1064,7 +1407,7 @@
         "h": 5,
         "w": 3,
         "x": 10,
-        "y": 22
+        "y": 25
       },
       "id": 9,
       "options": {
@@ -1189,7 +1532,7 @@
         "h": 5,
         "w": 4,
         "x": 13,
-        "y": 22
+        "y": 25
       },
       "id": 42,
       "options": {
@@ -1293,7 +1636,7 @@
         "h": 6,
         "w": 10,
         "x": 7,
-        "y": 27
+        "y": 30
       },
       "id": 16,
       "options": {
@@ -1339,7 +1682,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 36
       },
       "id": 39,
       "options": {
@@ -1364,7 +1707,7 @@
         "h": 2,
         "w": 12,
         "x": 0,
-        "y": 34
+        "y": 37
       },
       "id": 36,
       "options": {
@@ -1389,7 +1732,7 @@
         "h": 2,
         "w": 12,
         "x": 12,
-        "y": 34
+        "y": 37
       },
       "id": 37,
       "options": {
@@ -1420,8 +1763,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "dark-red",
@@ -1440,7 +1782,7 @@
         "h": 6,
         "w": 3,
         "x": 0,
-        "y": 36
+        "y": 39
       },
       "id": 14,
       "options": {
@@ -1528,8 +1870,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1544,7 +1885,7 @@
         "h": 6,
         "w": 9,
         "x": 3,
-        "y": 36
+        "y": 39
       },
       "id": 13,
       "options": {
@@ -1596,8 +1937,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -1608,7 +1948,7 @@
         "h": 6,
         "w": 3,
         "x": 12,
-        "y": 36
+        "y": 39
       },
       "id": 7,
       "options": {
@@ -1696,8 +2036,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1712,7 +2051,7 @@
         "h": 6,
         "w": 9,
         "x": 15,
-        "y": 36
+        "y": 39
       },
       "id": 40,
       "options": {
@@ -1764,8 +2103,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#FF9830",
@@ -1784,7 +2122,7 @@
         "h": 6,
         "w": 3,
         "x": 0,
-        "y": 42
+        "y": 45
       },
       "id": 15,
       "options": {
@@ -1872,8 +2210,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1888,7 +2225,7 @@
         "h": 6,
         "w": 9,
         "x": 3,
-        "y": 42
+        "y": 45
       },
       "id": 19,
       "options": {
@@ -1939,8 +2276,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -1951,7 +2287,7 @@
         "h": 6,
         "w": 3,
         "x": 12,
-        "y": 42
+        "y": 45
       },
       "id": 5,
       "options": {
@@ -2040,8 +2376,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2056,7 +2391,7 @@
         "h": 6,
         "w": 9,
         "x": 15,
-        "y": 42
+        "y": 45
       },
       "id": 1,
       "options": {
@@ -2108,8 +2443,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -2128,7 +2462,7 @@
         "h": 6,
         "w": 3,
         "x": 0,
-        "y": 48
+        "y": 51
       },
       "id": 22,
       "options": {
@@ -2216,8 +2550,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2232,7 +2565,7 @@
         "h": 6,
         "w": 9,
         "x": 3,
-        "y": 48
+        "y": 51
       },
       "id": 21,
       "options": {
@@ -2315,8 +2648,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2331,7 +2663,7 @@
         "h": 6,
         "w": 10,
         "x": 12,
-        "y": 48
+        "y": 51
       },
       "id": 25,
       "interval": "36",
@@ -2415,8 +2747,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2431,7 +2762,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 54
+        "y": 57
       },
       "id": 20,
       "interval": "1m",
@@ -2515,8 +2846,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -2552,7 +2882,7 @@
         "h": 7,
         "w": 10,
         "x": 12,
-        "y": 54
+        "y": 57
       },
       "id": 28,
       "options": {
@@ -2634,8 +2964,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2650,7 +2979,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 61
+        "y": 64
       },
       "id": 24,
       "options": {
@@ -3038,8 +3367,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -3134,8 +3462,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
