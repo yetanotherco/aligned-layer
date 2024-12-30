@@ -1,4 +1,4 @@
-export const findClosestIndex = (target, values) => {
+const findClosestIndex = (target, values) => {
 	let closestIndex = 0;
 	let smallestDiff = Math.abs(values[0] - target);
 	for (let i = 1; i < values.length; i++) {
@@ -11,9 +11,23 @@ export const findClosestIndex = (target, values) => {
 	return closestIndex;
 };
 
+/**
+ * A callback function to customize y-axis tick labels by showing only the zero, minimum and maximum data values.
+ *
+ * @param {Object} data - The chart data object containing datasets and their values.
+ * @param {Function} renderText - A function to format and render text for the tick labels.
+ * @returns {Function} - A callback function for Chart.js tick customization.
+ *
+ * The returned function compares the current tick index with the indices of the values closest
+ * to the minimum and maximum data points, and displays these values formatted using the
+ * `renderText` function.
+ *
+ * @example
+ * options.scales.y.ticks.callback = yTickCallbackShowMinAndMaxValues(data, (val) => `${val} USD`);
+ */
 export const yTickCallbackShowMinAndMaxValues =
 	(data, renderText) => (_value, index, values) => {
-		if (index === 0) return `0 USD`;
+		if (index === 0) return renderText(0);
 
 		const dataY = data.datasets[0].data.map((point) => parseFloat(point.y));
 		const sortedData = dataY.sort((a, b) => b - a);
