@@ -83,6 +83,10 @@ export const alignedTooltip = (
 			tooltipEl.style.opacity = 0;
 			tooltipEl.style.zIndex = -1;
 		};
+		// this is needed to maintain responsiveness
+		window.addEventListener("resize", () => {
+			tooltipEl.remove();
+		});
 		if (onTooltipClick)
 			tooltipEl.querySelector(".chart-tooltip-dot").onclick = () =>
 				onTooltipClick(tooltipModel);
