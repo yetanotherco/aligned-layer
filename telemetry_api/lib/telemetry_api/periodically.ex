@@ -48,14 +48,14 @@ defmodule TelemetryApi.Periodically do
         PrometheusMetrics.new_gas_price(gas_price)
 
       {:error, error} ->
-        IO.inspect("Error fetching gas price: #{error}")
+        Logger.error("Error fetching gas price: #{inspect(error)}")
     end
         {:noreply, %{}}
   end
   defp fetch_operators_info() do
     case Operators.fetch_all_operators() do
       :ok -> :ok
-      {:error, message} -> IO.inspect("Couldn't fetch operators: #{IO.inspect(message)}")
+      {:error, message} -> Logger.error("Couldn't fetch operators: #{inspect(message)}")
     end
   end
 
@@ -67,7 +67,7 @@ defmodule TelemetryApi.Periodically do
           Operators.update_operator(op, %{status: string_status(status)})
 
         error ->
-          Logger.error("Error when updating status: #{error}")
+          Logger.error("Error when updating status: #{inspect(error)}")
       end
     end)
     :ok
