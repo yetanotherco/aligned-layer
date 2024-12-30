@@ -106,6 +106,7 @@ defmodule ExplorerWeb.ChartComponents do
             },
             y: %{
               offset: false,
+              beginAtZero: true,
               ticks: %{
                 display: @show_ticks.y,
                 autoSkip: false,

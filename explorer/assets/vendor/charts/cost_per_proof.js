@@ -1,15 +1,12 @@
+import { yTickCallbackShowMinAndMaxValues } from "./helpers";
 import { alignedTooltip } from "./tooltip";
 
 export const costPerProofCustomOptions = (options, data) => {
-	// show only min and max values
-	options.scales.y.ticks.callback = (_value, index, values) => {
-		const dataY = data.datasets[0].data.map((point) => parseFloat(point.y));
-		if (index === 0) return `${Math.min(...dataY)} USD`;
-		if (index === values.length - 1) {
-			return `${Math.max(...dataY)} USD`;
-		}
-		return "";
-	};
+	// show only 0, min and max values
+	options.scales.y.ticks.callback = yTickCallbackShowMinAndMaxValues(
+		data,
+		(val) => `${val} USD`
+	);
 
 	// show age min, mean and max age in x axis
 	options.scales.x.ticks.callback = (_value, index, values) => {
