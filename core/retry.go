@@ -46,7 +46,7 @@ const (
 	RespondToTaskV2NumRetries     = 0                      // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
 
 	// Retry Parameters for SubscribeToNewTasksV3
-	SubscribeToNewTasksV3NumRetries = 0 // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
+	SubscribeToNewTasksNumRetries = 0 // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
 )
 
 type RetryParams struct {
@@ -105,14 +105,14 @@ func WaitForTxRetryParams(maxElapsedTime time.Duration) *RetryParams {
 	}
 }
 
-func SubscribeToNewTasksV3Params() *RetryParams {
+func SubscribeToNewTasksParams() *RetryParams {
 	return &RetryParams{
 		InitialInterval:     NetworkInitialInterval,
 		MaxInterval:         NetworkMaxInterval,
 		MaxElapsedTime:      NetworkMaxElapsedTime,
 		RandomizationFactor: NetworkRandomizationFactor,
 		Multiplier:          NetworkMultiplier,
-		NumRetries:          SubscribeToNewTasksV3NumRetries,
+		NumRetries:          SubscribeToNewTasksNumRetries,
 	}
 }
 

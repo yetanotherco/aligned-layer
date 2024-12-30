@@ -109,12 +109,19 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 
 	// Handle errors and resubscribe
 	go func() {
+		defer func() {
+			err := recover() //stops panics
+			if err != nil {
+				s.logger.Error("SubscribeToNewTasksV2 error channel recovered from panic", "err", err)
+			}
+		}()
+
 		for {
 			select {
 			case err := <-sub.Err():
 				s.logger.Warn("Error in new task subscription", "err", err)
 				sub.Unsubscribe()
-				sub, err = SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
+				sub, err = SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.SubscribeToNewTasksParams())
 				if err != nil {
 					errorChannel <- err
 				}
@@ -192,14 +199,14 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 			case err := <-sub.Err():
 				s.logger.Warn("Error in new task subscription", "err", err)
 				sub.Unsubscribe()
-				sub, err = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.SubscribeToNewTasksV3Params())
+				sub, err = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.SubscribeToNewTasksParams())
 				if err != nil {
 					errorChannel <- err
 				}
 			case err := <-subFallback.Err():
 				s.logger.Warn("Error in fallback new task subscription", "err", err)
 				subFallback.Unsubscribe()
-				subFallback, err = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.SubscribeToNewTasksV3Params())
+				subFallback, err = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.SubscribeToNewTasksParams())
 				if err != nil {
 					errorChannel <- err
 				}
