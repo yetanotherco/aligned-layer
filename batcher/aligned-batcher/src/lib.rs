@@ -1669,8 +1669,16 @@ impl Batcher {
             let wei_gas_cost = gas_price
                 .checked_mul(gas_used)
                 .unwrap_or_else(|| U256::max_value());
-            let wei_gas_cost_f64 = wei_gas_cost.as_u128() as f64;
+
+            // f64 is typically sufficient for transaction gas costs.
+            let max_f64_u256 = U256::from(f64::MAX as u64);
+            if wei_gas_cost > max_f64_u256 {
+                return f64::MAX;
+            }
+
+            let wei_gas_cost_f64 = wei_gas_cost.low_u128() as f64;
             let eth_gas_cost = wei_gas_cost_f64 / 1e18;
+
             return eth_gas_cost;
         }
         0.0
