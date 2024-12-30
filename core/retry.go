@@ -32,18 +32,21 @@ const (
 	NetworkMultiplier          float64 = 2                // Multiplier factor computed exponential retry interval is scaled by.
 	NetworkNumRetries          uint64  = 3                // Total number of retries attempted.
 
-	// Retry Params for Sending Tx to Chain
+	// Retry Parameters for Sending a Tx to Chain
 	ChainInitialInterval = 12 * time.Second // Initial delay for retry interval for contract calls. Corresponds to 1 ethereum block.
 	ChainMaxInterval     = 2 * time.Minute  // Maximum interval for an individual retry.
 
-	// Retry Params for WaitForTransactionReceipt in the Fee Bump
+	// Retry Parameters for WaitForTransactionReceipt in the Fee Bump
 	WaitForTxMaxInterval = 2 * time.Second // Maximum interval for an individual retry.
 	WaitForTxNumRetries  = 0               // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
 
 	// Retry Parameters for RespondToTaskV2 in the Fee Bump
-	RespondToTaskV2MaxInterval           = time.Millisecond * 500 // Maximum interval for an individual retry.
-	RespondToTaskV2MaxElapsedTime        = 0                      //	Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
-	RespondToTaskV2NumRetries     uint64 = 0                      // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
+	RespondToTaskV2MaxInterval    = time.Millisecond * 500 // Maximum interval for an individual retry.
+	RespondToTaskV2MaxElapsedTime = 0                      //	Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
+	RespondToTaskV2NumRetries     = 0                      // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
+
+	// Retry Parameters for SubscribeToNewTasksV3
+	SubscribeToNewTasksV3NumRetries = 0 // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
 )
 
 type RetryParams struct {
@@ -99,6 +102,17 @@ func WaitForTxRetryParams(maxElapsedTime time.Duration) *RetryParams {
 		RandomizationFactor: NetworkRandomizationFactor,
 		Multiplier:          NetworkMultiplier,
 		NumRetries:          WaitForTxNumRetries,
+	}
+}
+
+func SubscribeToNewTasksV3Params() *RetryParams {
+	return &RetryParams{
+		InitialInterval:     NetworkInitialInterval,
+		MaxInterval:         NetworkMaxInterval,
+		MaxElapsedTime:      NetworkMaxElapsedTime,
+		RandomizationFactor: NetworkRandomizationFactor,
+		Multiplier:          NetworkMultiplier,
+		NumRetries:          SubscribeToNewTasksV3NumRetries,
 	}
 }
 

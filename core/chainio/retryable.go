@@ -215,7 +215,7 @@ func SubscribeToNewTasksV2Retryable(
 SubscribeToNewTasksV3Retryable
 Subscribe to NewBatchV3 logs from the AVS contract.
 - All errors are considered Transient Errors
-- Retry times (3 retries): 1 sec, 2 sec, 4 sec.
+- Retry times (Infinite Retries): 1 sec, 2 sec, 4 sec, 8 sec, ..., 60 sec, ...,
 */
 func SubscribeToNewTasksV3Retryable(
 	opts *bind.WatchOpts,
