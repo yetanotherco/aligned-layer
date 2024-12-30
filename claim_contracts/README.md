@@ -1,36 +1,73 @@
-## AlignedToken
+#
 
-## Requirements
+## Local
+
+### Requisites
 
 - Foundry
 
-## Local deploying
+### Run
 
-To deploy the contracts, set the following environment variables:
+1. Run anvil in one terminal:
+   ```
+   anvil
+   ```
+2. Deploy the token
+   ```
+   make deploy-token
+   ```
+3. Write down the token proxy address that is printed in the console output. Do this in the `config.example.json` file, under the `tokenProxy` key.
+4. Deploy the claimable contract
+   ```
+   make deploy-claimable-local
+   ```
+5. Write down the claimable contract proxy address that is printed in the console output.
 
-- `DEPLOYER_PRIVATE_KEY`: The private key of the account that's going to deploy the contracts.
-- `SAFE_ADDRESS`: The address of the safe that's going to own the Proxy admin that in turn owns the token and airdrop contracts.
-- `OWNER1_ADDRESS`, `OWNER2_ADDRESS`, and `OWNER3_ADDRESS`: The three owners of the token.
-- `MINT_AMOUNT`: The amount to mint to each account (the contract actually supports minting different amounts of the token to each owner, but in the deploy script we simplified it).
-- `RPC_URL`: The url of the network to deploy to.
-- `CLAIM_TIME_LIMIT`: The claim time limit timestamp.
-- `MERKLE_ROOT`: The merkle root of all valid token claims.
+## Testnet (Sepolia)
 
-Example:
+### Requisites
+
+- Foundry
+- Etherscan API key
+
+### Run
+
+1. Create a file `script-config/config.sepolia.json` following the example in `script-config/config.sepolia.example.json`.
+2. Deploy the token
+   ```
+   make deploy-token-testnet RPC_URL=<sepolia-rpc-url> PRIVATE_KEY=<sepolia-funded-account-private-key>
+   ```
+3. Write down the `token-proxy-address` that is printed in the console output. Do this in the `config.sepolia.json` file, under the `tokenProxy` key.
+4. Deploy the claimable contract
+   ```
+   make deploy-claimable-testnet RPC_URL=<sepolia-rpc-url> DEPLOYER_PRIVATE_KEY=<sepolia-funded-account-private-key> ETHERSCAN_API_KEY=<etherscan-api-key>
+   ```
+5. Write down the `claimable-proxy-address` that is printed in the console output.
+
+## Enabling Claimability
+
+### Local
+
+1. Deploy the claimable contract as explained above.
+2. Set the correct merkle root
+   ```
+   make claimable-update-root MERKLE_ROOT=<claims-merkle-root>
+   ```
+3. Set the correct claim time limit
+   ```
+   make claimable-update-timestamp TIMESTAMP=2733427549
+   ```
+4. Approve the claimable contract to spend the token from the distributor
+   ```
+   make approve-claimable
+   ```
+5. Unpause the claimable contract
+   ```
+   make claimable-unpause
+   ```
+
+or
+
 ```
-export DEPLOYER_PRIVATE_KEY=<deployer_private_key>
-export SAFE_ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-export OWNER1_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8
-export OWNER2_ADDRESS=0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
-export OWNER3_ADDRESS=0x90F79bf6EB2c4f870365E785982E1f101E93b906
-export MINT_AMOUNT=100
-export RPC_URL=http://localhost:8545
-export CLAIM_TIME_LIMIT=2733247661
-export MERKLE_ROOT=0x90076b5fb9a6c81d9fce83dfd51760987b8c49e7c861ea25b328e6e63d2cd3df
-```
-
-Then run the following script:
-
-```
-./deployClaim.sh
+make deploy-example MERKLE_ROOT=<claims-merkle-root> TIMESTAMP=2733427549
 ```

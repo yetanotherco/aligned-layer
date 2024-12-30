@@ -7,71 +7,132 @@ help: ## 📚 Show help for each of the Makefile recipes
 # Deployments
 
 RPC_URL?=http://localhost:8545
-PRIVATE_KEY?=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
-
-deploy-all: ## 🚀 Deploy all contracts
-	cd script && forge script DeployAll.s.sol --private-key $(PRIVATE_KEY) --rpc-url $(RPC_URL) --broadcast
-
+DEPLOYER_PRIVATE_KEY?=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
 CONFIG?=example
 deploy-token: ## 🚀 Deploy the token contract
 	cd script && \
 	forge script DeployAlignedToken.s.sol \
 	--sig "run(string)" \
 	$(CONFIG) \
-	--private-key $(PRIVATE_KEY) \
+	--private-key $(DEPLOYER_PRIVATE_KEY) \
 	--rpc-url $(RPC_URL) \
+	--broadcast \
+	--verbosity 3
+
+deploy-token-testnet: ## 🚀 Deploy the token contract
+	cd script && \
+	forge script DeployAlignedToken.s.sol \
+	--sig "run(string)" sepolia
+	--private-key $(DEPLOYER_PRIVATE_KEY) \
+	--rpc-url $(RPC_URL) \
+	--broadcast \
+	--verbosity 3
+
+deploy-token-prod: ## 🚀 Deploy the token contract
+	cd script && \
+	forge script DeployAlignedToken.s.sol \
+	--sig "run(string)" \
+	$(PROD_CONFIG) \
+	--keystore $(KEYSTORE_PATH) \
+	--rpc-url $(PROD_RPC_URL) \
+	--broadcast \
+	--verbosity 3
+
+deploy-claimable-local: ## 🚀 Deploy the airdrop contract in localnet
+	cd script && \
+	forge script DeployClaimableAirdrop.s.sol \
+	--sig "run(string)" example \
+	--private-key $(DEPLOYER_PRIVATE_KEY) \
+	--rpc-url http://localhost:8545 \
 	--broadcast
 
-MINT?="1 ether"
-OWNER?=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-BENEFICIARY1?=0x70997970C51812dc3A010C7d01b50e0d17dc79C8
-BENEFICIARY2?=0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
-BENEFICIARY3?=0x90F79bf6EB2c4f870365E785982E1f101E93b906
-
-CLAIM_TIME_LIMIT?=1632960000
-MERKLE_ROOT?=0x90076b5fb9a6c81d9fce83dfd51760987b8c49e7c861ea25b328e6e63d2cd3df
-TOKEN_OWNER?=$(OWNER)
-
-deploy-proxy-admin: ## 🚀 Deploy the ProxyAdmin contract
-	cd script/proxy_admin && \
-	forge script DeployProxyAdmin.s.sol \
-	--sig "run(address)" \
-	$(OWNER) \
+deploy-claimable-testnet: ## 🚀 Deploy the airdrop contract in Sepolia
+	cd script && \
+	forge script DeployClaimableAirdrop.s.sol \
+	--sig "run(string)" sepolia \
+	--private-key $(DEPLOYER_PRIVATE_KEY) \
 	--rpc-url $(RPC_URL) \
-	--private-key $(PRIVATE_KEY) \
-	--broadcast
+	--broadcast \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY)
 
-deploy-aligned-token-implementation: ## 🚀 Deploy the AlignedToken implementation contract
-	cd script/aligned_token && \
-	forge script DeployAlignedTokenImplementation.s.sol \
-	--rpc-url $(RPC_URL) \
-	--private-key $(PRIVATE_KEY) \
-	--broadcast
+deploy-claimable-mainnet: ## 🚀 Deploy the airdrop contract in Mainnet
+	cd script && \
+	forge script DeployClaimableAirdrop.s.sol \
+	--sig "run(string)" mainnet \
+	--keystore $(KEYSTORE_PATH) \
+	--rpc-url https://eth.llamarpc.com \
+	--broadcast \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY)
 
-deploy-aligned-token-proxy: ## 🚀 Deploy the AlignedToken proxy contract
-	cd script/aligned_token && \
-	forge script DeployAlignedTokenProxy.s.sol \
-	--sig "run(address,address,address,address,address,address,uint256)" \
-	$(PROXY_ADMIN) $(IMPLEMENTATION) $(OWNER) $(BENEFICIARY1) $(BENEFICIARY2) $(BENEFICIARY3) $(MINT) \
-	--rpc-url $(RPC_URL) \
-	--private-key $(PRIVATE_KEY) \
-	--broadcast
 
-deploy-claimable-airdrop-implementation: ## 🚀 Deploy the ClaimableAirdrop implementation contract
-	cd script/claimable_airdrop && \
-	forge script DeployClaimableAirdropImplementation.s.sol \
-	--rpc-url $(RPC_URL) \
-	--private-key $(PRIVATE_KEY) \
-	--broadcast
+update_token_proxy:
+	@NEW_TOKEN_PROXY=$$(jq -r '.tokenProxy' "script-out/deployed_token_addresses.json") && \
+	jq --arg new_proxy "$$NEW_TOKEN_PROXY" '.tokenProxy = $$new_proxy' $(CONFIG) > $(CONFIG).tmp \
+	&& mv $(CONFIG).tmp $(CONFIG)
 
-deploy-claimable-airdrop-proxy: ## 🚀 Deploy the ClaimableAirdrop proxy contract
-	cd script/claimable_airdrop && \
-	forge script DeployClaimableAirdropProxy.s.sol \
-	--sig "run(address,address,address,address,address,uint256,bytes32)" \
-	$(PROXY_ADMIN) $(IMPLEMENTATION) $(OWNER) $(TOKEN) $(BENEFICIARY1) $(CLAIM_TIME_LIMIT) $(MERKLE_ROOT) \
-	--rpc-url $(RPC_URL) \
+upgrade-token: ## 🚀 Upgrade the token contract
+	cd script && \
+	forge script UpgradeToken.s.sol \
+	--sig "run(string)" \
+	$(CONFIG) \
 	--private-key $(PRIVATE_KEY) \
-	--broadcast
+	--rpc-url $(RPC_URL) \
+	--broadcast \
+	--verbosity 3
+
+# Miscellaneous
+
+DISTRIBUTOR_PRIVATE_KEY?=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+OWNER_PRIVATE_KEY=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
+AIRDROP=0xBC9129Dc0487fc2E169941C75aABC539f208fb01
+TOKEN=0x2E983A1Ba5e8b38AAAeC4B440B9dDcFBf72E15d1
+
+approve-claimable: ## 🚀 Approve the ClaimableAirdrop contract to spend the token
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(DISTRIBUTOR_PRIVATE_KEY) \
+		$(TOKEN) \
+		'approve(address,uint256)' $(AIRDROP) 2600000000000000000000000000
+
+claimable-update-root: ## 🚀 Update the merkle root of the ClaimableAirdrop contract
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(OWNER_PRIVATE_KEY) \
+		$(AIRDROP) \
+		'updateMerkleRoot(bytes32)' $(MERKLE_ROOT)
+
+claimable-get-root: ## 🚀 Get the merkle root of the ClaimableAirdrop contract
+	cast call \
+		--rpc-url $(RPC_URL) \
+		$(AIRDROP) \
+		"claimMerkleRoot()(bytes32)"
+
+claimable-update-timestamp: ## 🚀 Update the limit timestamp of the ClaimableAirdrop contract
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(OWNER_PRIVATE_KEY) \
+		$(AIRDROP) \
+		'extendClaimPeriod(uint256)' $(TIMESTAMP)
+
+claimable-get-timestamp: ## 🚀 Get the limit timestamp of the ClaimableAirdrop contract
+	cast call \
+		--rpc-url $(RPC_URL) \
+		$(AIRDROP) \
+		"limitTimestampToClaim()(uint256)"
+
+claimable-pause:
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(OWNER_PRIVATE_KEY) \
+		$(AIRDROP) "pause()"
+
+claimable-unpause:
+	cast send \
+		--rpc-url $(RPC_URL) \
+		--private-key $(OWNER_PRIVATE_KEY) \
+		$(AIRDROP) "unpause()"
 
 # Upgrades
 
@@ -84,57 +145,11 @@ upgrade-aligned-token-implementation: ## 🚀 Upgrade the AlignedToken implement
 	--private-key $(PRIVATE_KEY) \
 	--broadcast
 
-# Deployment Data
-
-aligned-token-proxy-deploy-data: ## 🚀 Generate the deployment data for the AlignedToken proxy contract
-	cd script/aligned_token && \
-	forge script AlignedTokenProxyDeploymentData.s.sol \
-	--sig "run(address,uint256, address,address,address,address,uint256)" \
-	$(IMPLEMENTATION) $(VERSION) $(OWNER) $(BENEFICIARY1) $(BENEFICIARY2) $(BENEFICIARY3) $(MINT)
-
-aligned-token-init-data: ## 🚀 Generate the init data for the AlignedToken proxy contract
-	cd script/aligned_token && \
-	forge script AlignedTokenInitData.s.sol \
-	--sig "run(address,uint256, address,address,address,address,uint256)" \
-	$(IMPLEMENTATION) $(VERSION) $(OWNER) $(BENEFICIARY1) $(BENEFICIARY2) $(BENEFICIARY3) $(MINT)
-
-aligned-token-upgrade-data: ## 🚀 Generate the upgrade data for the AlignedToken proxy contract
-	cd script/aligned_token && \
-	forge script AlignedTokenUpgradeData.s.sol \
-	--sig "run(address,uint256, address,address,address,address,uint256)" \
-	$(IMPLEMENTATION) $(VERSION) $(OWNER) $(BENEFICIARY1) $(BENEFICIARY2) $(BENEFICIARY3) $(MINT)
-
-SALT?=0x0000000000000000000000000000000000000000000000000000000000000000
-# Sepolia Safe CreateCall contract.
-DEPLOYER?=0x9b35Af71d77eaf8d7e40252370304687390A1A52
-
-aligned-token-create2: ## 🚀 Generate the create2 data for the AlignedToken proxy contract
-	cd script/aligned_token && \
-	forge script AlignedTokenCreate2.s.sol \
-	--sig "run(uint256,bytes32,address)" \
-	$(VERSION) $(SALT) $(DEPLOYER)
-
-aligned-token-proxy-create2: ## 🚀 Generate the create2 data for the AlignedToken proxy contract
-	cd script/aligned_token && \
-	forge script AlignedTokenCreate2.s.sol \
-	--sig "run(address,uint256, address,address,address,address,uint256,bytes32,address)" \
-	$(IMPLEMENTATION) $(VERSION) $(OWNER) $(BENEFICIARY1) $(BENEFICIARY2) $(BENEFICIARY3) $(MINT) $(SALT) $(DEPLOYER
-
-# Misc
-
-approve:
-	cd script && \
-	forge script ApproveERC20.s.sol \
-	--sig "run(address,address,uint256)" \
-	$(TOKEN) $(AIRDROP) $(AMOUNT) \
-	--rpc-url $(RPC_URL) \
-	--private-key $(HOLDER_PRIVATE_KEY) \
-	--broadcast
-
 # Test targets
 
 test-token:
 	cast call $(ADDRESS) "name()(string)" --rpc-url $(RPC_URL)
+	cast call $(ADDRESS) "symbol()(string)" --rpc-url $(RPC_URL)
 	cast call $(ADDRESS) "totalSupply()(uint256)" --rpc-url $(RPC_URL)
 
 # The following target needs the proof API running on localhost:4000
@@ -149,8 +164,9 @@ test-claimed:
 
 OWNER_PRIVATE_KEY?=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
-test-pause:
-	cast send $(AIRDROP) --private-key $(OWNER_PRIVATE_KEY) "pause()" --rpc-url $(RPC_URL)
+test-airdrop:
+	cast call $(AIRDROP) "paused()(bool)" --rpc-url $(RPC_URL)
+	cast call $(AIRDROP) "owner()(address)" --rpc-url $(RPC_URL)
 
-test-unpause:
-	cast send $(AIRDROP) --private-key $(OWNER_PRIVATE_KEY) "unpause()" --rpc-url $(RPC_URL)
+# Requires MERKLE_ROOT, TIMESTAMP
+deploy-example: deploy-token deploy-claimable-local claimable-update-root claimable-update-timestamp approve-claimable claimable-unpause
