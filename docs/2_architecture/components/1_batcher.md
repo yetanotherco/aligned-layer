@@ -47,14 +47,15 @@ When the conditions to build a batch are met, the Batcher runs the following bat
 
 This algorithm starts by calculating the **batch size**, in bytes, by adding the verification data bytes of each proof of the queue. The next step is to build a new **resulting priority queue**, which will store all proofs that where not included in the batch, replacing the current priority queue when this algorithm ends.
 
-In order for the batch to be considered valid, two conditions have to be met:
+In order for the batch to be considered valid, some conditions need to be met:
 * The **batch size** in bytes must be less than or equal to a defined limit.
 * All proofs found in the batch must have a `max_fee` equal or higher to the calculated **fee per proof** of the batch.
+* The **batch proof quantity** must be between the a defined limits.
 
-The **fee per proof** indicates the cost of verifying each proof within the batch. It is calculated using a formula that depends on the **batch length**, defined as the number of proofs in the batch:
+The **fee per proof** indicates the cost of verifying each proof within the batch. It is calculated using a formula that depends on the **batch proof quantity**, defined as the number of proofs in the batch:
 
 ```
-gas_per_proof = (constant_gas_cost + additional_submission_gas_cost_per_proof * batch_len) / batch_len
+gas_per_proof = (constant_gas_cost + additional_submission_gas_cost_per_proof * batch_proof_qty) / batch_proof_qty
 fee_per_proof = gas_per_proof * gas_price
 ```
 
