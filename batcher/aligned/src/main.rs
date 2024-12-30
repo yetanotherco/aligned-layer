@@ -394,7 +394,7 @@ async fn main() -> Result<(), AlignedError> {
                         warn!("Error while submitting proof: {:?}", e);
                         handle_submit_err(&e).await;
                         // In the case of an InsufficientBalance error we record and continue processing the entire msg queue.
-                        // This covers the case of multiple submissions that succeed but fail for a comulative balance of all max_fee's.
+                        // This covers the case of a `submit_multiple` in which some submissions succeed but others fail because of a cumulative `insufficient balance`.
                         if let SubmitError::InsufficientBalance(_, _) = e {
                             continue;
                         } else {
