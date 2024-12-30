@@ -84,7 +84,12 @@ This will display the current version of the operator binary.
 
 ## Step 3 - Update the configuration for your specific Operator
 
-Update the following placeholders in `./config-files/config-operator-mainnet.yaml`:
+Locate the appropiate `operator_config_file`:
+
+- Mainnet: `./config-files/config-operator-mainnet.yaml`.
+- Holesky: `./config-files/config-operator-holesky.yaml`.
+
+Update the following placeholders:
 
 - `"<operator_address>"`
 - `"<earnings_receiver_address>"`
@@ -133,8 +138,16 @@ eth_ws_url_fallback: "wss://<RPC_2>"
 
 Then you must register as an Operator on AlignedLayer. To do this, you must run:
 
+- Mainnet:
+
 ```bash
 make operator_register_with_aligned_layer CONFIG_FILE=./config-files/config-operator-mainnet.yaml
+```
+
+- Holesky:
+
+```bash
+make operator_register_with_aligned_layer CONFIG_FILE=./config-files/config-operator-holesky.yaml
 ```
 
 {% hint style="danger" %}
@@ -144,8 +157,16 @@ delete the operator key
 
 ## Step 5 - Start the operator
 
+- Mainnet:
+
 ```bash
 ./operator/build/aligned-operator start --config ./config-files/config-operator-mainnet.yaml
+```
+
+- Holesky:
+
+```bash
+./operator/build/aligned-operator start --config ./config-files/config-operator-holesky.yaml
 ```
 
 ### Run Operator using Systemd
@@ -164,7 +185,7 @@ After=network.target
 [Service]
 Type=simple
 User=aligned
-ExecStart=<path_to_aligned_layer_repository>/operator/build/aligned-operator start --config <path_to_operator_config>
+ExecStart=<path_to_aligned_layer_repository>/operator/build/aligned-operator start --config <path_to_operator_config_file>
 Restart=always
 RestartSec=1
 StartLimitBurst=100
@@ -211,6 +232,14 @@ journalctl -xfeu aligned-operator.service
 ## Unregistering the operator
 
 To unregister the Aligned operator, run:
+
+- Mainnet:
+
+```bash
+cast send --rpc-url https://ethereum-rpc.publicnode.com --private-key <private_key> 0xA8CC0749b4409c3c47012323E625aEcBA92f64b9 'deregisterOperator(bytes)' 0x00
+ ```
+
+- Holesky:
 
 ```bash
 cast send --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> 0x3aD77134c986193c9ef98e55e800B71e72835b62 'deregisterOperator(bytes)' 0x00
