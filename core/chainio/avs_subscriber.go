@@ -180,6 +180,13 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 
 	// Handle errors and resubscribe
 	go func() {
+		defer func() {
+			err := recover() //stops panics
+			if err != nil {
+				s.logger.Error("SubscribeToNewTasksV3 error channel recovered from panic", "err", err)
+			}
+		}()
+
 		for {
 			select {
 			case err := <-sub.Err():
