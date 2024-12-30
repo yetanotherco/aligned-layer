@@ -38,10 +38,11 @@ forge script ../examples/verify/script/VerifyBatchInclusionCallerDeployer.s.sol 
 # Deploy Batcher Payments Contract
 forge_output=$(forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
     ./script/deploy/config/devnet/batcher-payment-service.devnet.config.json \
+    ./script/deploy/output/devnet/batcher_deployment_output.json \
     --rpc-url "http://localhost:8545" \
     --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
     --broadcast \
-    --sig "run(string batcherConfigPath)")
+    --sig "run(string batcherConfigPath, string outputPath)")
 
 # Extract the batcher payment service values from the output
 # new_aligned_layer_service_manager_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
