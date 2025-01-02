@@ -9,7 +9,7 @@ defmodule ExplorerWeb.Home.Index do
     avg_fee_per_proof = Batches.get_avg_fee_per_proof()
 
     avg_fee_per_proof_usd =
-      case EthConverter.wei_to_usd(avg_fee_per_proof, 2) do
+      case EthConverter.wei_to_usd_sf(avg_fee_per_proof, 2) do
         {:ok, value} -> value
         _ -> 0
       end
@@ -90,7 +90,7 @@ defmodule ExplorerWeb.Home.Index do
     points =
       Enum.map(batches, fn b ->
         fee_per_proof =
-          case EthConverter.wei_to_usd(b.fee_per_proof, 2) do
+          case EthConverter.wei_to_usd_sf(b.fee_per_proof, 2) do
             {:ok, value} ->
               value
 
@@ -117,7 +117,7 @@ defmodule ExplorerWeb.Home.Index do
         merkle_root: Enum.map(batches, fn b -> b.merkle_root end),
         fee_per_proof:
           Enum.map(batches, fn b ->
-            case EthConverter.wei_to_usd(b.fee_per_proof, 2) do
+            case EthConverter.wei_to_usd_sf(b.fee_per_proof, 2) do
               {:ok, value} ->
                 value
 
