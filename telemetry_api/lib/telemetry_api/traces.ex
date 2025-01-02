@@ -5,6 +5,7 @@ defmodule TelemetryApi.Traces do
   alias TelemetryApi.Traces.Trace
   alias TelemetryApi.Operators
   alias TelemetryApi.ContractManagers.StakeRegistry
+  alias TelemetryApi.PrometheusMetrics
 
   require OpenTelemetry.Tracer
   require OpenTelemetry.Ctx
@@ -90,8 +91,12 @@ defmodule TelemetryApi.Traces do
           current_stake: new_stake
       })
 
+      PrometheusMetrics.operator_response(
+        operator.name <> " - " <> String.slice(operator.address, 0..7)
+      )
+
       IO.inspect(
-        "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
+        "Operator response included. merkle_root: #{inspect(merkle_root)} operator_id: #{inspect(operator_id)}"
       )
 
       :ok
@@ -123,11 +128,6 @@ defmodule TelemetryApi.Traces do
         trace
         | subspans: Map.delete(trace.subspans, :batcher)
       })
-
-      with {:ok, _trace} <- set_current_trace(merkle_root) do
-        Tracer.end_span()
-        TraceStore.delete_trace(merkle_root)
-      end
 
       :ok
     end
@@ -208,7 +208,6 @@ defmodule TelemetryApi.Traces do
       :ok
     end
   end
-  
 
   @doc """
   Registers the sending of a batcher task to Ethereum in the task trace.
@@ -298,20 +297,20 @@ defmodule TelemetryApi.Traces do
       :ok
     end
   end
-  
+
   @doc """
-  Registers a bump in the gas price when the aggregator tries to respond to a task in the task trace.
+  Registers a set gas price when the aggregator tries to respond to a task in the task trace.
 
   ## Examples
 
       iex> merkle_root
-      iex> bumped_gas_price
-      iex> aggregator_task_gas_price_bumped(merkle_root, bumped_gas_price)
+      iex> gas_price
+      iex> aggregator_task_set_gas_price(merkle_root, gas_price)
       :ok
   """
-  def aggregator_task_gas_price_bumped(merkle_root, bumped_gas_price) do
+  def aggregator_task_set_gas_price(merkle_root, gas_price) do
     with {:ok, _trace} <- set_current_trace_with_subspan(merkle_root, :aggregator) do
-      Tracer.add_event("Task gas price bumped", [{"bumped__gas_price", bumped_gas_price}])
+      Tracer.add_event("Gas price set", [{"gas_price", gas_price}])
       :ok
     end
   end
@@ -323,12 +322,12 @@ defmodule TelemetryApi.Traces do
 
       iex> merkle_root
       iex> tx_hash
-      iex> aggregator_task_sent(merkle_root, tx_hash)
+      iex> aggregator_task_sent(merkle_root, tx_hash, effective_gas_price)
       :ok
   """
-  def aggregator_task_sent(merkle_root, tx_hash) do
+  def aggregator_task_sent(merkle_root, tx_hash, effective_gas_price) do
     with {:ok, _trace} <- set_current_trace_with_subspan(merkle_root, :aggregator) do
-      Tracer.add_event("Task Sent to Ethereum", [{"tx_hash", tx_hash}])
+      Tracer.add_event("Task Sent to Ethereum", [{"tx_hash", tx_hash}, {"effective_gas_price", effective_gas_price}])
       :ok
     end
   end
@@ -368,8 +367,17 @@ defmodule TelemetryApi.Traces do
   defp add_missing_operators([]), do: :ok
 
   defp add_missing_operators(missing_operators) do
+    # Concatenate name + address
     missing_operators =
-      missing_operators |> Enum.map(fn o -> o.name end) |> Enum.join(";")
+      missing_operators
+      |> Enum.map(fn op -> op.name <> " - " <> String.slice(op.address, 0..7) end)
+
+    # Send to prometheus
+    missing_operators
+    |> Enum.map(fn o -> PrometheusMetrics.missing_operator(o) end)
+
+    missing_operators =
+      missing_operators |> Enum.join(";")
 
     Tracer.add_event("Missing Operators", [{:operators, missing_operators}])
   end

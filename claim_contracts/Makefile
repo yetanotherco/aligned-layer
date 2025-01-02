@@ -4,17 +4,34 @@
 help: ## 📚 Show help for each of the Makefile recipes
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+# Calldata
+
+calldata-update-merkle-root: ## 💾 Calldata for the method `updateMerkleRoot` to use in a transaction
+	cast calldata "updateMerkleRoot(bytes32)" $(MERKLE_ROOT)
+
+calldata-update-limit-timestamp: ## 💾 Calldata for the method `extendClaimPeriod` to use in a transaction
+	cast calldata "extendClaimPeriod(uint256)" $(LIMIT_TIMESTAMP)
+
+calldata-approve-spending: ## 💾 Calldata for the method `approve` to use in a transaction
+	cast calldata "approve(address,uint256)" $(CLAIM_PROXY_ADDRESS) 2600000000000000000000000000
+
+calldata-unpause: ## 💾 Calldata for the method `unpause` to use in a transaction
+	cast calldata "unpause()"
+
+calldata-pause: ## 💾 Calldata for the method `pause` to use in a transaction
+	cast calldata "pause()"
+
 # Deployments
 
 RPC_URL?=http://localhost:8545
-PRIVATE_KEY?=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
+DEPLOYER_PRIVATE_KEY?=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
 CONFIG?=example
 deploy-token: ## 🚀 Deploy the token contract
 	cd script && \
 	forge script DeployAlignedToken.s.sol \
 	--sig "run(string)" \
 	$(CONFIG) \
-	--private-key $(PRIVATE_KEY) \
+	--private-key $(DEPLOYER_PRIVATE_KEY) \
 	--rpc-url $(RPC_URL) \
 	--broadcast \
 	--verbosity 3
@@ -22,11 +39,13 @@ deploy-token: ## 🚀 Deploy the token contract
 deploy-token-testnet: ## 🚀 Deploy the token contract
 	cd script && \
 	forge script DeployAlignedToken.s.sol \
-	--sig "run(string)" sepolia
-	--private-key $(PRIVATE_KEY) \
+	--sig "run(string)" sepolia \
+	--private-key $(DEPLOYER_PRIVATE_KEY) \
 	--rpc-url $(RPC_URL) \
 	--broadcast \
-	--verbosity 3
+	--verbosity 3 \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY)
 
 deploy-token-prod: ## 🚀 Deploy the token contract
 	cd script && \
@@ -42,7 +61,7 @@ deploy-claimable-local: ## 🚀 Deploy the airdrop contract in localnet
 	cd script && \
 	forge script DeployClaimableAirdrop.s.sol \
 	--sig "run(string)" example \
-	--private-key $(PRIVATE_KEY) \
+	--private-key $(DEPLOYER_PRIVATE_KEY) \
 	--rpc-url http://localhost:8545 \
 	--broadcast
 
@@ -50,7 +69,7 @@ deploy-claimable-testnet: ## 🚀 Deploy the airdrop contract in Sepolia
 	cd script && \
 	forge script DeployClaimableAirdrop.s.sol \
 	--sig "run(string)" sepolia \
-	--private-key $(PRIVATE_KEY) \
+	--private-key $(DEPLOYER_PRIVATE_KEY) \
 	--rpc-url $(RPC_URL) \
 	--broadcast \
 	--verify \
@@ -85,6 +104,9 @@ upgrade-token: ## 🚀 Upgrade the token contract
 # Miscellaneous
 
 DISTRIBUTOR_PRIVATE_KEY?=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+OWNER_PRIVATE_KEY=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
+AIRDROP=0xBC9129Dc0487fc2E169941C75aABC539f208fb01
+TOKEN=0x2E983A1Ba5e8b38AAAeC4B440B9dDcFBf72E15d1
 
 approve-claimable: ## 🚀 Approve the ClaimableAirdrop contract to spend the token
 	cast send \
@@ -96,7 +118,7 @@ approve-claimable: ## 🚀 Approve the ClaimableAirdrop contract to spend the to
 claimable-update-root: ## 🚀 Update the merkle root of the ClaimableAirdrop contract
 	cast send \
 		--rpc-url $(RPC_URL) \
-		--private-key $(PRIVATE_KEY) \
+		--private-key $(OWNER_PRIVATE_KEY) \
 		$(AIRDROP) \
 		'updateMerkleRoot(bytes32)' $(MERKLE_ROOT)
 
@@ -109,7 +131,7 @@ claimable-get-root: ## 🚀 Get the merkle root of the ClaimableAirdrop contract
 claimable-update-timestamp: ## 🚀 Update the limit timestamp of the ClaimableAirdrop contract
 	cast send \
 		--rpc-url $(RPC_URL) \
-		--private-key $(PRIVATE_KEY) \
+		--private-key $(OWNER_PRIVATE_KEY) \
 		$(AIRDROP) \
 		'extendClaimPeriod(uint256)' $(TIMESTAMP)
 
@@ -119,16 +141,16 @@ claimable-get-timestamp: ## 🚀 Get the limit timestamp of the ClaimableAirdrop
 		$(AIRDROP) \
 		"limitTimestampToClaim()(uint256)"
 
-pause:
+claimable-pause:
 	cast send \
 		--rpc-url $(RPC_URL) \
-		--private-key $(PRIVATE_KEY) \
+		--private-key $(OWNER_PRIVATE_KEY) \
 		$(AIRDROP) "pause()"
 
-unpause:
+claimable-unpause:
 	cast send \
 		--rpc-url $(RPC_URL) \
-		--private-key $(PRIVATE_KEY) \
+		--private-key $(OWNER_PRIVATE_KEY) \
 		$(AIRDROP) "unpause()"
 
 # Upgrades
@@ -164,3 +186,6 @@ OWNER_PRIVATE_KEY?=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f
 test-airdrop:
 	cast call $(AIRDROP) "paused()(bool)" --rpc-url $(RPC_URL)
 	cast call $(AIRDROP) "owner()(address)" --rpc-url $(RPC_URL)
+
+# Requires MERKLE_ROOT, TIMESTAMP
+deploy-example: deploy-token deploy-claimable-local claimable-update-root claimable-update-timestamp approve-claimable claimable-unpause
