@@ -37,12 +37,11 @@ defmodule Explorer.Periodically do
 
   def handle_info(:next_batch_progress, state) do
     Logger.debug("handling block progress timer")
-    
+    remaining_time =  ExplorerWeb.Helpers.get_next_scheduled_batch_remaining_time()
     PubSub.broadcast(Explorer.PubSub, "update_views", %{
       next_scheduled_batch_remaining_time_percentage:
-        ExplorerWeb.Helpers.get_next_scheduled_batch_remaining_time_percentage(),
-      next_scheduled_batch_remaining_time: 
-        ExplorerWeb.Helpers.get_next_scheduled_batch_remaining_time()
+        ExplorerWeb.Helpers.get_next_scheduled_batch_remaining_time_percentage(remaining_time),
+      next_scheduled_batch_remaining_time: remaining_time
     }) 
       
     {:noreply, state}

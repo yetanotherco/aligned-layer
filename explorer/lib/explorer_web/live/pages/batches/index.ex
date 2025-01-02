@@ -16,13 +16,15 @@ defmodule ExplorerWeb.Batches.Index do
 
     if connected?(socket), do: PubSub.subscribe(Explorer.PubSub, "update_views")
 
+    remaining_time = Helpers.get_next_scheduled_batch_remaining_time()
+
     {:ok,
      assign(socket,
        current_page: current_page,
        batches: batches,
        next_scheduled_batch_remaining_time_percentage:
-         Helpers.get_next_scheduled_batch_remaining_time_percentage(),
-       next_scheduled_batch_remaining_time: Helpers.get_next_scheduled_batch_remaining_time(),
+         Helpers.get_next_scheduled_batch_remaining_time_percentage(remaining_time),
+       next_scheduled_batch_remaining_time: remaining_time,
        last_page: Batches.get_last_page(@page_size),
        page_title: "Batches"
      )}
@@ -36,12 +38,14 @@ defmodule ExplorerWeb.Batches.Index do
       Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
       |> Helpers.enrich_batches()
 
+    remaining_time = Helpers.get_next_scheduled_batch_remaining_time()
+
     {:noreply,
      assign(socket,
        batches: batches,
        next_scheduled_batch_remaining_time_percentage:
-         Helpers.get_next_scheduled_batch_remaining_time_percentage(),
-       next_scheduled_batch_remaining_time: Helpers.get_next_scheduled_batch_remaining_time(),
+         Helpers.get_next_scheduled_batch_remaining_time_percentage(remaining_time),
+       next_scheduled_batch_remaining_time: remaining_time,
        last_page: Batches.get_last_page(@page_size)
      )}
   end

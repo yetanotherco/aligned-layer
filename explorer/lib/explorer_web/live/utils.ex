@@ -192,11 +192,11 @@ defmodule ExplorerWeb.Helpers do
     end
   end
 
-  def get_next_scheduled_batch_remaining_time_percentage() do
+  def get_next_scheduled_batch_remaining_time_percentage(remaining_time) do
     interval = Utils.scheduled_batch_interval()
-    100 * (interval - get_next_scheduled_batch_remaining_time()) / interval
+    100 * (interval - remaining_time) / interval
   end
-  
+
   def enrich_batches(batches) do
     batches
     |> Enum.map(fn batch ->
@@ -223,7 +223,7 @@ defmodule Utils do
 
   def scheduled_batch_interval() do
     System.get_env("SCHEDULED_BATCH_INTERVAL_MINUTES")
-    |> String.to_integer
+    |> String.to_integer()
   end
 
   def string_to_bytes32(hex_string) do

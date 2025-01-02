@@ -157,6 +157,7 @@ defmodule ExplorerWeb.Home.Index do
   def handle_info(_, socket) do
     latest_batches = Batches.get_latest_batches(%{amount: 10, order_by: :desc})
     charts_query_limit = 20
+    remaining_time = Helpers.get_next_scheduled_batch_remaining_time()
 
     {:noreply,
      assign(
@@ -166,8 +167,8 @@ defmodule ExplorerWeb.Home.Index do
        cost_per_proof_chart: get_cost_per_proof_chart_data(charts_query_limit),
        batch_size_chart_data: get_batch_size_chart_data(charts_query_limit),
        next_scheduled_batch_remaining_time_percentage:
-         Helpers.get_next_scheduled_batch_remaining_time_percentage(),
-       next_scheduled_batch_remaining_time: Helpers.get_next_scheduled_batch_remaining_time()
+         Helpers.get_next_scheduled_batch_remaining_time_percentage(remaining_time),
+       next_scheduled_batch_remaining_time: remaining_time
      )}
   end
 
@@ -175,6 +176,7 @@ defmodule ExplorerWeb.Home.Index do
   def mount(_, _, socket) do
     latest_batches = Batches.get_latest_batches(%{amount: 10, order_by: :desc})
     charts_query_limit = 20
+    remaining_time = Helpers.get_next_scheduled_batch_remaining_time()
 
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
@@ -185,8 +187,8 @@ defmodule ExplorerWeb.Home.Index do
        cost_per_proof_chart: get_cost_per_proof_chart_data(charts_query_limit),
        batch_size_chart_data: get_batch_size_chart_data(charts_query_limit),
        next_scheduled_batch_remaining_time_percentage:
-         Helpers.get_next_scheduled_batch_remaining_time_percentage(),
-       next_scheduled_batch_remaining_time: Helpers.get_next_scheduled_batch_remaining_time(),
+         Helpers.get_next_scheduled_batch_remaining_time_percentage(remaining_time),
+       next_scheduled_batch_remaining_time: remaining_time,
        page_title: "Welcome"
      )}
   rescue
