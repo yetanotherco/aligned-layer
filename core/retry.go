@@ -45,8 +45,8 @@ const (
 	RespondToTaskV2MaxElapsedTime = 0                      //	Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
 	RespondToTaskV2NumRetries     = 0                      // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
 
-	// Retry Parameters for SubscribeToNewTasksV3
-	SubscribeToNewTasksNumRetries = 0 // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
+	// Retry Parameters for SubscribeToNewTasks
+	SubscribeToNewTasksNumRetries = 0 // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime (60 sec) is reached.
 )
 
 type RetryParams struct {
