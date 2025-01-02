@@ -7,7 +7,7 @@ CONFIG_FILE?=config-files/config.yaml
 export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.12.2
+OPERATOR_VERSION=v0.13.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -557,7 +557,13 @@ generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
 __METRICS__:
-# Prometheus and graphana
+# Prometheus and Grafana
+metrics_remove_containers:
+	@docker stop prometheus grafana
+	@docker rm prometheus grafana
+metrics_clean_db: metrics_remove_containers
+	@docker volume rm aligned_layer_grafana_data aligned_layer_prometheus_data
+
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
 	@docker compose -f metrics-docker-compose.yaml up
