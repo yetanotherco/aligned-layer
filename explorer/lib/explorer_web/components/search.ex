@@ -40,7 +40,7 @@ defmodule SearchComponent do
       <input
         phx-hook="SearchFocus"
         id={"input_#{assigns.id}"}
-        class="pr-10 w-full rounded-lg border-foreground/20 bg-card focus:border-foreground/20 focus:ring-accent text-sm"
+        class="pr-10 w-full text-foreground rounded-lg border-foreground/20 bg-card focus:border-foreground/20 focus:ring-accent text-sm"
         type="search"
         placeholder="Search batch by batch hash or proof hash"
         name="batch[merkle_root]"
