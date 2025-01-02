@@ -96,7 +96,7 @@ defmodule TelemetryApi.Traces do
       )
 
       IO.inspect(
-        "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
+        "Operator response included. merkle_root: #{inspect(merkle_root)} operator_id: #{inspect(operator_id)}"
       )
 
       :ok
@@ -128,11 +128,6 @@ defmodule TelemetryApi.Traces do
         trace
         | subspans: Map.delete(trace.subspans, :batcher)
       })
-
-      with {:ok, _trace} <- set_current_trace(merkle_root) do
-        Tracer.end_span()
-        TraceStore.delete_trace(merkle_root)
-      end
 
       :ok
     end
