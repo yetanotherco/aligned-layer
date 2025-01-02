@@ -35,7 +35,11 @@ aligned [COMMAND] --help
 
     - Options:
         - `--batcher_url <Batcher connection address>`: Websocket URL for the Aligned Layer batcher.  
-            - **default**: `ws://localhost:8080` i.e. `devnet`
+            - **default**: 
+                - devnet: `ws://localhost:8080`
+            - **possible values**: 
+                - mainnet: `wss://mainnet.batcher.alignedlayer.com`
+                - holesky: `wss://batcher.alignedlayer.com`
         - `--rpc_url <Ethereum RPC provider connection address>`: User's Ethereum RPC Node URL.
         - `--proving_system <Proving system>`: Proof system of the submitted proof.
             - **possible values**: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254`, `SP1`, `Risc0`
@@ -52,7 +56,7 @@ aligned [COMMAND] --help
             - **default**: `./aligned_verification_data/`
         - `--keystore_path <Path to local keystore>`: Path to the local keystore of the user's wallet.
         - `--private_key <Private key>`: User's wallet private key.
-        - `--max_fee <Max Fee (ether)>`: Amount of Ethereum in Wei to deposit into the `BatcherPaymentService.sol` contract to pay for proof submission.
+        - `--max_fee <Max Fee (ether)>`: Amount of Ethereum in Ether to deposit into the `BatcherPaymentService.sol` contract to pay for proof submission.
         - `--nonce <Nonce>`: Nonce of the proof.
         - `--network <The working network's name>`: The Ethereum network of the Aligned Layer Network the user is submitting to.
             - **default**: `devnet`
@@ -82,7 +86,7 @@ aligned [COMMAND] --help
         - `--network <The working network's name>`: The Ethereum network of the Aligned Layer Network the user is querying their balance on.
             - **default**: `devnet`
             - **possible values**: `devnet`, `holesky`, `holesky-stage`, `mainnet`
-        - `--amount <Amount to deposit>`: Amount of Ethereum in Wei to deposit into the `BatcherPaymentService.sol` contract to pay for proof submission.
+        - `--amount <Amount to deposit>`: Amount of Ethereum in Ether to deposit into the `BatcherPaymentService.sol` contract to pay for proof submission.
 
 - `get-user-balance [OPTIONS] --user_addr <The user's Ethereum address>`: Retrieves the user's current balance in Aligned Layer's `BatcherPaymentService.sol` contract.
 
@@ -98,7 +102,11 @@ aligned [COMMAND] --help
 
     - Options:
         - `--batcher_url <Batcher connection address>`: Websocket URL for the Aligned Layer batcher.  
-            - **default**: `ws://localhost:8080` i.e. `devnet`
+            - **default**: 
+                - devnet: `ws://localhost:8080`
+            - **possible values**: 
+                - mainnet: `wss://mainnet.batcher.alignedlayer.com`
+                - holesky: `wss://batcher.alignedlayer.com`
         - `--user_addr <The user's Ethereum address>`: User's Ethereum address on Ethereum Mainnet.
 
 ## Example:
@@ -112,12 +120,12 @@ aligned deposit-to-batcher --network holesky --amount 0.5ether --keystore_path <
 
 2. Check your balance in the aligned batcher.
 ```bash
-aligned get-user-balance --user_addr <WALLET_ADDRESS> --network holesky
+aligned get-user-balance --user_addr <WALLET_ADDRESS> --network holesky --batcher_url wss://batcher.alignedlayer.com
 ```
 
 3. Submit a Proof.
 ```bash
-aligned submit  --proving_system Risc0 --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub --repetitions <BURST_SIZE> --keystore_path <KEYSTORE_PATH> --network holesky --max_fee 1300000000
+aligned submit  --proving_system Risc0 --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub --repetitions <BURST_SIZE> --keystore_path <KEYSTORE_PATH> --batcher_url wss://batcher.alignedlayer.com --network holesky --max_fee 1300000000
 ```
 
 4. Verify that your proof has been found on chain.
