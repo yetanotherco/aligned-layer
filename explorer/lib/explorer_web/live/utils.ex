@@ -155,21 +155,25 @@ defmodule ExplorerWeb.Helpers do
     end
   end
 
-  def time_to_next_block() do
-    max_wait = Utils.max_batch_wait_minutes()
+  def get_next_scheduled_batch_remaining_time() do
+    interval = Utils.scheduled_batch_interval()
     latest_batch = Batches.get_latest_verified_batch()
+
     cond do
-      latest_batch != nil -> latest_batch.submission_timestamp
-        |> DateTime.add(max_wait, :minute)
+      latest_batch != nil ->
+        latest_batch.submission_timestamp
+        |> DateTime.add(interval, :minute)
         |> DateTime.diff(DateTime.utc_now(), :minute)
         |> max(0)
-      true -> max_wait
+
+      true ->
+        interval
     end
   end
 
-  def next_block_progress() do
-    max_wait = Utils.max_batch_wait_minutes()
-    100 * (max_wait - time_to_next_block()) / max_wait
+  def get_next_scheduled_batch_remaining_time_percentage() do
+    interval = Utils.scheduled_batch_interval()
+    100 * (interval - get_next_scheduled_batch_remaining_time()) / interval
   end
 end
 
@@ -185,8 +189,8 @@ defmodule Utils do
                      _ -> 268_435_456
                    end)
 
-  def max_batch_wait_minutes() do
-    System.get_env("MAX_BATCH_WAIT_MINUTES")
+  def scheduled_batch_interval() do
+    System.get_env("SCHEDULED_BATCH_INTERVAL_MINUTES")
     |> String.to_integer
   end
 

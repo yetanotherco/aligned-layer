@@ -17,20 +17,29 @@ defmodule ExplorerWeb.Batches.Index do
      assign(socket,
        current_page: current_page,
        batches: batches,
-       next_batch_countdown_progress: Helpers.next_block_progress(),
-       time_to_next_block: Helpers.time_to_next_block(),
+       next_scheduled_batch_remaining_time_percentage:
+         Helpers.get_next_scheduled_batch_remaining_time_percentage(),
+       next_scheduled_batch_remaining_time: Helpers.get_next_scheduled_batch_remaining_time(),
        last_page: Batches.get_last_page(@page_size),
        page_title: "Batches"
      )}
   end
 
   @impl true
-  def handle_info(%{block_wait_progress: progress, time_to_next_block: remaining} = _params, socket) do
+  def handle_info(
+        %{
+          next_scheduled_batch_remaining_time_percentage: progress,
+          next_scheduled_batch_remaining_time: remaining
+        } =
+          _params,
+        socket
+      ) do
     Logger.debug("updating block progress: remaining=#{remaining} progress=#{progress}%")
+
     {:noreply,
      assign(socket,
-       next_batch_countdown_progress: progress,
-       time_to_next_block: remaining
+       next_batch_remaining_time_percentage: progress,
+       next_batch_remaining_time: remaining
      )}
   end
 
@@ -43,8 +52,9 @@ defmodule ExplorerWeb.Batches.Index do
     {:noreply,
      assign(socket,
        batches: batches,
-       next_batch_countdown_progress: Helpers.next_block_progress(),
-       time_to_next_block: Helpers.time_to_next_block(),
+       next_scheduled_batch_remaining_time_percentage:
+         Helpers.get_next_scheduled_batch_remaining_time_percentage(),
+       next_scheduled_batch_remaining_time: Helpers.get_next_scheduled_batch_remaining_time(),
        last_page: Batches.get_last_page(@page_size)
      )}
   end
@@ -70,5 +80,5 @@ defmodule ExplorerWeb.Batches.Index do
     end
   end
 
-  embed_templates "*"
+  embed_templates("*")
 end
