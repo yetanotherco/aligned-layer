@@ -25,7 +25,7 @@ balance_alert=false
 
 while :
 do
-  balance_wei=$(cast call --rpc-url $RPC_URL $PAYMENT_CONTRACT_ADDRESS "UserBalances(address)(uint256)" $WALLET_ADDRESS | cut -d' ' -f1)
+  balance_wei=$(cast call --rpc-url $RPC_URL $PAYMENT_CONTRACT_ADDRESS "user_balances(address)(uint256)" $WALLET_ADDRESS | cut -d' ' -f1)
 
   balance_eth=$(cast from-wei $balance_wei)
 
