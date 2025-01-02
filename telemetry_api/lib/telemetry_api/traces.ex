@@ -224,8 +224,12 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} -> 
+      {:error, information} ->
         {:reply, {:error, information}, traces}
+      {:error, error_type, message} ->
+        {:reply, {:error, error_type, message}, traces}
+      unknown ->
+        {:reply, {:error, unknown}, traces}
     end
   end
 
@@ -272,8 +276,12 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} -> 
+      {:error, information} ->
         {:reply, {:error, information}, traces}
+      {:error, error_type, message} ->
+        {:reply, {:error, error_type, message}, traces}
+      unknown ->
+        {:reply, {:error, unknown}, traces}
     end
   end
 
@@ -296,8 +304,12 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} -> 
+      {:error, information} ->
         {:reply, {:error, information}, traces}
+      {:error, error_type, message} ->
+        {:reply, {:error, error_type, message}, traces}
+      unknown ->
+        {:reply, {:error, unknown}, traces}
     end
   end
 
@@ -314,9 +326,7 @@ defmodule TelemetryApi.Traces do
           }
         )
 
-      # IO.inspect("DEBUG: Root span #{root_span_ctx}")
       ctx = Ctx.get_current()
-      # IO.inspect("DEBUG: Current context: #{ctx}")
 
       traces = store_trace(traces, merkle_root, %Trace{
         parent_span: root_span_ctx,
@@ -354,8 +364,12 @@ defmodule TelemetryApi.Traces do
         {:reply, :ok, traces}
       end
     else
-      {:error, information} -> 
+      {:error, information} ->
         {:reply, {:error, information}, traces}
+      {:error, error_type, message} ->
+        {:reply, {:error, error_type, message}, traces}
+      unknown ->
+        {:reply, {:error, unknown}, traces}
     end
   end
 
@@ -365,8 +379,12 @@ defmodule TelemetryApi.Traces do
       Tracer.add_event("Batcher Task Uploaded to S3", [])
       {:reply, :ok, traces}
     else
-      {:error, information} -> 
+      {:error, information} ->
         {:reply, {:error, information}, traces}
+      {:error, error_type, message} ->
+        {:reply, {:error, error_type, message}, traces}
+      unknown ->
+        {:reply, {:error, unknown}, traces}
     end
   end
 
@@ -382,8 +400,12 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} -> 
+      {:error, information} ->
         {:reply, {:error, information}, traces}
+      {:error, error_type, message} ->
+        {:reply, {:error, error_type, message}, traces}
+      unknown ->
+        {:reply, {:error, unknown}, traces}
     end
   end
 
@@ -398,8 +420,12 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} -> 
+      {:error, information} ->
         {:reply, {:error, information}, traces}
+      {:error, error_type, message} ->
+        {:reply, {:error, error_type, message}, traces}
+      unknown ->
+        {:reply, {:error, unknown}, traces}
     end
   end
   
@@ -411,8 +437,12 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} -> 
+      {:error, information} ->
         {:reply, {:error, information}, traces}
+      {:error, error_type, message} ->
+        {:reply, {:error, error_type, message}, traces}
+      unknown ->
+        {:reply, {:error, unknown}, traces}
     end
   end
 
@@ -431,8 +461,12 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} -> 
+      {:error, information} ->
         {:reply, {:error, information}, traces}
+      {:error, error_type, message} ->
+        {:reply, {:error, error_type, message}, traces}
+      unknown ->
+        {:reply, {:error, unknown}, traces}
     end
   end
 
@@ -443,8 +477,12 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} -> 
+      {:error, information} ->
         {:reply, {:error, information}, traces}
+      {:error, error_type, message} ->
+        {:reply, {:error, error_type, message}, traces}
+      unknown ->
+        {:reply, {:error, unknown}, traces}
     end
   end
   
@@ -455,16 +493,18 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} -> 
+      {:error, information} ->
         {:reply, {:error, information}, traces}
+      {:error, error_type, message} ->
+        {:reply, {:error, error_type, message}, traces}
+      unknown ->
+        {:reply, {:error, unknown}, traces}
     end
   end
 
   @impl true
   def handle_call({:finish_task_trace, merkle_root}, _from, traces) do
-    IO.inspect("DEBUG: Finish task trace called with merkle_root #{merkle_root}")
     with {:ok, trace} <- set_current_trace_with_subspan(traces, merkle_root, :aggregator) do
-      IO.inspect("DEBUG: Setting current trace for trace of merkle root #{merkle_root}")
       missing_operators =
         Operators.list_operators()
         |> Enum.filter(fn o -> o.id not in trace.responses and Operators.is_registered?(o) end)
@@ -482,9 +522,12 @@ defmodule TelemetryApi.Traces do
         {:reply, :ok, traces}
       end
     else
-      {:error, information} -> 
-        IO.inspect("DEBUG: Something failed with error #{information} and merkle root #{merkle_root}")
+      {:error, information} ->
         {:reply, {:error, information}, traces}
+      {:error, error_type, message} ->
+        {:reply, {:error, error_type, message}, traces}
+      unknown ->
+        {:reply, {:error, unknown}, traces}
     end
   end
 
