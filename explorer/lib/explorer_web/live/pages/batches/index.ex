@@ -10,8 +10,9 @@ defmodule ExplorerWeb.Batches.Index do
   def mount(params, _, socket) do
     current_page = get_current_page(params)
 
-    batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
-    |> Helpers.enrich_batches()
+    batches =
+      Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
+      |> Helpers.enrich_batches()
 
     if connected?(socket), do: PubSub.subscribe(Explorer.PubSub, "update_views")
 
@@ -28,29 +29,12 @@ defmodule ExplorerWeb.Batches.Index do
   end
 
   @impl true
-  def handle_info(
-        %{
-          next_scheduled_batch_remaining_time_percentage: progress,
-          next_scheduled_batch_remaining_time: remaining
-        } =
-          _params,
-        socket
-      ) do
-    Logger.debug("updating block progress: remaining=#{remaining} progress=#{progress}%")
-
-    {:noreply,
-     assign(socket,
-       next_batch_remaining_time_percentage: progress,
-       next_batch_remaining_time: remaining
-     )}
-  end
-
-  @impl true
   def handle_info(_, socket) do
     current_page = socket.assigns.current_page
 
-    batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
-    |> Helpers.enrich_batches()
+    batches =
+      Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
+      |> Helpers.enrich_batches()
 
     {:noreply,
      assign(socket,

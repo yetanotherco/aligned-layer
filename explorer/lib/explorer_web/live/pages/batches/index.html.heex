@@ -5,10 +5,12 @@
   id="labeled-progress-bar"
   module={LabeledProgressBarComponent}
   percent_progress={@next_scheduled_batch_remaining_time_percentage}
-  label={case @next_scheduled_batch_remaining_time do
-    0 -> "Next batch is around the corner!"
-    time -> "Next batch in #{time} minutes" 
-  end}/>
+  label={
+    case @next_scheduled_batch_remaining_time do
+      0 -> "Next batch is around the corner!"
+      time -> "Next batch in #{time} minutes" 
+    end
+  }/>
   <%= if @batches != :empty and @batches != [] do %>
     <.card_background class="w-full overflow-x-auto sm:col-span-2">
       <.batches_table batches={@batches} />

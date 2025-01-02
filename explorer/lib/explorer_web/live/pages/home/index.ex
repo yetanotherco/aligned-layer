@@ -147,7 +147,9 @@ defmodule ExplorerWeb.Home.Index do
       stats: [],
       latest_batches: [],
       cost_per_proof_data: %{points: [], extra_data: %{}},
-      batch_size_chart_data: %{points: [], extra_data: %{}}
+      batch_size_chart_data: %{points: [], extra_data: %{}},
+      next_scheduled_batch_remaining_time_percentage: 0,
+      next_scheduled_batch_remaining_time: 0
     )
   end
 
@@ -162,7 +164,10 @@ defmodule ExplorerWeb.Home.Index do
        stats: get_stats(),
        latest_batches: latest_batches,
        cost_per_proof_chart: get_cost_per_proof_chart_data(charts_query_limit),
-       batch_size_chart_data: get_batch_size_chart_data(charts_query_limit)
+       batch_size_chart_data: get_batch_size_chart_data(charts_query_limit),
+       next_scheduled_batch_remaining_time_percentage:
+         Helpers.get_next_scheduled_batch_remaining_time_percentage(),
+       next_scheduled_batch_remaining_time: Helpers.get_next_scheduled_batch_remaining_time()
      )}
   end
 
@@ -179,6 +184,9 @@ defmodule ExplorerWeb.Home.Index do
        latest_batches: latest_batches,
        cost_per_proof_chart: get_cost_per_proof_chart_data(charts_query_limit),
        batch_size_chart_data: get_batch_size_chart_data(charts_query_limit),
+       next_scheduled_batch_remaining_time_percentage:
+         Helpers.get_next_scheduled_batch_remaining_time_percentage(),
+       next_scheduled_batch_remaining_time: Helpers.get_next_scheduled_batch_remaining_time(),
        page_title: "Welcome"
      )}
   rescue
