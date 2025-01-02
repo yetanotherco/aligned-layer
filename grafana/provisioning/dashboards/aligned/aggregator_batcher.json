@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 3,
+  "id": 2,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -744,11 +744,11 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 8,
+        "w": 7,
         "x": 0,
         "y": 14
       },
-      "id": 49,
+      "id": 58,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -845,10 +845,10 @@
       "gridPos": {
         "h": 3,
         "w": 7,
-        "x": 8,
+        "x": 7,
         "y": 14
       },
-      "id": 48,
+      "id": 56,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -875,7 +875,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "increase(aligned_aggregator_gas_cost_paid_total_count{bot=\"aggregator\"}[10y])",
+          "expr": "increase(aligned_aggregator_gas_cost_paid_total_count{bot=\"aggregator\"}[$__range])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -915,7 +915,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 8,
+        "w": 4,
         "x": 16,
         "y": 14
       },
@@ -961,7 +961,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[10y]) * 10 ^ -9",
+          "expr": "increase(batcher_gas_cost_cancel_task_total{bot=\"batcher\"}[10y])",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -969,7 +969,7 @@
           "refId": "B"
         }
       ],
-      "title": "Historical Accumulated Batcher Cost Paid [ETH]",
+      "title": "Historical - Accumulated Batcher Cost Paid [ETH]",
       "transformations": [
         {
           "id": "calculateField",
@@ -986,6 +986,77 @@
           }
         }
       ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Accumulated gas cost in ETH the Aggregator paid when sending RespondToTask transactions.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ETH"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 14
+      },
+      "id": 48,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.1.10",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "increase(aligned_aggregator_gas_cost_paid_total_count{bot=\"aggregator\"}[10y])",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Historical - Accumulated Aggregator Gas Cost Paid [ETH]",
       "type": "stat"
     },
     {
@@ -1015,7 +1086,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 8,
+        "w": 7,
         "x": 0,
         "y": 17
       },
@@ -1088,10 +1159,10 @@
       "gridPos": {
         "h": 3,
         "w": 7,
-        "x": 8,
+        "x": 7,
         "y": 17
       },
-      "id": 30,
+      "id": 59,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -1118,7 +1189,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "increase(aligned_aggregator_gas_cost_paid_for_batcher_sum{bot=\"aggregator\"}[10y])",
+          "expr": "increase(aligned_aggregator_gas_cost_paid_for_batcher_sum{bot=\"aggregator\"}[$__range])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -1158,7 +1229,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 8,
+        "w": 4,
         "x": 16,
         "y": 17
       },
@@ -1199,7 +1270,78 @@
           "useBackend": false
         }
       ],
-      "title": "Historical Accumulated Batcher Cancel Task Cost [ETH]",
+      "title": "Historical - Accumulated Batcher Cancel Task Cost [ETH]",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Accumulated gas cost the aggregator paid for the batcher when the tx cost was higher than the respondToTaskFeeLimit.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ETH"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 17
+      },
+      "id": 54,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.1.10",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "increase(aligned_aggregator_gas_cost_paid_for_batcher_sum{bot=\"aggregator\"}[10y])",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Historical - Accumulated Aggregator Extra Cost Paid [ETH]",
       "type": "stat"
     },
     {
@@ -1229,10 +1371,80 @@
       "gridPos": {
         "h": 3,
         "w": 7,
-        "x": 8,
+        "x": 7,
         "y": 20
       },
       "id": 26,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.1.10",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "floor(increase(aligned_aggregator_num_times_paid_for_batcher_count{bot=\"aggregator\"}[$__range]))",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "# Times Aggregator Paid Extra Cost",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Number of times the aggregator paid for the batcher when the tx cost was higher than the respondToTaskFeeLimit",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 20
+      },
+      "id": 55,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -1269,7 +1481,7 @@
           "useBackend": false
         }
       ],
-      "title": "# Times Aggregator Paid Extra Cost",
+      "title": "Historical - # Times Aggregator Paid Extra Cost",
       "type": "stat"
     },
     {
@@ -1620,8 +1832,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -3073,8 +3284,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -3104,7 +3314,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 61
+        "y": 64
       },
       "id": 49,
       "options": {
@@ -3191,8 +3401,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -3220,7 +3429,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 69
+        "y": 72
       },
       "id": 51,
       "options": {
@@ -3305,7 +3514,7 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 77
+        "y": 80
       },
       "id": 46,
       "options": {
@@ -3379,7 +3588,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 79
+        "y": 82
       },
       "id": 47,
       "options": {
@@ -3478,7 +3687,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 79
+        "y": 82
       },
       "id": 43,
       "interval": "1s",
@@ -3574,7 +3783,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 87
+        "y": 90
       },
       "id": 45,
       "options": {
@@ -3704,7 +3913,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 87
+        "y": 90
       },
       "id": 44,
       "interval": "1s",
@@ -3754,6 +3963,6 @@
   "timezone": "browser",
   "title": "System Data",
   "uid": "aggregator",
-  "version": 1,
+  "version": 3,
   "weekStart": ""
 }
