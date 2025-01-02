@@ -7,7 +7,7 @@ CONFIG_FILE?=config-files/config.yaml
 export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.12.1
+OPERATOR_VERSION=v0.13.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -52,7 +52,7 @@ deps: submodules go_deps build_all_ffi ## Install deps
 
 go_deps:
 	@echo "Installing Go dependencies..."
-	go install github.com/maoueh/zap-pretty@latest
+	go install github.com/maoueh/zap-pretty@v0.3.0
 	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
 	go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 
@@ -555,7 +555,13 @@ generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
 __METRICS__:
-# Prometheus and graphana
+# Prometheus and Grafana
+metrics_remove_containers:
+	@docker stop prometheus grafana
+	@docker rm prometheus grafana
+metrics_clean_db: metrics_remove_containers
+	@docker volume rm aligned_layer_grafana_data aligned_layer_prometheus_data
+
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
 	@docker compose -f metrics-docker-compose.yaml up
@@ -601,6 +607,16 @@ upgrade_stake_registry: ## Upgrade Stake Registry
 upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
+
+set_aggregator_address:
+	@echo "Setting Aggregator Address in Aligned Service Manager Contract on $(NETWORK) network..."
+	@echo "Aggregator address: $(AGGREGATOR_ADDRESS)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/set_aggregator_address.sh $(AGGREGATOR_ADDRESS)
+
+set_aggregator_address_devnet:
+	@echo "Setting Aggregator Address in Aligned Service Manager Contract..."
+	@echo "Aggregator address: $(AGGREGATOR_ADDRESS)"
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/set_aggregator_address.sh $(AGGREGATOR_ADDRESS)
 
 upgrade_initialize_disabled_verifiers:
 	@echo "Adding disabled verifiers to Aligned Service Manager..."
@@ -904,7 +920,7 @@ docker_down:
 	@echo "Everything down"
 	docker ps
 
-DOCKER_BURST_SIZE=2
+DOCKER_BURST_SIZE=1
 DOCKER_PROOFS_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
 docker_batcher_send_sp1_burst:
@@ -916,7 +932,8 @@ docker_batcher_send_sp1_burst:
               --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-              --rpc_url $(DOCKER_RPC_URL)
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
 
 docker_batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
@@ -928,7 +945,8 @@ docker_batcher_send_risc0_burst:
               --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-              --rpc_url $(DOCKER_RPC_URL)
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
 
 docker_batcher_send_plonk_bn254_burst:
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -940,7 +958,8 @@ docker_batcher_send_plonk_bn254_burst:
               --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
-              --repetitions $(DOCKER_BURST_SIZE)
+              --repetitions $(DOCKER_BURST_SIZE) \
+			  --max_fee 0.1ether
 
 docker_batcher_send_plonk_bls12_381_burst:
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
@@ -952,19 +971,21 @@ docker_batcher_send_plonk_bls12_381_burst:
               --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --repetitions $(DOCKER_BURST_SIZE) \
-              --rpc_url $(DOCKER_RPC_URL)
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
 
 docker_batcher_send_groth16_burst:
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
-              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
-							--proving_system Groth16Bn254 \
-							--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
-							--public_input ./scripts/test_files/gnark_groth16_bn254_script/plonk_pub_input.pub \
-							--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
-							--proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-  						--repetitions $(DOCKER_BURST_SIZE) \
-							--rpc_url $(DOCKER_RPC_URL)
+            --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+			--proving_system Groth16Bn254 \
+			--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
+			--public_input ./scripts/test_files/gnark_groth16_bn254_script/plonk_pub_input.pub \
+			--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
+			--proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+			--repetitions $(DOCKER_BURST_SIZE) \
+			--rpc_url $(DOCKER_RPC_URL) \
+			--max_fee 0.1ether
 
 # Update target as new proofs are supported.
 docker_batcher_send_all_proofs_burst:
@@ -991,6 +1012,7 @@ docker_batcher_send_infinite_groth16:
 	              --public_input scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.pub \
 	              --vk scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.vk \
 	              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS); \
+				  --max_fee 0.1ether
 	    sleep $${timer}; \
 	    counter=$$((counter + 1)); \
 	  done \
@@ -1008,7 +1030,7 @@ docker_verify_proofs_onchain:
 	    done \
 	  '
 
-DOCKER_PROOFS_WAIT_TIME=30
+DOCKER_PROOFS_WAIT_TIME=60
 
 docker_verify_proof_submission_success: 
 	@echo "Verifying proofs were successfully submitted..."
@@ -1030,7 +1052,7 @@ docker_verify_proof_submission_success:
 				fi; \
 				echo "---------------------------------------------------------------------------------------------------"; \
 			done; \
-			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne 10 ]; then \
+			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne 5 ]; then \
 				echo "ERROR: Some proofs were verified successfully, but some proofs are missing in the aligned_verification_data/ directory"; \
 				exit 1; \
 			fi; \

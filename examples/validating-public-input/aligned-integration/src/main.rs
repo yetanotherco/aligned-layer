@@ -123,8 +123,8 @@ async fn main() -> Result<(), SubmitError> {
         }
     };
 
-    // Set a fee of 0.1 Eth
-    let max_fee = U256::from(5) * U256::from(100_000_000_000_000_000u128);
+    // Set a fee of 0.01 Eth
+    let max_fee = U256::from(100_000_000_000_000u128);
 
     let nonce = get_nonce_from_ethereum(&args.rpc_url, wallet.address(), network)
         .await
