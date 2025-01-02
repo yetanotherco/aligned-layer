@@ -30,7 +30,7 @@ do
   balance_eth=$(cast from-wei $balance_wei)
 
   if [ 1 -eq "$(echo "$balance_eth < $BALANCE_THRESHOLD" | bc)" ]; then
-    message="⚠️ WARNING: Wallet $WALLET_ADDRESS balance ($balance_eth ETH) is below $BALANCE_THRESHOLD ETH"
+    message="⚠️ WARNING: $WALLET_NAME ($NETWORK) Wallet ($WALLET_ADDRESS) balance ($balance_eth ETH) is below $BALANCE_THRESHOLD ETH"
     printf "$message\n"
     if [ "$balance_alert" = false ]; then
       send_slack_message "$message"
