@@ -8,11 +8,8 @@ defmodule ExplorerWeb.Helpers do
   end
 
   def convert_number_to_shorthand(number) when number >= 1_000_000 do
-    "#{div(number, 1_000_000)}M"
-  end
-
-  def convert_number_to_shorthand(number) when number >= 10_000 do
-    "#{div(number, 10_000)}k"
+    formatted_number = Float.round(number / 1_000_000, 2)
+    "#{remove_trailing_zeros(formatted_number)}M"
   end
 
   def convert_number_to_shorthand(number) when number >= 1_000 do
@@ -24,6 +21,14 @@ defmodule ExplorerWeb.Helpers do
   end
 
   def convert_number_to_shorthand(_number), do: "Invalid number"
+
+  defp remove_trailing_zeros(number) do
+    if Float.ceil(number) == Float.floor(number) do
+      Integer.to_string(trunc(number))
+    else
+      Float.to_string(Float.round(number, 2))
+    end
+  end
 
   def parse_timestamp(timestamp) do
     %{hour: hour, minute: minute, second: second, day: day, month: month, year: year} = timestamp
@@ -120,6 +125,15 @@ defmodule ExplorerWeb.Helpers do
     ]
   end
 
+  def get_current_network_from_host(host) do
+    case host do
+      "explorer.alignedlayer.com" -> "Mainnet"
+      "holesky.explorer.alignedlayer.com" -> "Holesky"
+      "stage.explorer.alignedlayer.com" -> "Stage"
+      _ -> "Devnet"
+    end
+  end
+
   @doc """
   Get the Etherscan URL based on the environment.
   - `holesky` -> https://holesky.etherscan.io
@@ -136,12 +150,19 @@ defmodule ExplorerWeb.Helpers do
     end
   end
 
+  def get_aligned_contracts_addresses() do
+    aligned_config_file = System.get_env("ALIGNED_CONFIG_FILE")
+    {_, config_json_string} = File.read(aligned_config_file)
+    Jason.decode!(config_json_string) |> Map.get("addresses")
+  end
+
   def binary_to_hex_string(binary) do
     Utils.binary_to_hex_string(binary)
   end
 
   def is_stale?(batch) do
     ttl = Utils.batch_ttl_minutes()
+
     DateTime.add(batch.submission_timestamp, ttl, :minute)
     |> DateTime.before?(DateTime.utc_now())
   end
@@ -174,6 +195,17 @@ defmodule ExplorerWeb.Helpers do
   def get_next_scheduled_batch_remaining_time_percentage() do
     interval = Utils.scheduled_batch_interval()
     100 * (interval - get_next_scheduled_batch_remaining_time()) / interval
+  end
+  
+  def enrich_batches(batches) do
+    batches
+    |> Enum.map(fn batch ->
+      batch
+      |> Map.merge(%{
+        age: batch.submission_timestamp |> parse_timeago(),
+        status: batch |> get_batch_status
+      })
+    end)
   end
 end
 

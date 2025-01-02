@@ -86,21 +86,32 @@ defmodule Batches do
     Explorer.Repo.one(query)
   end
 
-  def get_latest_batches(%{amount: amount}) do
+  def get_latest_batches(%{amount: amount} = %{order_by: :desc}) do
     query = from(b in Batches,
       order_by: [desc: b.submission_block_number],
       limit: ^amount,
       select: b)
 
     Explorer.Repo.all(query)
-  end
-
-  def get_paginated_batches(%{page: page, page_size: page_size}) do
+  end 
+  
+  def get_latest_batches(%{amount: amount} = %{order_by: :asc}) do
     query = from(b in Batches,
-      order_by: [desc: b.submission_block_number],
-      limit: ^page_size,
-      offset: ^((page - 1) * page_size),
+      order_by: [asc: b.submission_block_number],
+      limit: ^amount,
       select: b)
+
+    Explorer.Repo.all(query)
+  end
+  
+  def get_paginated_batches(%{page: page, page_size: page_size}) do
+    query =
+      from(b in Batches,
+        order_by: [desc: b.submission_block_number],
+        limit: ^page_size,
+        offset: ^((page - 1) * page_size),
+        select: b
+      )
 
     Explorer.Repo.all(query)
   end
@@ -134,6 +145,19 @@ defmodule Batches do
 
   def get_amount_of_submitted_proofs() do
     case Explorer.Repo.aggregate(Batches, :sum, :amount_of_proofs) do
+      nil -> 0
+      result -> result
+    end
+  end
+  
+  def get_avg_fee_per_proof() do
+    query =
+      from(b in Batches,
+        where: b.is_verified == true,
+        select: avg(b.fee_per_proof)
+      )
+
+    case Explorer.Repo.one(query) do
       nil -> 0
       result -> result
     end

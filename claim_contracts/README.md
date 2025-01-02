@@ -22,10 +22,6 @@
    make deploy-claimable-local
    ```
 5. Write down the claimable contract proxy address that is printed in the console output.
-6. Approve the claimable contract to spend the token from the distributor
-   ```
-   make approve-claimable TOKEN=<token-proxy-address> AIRDROP=<claimable-proxy-address> PRIVATE_KEY=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
-   ```
 
 ## Testnet (Sepolia)
 
@@ -44,10 +40,34 @@
 3. Write down the `token-proxy-address` that is printed in the console output. Do this in the `config.sepolia.json` file, under the `tokenProxy` key.
 4. Deploy the claimable contract
    ```
-   make deploy-claimable-testnet RPC_URL=<sepolia-rpc-url> PRIVATE_KEY=<sepolia-funded-account-private-key> ETHERSCAN_API_KEY=<etherscan-api-key>
+   make deploy-claimable-testnet RPC_URL=<sepolia-rpc-url> DEPLOYER_PRIVATE_KEY=<sepolia-funded-account-private-key> ETHERSCAN_API_KEY=<etherscan-api-key>
    ```
 5. Write down the `claimable-proxy-address` that is printed in the console output.
-6. Approve the claimable contract to spend the token from the distributor
+
+## Enabling Claimability
+
+### Local
+
+1. Deploy the claimable contract as explained above.
+2. Set the correct merkle root
    ```
-   make approve-claimable TOKEN=<token-proxy-address> AIRDROP=<claimable-proxy-address> PRIVATE_KEY=<sepolia-funded-distributor-private-key>
+   make claimable-update-root MERKLE_ROOT=<claims-merkle-root>
    ```
+3. Set the correct claim time limit
+   ```
+   make claimable-update-timestamp TIMESTAMP=2733427549
+   ```
+4. Approve the claimable contract to spend the token from the distributor
+   ```
+   make approve-claimable
+   ```
+5. Unpause the claimable contract
+   ```
+   make claimable-unpause
+   ```
+
+or
+
+```
+make deploy-example MERKLE_ROOT=<claims-merkle-root> TIMESTAMP=2733427549
+```
