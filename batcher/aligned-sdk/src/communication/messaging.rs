@@ -134,10 +134,14 @@ pub async fn receive(
                 if let SubmitError::InsufficientBalance(_, error_nonce) = e {
                     aligned_submitted_data.push(Err(e));
 
-                    // We handle the explicit case that a user sends a proof without an balance deposited. 
+                    // We handle the explicit case that a user sends a proof without an balance deposited.
                     // This triggers an InsufficientBalance error with `error_nonce`` of `0` leading to an overflow error.
                     // If `error_nonce` == U256::zero() we return the `error_nonce` to prevent overflow.
-                    let last_valid_nonce = if error_nonce == U256::zero() { error_nonce } else { error_nonce - 1 };
+                    let last_valid_nonce = if error_nonce == U256::zero() {
+                        error_nonce
+                    } else {
+                        error_nonce - 1
+                    };
                     if last_valid_nonce < last_proof_nonce {
                         last_proof_nonce = last_valid_nonce;
                     }
