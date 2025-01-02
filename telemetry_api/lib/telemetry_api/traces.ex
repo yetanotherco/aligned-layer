@@ -316,6 +316,8 @@ defmodule TelemetryApi.Traces do
   @impl true
   def handle_call({:create_batcher_task_trace, merkle_root}, _from, traces) do
     with {:ok, total_stake} <- StakeRegistry.get_current_total_stake() do
+      Ctx.clear()
+
       root_span_ctx =
         Tracer.start_span(
           "Task: #{merkle_root}",
