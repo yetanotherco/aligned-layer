@@ -407,7 +407,7 @@ pub enum Network {
 }
 
 impl Network {
-    pub fn get_batcher_payment_service_address(&self) -> ethers::types::H160 {
+    pub fn get_batcher_payment_service_address(self) -> ethers::types::H160 {
         match self {
             Self::Devnet => H160::from_str("0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650").unwrap(),
             Self::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").unwrap(),
@@ -418,7 +418,7 @@ impl Network {
         }
     }
 
-    pub fn get_aligned_service_manager_address(&self) -> ethers::types::H160 {
+    pub fn get_aligned_service_manager_address(self) -> ethers::types::H160 {
         match self {
             Self::Devnet => H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap(),
             Self::Holesky => H160::from_str("0x58F280BeBE9B34c9939C3C39e0890C81f163B623").unwrap(),
