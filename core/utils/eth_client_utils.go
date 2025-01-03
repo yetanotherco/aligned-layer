@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"math/big"
-	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
@@ -20,7 +19,7 @@ import (
 // Setting a higher value will imply doing less retries across the waitTimeout, and so we might lose the receipt
 // All errors are considered Transient Errors
 // - Retry times: 0.5s, 1s, 2s, 2s, 2s, ... until it reaches waitTimeout
-func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, txHash gethcommon.Hash, waitTimeout time.Duration) (*types.Receipt, error) {
+func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, txHash gethcommon.Hash, config *retry.RetryParams) (*types.Receipt, error) {
 	receipt_func := func() (*types.Receipt, error) {
 		receipt, err := client.TransactionReceipt(context.Background(), txHash)
 		if err != nil {
@@ -32,7 +31,7 @@ func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, fallbackC
 		}
 		return receipt, nil
 	}
-	return retry.RetryWithData(receipt_func, retry.MinDelay, retry.RetryFactor, 0, time.Second*2, waitTimeout)
+	return retry.RetryWithData(receipt_func, config)
 }
 
 func BytesToQuorumNumbers(quorumNumbersBytes []byte) eigentypes.QuorumNums {
@@ -51,15 +50,31 @@ func BytesToQuorumThresholdPercentages(quorumThresholdPercentagesBytes []byte) e
 	return quorumThresholdPercentages
 }
 
+func WeiToEth(wei *big.Int) float64 {
+	weiToEth := new(big.Float).SetFloat64(1e18)
+	weiFloat := new(big.Float).SetInt(wei)
+
+	result := new(big.Float).Quo(weiFloat, weiToEth)
+	eth, _ := result.Float64()
+
+	return eth
+}
+
 // Simple algorithm to calculate the gasPrice bump based on:
 // the currentGasPrice, a base bump percentage, a retry percentage, and the retry count.
 // Formula: currentGasPrice + (currentGasPrice * (baseBumpPercentage + retryCount * incrementalRetryPercentage) / 100)
-func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercentage uint, retryAttemptPercentage uint, retryCount int) *big.Int {
+func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, baseBumpPercentage uint, retryAttemptPercentage uint, bumpPercentageLimit uint, retryCount int) *big.Int {
 	// Incremental percentage increase for each retry attempt (i*retryAttemptPercentage)
 	incrementalRetryPercentage := new(big.Int).Mul(big.NewInt(int64(retryAttemptPercentage)), big.NewInt(int64(retryCount)))
 
 	// Total bump percentage: base bump + incremental retry percentage
 	totalBumpPercentage := new(big.Int).Add(big.NewInt(int64(baseBumpPercentage)), incrementalRetryPercentage)
+
+	// Make sure the percentage to bump isn't higher than the limit
+	bumpPercentageLimitAsBigInt := big.NewInt(int64(bumpPercentageLimit))
+	if totalBumpPercentage.Cmp(bumpPercentageLimitAsBigInt) > 0 {
+		totalBumpPercentage = bumpPercentageLimitAsBigInt
+	}
 
 	// Calculate the bump amount: currentGasPrice * totalBumpPercentage / 100
 	bumpAmount := new(big.Int).Mul(currentGasPrice, totalBumpPercentage)
@@ -77,7 +92,7 @@ Get the gas price from the client with retry logic.
 - All errors are considered Transient Errors
 - Retry times: 1 sec, 2 sec, 4 sec
 */
-func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient) (*big.Int, error) {
+func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, config *retry.RetryParams) (*big.Int, error) {
 	respondToTaskV2_func := func() (*big.Int, error) {
 		gasPrice, err := client.SuggestGasPrice(context.Background())
 		if err != nil {
@@ -89,5 +104,5 @@ func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.Inst
 
 		return gasPrice, nil
 	}
-	return retry.RetryWithData(respondToTaskV2_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+	return retry.RetryWithData(respondToTaskV2_func, config)
 }

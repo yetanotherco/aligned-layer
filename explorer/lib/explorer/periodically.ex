@@ -50,6 +50,8 @@ defmodule Explorer.Periodically do
       Task.start(&process_unverified_batches/0)
     end
 
+    PubSub.broadcast(Explorer.PubSub, "update_views", :block_age)
+
     {:noreply, %{state | batches_count: new_count}}
   end
 

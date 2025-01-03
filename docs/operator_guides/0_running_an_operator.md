@@ -1,7 +1,7 @@
 # Register as an Aligned operator in testnet
 
 > **CURRENT VERSION:**
-> Aligned Operator [v0.10.3](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.10.3)
+> Aligned Operator [v0.13.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.13.0)
 
 > **IMPORTANT:** 
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
@@ -21,12 +21,16 @@ Minimum hardware requirements:
 | **Bandwidth** | 1 Gbps            |
 | **Storage**   | 256 GB disk space |
 
+## Supported Strategies
+
+The list of supported strategies can be found [here](../3_guides/7_contract_addresses.md).
+
 ## Step 1 - Clone the repo
 
 To start with, clone the Aligned repository and move inside it
 
 ```bash
-git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.10.3
+git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.13.0
 cd aligned_layer
 ```
 
@@ -80,7 +84,12 @@ This will display the current version of the operator binary.
 
 ## Step 3 - Update the configuration for your specific Operator
 
-Update the following placeholders in `./config-files/config-operator.yaml`:
+Locate the appropiate `operator_config_file`:
+
+- Mainnet: `./config-files/config-operator-mainnet.yaml`.
+- Holesky: `./config-files/config-operator-holesky.yaml`.
+
+Update the following placeholders:
 
 - `"<operator_address>"`
 - `"<earnings_receiver_address>"`
@@ -90,7 +99,19 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 - `"<bls_key_store_password>"`
 
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
+
 The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, so for example `<ecdsa_key_store_location_path>` could be `/path/to/home/.eigenlayer/operator_keys/some_key.ecdsa.key.json` and for `<bls_key_store_location_path>` it could be `/path/to/home/.eigenlayer/operator_keys/some_key.bls.key.json`.
+
+{% hint style="danger" %}
+
+Don't keep the Operator Key in the Aligned Operator Node. If you already registered, don't use it. If you need to register, delete it after step 4.
+
+{% endhint %}
+
+The ECDSA key is only used for registration and funding of the operator and is not needed afterwards. It is recommended that you remove it after you're done, as well as the `ecdsa` section in the config file, or better yet for that data to never make it to the server (e.g., you run the registration from a machine without listening ports).  
+If you run the registration on the server, it's recommended to do this part on a RAM filesystem to ease secure removal, and only after removing the `ecdsa` section move the config file to persistent storage.
+
+If you run on a different computer, you will need to copy the BLS key store to the server.
 
 Two RPCs are used, one as the main one, and the other one as a fallback in case one node is working unreliably. 
 
@@ -113,53 +134,39 @@ eth_ws_url: "wss://<RPC_1>"
 eth_ws_url_fallback: "wss://<RPC_2>"
 ```
 
-## Step 4 - Deposit Strategy Tokens
+## Step 4 - Register Operator on AlignedLayer
 
-We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
+Then you must register as an Operator on AlignedLayer. To do this, you must run:
 
-To do so, there are two options, either doing it through EigenLayer's website, and following their guide, or running the commands specified by us below.
-
-You will need to stake a minimum of 1000 WEI in WETH. We recommend to stake a maximum amount of 10 WETH. If you are staking more than 10 WETH please unstake any surplus over 10.
-
-### Option 1
-
-EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts).
-
-### Option 2
-
-If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 ETH to WETH.
-Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) already installed.
-Change the parameter in ```---value``` if you want to wrap a different amount:
+- Mainnet:
 
 ```bash
-cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1ether
+make operator_register_with_aligned_layer CONFIG_FILE=./config-files/config-operator-mainnet.yaml
 ```
 
-Here `<private_key>` is the placeholder for the ECDSA key specified in the output when generating your keys with the EigenLayer CLI.
+- Holesky:
 
-Finally, to end the staking process, you need to deposit into the WETH strategy,
-as shown in the EigenLayer guide.
+```bash
+make operator_register_with_aligned_layer CONFIG_FILE=./config-files/config-operator-holesky.yaml
+```
 
-<details>
-  <summary>An alternative using the CLI</summary>
-
-  Run the following command to deposit one WETH
-
-  ```bash
-  ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
-  ```
-
-</details>
-
-If you don't have Holesky ETH, these are some useful faucets:
-
-- [Google Cloud for Web3 Holesky Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
-- [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)
+{% hint style="danger" %}
+If you are going to run the server in this machine, 
+delete the operator key
+{% endhint %}
 
 ## Step 5 - Start the operator
 
+- Mainnet:
+
 ```bash
-./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
+./operator/build/aligned-operator start --config ./config-files/config-operator-mainnet.yaml
+```
+
+- Holesky:
+
+```bash
+./operator/build/aligned-operator start --config ./config-files/config-operator-holesky.yaml
 ```
 
 ### Run Operator using Systemd
@@ -178,7 +185,7 @@ After=network.target
 [Service]
 Type=simple
 User=aligned
-ExecStart=<path_to_aligned_layer_repository>/operator/build/aligned-operator start --config <path_to_operator_config>
+ExecStart=<path_to_aligned_layer_repository>/operator/build/aligned-operator start --config <path_to_operator_config_file>
 Restart=always
 RestartSec=1
 StartLimitBurst=100
@@ -226,8 +233,61 @@ journalctl -xfeu aligned-operator.service
 
 To unregister the Aligned operator, run:
 
+- Mainnet:
+
+```bash
+cast send --rpc-url https://ethereum-rpc.publicnode.com --private-key <private_key> 0xA8CC0749b4409c3c47012323E625aEcBA92f64b9 'deregisterOperator(bytes)' 0x00
+ ```
+
+- Holesky:
+
 ```bash
 cast send --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> 0x3aD77134c986193c9ef98e55e800B71e72835b62 'deregisterOperator(bytes)' 0x00
  ```
 
  `<private_key>` is the one specified in the output when generating your keys with the EigenLayer CLI.
+
+
+##   Deposit Strategy Tokens in Testnet
+
+We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
+
+To do so, there are two options, either doing it through EigenLayer's website, and following their guide, or running the commands specified by us below.
+
+You will need to stake a minimum of 1000 WEI in WETH. We recommend to stake a maximum amount of 10 WETH. If you are staking more than 10 WETH please unstake any surplus over 10.
+
+### Option 1
+
+EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts).
+
+### Option 2
+
+If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 ETH to WETH.
+Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) already installed.
+Change the parameter in ```---value``` if you want to wrap a different amount:
+
+```bash
+cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1ether
+```
+
+Here `<private_key>` is the placeholder for the ECDSA key specified in the output when generating your keys with the EigenLayer CLI.
+
+Finally, to end the staking process, you need to deposit into the WETH strategy,
+as shown in the EigenLayer guide.
+
+<details>
+  <summary>An alternative using the CLI</summary>
+
+Run the following command to deposit one WETH
+
+  ```bash
+  ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
+  ```
+
+</details>
+
+If you don't have Holesky ETH, these are some useful faucets:
+
+- [Google Cloud for Web3 Holesky Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
+- [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)
+

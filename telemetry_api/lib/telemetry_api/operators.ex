@@ -9,6 +9,7 @@ defmodule TelemetryApi.Operators do
   alias TelemetryApi.Operators.Operator
   alias TelemetryApi.ContractManagers.OperatorStateRetriever
   alias TelemetryApi.ContractManagers.DelegationManager
+  alias TelemetryApi.PrometheusMetrics
 
   @doc """
   Returns the list of operators.
@@ -95,6 +96,18 @@ defmodule TelemetryApi.Operators do
         |> Enum.filter(fn {status, _} -> status == :ok end)
         |> Enum.map(fn {_, data} -> data end)
 
+      # Initialize new_operators metrics
+      Enum.map(new_operators, fn {_, op_data} ->
+        op_name_address = op_data.name <> " - " <> String.slice(op_data.address, 0..7)
+        PrometheusMetrics.initialize_operator_metrics(op_name_address)
+      end)
+
+      # If the server was restarted, initialize old_operators metrics
+      Enum.map(old_operators, fn {op, _} ->
+        op_name_address = op.name <> " - " <> String.slice(op.address, 0..7)
+        PrometheusMetrics.initialize_operator_metrics(op_name_address)
+      end)
+
       # Merge both lists
       operators = (new_operators ++ old_operators)
 
@@ -135,24 +148,32 @@ defmodule TelemetryApi.Operators do
 
   ## Examples
 
-      iex> update_operator(some_version, some_signature, %{field: value})
+      iex> update_operator(address, some_version, some_signature, pubkey_g2, %{field: value})
       {:ok, %Ecto.Changeset{}}
 
-      iex> update_operator(some_version, invalid_signature, %{field:  value})
+      iex> update_operator(address, some_version, invalid_signature, pubkey_g2, %{field:  value})
       {:error, "Some status", "Some message"}
 
   """
-  def update_operator(version, signature, changes) do
-    with {:ok, address} <- SignatureVerifier.recover_address(version, signature) do
-      address = "0x" <> address
-      case Repo.get(Operator, address) do
-        nil ->
-          {:error, :bad_request,
-           "Provided address does not correspond to any registered operator"}
+  def update_operator(address, version, signature, pubkey_g2, changes) do
+    message_hash = ExKeccak.hash_256(version)
 
-        operator ->
-          update_operator(operator, changes)
-      end
+    case Repo.get(Operator, address) do
+      nil ->
+        {:error, :bad_request, "Provided address does not correspond to any registered operator"}
+
+      operator ->
+        case BLSApkRegistry.get_operator_bls_pubkey(address) do
+          {:ok, [pubkey_g1_points, _]} ->
+            case BLSSignatureVerifier.verify(signature, pubkey_g1_points, pubkey_g2, message_hash) do
+              {:ok, _} ->
+                update_operator(operator, changes)
+              {:error, _} ->
+                {:error, :unauthorized, "Signature verification failed"}
+            end
+          {:error, _} ->
+            {:error, :not_found, "Failed to retrieve public key for the operator"}
+        end
     end
   end
 
