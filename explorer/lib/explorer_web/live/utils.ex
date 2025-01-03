@@ -7,6 +7,11 @@ defmodule ExplorerWeb.Helpers do
     end
   end
 
+  def convert_number_to_shorthand(number) when number >= 1_000_000_000 do
+    formatted_number = Float.round(number / 1_000_000_000, 2)
+    "#{remove_trailing_zeros(formatted_number)}B"
+  end
+
   def convert_number_to_shorthand(number) when number >= 1_000_000 do
     formatted_number = Float.round(number / 1_000_000, 2)
     "#{remove_trailing_zeros(formatted_number)}M"
