@@ -224,12 +224,7 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} ->
-        {:reply, {:error, information}, traces}
-      {:error, error_type, message} ->
-        {:reply, {:error, error_type, message}, traces}
-      unknown ->
-        {:reply, {:error, unknown}, traces}
+      error -> {:reply, handle_error(error), traces}
     end
   end
 
@@ -276,12 +271,7 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} ->
-        {:reply, {:error, information}, traces}
-      {:error, error_type, message} ->
-        {:reply, {:error, error_type, message}, traces}
-      unknown ->
-        {:reply, {:error, unknown}, traces}
+      error -> {:reply, handle_error(error), traces}
     end
   end
 
@@ -304,12 +294,7 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} ->
-        {:reply, {:error, information}, traces}
-      {:error, error_type, message} ->
-        {:reply, {:error, error_type, message}, traces}
-      unknown ->
-        {:reply, {:error, unknown}, traces}
+      error -> {:reply, handle_error(error), traces}
     end
   end
 
@@ -366,12 +351,7 @@ defmodule TelemetryApi.Traces do
         {:reply, :ok, traces}
       end
     else
-      {:error, information} ->
-        {:reply, {:error, information}, traces}
-      {:error, error_type, message} ->
-        {:reply, {:error, error_type, message}, traces}
-      unknown ->
-        {:reply, {:error, unknown}, traces}
+      error -> {:reply, handle_error(error), traces}
     end
   end
 
@@ -381,12 +361,7 @@ defmodule TelemetryApi.Traces do
       Tracer.add_event("Batcher Task Uploaded to S3", [])
       {:reply, :ok, traces}
     else
-      {:error, information} ->
-        {:reply, {:error, information}, traces}
-      {:error, error_type, message} ->
-        {:reply, {:error, error_type, message}, traces}
-      unknown ->
-        {:reply, {:error, unknown}, traces}
+      error -> {:reply, handle_error(error), traces}
     end
   end
 
@@ -402,12 +377,7 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} ->
-        {:reply, {:error, information}, traces}
-      {:error, error_type, message} ->
-        {:reply, {:error, error_type, message}, traces}
-      unknown ->
-        {:reply, {:error, unknown}, traces}
+      error -> {:reply, handle_error(error), traces}
     end
   end
 
@@ -422,12 +392,7 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} ->
-        {:reply, {:error, information}, traces}
-      {:error, error_type, message} ->
-        {:reply, {:error, error_type, message}, traces}
-      unknown ->
-        {:reply, {:error, unknown}, traces}
+      error -> {:reply, handle_error(error), traces}
     end
   end
   
@@ -439,12 +404,7 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} ->
-        {:reply, {:error, information}, traces}
-      {:error, error_type, message} ->
-        {:reply, {:error, error_type, message}, traces}
-      unknown ->
-        {:reply, {:error, unknown}, traces}
+      error -> {:reply, handle_error(error), traces}
     end
   end
 
@@ -463,12 +423,7 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} ->
-        {:reply, {:error, information}, traces}
-      {:error, error_type, message} ->
-        {:reply, {:error, error_type, message}, traces}
-      unknown ->
-        {:reply, {:error, unknown}, traces}
+      error -> {:reply, handle_error(error), traces}
     end
   end
 
@@ -479,12 +434,7 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} ->
-        {:reply, {:error, information}, traces}
-      {:error, error_type, message} ->
-        {:reply, {:error, error_type, message}, traces}
-      unknown ->
-        {:reply, {:error, unknown}, traces}
+      error -> {:reply, handle_error(error), traces}
     end
   end
   
@@ -495,12 +445,7 @@ defmodule TelemetryApi.Traces do
 
       {:reply, :ok, traces}
     else
-      {:error, information} ->
-        {:reply, {:error, information}, traces}
-      {:error, error_type, message} ->
-        {:reply, {:error, error_type, message}, traces}
-      unknown ->
-        {:reply, {:error, unknown}, traces}
+      error -> {:reply, handle_error(error), traces}
     end
   end
 
@@ -524,12 +469,7 @@ defmodule TelemetryApi.Traces do
         {:reply, :ok, traces}
       end
     else
-      {:error, information} ->
-        {:reply, {:error, information}, traces}
-      {:error, error_type, message} ->
-        {:reply, {:error, error_type, message}, traces}
-      unknown ->
-        {:reply, {:error, unknown}, traces}
+      error -> {:reply, handle_error(error), traces}
     end
   end
 
@@ -604,6 +544,15 @@ defmodule TelemetryApi.Traces do
       Ctx.attach(trace.context)
       Tracer.set_current_span(trace.subspans[span_name])
       {:ok, trace}
+    end
+  end
+
+  # Handles different types of errors that may be returned on the GenServer
+  defp handle_error(error) do
+    case error do
+      {:error, information} -> {:error, information}
+      {:error, error_type, message} -> {:error, error_type, message}
+      unknown -> {:error, unknown}
     end
   end
 end
