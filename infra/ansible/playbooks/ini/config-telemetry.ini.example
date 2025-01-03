@@ -1,8 +1,4 @@
 [global]
-caddy_metrics_url=
-caddy_telemetry_url=
-caddy_jaeger_url=
-
 grafana_admin_password=
 grafana_prometheus_datasource=
 grafana_domain=

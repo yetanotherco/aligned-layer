@@ -180,9 +180,6 @@ The `config-telemetry.ini` contains the variables to run the Telemetry in Aligne
 
 | Variable                      | Description                                       | Testnet                                       | Stage                                              | Mainnet
 |-------------------------------|---------------------------------------------------|-----------------------------------------------|----------------------------------------------------|------------------------------------|
-| caddy_metrics_url             | Public URL for Grafana Metrics                    | `holesky.metrics.alignedlayer.com`            | `stage1.metrics.alignedlayer.com`                  | `mainnet.metrics.alignedlayer.com`
-| caddy_telemetry_url           | Public URL for Telemetry API                      | `holesky.metrics.alignedlayer.com`            | `stage1.telemetry.alignedlayer.com`                | `mainnet.telemetry.alignedlayer.com`
-| caddy_jaeger_url              | Tailscale URL for Jaeger                          | `aligned-holesky-metrics.tail665ae.ts.net`    | `aligned-holesky-stage-1-metrics.tail665ae.ts.net` | `aligned-mainnet-telemetry.tail665ae.ts.net`
 | grafana_admin_password        | Password for Grafana's admin user                 | <your_grafana_admin_password>                 | <your_grafana_admin_password>                      | <your_grafana_admin_password>
 | grafana_prometheus_datasource | Prometheus location for Grafana to pull data from | localhost                                     | localhost                                          | localhost
 | grafana_domain                | Public URL for Grafana Metrics                    | `holesky.metrics.alignedlayer.com`            | `stage1.metrics.alignedlayer.com`                  | `mainnet.metrics.alignedlayer.com`
