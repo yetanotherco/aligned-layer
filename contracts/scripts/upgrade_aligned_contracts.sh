@@ -53,6 +53,8 @@ mv "script/output/holesky/alignedlayer_deployment_output.temp.json" $OUTPUT_PATH
 
 data=$(cast calldata "upgrade(address, address)" $aligned_layer_service_manager $new_aligned_layer_service_manager_implementation)
 
+echo "The new AlignedLayerServiceManager Implementation is $new_aligned_layer_service_manager_implementation"
+
 if [ "$MULTISIG" = false ]; then
   echo "Executing upgrade transaction"
   proxy_admin=$(jq -r '.addresses.alignedLayerProxyAdmin' $OUTPUT_PATH)

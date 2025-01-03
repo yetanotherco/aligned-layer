@@ -30,14 +30,15 @@ type TaskErrorMessage struct {
 	TaskError  string `json:"error"`
 }
 
-type TaskGasPriceBumpMessage struct {
-	MerkleRoot     string `json:"merkle_root"`
-	BumpedGasPrice string `json:"bumped_gas_price"`
+type TaskSetGasPriceMessage struct {
+	MerkleRoot string `json:"merkle_root"`
+	GasPrice   string `json:"gas_price"`
 }
 
 type TaskSentToEthereumMessage struct {
-	MerkleRoot string `json:"merkle_root"`
-	TxHash     string `json:"tx_hash"`
+	MerkleRoot        string `json:"merkle_root"`
+	TxHash            string `json:"tx_hash"`
+	EffectiveGasPrice string `json:"effective_gas_price"`
 }
 
 type Telemetry struct {
@@ -68,7 +69,7 @@ func (t *Telemetry) InitNewTrace(batchMerkleRoot [32]byte) {
 		MerkleRoot: fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
 	}
 	if err := t.sendTelemetryMessage("/api/initTaskTrace", body); err != nil {
-		t.logger.Error("[Telemetry] Error in InitNewTrace", "error", err)
+		t.logger.Warn("[Telemetry] Error in InitNewTrace", "error", err)
 	}
 }
 
@@ -78,7 +79,7 @@ func (t *Telemetry) LogOperatorResponse(batchMerkleRoot [32]byte, operatorId [32
 		OperatorId: fmt.Sprintf("0x%s", hex.EncodeToString(operatorId[:])),
 	}
 	if err := t.sendTelemetryMessage("/api/operatorResponse", body); err != nil {
-		t.logger.Error("[Telemetry] Error in LogOperatorResponse", "error", err)
+		t.logger.Warn("[Telemetry] Error in LogOperatorResponse", "error", err)
 	}
 }
 
@@ -87,7 +88,7 @@ func (t *Telemetry) LogQuorumReached(batchMerkleRoot [32]byte) {
 		MerkleRoot: fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
 	}
 	if err := t.sendTelemetryMessage("/api/quorumReached", body); err != nil {
-		t.logger.Error("[Telemetry] Error in LogQuorumReached", "error", err)
+		t.logger.Warn("[Telemetry] Error in LogQuorumReached", "error", err)
 	}
 }
 
@@ -97,27 +98,28 @@ func (t *Telemetry) LogTaskError(batchMerkleRoot [32]byte, taskError error) {
 		TaskError:  taskError.Error(),
 	}
 	if err := t.sendTelemetryMessage("/api/taskError", body); err != nil {
-		t.logger.Error("[Telemetry] Error in LogTaskError", "error", err)
+		t.logger.Warn("[Telemetry] Error in LogTaskError", "error", err)
 	}
 }
 
-func (t *Telemetry) BumpedTaskGasPrice(batchMerkleRoot [32]byte, bumpedGasPrice string) {
-	body := TaskGasPriceBumpMessage{
-		MerkleRoot:     fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
-		BumpedGasPrice: bumpedGasPrice,
-	}
-	if err := t.sendTelemetryMessage("/api/aggregatorTaskGasPriceBump", body); err != nil {
-		t.logger.Error("[Telemetry] Error in LogOperatorResponse", "error", err)
-	}
-}
-
-func (t *Telemetry) TaskSentToEthereum(batchMerkleRoot [32]byte, txHash string) {
-	body := TaskSentToEthereumMessage{
+func (t *Telemetry) TaskSetGasPrice(batchMerkleRoot [32]byte, gasPrice string) {
+	body := TaskSetGasPriceMessage{
 		MerkleRoot: fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
-		TxHash:     txHash,
+		GasPrice:   gasPrice,
+	}
+	if err := t.sendTelemetryMessage("/api/aggregatorTaskSetGasPrice", body); err != nil {
+		t.logger.Warn("[Telemetry] Error in LogOperatorResponse", "error", err)
+	}
+}
+
+func (t *Telemetry) TaskSentToEthereum(batchMerkleRoot [32]byte, txHash string, effectiveGasPrice string) {
+	body := TaskSentToEthereumMessage{
+		MerkleRoot:        fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
+		TxHash:            txHash,
+		EffectiveGasPrice: effectiveGasPrice,
 	}
 	if err := t.sendTelemetryMessage("/api/aggregatorTaskSent", body); err != nil {
-		t.logger.Error("[Telemetry] Error in TaskSentToEthereum", "error", err)
+		t.logger.Warn("[Telemetry] Error in TaskSentToEthereum", "error", err)
 	}
 }
 
@@ -129,7 +131,7 @@ func (t *Telemetry) FinishTrace(batchMerkleRoot [32]byte) {
 			MerkleRoot: fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
 		}
 		if err := t.sendTelemetryMessage("/api/finishTaskTrace", body); err != nil {
-			t.logger.Error("[Telemetry] Error in FinishTrace", "error", err)
+			t.logger.Warn("[Telemetry] Error in FinishTrace", "error", err)
 		}
 	}()
 }
@@ -137,7 +139,7 @@ func (t *Telemetry) FinishTrace(batchMerkleRoot [32]byte) {
 func (t *Telemetry) sendTelemetryMessage(endpoint string, message interface{}) error {
 	encodedBody, err := json.Marshal(message)
 	if err != nil {
-		t.logger.Error("[Telemetry] Error marshalling JSON", "error", err)
+		t.logger.Warn("[Telemetry] Error marshalling JSON", "error", err)
 		return fmt.Errorf("error marshalling JSON: %w", err)
 	}
 
@@ -147,14 +149,14 @@ func (t *Telemetry) sendTelemetryMessage(endpoint string, message interface{}) e
 
 	resp, err := t.client.Post(fullURL.String(), "application/json", bytes.NewBuffer(encodedBody))
 	if err != nil {
-		t.logger.Error("[Telemetry] Error sending POST request", "error", err)
+		t.logger.Warn("[Telemetry] Error sending POST request", "error", err)
 		return fmt.Errorf("error making POST request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		t.logger.Error("[Telemetry] Error reading response body", "error", err)
+		t.logger.Warn("[Telemetry] Error reading response body", "error", err)
 		return fmt.Errorf("error reading response body: %w", err)
 	}
 

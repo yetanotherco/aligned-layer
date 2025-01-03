@@ -1,6 +1,7 @@
 defmodule ExplorerWeb.Batches.Index do
   alias Phoenix.PubSub
   require Logger
+  import ExplorerWeb.BatchesTable
   use ExplorerWeb, :live_view
 
   @page_size 15
@@ -10,6 +11,7 @@ defmodule ExplorerWeb.Batches.Index do
     current_page = get_current_page(params)
 
     batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
+    |> Helpers.enrich_batches()
 
     if connected?(socket), do: PubSub.subscribe(Explorer.PubSub, "update_views")
 
@@ -27,6 +29,7 @@ defmodule ExplorerWeb.Batches.Index do
     current_page = socket.assigns.current_page
 
     batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
+    |> Helpers.enrich_batches()
 
     {:noreply, assign(socket, batches: batches, last_page: Batches.get_last_page(@page_size))}
   end
