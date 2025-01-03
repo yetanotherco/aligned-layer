@@ -138,8 +138,7 @@ pub async fn receive(
                     // This triggers an InsufficientBalance error with `error_nonce`` of `0` leading to an overflow error.
                     // If `error_nonce` == U256::zero() we return the `error_nonce` to prevent overflow.
                     let last_error_nonce = if error_nonce == U256::zero() {
-                        //error_nonce
-                        break
+                        break;
                     } else {
                         error_nonce - 1
                     };
