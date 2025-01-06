@@ -70,6 +70,11 @@ Submit a proof to the Aligned Layer batcher.
   - Default: `devnet`  
   - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
 
+#### Example:
+```bash
+aligned submit  --proving_system Risc0 --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub --repetitions <BURST_SIZE> --keystore_path <KEYSTORE_PATH> --batcher_url wss://batcher.alignedlayer.com --network holesky --max_fee 1300000000
+```
+
 ---
 ### **verify-proof-onchain**
 
@@ -87,6 +92,11 @@ View if a proof was verified by Aligned on Ethereum.
 - **`--network`**: Network name.  
   - Default: `devnet`  
   - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
+
+#### Example:
+```bash
+aligned verify-proof-onchain --aligned-verification-data ./aligned_verification_data/<VERIFICATION_DATA_FILE> --network holesky 
+```
 
 ---
 
@@ -125,6 +135,11 @@ Deposits Ethereum into the Aligned Layer's `BatcherPaymentService.sol` contract.
   - Default: `devnet`  
   - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
 - **`--amount`**: Amount of Ethereum to deposit.
+  
+#### Example:
+```bash
+aligned deposit-to-batcher --network holesky --amount 0.5ether --keystore_path <KEYSTORE_PATH>
+```
 
 ---
 
@@ -147,9 +162,15 @@ Retrieves the user's balance in the Aligned Layer's contract.
   - Default: `http://localhost:8545`
 - **`--user_addr`**: User's Ethereum address.
 
+#### Example:
+```bash
+aligned get-user-balance --user_addr <WALLET_ADDRESS> --network holesky --batcher_url wss://batcher.alignedlayer.com
+```
+
 ---
 
 ### **get-user-nonce**
+
 
 #### Description:
 
@@ -165,33 +186,7 @@ Retrieves the user's current nonce from the batcher.
   - Possible values: `wss://mainnet.batcher.alignedlayer.com`, `wss://batcher.alignedlayer.com`
 - **`--user_addr`**: User's Ethereum address.
 
----
-
-## Examples:
-
-Some example workflows for using the Aligned CLI, they are all runned from the root directory of the Aligned Layer Repository:
-
-1. Deposit funds to the batcher.
-```bash
-aligned deposit-to-batcher --network holesky --amount 0.5ether --keystore_path <KEYSTORE_PATH>
-```
-
-2. Check your balance in the aligned batcher.
-```bash
-aligned get-user-balance --user_addr <WALLET_ADDRESS> --network holesky --batcher_url wss://batcher.alignedlayer.com
-```
-
-3. Submit a Proof.
-```bash
-aligned submit  --proving_system Risc0 --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub --repetitions <BURST_SIZE> --keystore_path <KEYSTORE_PATH> --batcher_url wss://batcher.alignedlayer.com --network holesky --max_fee 1300000000
-```
-
-4. Verify that your proof has been found on chain.
-```bash
-aligned verify-proof-onchain --aligned-verification-data ./aligned_verification_data/<VERIFICATION_DATA_FILE> --network holesky 
-```
-
-5. Check that the number of proofs you have submitted is incremented.
+#### Example:
 ```bash
 aligned get-user-nonce --user_addr <USER_ETH_ADDRESS> --batcher_url wss://holesky.batcher.alignedlayer.com
 ```
