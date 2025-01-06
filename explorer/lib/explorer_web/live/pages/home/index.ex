@@ -146,7 +146,7 @@ defmodule ExplorerWeb.Home.Index do
     |> assign(
       stats: [],
       latest_batches: [],
-      cost_per_proof_data: %{points: [], extra_data: %{}},
+      cost_per_proof_chart: %{points: [], extra_data: %{}},
       batch_size_chart_data: %{points: [], extra_data: %{}},
       next_scheduled_batch_remaining_time_percentage: 0,
       next_scheduled_batch_remaining_time: 0
