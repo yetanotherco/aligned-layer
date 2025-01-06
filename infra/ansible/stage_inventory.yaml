@@ -15,7 +15,7 @@ batcher:
 explorer:
   hosts:
     aligned-holesky-explorer:
-      ansible_host: aligned-holesky-stage-1-explorer
+      ansible_host: aligned-holesky-stage-2-explorer
       admin_user: admin
       ansible_user: app
       ansible_python_interpreter: /usr/bin/python3

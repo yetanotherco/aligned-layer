@@ -32,6 +32,15 @@
       vars:
         ansible_ssh_user: "{{ admin_user }}"
 
+    - name: Allow all access to tcp port 443
+      become: true
+      ufw:
+        rule: allow
+        port: 443
+        proto: tcp
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
     - name: Clone the aligned_layer repository
       ansible.builtin.git:
         repo: https://github.com/yetanotherco/aligned_layer
@@ -72,6 +81,8 @@
         SECRET_KEY_BASE: "{{ lookup('ini', 'SECRET_KEY_BASE file=ini/config-explorer.ini') }}"
         KEYFILE_PATH: "{{ lookup('ini', 'KEYFILE_PATH file=ini/config-explorer.ini') }}"
         CERTFILE_PATH: "{{ lookup('ini', 'CERTFILE_PATH file=ini/config-explorer.ini') }}"
+        BATCH_TTL_MINUTES: "{{ lookup('ini', 'BATCH_TTL_MINUTES file=ini/config-explorer.ini') }}"
+        SCHEDULED_BATCH_INTERVAL_MINUTES: "{{ lookup('ini', 'SCHEDULED_BATCH_INTERVAL_MINUTES file=ini/config-explorer.ini') }}"
 
     - name: Build the explorer release
       args:
