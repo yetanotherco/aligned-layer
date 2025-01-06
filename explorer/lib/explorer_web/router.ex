@@ -32,9 +32,9 @@ defmodule ExplorerWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/data", ExplorerWeb do
+  scope "/api", ExplorerWeb do
     pipe_through :api
-    get "/verified_proofs_in_last_24_hours", DataController, :verified_proofs_in_last_24_hours
+    get "/proofs_verified_last_24h", DataController, :verified_proofs_in_last_24_hours
   end
 
   scope "/", ExplorerWeb do
