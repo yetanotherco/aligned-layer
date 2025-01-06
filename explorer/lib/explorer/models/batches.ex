@@ -164,6 +164,20 @@ defmodule Batches do
     end
   end
 
+  def get_verified_proofs_in_last_24_hours() do
+    minutes_in_a_day = 1440
+    threshold_datetime = DateTime.utc_now() |> DateTime.add(-1 * minutes_in_a_day, :minute) # Last 24 hours
+
+    query = from(b in Batches,
+      where: b.is_verified == true and b.submission_timestamp > ^threshold_datetime,
+      select: sum(b.amount_of_proofs))
+
+    case Explorer.Repo.one(query) do
+      nil -> 0
+      result -> result
+    end
+  end
+
   def insert_or_update(batch_changeset, proofs) do
     merkle_root = batch_changeset.changes.merkle_root
     stored_proofs = Proofs.get_proofs_from_batch(%{merkle_root: merkle_root})
