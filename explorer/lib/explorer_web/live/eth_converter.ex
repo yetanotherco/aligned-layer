@@ -58,7 +58,7 @@ defmodule EthConverter do
     end
   end
 
-  defp round_to_sf(0, _), do: Decimal.new("0")
+  defp round_to_sf(%Decimal{coef: 0} = _value, _sf), do: Decimal.new("0")
 
   defp round_to_sf(value, significant_figures) do
     # Convert the value to a float and calculate the magnitude
