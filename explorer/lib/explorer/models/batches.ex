@@ -172,14 +172,14 @@ defmodule Batches do
       where: b.is_verified == true and b.submission_timestamp > ^threshold_datetime,
       select: {sum(b.amount_of_proofs), avg(b.fee_per_proof)})
 
-    {amount_of_proofs, fee_per_proof} = case Explorer.Repo.one(query) do
+    {amount_of_proofs, avg_fee_per_proof} = case Explorer.Repo.one(query) do
       nil -> {0, 0.0}
-      {amount_of_proofs, fee_per_proof} -> {Decimal.to_float(amount_of_proofs), fee_per_proof}
+      {amount_of_proofs, avg_fee_per_proof} -> {amount_of_proofs, avg_fee_per_proof}
     end
 
     %{
       amount_of_proofs: amount_of_proofs,
-      fee_per_proof: fee_per_proof
+      avg_fee_per_proof: avg_fee_per_proof
     }
   end
 
