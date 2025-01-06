@@ -170,12 +170,17 @@ defmodule Batches do
 
     query = from(b in Batches,
       where: b.is_verified == true and b.submission_timestamp > ^threshold_datetime,
-      select: sum(b.amount_of_proofs))
+      select: {sum(b.amount_of_proofs), avg(b.fee_per_proof)})
 
-    case Explorer.Repo.one(query) do
-      nil -> 0
-      result -> result
+    {amount_of_proofs, fee_per_proof} = case Explorer.Repo.one(query) do
+      nil -> {0, 0.0}
+      {amount_of_proofs, fee_per_proof} -> {Decimal.to_float(amount_of_proofs), fee_per_proof}
     end
+
+    %{
+      amount_of_proofs: amount_of_proofs,
+      fee_per_proof: fee_per_proof
+    }
   end
 
   def insert_or_update(batch_changeset, proofs) do
