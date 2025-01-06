@@ -32,11 +32,16 @@ defmodule ExplorerWeb.Router do
     plug :accepts, ["json"]
   end
 
+  scope "/data", ExplorerWeb do
+    pipe_through :api
+    get "/last_verified_proofs_count", DataController, :last_verified_proofs_count
+  end
+
   scope "/", ExplorerWeb do
     pipe_through :browser
 
     # https://fly.io/phoenix-files/live-session/
-    live_session :default, 
+    live_session :default,
       on_mount: [{ExplorerWeb.Hooks, :add_host}, {ExplorerWeb.Hooks, :add_theme}] do
       live "/", Home.Index
       live "/batches/:merkle_root", Batch.Index
