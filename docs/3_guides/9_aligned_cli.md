@@ -1,6 +1,8 @@
-# Aligned CLI
+# Aligned CLI Documentation
 
-The Aligned CLI serves as a interface for users to interact with and retrieve information from Alinged Layer. This document serves as a reference for commands of the Aligned CLI.
+The Aligned CLI serves as an interface for users to interact with Aligned Layer.
+
+This document serves as a reference for the commands of the Aligned CLI.
 
 ## Installation:
 
@@ -14,104 +16,160 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 
 3. Verify that the installation was successful:
 ```bash
-aligned --help
+aligned --version
 ```
 
 ## Help:
 
-To see the available commands run:
+To see the available commands, run:
 ```bash
 aligned --help
 ```
 
-To see the usage of a command run:
+To see the usage of a command, run:
 ```bash
 aligned [COMMAND] --help
 ```
 
-## Commands:
+## CLI Commands
 
-- `submit [OPTIONS] --proving_system <Proving system> --proof <Proof file path>`: Submit a proof or (repetitions of a proof) to the Aligned Layer batcher.
+### **submit**
 
-    - Options:
-        - `--batcher_url <Batcher connection address>`: Websocket URL for the Aligned Layer batcher.  
-            - **default**: 
-                - devnet: `ws://localhost:8080`
-            - **possible values**: 
-                - mainnet: `wss://mainnet.batcher.alignedlayer.com`
-                - holesky: `wss://batcher.alignedlayer.com`
-        - `--rpc_url <Ethereum RPC provider connection address>`: User's Ethereum RPC Node URL.
-        - `--proving_system <Proving system>`: Proof system of the submitted proof.
-            - **possible values**: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254`, `SP1`, `Risc0`
-        - `--proof <Proof file path>`: Path to the file the proof being submitted for verification is written.
-        - `--public_input <Public input file name>`: Path to a file where the public inputs of the proof being submitted for verification is written.
-        - `--vk <Verification key file name>`: Path to the file where the verification key of the proof being submitted for verification is written. Note, the following proof systems require a verification key to be supplied: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254` 
-        - `--vm_program <VM prgram code file name>`: Path to the file where the vm program code (ELF File) of the proof being submitted for verification is written. Note, the following proof systems require a vm program code (ELF File) to be supplied: `SP1`, `Risc0`. 
-        - `--repetitions <Number of repetitions>`:
-        Number of repetitions of this proof to be submitted.
-            - **default**: 1
-        - `--proof_generator_addr <Proof generator address>`: An optional parameter that can be used in some applications to avoid front-running.
-            - **default**: `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266`
-        - `--aligned_verification_data_path <Aligned verification data directory Path>`: Path to the location the verification data of the proof will be written after it is submitted.
-            - **default**: `./aligned_verification_data/`
-        - `--keystore_path <Path to local keystore>`: Path to the local keystore of the user's wallet.
-        - `--private_key <Private key>`: User's wallet private key.
-        - `--max_fee <Max Fee (ether)>`: Amount of Ethereum in Ether to deposit into the `BatcherPaymentService.sol` contract to pay for proof submission.
-        - `--nonce <Nonce>`: Nonce of the proof.
-        - `--network <The working network's name>`: The Ethereum network of the Aligned Layer Network the user is submitting to.
-            - **default**: `devnet`
-            - **possible values**: `devnet`, `holesky`, `holesky-stage`, `mainnet`
+#### Description:
 
-- `verify-proof-onchain [OPTIONS] --aligned-verification-data <Aligned verification data>`:  Verify the proof was included in a verified batch on Ethereum.
+Submit a proof to the Aligned Layer batcher.
 
-    - Options:
-        - `--aligned-verification-data <Aligned verification data>`: Path to verification data file generated from proof submission with the Aligned CLI.
-        - `--rpc-url <Ethereum RPC provider address>`: User's Ethereum RPC node URL. 
-        - `--network <The working network's name>`: The Ethereum network of the Aligned Layer network the user is querying their balance on.
-            - **default**: `devnet`
-            - **possible values**: `devnet`, `holesky`, `holesky-stage`, `mainnet`
-- `get-vk-commitment [OPTIONS] --verification_key_file <Verification key file path> --proving_system <Proving system>`: Computes the verification data commitment specifically [provingSystemAuxDataCommitment](../2_architecture/components/3_service_manager_contract.md#verify-batch-inclusion) from the verification data file generated from submitting a proof to the batcher.
+#### Command:
 
-    - Options:
-        - `--verification_key_file <Verification key file path>`: Path to verification data file generated from proof submission with the Aligned CLI.
-        - `--proving_system <Proving system>`: Proof system of the supplied verification data file.
-            - **possible values**: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254`, `SP1`, `Risc0`
-        - `--output <Output file>`: File path for output to be written to.
+`submit [OPTIONS] --proving_system <proving_system> --proof <proof_file_path>`
 
-- `deposit-to-batcher [OPTIONS] --keystore_path <Path to local keystore> --amount <Amount to deposit>`: Deposits Ethereum into the Aligned Layer's `BatcherPaymentService.sol` contract to pay for users proof submission.
+#### Options:
+- **`--batcher_url`**: Websocket URL for the Aligned Layer batcher  
+  - Default: `ws://localhost:8080`  
+  - Possible values: `wss://mainnet.batcher.alignedlayer.com`, `wss://batcher.alignedlayer.com`
 
-    - Options:
-        - `--keystore_path <Path to local keystore>`: Path to the local keystore of the user's wallet. 
-        - `--rpc-url <Ethereum RPC provider address>`: User's Ethereum RPC Node URL. 
-        - `--network <The working network's name>`: The Ethereum network of the Aligned Layer Network the user is querying their balance on.
-            - **default**: `devnet`
-            - **possible values**: `devnet`, `holesky`, `holesky-stage`, `mainnet`
-        - `--amount <Amount to deposit>`: Amount of Ethereum in Ether to deposit into the `BatcherPaymentService.sol` contract to pay for proof submission.
+- **`--rpc_url`**: User's Ethereum RPC provider connection address.
 
-- `get-user-balance [OPTIONS] --user_addr <The user's Ethereum address>`: Retrieves the user's current balance in Aligned Layer's `BatcherPaymentService.sol` contract.
+- **`--proving_system`**: Proof system of the submitted proof  
+  - Possible values: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254`, `SP1`, `Risc0`
+- **`--proof`**: Path to the proof file.
+- **`--public_input`**: Path to the public input file.
+- **`--vk`**: Path to the verification key file (required for specific proof systems).
+- **`--vm_program`**: Path to the VM program code file (required for specific proof systems).
+- **`--repetitions`**: Number of repetitions of the proof submission.  
+  - Default: `1`
+- **`--proof_generator_addr`**: Proof generator address.  
+  - Default: `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266`
+- **`--aligned_verification_data_path`**: Directory for aligned verification data.  
+  - Default: `./aligned_verification_data/`
+- **`--keystore_path`**: Path to the local keystore.
+- **`--private_key`**: User's wallet private key.
+- **`--max_fee`**: Maximum fee in Ether to deposit into the contract.
+- **`--nonce`**: Proof nonce.
+- **`--network`**: Network name for the Aligned Layer.  
+  - Default: `devnet`  
+  - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
 
-    - Options:
-        - `--network <The working network's name>`: The Ethereum network of the Aligned Layer Network the user is querying their balance on.
-            - **default**: `devnet`
-            - **possible values**: `devnet`, `holesky`, `holesky-stage`, `mainnet`
-        - `--rpc_url <Ethereum RPC provider address>`: User's Ethereum RPC Node URL.
-            - **default**: `http://localhost:8545`
-        - `--user_addr <The user's Ethereum address>`: User's Ethereum address on the provided network. 
+---
+### **verify-proof-onchain**
 
-- `get-user-nonce [OPTIONS] --user_addr <The user's Ethereum address>`:  Retrieves the user's current nonce from the batcher.
+#### Description:
 
-    - Options:
-        - `--batcher_url <Batcher connection address>`: Websocket URL for the Aligned Layer batcher.  
-            - **default**: 
-                - devnet: `ws://localhost:8080`
-            - **possible values**: 
-                - mainnet: `wss://mainnet.batcher.alignedlayer.com`
-                - holesky: `wss://batcher.alignedlayer.com`
-        - `--user_addr <The user's Ethereum address>`: User's Ethereum address on Ethereum Mainnet.
+View if a proof was verified by Aligned on Ethereum.
 
-## Example:
+#### Command:
 
-An example workflow for using the Aligned CLI (Runnable from the root directory of the Aligned Layer Repository):
+`verify-proof-onchain [OPTIONS] --aligned-verification-data <aligned_verification_data>`
+
+#### Options:
+- **`--aligned-verification-data`**: Path to the aligned verification data file.
+- **`--rpc-url`**: User's Ethereum RPC provider address.
+- **`--network`**: Network name.  
+  - Default: `devnet`  
+  - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
+
+---
+
+### **get-vk-commitment**
+
+#### Description:
+
+Computes the verification data commitment from the verification data file.
+
+#### Command:
+
+`get-vk-commitment [OPTIONS] --verification_key_file <verification_key_file_path> --proving_system <proving_system>`
+
+#### Options:
+- **`--verification_key_file`**: Path to the verification key file.
+- **`--proving_system`**: Proof system of the verification data file.  
+  - Possible values: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254`, `SP1`, `Risc0`
+- **`--output`**: File path to write the output.
+
+---
+
+### deposit-to-batcher
+
+#### Description:
+
+Deposits Ethereum into the Aligned Layer's `BatcherPaymentService.sol` contract.
+
+#### Command:
+
+`deposit-to-batcher [OPTIONS] --keystore_path <path_to_local_keystore> --amount <amount_to_deposit>`
+
+#### Options:
+- **`--keystore_path`**: Path to the local keystore.
+- **`--rpc-url`**: User's Ethereum RPC provider address.
+- **`--network`**: Network name.  
+  - Default: `devnet`  
+  - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
+- **`--amount`**: Amount of Ethereum to deposit.
+
+---
+
+### **get-user-balance**
+
+#### Description:
+
+Retrieves the user's balance in the Aligned Layer's contract.
+
+#### Command:
+
+`get-user-balance [OPTIONS] --user_addr <user_ethereum_address>`
+
+
+#### Options:
+- **`--network`**: Network name.  
+  - Default: `devnet`  
+  - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
+- **`--rpc_url`**: User's Ethereum RPC provider address.  
+  - Default: `http://localhost:8545`
+- **`--user_addr`**: User's Ethereum address.
+
+---
+
+### **get-user-nonce**
+
+#### Description:
+
+Retrieves the user's current nonce from the batcher.
+
+#### Command:
+
+`get-user-nonce [OPTIONS] --user_addr <user_ethereum_address>`
+
+#### Options:
+- **`--batcher_url`**: Websocket URL for the Aligned Layer batcher.  
+  - Default: `ws://localhost:8080`  
+  - Possible values: `wss://mainnet.batcher.alignedlayer.com`, `wss://batcher.alignedlayer.com`
+- **`--user_addr`**: User's Ethereum address.
+
+---
+
+## Examples:
+
+Some example workflows for using the Aligned CLI, they are all runned from the root directory of the Aligned Layer Repository:
 
 1. Deposit funds to the batcher.
 ```bash
