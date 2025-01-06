@@ -164,7 +164,7 @@ defmodule Batches do
     end
   end
 
-  def get_last_verified_proofs_count() do
+  def get_verified_proofs_in_last_24_hours() do
     minutes_in_a_day = 1440
     threshold_datetime = DateTime.utc_now() |> DateTime.add(-1 * minutes_in_a_day, :minute) # Last 24 hours
 

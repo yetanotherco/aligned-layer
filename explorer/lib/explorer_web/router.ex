@@ -34,7 +34,7 @@ defmodule ExplorerWeb.Router do
 
   scope "/data", ExplorerWeb do
     pipe_through :api
-    get "/last_verified_proofs_count", DataController, :last_verified_proofs_count
+    get "/verified_proofs_in_last_24_hours", DataController, :verified_proofs_in_last_24_hours
   end
 
   scope "/", ExplorerWeb do
