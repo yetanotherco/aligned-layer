@@ -164,7 +164,7 @@ defmodule Batches do
     end
   end
 
-  def get_verified_proofs_in_last_24_hours() do
+  def get_last_24h_verified_proof_stats() do
     minutes_in_a_day = 1440
     threshold_datetime = DateTime.utc_now() |> DateTime.add(-1 * minutes_in_a_day, :minute) # Last 24 hours
 
@@ -174,7 +174,7 @@ defmodule Batches do
 
     {amount_of_proofs, avg_fee_per_proof} = case Explorer.Repo.one(query) do
       nil -> {0, 0.0}
-      {amount_of_proofs, avg_fee_per_proof} -> {amount_of_proofs, avg_fee_per_proof}
+      result -> result
     end
 
     %{
