@@ -2,8 +2,9 @@ use std::{thread, time::Duration};
 
 // Prometheus
 use prometheus::{
-    opts, register_int_counter, register_int_counter_vec, register_int_gauge, IntCounter,
-    IntCounterVec, IntGauge,
+    core::{AtomicF64, GenericCounter},
+    opts, register_counter, register_int_counter, register_int_counter_vec, register_int_gauge,
+    IntCounter, IntCounterVec, IntGauge,
 };
 
 use warp::{Filter, Rejection, Reply};
@@ -24,6 +25,8 @@ pub struct BatcherMetrics {
     pub s3_duration: IntGauge,
     pub create_new_task_duration: IntGauge,
     pub cancel_create_new_task_duration: IntGauge,
+    pub batcher_gas_cost_create_task_total: GenericCounter<AtomicF64>,
+    pub batcher_gas_cost_cancel_task_total: GenericCounter<AtomicF64>,
 }
 
 impl BatcherMetrics {
@@ -66,6 +69,17 @@ impl BatcherMetrics {
             "Cancel create New Task Duration"
         ))?;
 
+        let batcher_gas_cost_create_task_total: GenericCounter<AtomicF64> =
+            register_counter!(opts!(
+                "batcher_gas_cost_create_task_total",
+                "Batcher Gas Cost Create Task Total"
+            ))?;
+        let batcher_gas_cost_cancel_task_total: GenericCounter<AtomicF64> =
+            register_counter!(opts!(
+                "batcher_gas_cost_cancel_task_total",
+                "Batcher Gas Cost Cancel Task Total"
+            ))?;
+
         registry.register(Box::new(open_connections.clone()))?;
         registry.register(Box::new(received_proofs.clone()))?;
         registry.register(Box::new(sent_batches.clone()))?;
@@ -80,6 +94,8 @@ impl BatcherMetrics {
         registry.register(Box::new(s3_duration.clone()))?;
         registry.register(Box::new(create_new_task_duration.clone()))?;
         registry.register(Box::new(cancel_create_new_task_duration.clone()))?;
+        registry.register(Box::new(batcher_gas_cost_create_task_total.clone()))?;
+        registry.register(Box::new(batcher_gas_cost_cancel_task_total.clone()))?;
 
         let metrics_route = warp::path!("metrics")
             .and(warp::any().map(move || registry.clone()))
@@ -106,6 +122,8 @@ impl BatcherMetrics {
             s3_duration,
             create_new_task_duration,
             cancel_create_new_task_duration,
+            batcher_gas_cost_create_task_total,
+            batcher_gas_cost_cancel_task_total,
         })
     }
 
