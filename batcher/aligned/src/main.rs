@@ -406,8 +406,7 @@ async fn main() -> Result<(), AlignedError> {
 
             match unique_batch_merkle_roots.len() {
                 1 => info!("Proofs submitted to aligned. See the batch in the explorer:"),
-                // If no verification data we do not log the msg.
-                0 => (),
+                0 => (), // No verification data, we do not log the msg. This happens when insufficient balance for first nonce
                 _ => info!("Proofs submitted to aligned. See the batches in the explorer:"),
             }
 

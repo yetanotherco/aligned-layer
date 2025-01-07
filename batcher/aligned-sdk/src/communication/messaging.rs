@@ -134,7 +134,8 @@ pub async fn receive(
                 if let SubmitError::InsufficientBalance(_, error_nonce) = e {
                     aligned_submitted_data.push(Err(e));
 
-                    if error_nonce == first_nonce { // no proofs where accepted by the batcher (this also covers error_nonce==0)
+                    if error_nonce == first_nonce { // no proofs where accepted by the batcher
+                                                    // this also covers error_nonce==0, which as uint risks an underflow when substracting 1
                         break;  // stop listening responses
                     }
                     
