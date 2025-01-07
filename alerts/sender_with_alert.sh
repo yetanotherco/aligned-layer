@@ -168,9 +168,9 @@ do
   done
 
   if [ $verified -eq 1 ]; then
-    slack_message="$REPETITIONS Proofs submitted and verified. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+    slack_message="$REPETITIONS Proofs submitted and verified in batch $num_proofs / $num_proofs_in_batch. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
   else
-    slack_message="$REPETITIONS Proofs submitted but not verified. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+    slack_message="$REPETITIONS Proofs submitted but not verified in batch $num_proofs / $num_proofs_in_batch. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
   fi
 
   ## Send Update to Slack
