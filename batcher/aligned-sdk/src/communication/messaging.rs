@@ -100,8 +100,8 @@ pub async fn receive(
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream = response_stream.lock().await;
     let mut aligned_submitted_data: Vec<Result<AlignedVerificationData, SubmitError>> = Vec::new();
-    let last_sent_proof_nonce = get_biggest_nonce(&sent_verification_data_rev);
-    let mut last_proof_nonce = last_sent_proof_nonce;
+    let last_sent_nonce = get_biggest_nonce(&sent_verification_data_rev);
+    let mut last_valid_proof_nonce = last_sent_nonce;
 
     // read from WS
     while let Some(Ok(msg)) = response_stream.next().await {
@@ -125,32 +125,24 @@ pub async fn receive(
         let batch_inclusion_data_message = match handle_batcher_response(msg).await {
             Ok(data) => data,
             Err(e) => {
-                warn!("Error while handling batcher response: {:?}", e);
+                warn!("Error detected while handling batcher response: {:?}", e);
                 // When submitting multiple batches, an InsufficientBalance error may occur, when the required balance of a user would exceed his balance in the BatcherPaymentService.sol
                 // This leads to a scenario where some of the submitted proofs are accepted and others rejected, with
                 // the SubmitError::InsufficientBalance(error_nonce) thrown. To ensure the user is notified that some of their proofs were rejected,
-                // we return upon erroring the nonce of the proof that has errored and set the new `last_proof_nonce` value accordingly.
-                // This ensures the client messaging protocol continues receiving verification and error responses until all messages are received.
+                // we return upon erroring the nonce of the proof that has errored and set the new `last_valid_proof_nonce` value accordingly.
+                // This ensures the client messaging protocol continues receiving responses until all messages are received.
                 if let SubmitError::InsufficientBalance(_, error_nonce) = e {
                     aligned_submitted_data.push(Err(e));
 
-                    // We handle the explicit case that a user sends a proof without an balance deposited.
-                    // This triggers an InsufficientBalance error with `error_nonce`` of `0` leading to an overflow error.
-                    // If `error_nonce` == U256::zero() we return the `error_nonce` to prevent overflow.
-                    let last_error_nonce = if error_nonce == U256::zero() {
-                        break;
-                    } else {
-                        error_nonce - 1
-                    };
-                    if last_error_nonce < last_proof_nonce {
-                        last_proof_nonce = last_error_nonce;
+                    if error_nonce == first_nonce { // no proofs where accepted by the batcher (this also covers error_nonce==0)
+                        break;  // stop listening responses
+                    }
+                    
+                    if last_valid_proof_nonce > (error_nonce - 1) { // last_valid_proof_nonce needs to be updated, since there is a new error_nonce
+                        last_valid_proof_nonce = error_nonce - 1;
                     }
 
-                    if last_proof_nonce < first_nonce {
-                        break;
-                    }
-
-                    continue;
+                    continue; // continue listening responses
                 }
                 aligned_submitted_data.push(Err(e));
                 break;
@@ -187,7 +179,7 @@ pub async fn receive(
         aligned_submitted_data.push(Ok(aligned_verification_data));
         debug!("Message response handled successfully");
 
-        if batch_inclusion_data_message.user_nonce == last_proof_nonce {
+        if batch_inclusion_data_message.user_nonce == last_valid_proof_nonce {
             break;
         }
     }
@@ -220,7 +212,7 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
         }
         Ok(SubmitProofResponseMessage::InsufficientBalance(addr, error_nonce)) => {
             // If we receive an invalid balance we should grab the error_nonce.
-            error!("Batcher responded with insufficient balance");
+            error!("Batcher responded with insufficient balance, for nonce {}", error_nonce);
             Err(SubmitError::InsufficientBalance(addr, error_nonce))
         }
         Ok(SubmitProofResponseMessage::InvalidChainId) => {
