@@ -80,7 +80,7 @@ pub async fn send_messages(
         sent_verification_data.push(Ok(verification_data));
     }
 
-    info!("All proofs sent");
+    info!("All proofs sent, wait until they are included in a batch");
     // This vector is reversed so that while responses are received, removing from the end is cheaper.
     let sent_verification_data_rev: Vec<Result<NoncedVerificationData, SubmitError>> =
         sent_verification_data.into_iter().rev().collect();
