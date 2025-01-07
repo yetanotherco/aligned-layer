@@ -7,7 +7,7 @@ CONFIG_FILE?=config-files/config.yaml
 export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.12.1
+OPERATOR_VERSION=v0.13.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -52,7 +52,7 @@ deps: submodules go_deps build_all_ffi ## Install deps
 
 go_deps:
 	@echo "Installing Go dependencies..."
-	go install github.com/maoueh/zap-pretty@latest
+	go install github.com/maoueh/zap-pretty@v0.3.0
 	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
 	go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 
@@ -557,7 +557,13 @@ generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
 __METRICS__:
-# Prometheus and graphana
+# Prometheus and Grafana
+metrics_remove_containers:
+	@docker stop prometheus grafana
+	@docker rm prometheus grafana
+metrics_clean_db: metrics_remove_containers
+	@docker volume rm aligned_layer_grafana_data aligned_layer_prometheus_data
+
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
 	@docker compose -f metrics-docker-compose.yaml up
@@ -603,6 +609,16 @@ upgrade_stake_registry: ## Upgrade Stake Registry
 upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
+
+set_aggregator_address:
+	@echo "Setting Aggregator Address in Aligned Service Manager Contract on $(NETWORK) network..."
+	@echo "Aggregator address: $(AGGREGATOR_ADDRESS)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/set_aggregator_address.sh $(AGGREGATOR_ADDRESS)
+
+set_aggregator_address_devnet:
+	@echo "Setting Aggregator Address in Aligned Service Manager Contract..."
+	@echo "Aggregator address: $(AGGREGATOR_ADDRESS)"
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/set_aggregator_address.sh $(AGGREGATOR_ADDRESS)
 
 upgrade_initialize_disabled_verifiers:
 	@echo "Adding disabled verifiers to Aligned Service Manager..."
