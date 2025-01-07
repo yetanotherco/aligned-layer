@@ -134,12 +134,14 @@ pub async fn receive(
                 if let SubmitError::InsufficientBalance(_, error_nonce) = e {
                     aligned_submitted_data.push(Err(e));
 
-                    if error_nonce == first_nonce { // no proofs where accepted by the batcher
-                                                    // this also covers error_nonce==0, which as uint risks an underflow when substracting 1
-                        break;  // stop listening responses
+                    if error_nonce == first_nonce {
+                        // no proofs where accepted by the batcher
+                        // this also covers error_nonce==0, which as uint risks an underflow when substracting 1
+                        break; // stop listening responses
                     }
-                    
-                    if last_valid_proof_nonce > (error_nonce - 1) { // last_valid_proof_nonce needs to be updated, since there is a new error_nonce
+
+                    if last_valid_proof_nonce > (error_nonce - 1) {
+                        // last_valid_proof_nonce needs to be updated, since there is a new error_nonce
                         last_valid_proof_nonce = error_nonce - 1;
                     }
 
@@ -213,7 +215,10 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
         }
         Ok(SubmitProofResponseMessage::InsufficientBalance(addr, error_nonce)) => {
             // If we receive an invalid balance we should grab the error_nonce.
-            error!("Batcher responded with insufficient balance, for nonce {}", error_nonce);
+            error!(
+                "Batcher responded with insufficient balance, for nonce {}",
+                error_nonce
+            );
             Err(SubmitError::InsufficientBalance(addr, error_nonce))
         }
         Ok(SubmitProofResponseMessage::InvalidChainId) => {
