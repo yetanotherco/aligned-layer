@@ -208,7 +208,7 @@ fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost:
 
 #[cfg(test)]
 mod test {
-    use aligned_sdk::core::constants::CONSTANT_GAS_COST;
+    use aligned_sdk::core::constants::DEFAULT_CONSTANT_GAS_COST;
     use aligned_sdk::core::types::ProvingSystemId;
     use aligned_sdk::core::types::VerificationData;
     use ethers::types::Address;
@@ -310,7 +310,7 @@ mod test {
             gas_price,
             5000000,
             50,
-            CONSTANT_GAS_COST,
+            DEFAULT_CONSTANT_GAS_COST,
         )
         .unwrap();
 
@@ -422,7 +422,7 @@ mod test {
             gas_price,
             5000000,
             50,
-            CONSTANT_GAS_COST,
+            DEFAULT_CONSTANT_GAS_COST,
         )
         .unwrap();
 
@@ -532,7 +532,7 @@ mod test {
             gas_price,
             5000000,
             2,
-            CONSTANT_GAS_COST,
+            DEFAULT_CONSTANT_GAS_COST,
         )
         .unwrap();
 
@@ -642,7 +642,7 @@ mod test {
             gas_price,
             5000000,
             50,
-            CONSTANT_GAS_COST,
+            DEFAULT_CONSTANT_GAS_COST,
         )
         .unwrap();
 
@@ -758,7 +758,7 @@ mod test {
             gas_price,
             5000000,
             50,
-            CONSTANT_GAS_COST,
+            DEFAULT_CONSTANT_GAS_COST,
         )
         .unwrap();
 
@@ -874,7 +874,7 @@ mod test {
             gas_price,
             5000000,
             max_batch_proof_qty,
-            CONSTANT_GAS_COST,
+            DEFAULT_CONSTANT_GAS_COST,
         )
         .unwrap();
 

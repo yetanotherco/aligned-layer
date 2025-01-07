@@ -23,12 +23,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use aligned_sdk::core::constants::{
-    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST,
-    BATCHER_SUBMISSION_BASE_GAS_COST, BUMP_BACKOFF_FACTOR, BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY,
-    BUMP_MIN_RETRY_DELAY, CONNECTION_TIMEOUT, DEFAULT_MAX_FEE_PER_PROOF,
-    ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
-    ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
-    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, BATCHER_SUBMISSION_BASE_GAS_COST,
+    BUMP_BACKOFF_FACTOR, BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY,
+    CONNECTION_TIMEOUT, DEFAULT_MAX_FEE_PER_PROOF, ETHEREUM_CALL_BACKOFF_FACTOR,
+    ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY, ETHEREUM_CALL_MIN_RETRY_DELAY,
+    GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER, RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
     ClientMessage, GetNonceResponseMessage, NoncedVerificationData, ProofInvalidReason,
@@ -93,6 +92,7 @@ pub struct Batcher {
     posting_batch: Mutex<bool>,
     disabled_verifiers: Mutex<U256>,
     aggregator_fee_percentage_multiplier: u128,
+    aggregator_gas_cost: u128,
     pub metrics: metrics::BatcherMetrics,
     pub telemetry: TelemetrySender,
 }
@@ -257,6 +257,7 @@ impl Batcher {
             aggregator_fee_percentage_multiplier: config
                 .batcher
                 .aggregator_fee_percentage_multiplier,
+            aggregator_gas_cost: config.batcher.aggregator_gas_cost,
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
             disabled_verifiers: Mutex::new(disabled_verifiers),
@@ -1440,7 +1441,7 @@ impl Batcher {
             + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
             / num_proofs_in_batch as u128;
         let fee_per_proof = U256::from(gas_per_proof) * gas_price;
-        let fee_for_aggregator = (U256::from(AGGREGATOR_GAS_COST)
+        let fee_for_aggregator = (U256::from(self.aggregator_gas_cost)
             * gas_price
             * U256::from(self.aggregator_fee_percentage_multiplier))
             / U256::from(PERCENTAGE_DIVIDER);
@@ -1869,7 +1870,7 @@ impl Batcher {
     }
 
     fn constant_gas_cost(&self) -> u128 {
-        (self.aggregator_fee_percentage_multiplier * AGGREGATOR_GAS_COST) / PERCENTAGE_DIVIDER
+        (self.aggregator_fee_percentage_multiplier * self.aggregator_gas_cost) / PERCENTAGE_DIVIDER
             + BATCHER_SUBMISSION_BASE_GAS_COST
     }
 }
