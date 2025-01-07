@@ -44,29 +44,28 @@ Submit a proof to the Aligned Layer batcher.
 `submit [OPTIONS] --proving_system <proving_system> --proof <proof_file_path>`
 
 #### Options:
-- **`--batcher_url`**: Websocket URL for the Aligned Layer batcher  
+- `--batcher_url <batcher_connection_address>`: Websocket URL for the Aligned Layer batcher  
   - Default: `ws://localhost:8080`  
   - Possible values: `wss://mainnet.batcher.alignedlayer.com`, `wss://batcher.alignedlayer.com`
-
-- **`--rpc_url`**: User's Ethereum RPC provider connection address.
-
-- **`--proving_system`**: Proof system of the submitted proof  
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+- `--proving_system <proving_system>`: Proof system of the submitted proof  
   - Possible values: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254`, `SP1`, `Risc0`
-- **`--proof`**: Path to the proof file.
-- **`--public_input`**: Path to the public input file.
-- **`--vk`**: Path to the verification key file (required for specific proof systems).
-- **`--vm_program`**: Path to the VM program code file (required for specific proof systems).
-- **`--repetitions`**: Number of repetitions of the proof submission.  
+- `--proof <proof_file_path>`: Path to the proof file.
+- `--public_input <public_input_file_path>`: Path to the public input file.
+- `--vk <verification_key_file_path>`: Path to the verification key file (required for specific proof systems).
+- `--vm_program <vm_program_code_file_path>`: Path to the VM program code file (required for some specific proof systems).
+- `--repetitions <n>`: Number of repetitions of the proof submission.  
   - Default: `1`
-- **`--proof_generator_addr`**: Proof generator address.  
-  - Default: `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266`
-- **`--aligned_verification_data_path`**: Directory for aligned verification data.  
+- `--proof_generator_addr <proof_generator_address>`: Proof generator address.  
+  - Default: `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` (Anvil prefunded account 0)
+- `--aligned_verification_data_path <aligned_verification_data_directory_path>`: Directory for aligned verification data.  
   - Default: `./aligned_verification_data/`
-- **`--keystore_path`**: Path to the local keystore.
-- **`--private_key`**: User's wallet private key.
-- **`--max_fee`**: Maximum fee in Ether to deposit into the contract.
-- **`--nonce`**: Proof nonce.
-- **`--network`**: Network name for the Aligned Layer.  
+- `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
+- `--private_key <private_key>`: User's wallet private key.
+- `--max_fee <max_fee (ether)>`: Maximum fee in Ether to deposit into the contract.
+- `--nonce <n>`: Proof nonce.
+- `--network <working_network_name>`: Network name to interact with.  
   - Default: `devnet`  
   - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
 
@@ -87,9 +86,10 @@ View if a proof was verified by Aligned on Ethereum.
 `verify-proof-onchain [OPTIONS] --aligned-verification-data <aligned_verification_data>`
 
 #### Options:
-- **`--aligned-verification-data`**: Path to the aligned verification data file.
-- **`--rpc-url`**: User's Ethereum RPC provider address.
-- **`--network`**: Network name.  
+- `--aligned-verification-data <aligned_verification_data>`: Path to the aligned verification data file.
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+- `--network <working_network_name>`: Network name to interact with.  
   - Default: `devnet`  
   - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
 
@@ -111,10 +111,10 @@ Computes the verification data commitment from the verification data file.
 `get-vk-commitment [OPTIONS] --verification_key_file <verification_key_file_path> --proving_system <proving_system>`
 
 #### Options:
-- **`--verification_key_file`**: Path to the verification key file.
-- **`--proving_system`**: Proof system of the verification data file.  
+- `--verification_key_file <path_to_file>`: Path to the verification key file.
+- `--proving_system <proving_system>`: Proof system of the verification data file.  
   - Possible values: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254`, `SP1`, `Risc0`
-- **`--output`**: File path to write the output.
+- `--output <path_to_file>`: File path to write the output.
 
 ---
 
@@ -129,12 +129,13 @@ Deposits Ethereum into the Aligned Layer's `BatcherPaymentService.sol` contract.
 `deposit-to-batcher [OPTIONS] --keystore_path <path_to_local_keystore> --amount <amount_to_deposit>`
 
 #### Options:
-- **`--keystore_path`**: Path to the local keystore.
-- **`--rpc-url`**: User's Ethereum RPC provider address.
-- **`--network`**: Network name.  
+- `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+- `--network <working_network_name>`: Network name to interact with.  
   - Default: `devnet`  
   - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
-- **`--amount`**: Amount of Ethereum to deposit.
+- `--amount <amount (ether)>`: Amount of Ether to deposit.
   
 #### Example:
 ```bash
@@ -155,10 +156,10 @@ Retrieves the user's balance in the Aligned Layer's contract.
 
 
 #### Options:
-- **`--network`**: Network name.  
+- `--network <working_network_name>`: Network name to interact with.  
   - Default: `devnet`  
   - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
-- **`--rpc_url`**: User's Ethereum RPC provider address.  
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
 - **`--user_addr`**: User's Ethereum address.
 
@@ -184,7 +185,7 @@ Retrieves the user's current nonce from the batcher.
 - **`--batcher_url`**: Websocket URL for the Aligned Layer batcher.  
   - Default: `ws://localhost:8080`  
   - Possible values: `wss://mainnet.batcher.alignedlayer.com`, `wss://batcher.alignedlayer.com`
-- **`--user_addr`**: User's Ethereum address.
+- `--user_addr <user_address>`: User's Ethereum address.
 
 #### Example:
 ```bash
