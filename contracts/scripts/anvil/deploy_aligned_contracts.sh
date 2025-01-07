@@ -47,7 +47,6 @@ forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
     --sig "run(string batcherConfigPath, string outputPath)"
 
 # Extract the batcher payment service values from the output
-# new_aligned_layer_service_manager_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
 batcher_payment_service_proxy=$(jq -r '.addresses.batcherPaymentService' $output_path)
 batcher_payment_service_implementation=$(jq -r '.addresses.batcherPaymentServiceImplementation' $output_path)
 
