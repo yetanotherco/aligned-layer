@@ -4,7 +4,7 @@ In this tutorial, you will learn how to send your first SP1 proofs to get verifi
 
 {% hint style="warning" %}
 This tutorial is for sending proofs on Holesky network.
-To send proofs on mainnet, please refer to the [submitting proofs](../3_guides/0_submitting_proofs.md) guide.
+To send proofs on Mainnet, please refer to the [submitting proofs](../3_guides/0_submitting_proofs.md) guide.
 {% endhint %}
 
 ## Quickstart
