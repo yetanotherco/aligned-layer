@@ -164,23 +164,19 @@ defmodule Batches do
     end
   end
 
-  def get_last_24h_verified_proof_stats() do
-    minutes_in_a_day = 1440
-    threshold_datetime = DateTime.utc_now() |> DateTime.add(-1 * minutes_in_a_day, :minute) # Last 24 hours
-
+  def get_verified_batches_summary() do
     query = from(b in Batches,
-      where: b.is_verified == true and b.submission_timestamp > ^threshold_datetime,
-      select: {sum(b.amount_of_proofs), avg(b.fee_per_proof)})
+      where: b.is_verified == true,
+      select: {b.merkle_root, b.amount_of_proofs, b.response_timestamp})
 
-    {amount_of_proofs, avg_fee_per_proof} = case Explorer.Repo.one(query) do
-      nil -> {0, 0.0}
-      result -> result
-    end
-
-    %{
-      amount_of_proofs: amount_of_proofs,
-      avg_fee_per_proof: avg_fee_per_proof
-    }
+    Explorer.Repo.all(query)
+    |> Enum.map(fn {merkle_root, amount_proofs, timestamp} ->
+      %{
+        merkle_root: merkle_root,
+        amount_of_proofs: amount_proofs,
+        response_timestamp: timestamp
+      }
+    end)
   end
 
   def insert_or_update(batch_changeset, proofs) do
