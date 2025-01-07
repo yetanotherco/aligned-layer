@@ -6,7 +6,7 @@ This document serves as a reference for the commands of the Aligned CLI.
 
 ## Installation:
 
-1. Download and install Aligned from the Aligned github repo `https://github.com/yetanotherco/aligned_layer`:
+1. Download and install Aligned from the Aligned GitHub repo `https://github.com/yetanotherco/aligned_layer`:
 
 ```bash
 curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash
@@ -46,9 +46,13 @@ Submit a proof to the Aligned Layer batcher.
 #### Options:
 - `--batcher_url <batcher_connection_address>`: Websocket URL for the Aligned Layer batcher  
   - Default: `ws://localhost:8080`  
-  - Possible values: `wss://mainnet.batcher.alignedlayer.com`, `wss://batcher.alignedlayer.com`
+  - Mainnet: `wss://mainnet.batcher.alignedlayer.com`
+  - Testnet: `wss://batcher.alignedlayer.com`
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
 - `--proving_system <proving_system>`: Proof system of the submitted proof  
   - Possible values: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254`, `SP1`, `Risc0`
 - `--proof <proof_file_path>`: Path to the proof file.
@@ -64,14 +68,26 @@ Submit a proof to the Aligned Layer batcher.
 - `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
 - `--private_key <private_key>`: User's wallet private key.
 - `--max_fee <max_fee (ether)>`: Maximum fee in Ether to deposit into the contract.
+  - Default: `0.0013ether`
 - `--nonce <n>`: Proof nonce.
+  - By default, the nonce is set automatically. By setting the nonce manually, you can perform a proof replacement.
 - `--network <working_network_name>`: Network name to interact with.  
   - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
+  - Possible values: `devnet`, `holesky`, `mainnet`
 
 #### Example:
 ```bash
-aligned submit  --proving_system Risc0 --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub --repetitions <BURST_SIZE> --keystore_path <KEYSTORE_PATH> --batcher_url wss://batcher.alignedlayer.com --network holesky --max_fee 1300000000
+aligned submit  \
+--proving_system Risc0 \
+--proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
+--vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
+--public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+--repetitions <BURST_SIZE> \
+--keystore_path <KEYSTORE_PATH> \
+--batcher_url wss://batcher.alignedlayer.com \
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--max_fee 0.0013ether
 ```
 
 ---
@@ -79,7 +95,7 @@ aligned submit  --proving_system Risc0 --proof ./scripts/test_files/risc_zero/fi
 
 #### Description:
 
-View if a proof was verified by Aligned on Ethereum.
+Check if a proof was verified by Aligned on Ethereum.
 
 #### Command:
 
@@ -89,13 +105,19 @@ View if a proof was verified by Aligned on Ethereum.
 - `--aligned-verification-data <aligned_verification_data>`: Path to the aligned verification data file.
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
 - `--network <working_network_name>`: Network name to interact with.  
   - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
+  - Possible values: `devnet`, `holesky`, `mainnet`
 
 #### Example:
 ```bash
-aligned verify-proof-onchain --aligned-verification-data ./aligned_verification_data/<VERIFICATION_DATA_FILE> --network holesky 
+aligned verify-proof-onchain \
+--aligned-verification-data ./aligned_verification_data/<VERIFICATION_DATA_FILE> \
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 ---
@@ -132,14 +154,21 @@ Deposits Ethereum into the Aligned Layer's `BatcherPaymentService.sol` contract.
 - `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
 - `--network <working_network_name>`: Network name to interact with.  
   - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
+  - Possible values: `devnet`, `holesky`, `mainnet`
 - `--amount <amount (ether)>`: Amount of Ether to deposit.
   
 #### Example:
 ```bash
-aligned deposit-to-batcher --network holesky --amount 0.5ether --keystore_path <KEYSTORE_PATH>
+aligned deposit-to-batcher \
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--amount 0.5ether \
+--keystore_path <KEYSTORE_PATH>
 ```
 
 ---
@@ -158,14 +187,20 @@ Retrieves the user's balance in the Aligned Layer's contract.
 #### Options:
 - `--network <working_network_name>`: Network name to interact with.  
   - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `holesky-stage`, `mainnet`
+  - Possible values: `devnet`, `holesky`, `mainnet`
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
 - **`--user_addr`**: User's Ethereum address.
 
 #### Example:
 ```bash
-aligned get-user-balance --user_addr <WALLET_ADDRESS> --network holesky --batcher_url wss://batcher.alignedlayer.com
+aligned get-user-balance \
+--user_addr <WALLET_ADDRESS> \
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 ---
@@ -183,11 +218,14 @@ Retrieves the user's current nonce from the batcher.
 
 #### Options:
 - **`--batcher_url`**: Websocket URL for the Aligned Layer batcher.  
-  - Default: `ws://localhost:8080`  
-  - Possible values: `wss://mainnet.batcher.alignedlayer.com`, `wss://batcher.alignedlayer.com`
+  - Default: `ws://localhost:8080`
+  - Mainnet: `wss://mainnet.batcher.alignedlayer.com`
+  - Testnet: `wss://batcher.alignedlayer.com`
 - `--user_addr <user_address>`: User's Ethereum address.
 
 #### Example:
 ```bash
-aligned get-user-nonce --user_addr <USER_ETH_ADDRESS> --batcher_url wss://holesky.batcher.alignedlayer.com
+aligned get-user-nonce \
+--user_addr <USER_ETH_ADDRESS> \
+--batcher_url wss://batcher.alignedlayer.com
 ```
