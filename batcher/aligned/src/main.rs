@@ -14,6 +14,7 @@ use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_nonce_from_batcher;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
+use clap::value_parser;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -118,7 +119,8 @@ pub struct SubmitArgs {
     #[arg(
         name = "The working network's name",
         long = "network",
-        default_value = "devnet"
+        default_value = "devnet",
+        value_parser = value_parser!(Network)
     )]
     network: Network,
 }
@@ -141,7 +143,8 @@ pub struct DepositToBatcherArgs {
     #[arg(
         name = "The working network's name",
         long = "network",
-        default_value = "devnet"
+        default_value = "devnet",
+        value_parser = value_parser!(Network)
     )]
     network: Network,
     #[arg(name = "Amount to deposit", long = "amount", required = true)]
@@ -162,7 +165,8 @@ pub struct VerifyProofOnchainArgs {
     #[arg(
         name = "The working network's name",
         long = "network",
-        default_value = "devnet"
+        default_value = "devnet",
+        value_parser = value_parser!(Network)
     )]
     network: Network,
 }
@@ -184,7 +188,8 @@ pub struct GetUserBalanceArgs {
     #[arg(
         name = "The working network's name",
         long = "network",
-        default_value = "devnet"
+        default_value = "devnet",
+        value_parser = value_parser!(Network)
     )]
     network: Network,
     #[arg(
@@ -347,7 +352,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let aligned_verification_data_vec = submit_multiple(
                 &connect_addr,
-                submit_args.network,
+                submit_args.network.into(),
                 &verification_data_arr,
                 max_fee_wei,
                 wallet.clone(),
@@ -406,7 +411,7 @@ async fn main() -> Result<(), AlignedError> {
             info!("Verifying response data matches sent proof data...");
             let response = is_proof_verified(
                 &aligned_verification_data,
-                verify_inclusion_args.network,
+                verify_inclusion_args.network.into(),
                 &verify_inclusion_args.eth_rpc_url,
             )
             .await?;
@@ -471,7 +476,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network).await {
+            match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network.into()).await {
                 Ok(receipt) => {
                     info!(
                         "Payment sent to the batcher successfully. Tx: 0x{:x}",

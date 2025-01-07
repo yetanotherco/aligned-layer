@@ -89,7 +89,7 @@ pub async fn submit_multiple_and_wait_verification(
 ) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
     let mut aligned_verification_data = submit_multiple(
         batcher_url,
-        network,
+        network.clone(),
         verification_data,
         max_fee,
         wallet,
@@ -102,7 +102,7 @@ pub async fn submit_multiple_and_wait_verification(
     let mut error_awaiting_batch_verification: Option<errors::SubmitError> = None;
     for aligned_verification_data_item in aligned_verification_data.iter().flatten() {
         if let Err(e) =
-            await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await
+            await_batch_verification(aligned_verification_data_item, eth_rpc_url, network.clone()).await
         {
             error_awaiting_batch_verification = Some(e);
             break;
@@ -476,7 +476,7 @@ async fn _is_proof_verified(
     network: Network,
     eth_rpc_provider: Provider<Http>,
 ) -> Result<bool, errors::VerificationError> {
-    let contract_address = network.get_aligned_service_manager_address();
+    let contract_address = network.clone().get_aligned_service_manager_address();
     let payment_service_addr = network.get_batcher_payment_service_address();
 
     // All the elements from the merkle proof have to be concatenated
