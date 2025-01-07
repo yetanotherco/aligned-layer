@@ -10,7 +10,7 @@ cd ../
 
 source scripts/.env
 
-BATCHER_PAYMENT_SERVICE_OUTPUT_PATH=./script/deploy/output/devnet/batcher_deployment_output.json
+BATCHER_PAYMENT_SERVICE_OUTPUT_PATH=./script/output/devnet/batcher_deployment_output.json
 
 # Deploy Batcher Payments Contract
 forge_output=$(forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
