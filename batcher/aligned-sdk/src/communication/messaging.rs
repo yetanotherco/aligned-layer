@@ -215,8 +215,8 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
         }
         Ok(SubmitProofResponseMessage::InsufficientBalance(addr, error_nonce)) => {
             // If we receive an invalid balance we should grab the error_nonce.
-            error!(
-                "Batcher responded with insufficient balance, for nonce {}",
+            warn!(
+                "Batcher responded with insufficient balance to pay for proof of nonce: {}. If you sent more proofs, your other proofs may have been accepted.",
                 error_nonce
             );
             Err(SubmitError::InsufficientBalance(addr, error_nonce))
