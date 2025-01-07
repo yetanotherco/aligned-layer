@@ -164,6 +164,25 @@ defmodule Batches do
     end
   end
 
+  def get_last_24h_verified_proof_stats() do
+    minutes_in_a_day = 1440
+    threshold_datetime = DateTime.utc_now() |> DateTime.add(-1 * minutes_in_a_day, :minute) # Last 24 hours
+
+    query = from(b in Batches,
+      where: b.is_verified == true and b.submission_timestamp > ^threshold_datetime,
+      select: {sum(b.amount_of_proofs), avg(b.fee_per_proof)})
+
+    {amount_of_proofs, avg_fee_per_proof} = case Explorer.Repo.one(query) do
+      nil -> {0, 0.0}
+      result -> result
+    end
+
+    %{
+      amount_of_proofs: amount_of_proofs,
+      avg_fee_per_proof: avg_fee_per_proof
+    }
+  end
+
   def insert_or_update(batch_changeset, proofs) do
     merkle_root = batch_changeset.changes.merkle_root
     stored_proofs = Proofs.get_proofs_from_batch(%{merkle_root: merkle_root})

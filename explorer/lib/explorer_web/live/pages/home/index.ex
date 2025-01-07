@@ -42,13 +42,21 @@ defmodule ExplorerWeb.Home.Index do
       %{
         title: "Proofs verified",
         value: Helpers.convert_number_to_shorthand(verified_proofs),
-        tooltip_text: "= #{Helpers.format_number(verified_proofs)} proofs",
+        tooltip_text:
+          case verified_proofs >= 1000 do
+            true -> "= #{Helpers.format_number(verified_proofs)} proofs"
+            _ -> nil
+          end,
         link: nil
       },
       %{
         title: "Total batches",
         value: Helpers.convert_number_to_shorthand(verified_batches),
-        tooltip_text: "= #{Helpers.format_number(verified_batches)} batches",
+        tooltip_text:
+          case verified_batches >= 1000 do
+            true -> "= #{Helpers.format_number(verified_batches)} batches"
+            _ -> nil
+          end,
         link: nil
       },
       %{
@@ -146,7 +154,7 @@ defmodule ExplorerWeb.Home.Index do
     |> assign(
       stats: [],
       latest_batches: [],
-      cost_per_proof_data: %{points: [], extra_data: %{}},
+      cost_per_proof_chart: %{points: [], extra_data: %{}},
       batch_size_chart_data: %{points: [], extra_data: %{}}
     )
   end
