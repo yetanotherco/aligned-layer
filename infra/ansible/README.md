@@ -60,6 +60,27 @@ Deploy the Batcher:
 make ansible_batcher_deploy INVENTORY=</path/to/inventory> KEYSTORE=<path/to/keystore/in/your/local>
 ```
 
+## Explorer
+| Variable                         | Description                                         | Stage                                                                                                            | Mainnet                                                       
+|----------------------------------|-----------------------------------------------------|------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| MIX_ENV                          | Elixir environment for compiling the binaries       | prod                                                                                                             | prod                                                                                                       |
+| RPC_URL                          | RPC's URL for the explorer to pull data from        | https://aligned-rpc-node-2.tail665ae.ts.net                                                                      | https://aligned-rpc-node-2.tail665ae.ts.net                                                                |
+| ENVIRONMENT                      | Build environment for aligned internal use          | holesky                                                                                                          | mainnet                                                                                                    |
+| ALIGNED_CONFIG_FILE              | JSON config file for aligned                        | /home/app/repos/explorer/aligned_layer/contracts/script/output/holesky/alignedlayer_deployment_output.stage.json | /home/app/repos/explorer/aligned_layer/contracts/script/output/mainnet/alignedlayer_deployment_output.json |
+| PHX_HOST                         | Domain name pointing to the server                  | stage.explorer.alignedlayer.com                                                                                  | explorer.alignedlayer.com                                                                                  |
+| ELIXIR_HOSTNAME                  | Server name                                         | `<Your server name (uname -n)>`                                                                                  | `<Your server name (uname -n)>`                                                                            |
+| PHX_SERVER                       | Phoenix boolean to spin up a webserver              | true                                                                                                             | true                                                                                                       |
+| DB_NAME                          | Postgresql Database Name                            | `<Your Database Name>`                                                                                           | `<Your Database Name>`                                                                                     |
+| DB_USER                          | Postgresql Database User                            | `<Your Database Username>`                                                                                       | `<Your Database Userame>`                                                                                  |
+| DB_PASS                          | Postgresql Database Password                        | `<Your Database Password>`                                                                                       | `<Your Database Password>`                                                                                 |
+| DB_HOST                          | Postgresql network location                         | localhost                                                                                                        | localhost                                                                                                  |
+| TRACKER_API_URL                  | Tracker API Domain name (FQDN)                      | https://stage.telemetry.alignedlayer.com                                                                         | https://mainnet.telemetry.alignedlayer.com                                                                 |
+| SECRET_KEY_BASE                  | Elixir's Secret Key Base                            | `<Elixir Secret key base (mix phx.gen.secret)>`                                                                  | `<Your Elixir Secret Key Base (mix phx.gen.secret)>`                                                       |
+| KEYFILE_PATH                     | SSL's Keyfile location                              | /home/app/.ssl/key.pem                                                                                           | /home/app/.ssl/key.pem                                                                                     |
+| CERTFILE_PATH                    | SSL's Certificate location                          | /home/app/.ssl/cert.pem                                                                                          | /home/app/.ssl/cert.pem                                                                                    |
+| BATCH_TTL_MINUTES                | Batch Time to Live (In minutes)                     | 5                                                                                                                | 60                                                                                                         |    
+| SCHEDULED_BATCH_INTERVAL_MINUTES | Scheduled Interval for batch                        | 1                                                                                                                | N/A                                                                                                        |
+
 ## Operator
 
 > [!IMPORTANT]
@@ -265,4 +286,5 @@ Public Key: E([...,...])
 ```
 
 Refer to this link for more details about keystore creation https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#create-keys
+
 
