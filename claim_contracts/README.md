@@ -1,27 +1,26 @@
-#
+# Aligned Token Claim Contracts
 
-## Local
+## How to run locally
 
-### Requisites
+> [!IMPORTANT]
+> Foundry must be installed and running.
 
-- Foundry
+1. Run `anvil` in one terminal.
+2. Get your local **foundation** and **token distributor** wallet addresses and write them down in the `claim_contracts/script-config/config.example.json` file.
+3. Run `make deploy-token-local DEPLOYER_PRIVATE_KEY=<deployer_private_key>` in another terminal.
+4. Write down the forge script's output (the addresses of the token proxy and its admin preferably).
+5. From the output of the previous step, complete the `claim_contracts/script-config/config.example.json` file with the token proxy address.
+6. Run `make deploy-claimable DEPLOYER_PRIVATE_KEY=<deployer_private_key>`.
+7. Write down the forge script's output (the addresses of the claimable proxy and its admin preferably).
+8. From the output of the previous step, complete the `claim_contracts/script-config/config.example.json` file with the claimable proxy address.
+9. Run `make claimable-update-root RPC_URL=http://localhost:8545 OWNER_PRIVATE_KEY=<foundation_private_key> AIRDROP=<claimable_proxy_address> MERKLE_ROOT=<merkle_root>`.
+10. Run `make claimable-update-timestamp RPC_URL=http://localhost:8545 OWNER_PRIVATE_KEY=<foundation_private_key> AIRDROP=<claimable_proxy_address> TIMESTAMP=2733427549`.
+11. Run `make approve-claimable RPC_URL=http://localhost:8545 DISTRIBUTOR_PRIVATE_KEY=<token_distributor_private_key> TOKEN=<token_proxy_address> AIRDROP=<claimable_proxy_address>`.
+12. Run `make claimable-unpause RPC_URL=http://localhost:8545 OWNER_PRIVATE_KEY=<foundation_private_key> AIRDROP=<claimable_proxy_address>`.
 
-### Run
-
-1. Run anvil in one terminal:
-   ```
-   anvil
-   ```
-2. Deploy the token
-   ```
-   make deploy-token
-   ```
-3. Write down the token proxy address that is printed in the console output. Do this in the `config.example.json` file, under the `tokenProxy` key.
-4. Deploy the claimable contract
-   ```
-   make deploy-claimable-local
-   ```
-5. Write down the claimable contract proxy address that is printed in the console output.
+> [!NOTE]
+> You can do the previous steps in one run with `make deploy-example MERKLE_ROOT=<merkle_root> TIMESTAMP=2733427549`.
+> Remember to write down the addresses of the proxies and their admins.
 
 ## Testnet (Sepolia)
 
@@ -56,6 +55,7 @@
 > - Step 3 must be done by the token distributor multisig as it is the one that has the tokens to be claimed.
 
 > [!WARNING]
+>
 > - Double-check the data you passing into the commands, any mistake can lead to undesired behavior.
 
 1. Update the merkle root
