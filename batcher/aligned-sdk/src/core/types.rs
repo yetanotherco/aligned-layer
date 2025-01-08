@@ -409,7 +409,7 @@ pub enum Network {
     Holesky,
     HoleskyStage,
     Mainnet,
-    Custom(String, String)
+    Custom(String, String),
 }
 
 impl Network {
@@ -450,23 +450,18 @@ impl FromStr for Network {
                     return Err(
                         "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\", \"mainnet\", \"'custom <BATCHER_PAYMENT_SERVICE_ADDRESS> <ALIGNED_SERVICE_MANAGER_ADDRESS>'\""
                             .to_string(),
-                    )
+                    );
                 }
                 let parts: Vec<&str> = s.split_whitespace().collect();
 
                 if parts.len() == 3 {
-                    Ok(Network::Custom(
-                        parts[1].to_string(),
-                        parts[2].to_string()
-                    ))
+                    Ok(Network::Custom(parts[1].to_string(), parts[2].to_string()))
                 } else {
                     Err(
                         "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\", \"mainnet\", \"'custom <BATCHER_PAYMENT_SERVICE_ADDRESS, ALIGNED_SERVICE_MANAGER_ADDRESS>'\""
                             .to_string()
                     )
                 }
-
-
             }
         }
     }
