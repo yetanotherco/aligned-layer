@@ -222,8 +222,20 @@ defmodule Utils do
                    end)
 
   def scheduled_batch_interval() do
-    System.get_env("SCHEDULED_BATCH_INTERVAL_MINUTES")
-    |> String.to_integer()
+    default_value = 10
+    case System.get_env("SCHEDULED_BATCH_INTERVAL_MINUTES") do
+      nil ->
+        Logger.warning("SCHEDULED_BATCH_INTERVAL_MINUTES .env var is not set, using default value: #{default_value}")
+        default_value
+      value ->
+        try do
+          String.to_integer(value)
+        rescue
+          ArgumentError ->
+            Logger.warning("Invalid SCHEDULED_BATCH_INTERVAL_MINUTES .env var: #{value}, using default value: #{default_value}")
+            default_value
+        end
+    end
   end
 
   def string_to_bytes32(hex_string) do
