@@ -14,6 +14,7 @@ use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_nonce_from_batcher;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
+use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -103,10 +104,8 @@ pub struct SubmitArgs {
         default_value = "./aligned_verification_data/"
     )]
     batch_inclusion_data_directory_path: String,
-    #[arg(name = "Path to local keystore", long = "keystore_path")]
-    keystore_path: Option<PathBuf>,
-    #[arg(name = "Private key", long = "private_key")]
-    private_key: Option<String>,
+    #[command(flatten)]
+    private_key_type: PrivateKeyType,
     #[arg(
         name = "Max Fee (ether)",
         long = "max_fee",
@@ -127,17 +126,13 @@ pub struct SubmitArgs {
 #[command(version, about, long_about = None)]
 pub struct DepositToBatcherArgs {
     #[arg(
-        name = "Path to local keystore",
-        long = "keystore_path",
-        required = true
-    )]
-    keystore_path: Option<PathBuf>,
-    #[arg(
         name = "Ethereum RPC provider address",
         long = "rpc_url",
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
+    #[command(flatten)]
+    private_key_type: PrivateKeyType,
     #[arg(
         name = "The working network's name",
         long = "network",
@@ -218,6 +213,15 @@ pub struct GetUserNonceArgs {
     address: String,
 }
 
+#[derive(Args, Debug)]
+#[group(required = true, multiple = false)]
+pub struct PrivateKeyType {
+    #[arg(name = "Path to local keystore", long = "keystore_path")]
+    keystore_path: Option<PathBuf>,
+    #[arg(name = "Private key", long = "private_key")]
+    private_key: Option<String>,
+}
+
 #[derive(Debug, Clone, ValueEnum, Copy)]
 enum NetworkArg {
     Devnet,
@@ -293,8 +297,8 @@ async fn main() -> Result<(), AlignedError> {
             let repetitions = submit_args.repetitions;
             let connect_addr = submit_args.batcher_url.clone();
 
-            let keystore_path = &submit_args.keystore_path;
-            let private_key = &submit_args.private_key;
+            let keystore_path = &submit_args.private_key_type.keystore_path;
+            let private_key = &submit_args.private_key_type.private_key;
 
             if keystore_path.is_some() && private_key.is_some() {
                 warn!("Can't have a keystore path and a private key as input. Please use only one");
@@ -473,16 +477,30 @@ async fn main() -> Result<(), AlignedError> {
                     ))
                 })?;
 
-            let keystore_path = &deposit_to_batcher_args.keystore_path;
+            let keystore_path = &deposit_to_batcher_args.private_key_type.keystore_path;
+            let private_key = &deposit_to_batcher_args.private_key_type.private_key;
 
             let mut wallet = if let Some(keystore_path) = keystore_path {
                 let password = rpassword::prompt_password("Please enter your keystore password:")
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?;
                 Wallet::decrypt_keystore(keystore_path, password)
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?
+            } else if let Some(private_key) = private_key {
+                private_key
+                    .parse::<LocalWallet>()
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
-                warn!("Missing keystore used for payment.");
-                return Ok(());
+                warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
+                match LocalWallet::from_str(ANVIL_PRIVATE_KEY) {
+                    Ok(wallet) => wallet,
+                    Err(e) => {
+                        warn!(
+                            "Failed to create wallet from anvil private key: {}",
+                            e.to_string()
+                        );
+                        return Ok(());
+                    }
+                }
             };
 
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
