@@ -52,7 +52,6 @@
 > - Step 3 must be done by the token distributor multisig as it is the one that has the tokens to be claimed.
 
 > [!WARNING]
->
 > - Double-check the data you passing into the commands, any mistake can lead to undesired behavior.
 
 1. Update the merkle root
