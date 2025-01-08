@@ -96,7 +96,7 @@
   - name: Execute create jaeger schema script
     become: true
     shell:
-      cmd: "MODE=test /tmp/jaeger_schema.sh | /opt/cassandra/bin/cqlsh"
+      cmd: "MODE=test TRACE_TTL=1296000 /tmp/jaeger_schema.sh | /opt/cassandra/bin/cqlsh"
     vars:
       ansible_ssh_user: "{{ admin_user }}"
 

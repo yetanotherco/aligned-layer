@@ -1,3 +1,64 @@
+- name: Run Setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: telemetry
+
+- name: Run Prometheus playbook
+  ansible.builtin.import_playbook: prometheus.yaml
+  vars:
+    host: telemetry
+    prometheus_version: "2.53.2"
+    ini_file: ini/config-telemetry.ini
+
+- name: Run Alert Manager playbook
+  ansible.builtin.import_playbook: alert_manager.yaml
+  vars:
+    host: telemetry
+    alert_manager_version: 0.27.0
+    ini_file: ini/config-telemetry.ini
+
+- name: Run Grafana playbook
+  ansible.builtin.import_playbook: grafana.yaml
+  vars:
+    host: telemetry
+    ini_file: ini/config-telemetry.ini
+
+- name: Run OpenTelemetry playbook
+  ansible.builtin.import_playbook: open_telemetry.yaml
+  vars:
+    host: telemetry
+    open_telemetry_version: "0.113.0"
+
+- name: Run Cassandra playbook
+  ansible.builtin.import_playbook: cassandra.yaml
+  vars:
+    host: telemetry
+    ini_file: ini/config-telemetry.ini
+    cassandra_version: 5.0.2
+
+- name: Run Jaeger playbook
+  ansible.builtin.import_playbook: jaeger.yaml
+  vars:
+    host: telemetry
+    ini_file: ini/config-telemetry.ini
+    jaeger_version: 1.63.0
+
+- name: Run Postgres 16 playbook
+  ansible.builtin.import_playbook: postgres.yaml
+  vars:
+    host: telemetry
+    ini_file: ini/config-telemetry.ini
+
+- name: Run Elixir playbook
+  ansible.builtin.import_playbook: elixir.yaml
+  vars:
+    host: telemetry
+
+- name: Run Go playbook
+  ansible.builtin.import_playbook: go.yaml
+  vars:
+    host: telemetry
+
 - name: Setup Telemetry
   hosts: telemetry
 

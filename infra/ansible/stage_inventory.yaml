@@ -14,8 +14,8 @@ batcher:
       ansible_python_interpreter: /usr/bin/python3
 telemetry:
   hosts:
-    aligned-holesky-stage-1-telemetry:
-      ansible_host: aligned-holesky-stage-1-telemetry
+    aligned-holesky-stage-2-telemetry:
+      ansible_host: aligned-holesky-stage-2-telemetry
       admin_user: admin
       ansible_user: app
       ansible_python_interpreter: /usr/bin/python3
