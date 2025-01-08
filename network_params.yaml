@@ -39,7 +39,7 @@ network_params:
   # Minimum number of subnets an honest node custodies and serves samples from
   custody_requirement: 4
   # Maximum number of blobs per block
-  max_blobs_per_block: 6
+  #  max_blobs_per_block: 6
   preset: "mainnet"
   devnet_repo: ethpandaops
 
