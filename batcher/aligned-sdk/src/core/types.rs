@@ -448,7 +448,7 @@ impl FromStr for Network {
             s => {
                 if !s.contains("custom") {
                     return Err(
-                        "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\", \"mainnet\", \"'custom <BATCHER_PAYMENT_SERVICE_ADDRESS> <ALIGNED_SERVICE_MANAGER_ADDRESS>'\""
+                        "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\", \"mainnet\", \"custom <BATCHER_PAYMENT_SERVICE_ADDRESS> <ALIGNED_SERVICE_MANAGER_ADDRESS>\""
                             .to_string(),
                     );
                 }
@@ -458,7 +458,7 @@ impl FromStr for Network {
                     Ok(Network::Custom(parts[1].to_string(), parts[2].to_string()))
                 } else {
                     Err(
-                        "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\", \"mainnet\", \"'custom <BATCHER_PAYMENT_SERVICE_ADDRESS, ALIGNED_SERVICE_MANAGER_ADDRESS>'\""
+                        "Invalid custom network, \"custom <BATCHER_PAYMENT_SERVICE_ADDRESS, ALIGNED_SERVICE_MANAGER_ADDRESS>\""
                             .to_string()
                     )
                 }
