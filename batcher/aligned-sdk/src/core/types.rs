@@ -19,6 +19,12 @@ use lambdaworks_crypto::merkle_tree::{
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
+use super::constants::{
+    ALIGNED_SERVICE_MANAGER_DEVNET, ALIGNED_SERVICE_MANAGER_HOLESKY,
+    ALIGNED_SERVICE_MANAGER_HOLESKY_MAINNET, ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE,
+    BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET, BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY,
+    BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE, BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET,
+};
 use super::errors::VerifySignatureError;
 
 // VerificationData is a bytes32 instead of a VerificationData struct because in the BatcherPaymentService contract
@@ -408,23 +414,21 @@ pub enum Network {
 impl Network {
     pub fn get_batcher_payment_service_address(&self) -> ethers::types::H160 {
         match self {
-            Self::Devnet => H160::from_str("0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650").unwrap(),
-            Self::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").unwrap(),
+            Self::Devnet => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET).unwrap(),
+            Self::Holesky => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY).unwrap(),
             Self::HoleskyStage => {
-                H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").unwrap()
+                H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE).unwrap()
             }
-            Self::Mainnet => H160::from_str("0xb0567184A52cB40956df6333510d6eF35B89C8de").unwrap(),
+            Self::Mainnet => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET).unwrap(),
         }
     }
 
     pub fn get_aligned_service_manager_address(&self) -> ethers::types::H160 {
         match self {
-            Self::Devnet => H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap(),
-            Self::Holesky => H160::from_str("0x58F280BeBE9B34c9939C3C39e0890C81f163B623").unwrap(),
-            Self::HoleskyStage => {
-                H160::from_str("0x9C5231FC88059C086Ea95712d105A2026048c39B").unwrap()
-            }
-            Self::Mainnet => H160::from_str("0xeF2A435e5EE44B2041100EF8cbC8ae035166606c").unwrap(),
+            Self::Devnet => H160::from_str(ALIGNED_SERVICE_MANAGER_DEVNET).unwrap(),
+            Self::Holesky => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY).unwrap(),
+            Self::HoleskyStage => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE).unwrap(),
+            Self::Mainnet => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY_MAINNET).unwrap(),
         }
     }
 }
