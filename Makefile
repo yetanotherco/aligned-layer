@@ -860,6 +860,10 @@ explorer_fetch_old_operators_strategies_restakes: # recommended for prod: 190000
 	@cd explorer && \
 	./scripts/fetch_old_operators_strategies_restakes.sh $(FROM_BLOCK)
 
+explorer_attach:
+	@cd explorer && \
+	./scripts/attach_to_explorer.sh
+
 explorer_create_env:
 	@cd explorer && \
 	cp .env.dev .env
