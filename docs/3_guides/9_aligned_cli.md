@@ -47,7 +47,7 @@ Submit a proof to the Aligned Layer batcher.
 - `--batcher_url <batcher_connection_address>`: Websocket URL for the Aligned Layer batcher  
   - Default: `ws://localhost:8080`  
   - Mainnet: `wss://mainnet.batcher.alignedlayer.com`
-  - Testnet: `wss://batcher.alignedlayer.com`
+  - Holesky: `wss://batcher.alignedlayer.com`
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
@@ -220,7 +220,7 @@ Retrieves the user's current nonce from the batcher.
 - **`--batcher_url`**: Websocket URL for the Aligned Layer batcher.  
   - Default: `ws://localhost:8080`
   - Mainnet: `wss://mainnet.batcher.alignedlayer.com`
-  - Testnet: `wss://batcher.alignedlayer.com`
+  - Holesky: `wss://batcher.alignedlayer.com`
 - `--user_addr <user_address>`: User's Ethereum address.
 
 #### Example:
