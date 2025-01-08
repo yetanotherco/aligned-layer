@@ -11,6 +11,17 @@ make explorer_attach
 
 2) execute any of the following commands:
 
+## Sequential Scans
+This command displays the number of sequential scans recorded against all tables, descending by count of sequential scans. Tables that have very high numbers of sequential scans may be under-indexed, and it may be worth investigating queries that read from these tables.
+```
+EctoPSQLExtras.seq_scans(Explorer.Repo)
+```
+
+## Current connections
+```
+EctoPSQLExtras.connections(Explorer.Repo)
+```
+
 ## Cache hit
 This command provides information on the efficiency of the buffer cache, for both index reads (index hit rate) as well as table reads (table hit rate). A low buffer cache hit ratio can be a sign that the Postgres instance is too small for the workload.
 ```
@@ -33,8 +44,6 @@ This command displays indexes that have < 50 scans recorded against them, and ar
 ```
 EctoPSQLExtras.unused_indexes(Explorer.Repo, args: [min_scans: 20])
 ```
-
-
 ```
 EctoPSQLExtras.duplicate_indexes(Explorer.Repo)
 ```
@@ -53,17 +62,6 @@ EctoPSQLExtras.outliers(Explorer.Repo, args: [limit: 20])
 Similar:
 ```
 EctoPSQLExtras.calls(Explorer.Repo, args: [limit: 20])
-```
-
-## Sequential Scans
-This command displays the number of sequential scans recorded against all tables, descending by count of sequential scans. Tables that have very high numbers of sequential scans may be under-indexed, and it may be worth investigating queries that read from these tables.
-```
-EctoPSQLExtras.seq_scans(Explorer.Repo)
-```
-
-## Current connections
-```
-EctoPSQLExtras.connections(Explorer.Repo)
 ```
 
 ---
@@ -124,9 +122,6 @@ EctoPSQLExtras.long_running_queries(Explorer.Repo, args: [threshold: "200 millis
 ```
 EctoPSQLExtras.mandelbrot(Explorer.Repo)
 ```
-
-
-EctoPSQLExtras.query(:cache_hit, Explorer.Repo)
 
 
 EctoPSQLExtras.diagnose(Explorer.Repo)
