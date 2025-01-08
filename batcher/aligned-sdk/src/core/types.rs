@@ -86,7 +86,7 @@ impl NoncedVerificationData {
     }
 }
 
-// Defines an price estimate type for the user.
+// Defines a price estimate type for the user.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum FeeEstimationType {
     Default,
