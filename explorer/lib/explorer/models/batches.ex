@@ -144,7 +144,7 @@ defmodule Batches do
     query =
       from(b in Batches,
         where: b.is_verified == true,
-        select: avg(b.fee_per_proof)
+        select: sum(b.fee_per_proof * b.amount_of_proofs) / sum(b.amount_of_proofs)
       )
 
     case Explorer.Repo.one(query) do
