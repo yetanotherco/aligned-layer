@@ -409,6 +409,7 @@ pub enum Network {
     Holesky,
     HoleskyStage,
     Mainnet,
+    Custom(String, String)
 }
 
 impl Network {
@@ -420,6 +421,7 @@ impl Network {
                 H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE).unwrap()
             }
             Self::Mainnet => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET).unwrap(),
+            Self::Custom(s, _) => H160::from_str(s.as_str()).unwrap(),
         }
     }
 
@@ -429,6 +431,7 @@ impl Network {
             Self::Holesky => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY).unwrap(),
             Self::HoleskyStage => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE).unwrap(),
             Self::Mainnet => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY_MAINNET).unwrap(),
+            Self::Custom(_, s) => H160::from_str(s.as_str()).unwrap(),
         }
     }
 }
@@ -442,10 +445,29 @@ impl FromStr for Network {
             "holesky-stage" => Ok(Network::HoleskyStage),
             "devnet" => Ok(Network::Devnet),
             "mainnet" => Ok(Network::Mainnet),
-            _ => Err(
-                "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\", \"mainnet\""
-                    .to_string(),
-            ),
+            s => {
+                if !s.contains("custom") {
+                    return Err(
+                        "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\", \"mainnet\", \"'custom <BATCHER_PAYMENT_SERVICE_ADDRESS> <ALIGNED_SERVICE_MANAGER_ADDRESS>'\""
+                            .to_string(),
+                    )
+                }
+                let parts: Vec<&str> = s.split_whitespace().collect();
+
+                if parts.len() == 3 {
+                    Ok(Network::Custom(
+                        parts[1].to_string(),
+                        parts[2].to_string()
+                    ))
+                } else {
+                    Err(
+                        "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\", \"mainnet\", \"'custom <BATCHER_PAYMENT_SERVICE_ADDRESS, ALIGNED_SERVICE_MANAGER_ADDRESS>'\""
+                            .to_string()
+                    )
+                }
+
+
+            }
         }
     }
 }
