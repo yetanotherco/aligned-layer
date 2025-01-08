@@ -199,7 +199,9 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             Err(SubmitError::InvalidChainId)
         }
         Ok(SubmitProofResponseMessage::InvalidReplacementMessage) => {
-            error!("Batcher responded with invalid replacement message. Funds have not been spent.");
+            error!(
+                "Batcher responded with invalid replacement message. Funds have not been spent."
+            );
             Err(SubmitError::InvalidReplacementMessage)
         }
         Ok(SubmitProofResponseMessage::AddToBatchError) => {
@@ -209,7 +211,8 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
         Ok(SubmitProofResponseMessage::EthRpcError) => {
             error!("Batcher experienced Eth RPC connection error. Funds have not been spent.");
             Err(SubmitError::EthereumProviderError(
-                "Batcher experienced Eth RPC connection error. Funds have not been spent.".to_string(),
+                "Batcher experienced Eth RPC connection error. Funds have not been spent."
+                    .to_string(),
             ))
         }
         Ok(SubmitProofResponseMessage::InvalidPaymentServiceAddress(
@@ -226,11 +229,17 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             ))
         }
         Ok(SubmitProofResponseMessage::InvalidProof(reason)) => {
-            error!("Batcher responded with invalid proof: {}. Funds have not been spent.", reason);
+            error!(
+                "Batcher responded with invalid proof: {}. Funds have not been spent.",
+                reason
+            );
             Err(SubmitError::InvalidProof(reason))
         }
         Ok(SubmitProofResponseMessage::CreateNewTaskError(merkle_root, error)) => {
-            error!("Batcher responded with create new task error: {}. Funds have not been spent.", error);
+            error!(
+                "Batcher responded with create new task error: {}. Funds have not been spent.",
+                error
+            );
             Err(SubmitError::BatchSubmissionFailed(
                 "Could not create task with merkle root ".to_owned()
                     + &merkle_root
@@ -250,11 +259,17 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             Err(SubmitError::ProofQueueFlushed)
         }
         Ok(SubmitProofResponseMessage::Error(e)) => {
-            error!("Batcher responded with error: {}. Funds have not been spent.", e);
+            error!(
+                "Batcher responded with error: {}. Funds have not been spent.",
+                e
+            );
             Err(SubmitError::GenericError(e))
         }
         Err(e) => {
-            error!("Error while deserializing batch inclusion data: {}. Funds have not been spent.", e);
+            error!(
+                "Error while deserializing batch inclusion data: {}. Funds have not been spent.",
+                e
+            );
             Err(SubmitError::SerializationError(e))
         }
     }
