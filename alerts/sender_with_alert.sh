@@ -61,10 +61,9 @@ function get_number_proofs_in_batch_from_create_task_tx() {
   else
     # Get the tx receipt from the blockchain
     calldata=$(cast tx $1 --rpc-url $RPC_URL | grep -i input | cut -d' ' -f2-)
-    decoded_calldata=$(cast --calldata-decode "createNewTask(bytes32 batchMerkleRoot, string batchDataPointer, address[] proofSubmitters, uint256 feeF
-orAggregator, uint256 feePerProof, uint256 respondToTaskFeeLimit)" $calldata)
+    decoded_calldata=$(cast --calldata-decode --json "createNewTask(bytes32 batchMerkleRoot, string batchDataPointer, address[] proofSubmitters, uint256 feeForAggregator, uint256 feePerProof, uint256 respondToTaskFeeLimit)" $calldata)
     # We count the number of proofSubmitters within the tx which corresponds to the number of proofs sent in the last batch
-    number_proofs_in_batch=$($decoded_calldata | jq '.[2] | [ match(","; "g")] | length + 1')
+    number_proofs_in_batch=$(echo $decoded_calldata | jq '.[2] | [ match(","; "g")] | length + 1')
 
     echo $number_proofs_in_batch
   fi
@@ -148,7 +147,6 @@ do
 
     # Calculate fees for transactions
     number_proofs_in_batch=$(get_number_proofs_in_batch_from_create_task_tx $task_creation_tx_hash)
-    echo "here 2"
     submission_fee_in_wei=$(fetch_tx_cost $submission_tx_hash)
     response_fee_in_wei=$(fetch_tx_cost $response_tx_hash)
     batch_fee_in_wei=$((submission_fee_in_wei + response_fee_in_wei))
@@ -190,9 +188,9 @@ do
   done
 
   if [ $verified -eq 1 ]; then
-    slack_message="$number_proofs_in_batch Proofs submitted and verified. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+    slack_message="$REPETITIONS Proofs in batch of size $number_proofs_in_batch submitted and verified. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
   else
-    slack_message="$number_proofs_in_batch Proofs submitted but not verified. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+    slack_message="$REPETITIONS Proofs in batch of size $number_proofs_in_batch submitted but not verified. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
   fi
 
   ## Send Update to Slack
