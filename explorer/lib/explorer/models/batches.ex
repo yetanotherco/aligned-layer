@@ -164,6 +164,28 @@ defmodule Batches do
     end
   end
 
+  # The following query was built by reading:
+  # - https://hexdocs.pm/ecto/Ecto.Query.html#module-fragments
+  # - https://www.postgresql.org/docs/9.1/functions-datetime.html#FUNCTIONS-DATETIME-TABLE
+  # - https://stackoverflow.com/questions/43288914/how-to-use-date-trunc-with-timezone-in-ecto-fragment-statement
+  # - https://glennjon.es/2016/09/24/elixir-ecto-how-to-group-and-count-records-by-week.html
+  def get_daily_verified_batches_summary() do
+    submission_constant_cost = Utils.constant_batch_submission_gas_cost()
+    additional_cost_per_proof = Utils.additional_batch_submission_gas_cost_per_proof()
+
+    query = Batches
+      |> where([b], b.is_verified == true)
+      |> group_by([b], fragment("DATE_TRUNC('day', ?)", b.response_timestamp))
+      |> select([b], %{
+        date: fragment("DATE_TRUNC('day', ?)::date", b.response_timestamp),
+        amount_of_proofs: sum(b.amount_of_proofs),
+        gas_cost: sum(fragment("? + ? * ?", ^submission_constant_cost, ^additional_cost_per_proof, b.amount_of_proofs))
+      })
+      |> order_by([b], fragment("DATE_TRUNC('day', ?)", b.response_timestamp))
+
+    Explorer.Repo.all(query)
+  end
+
   def insert_or_update(batch_changeset, proofs) do
     merkle_root = batch_changeset.changes.merkle_root
     stored_proofs = Proofs.get_proofs_from_batch(%{merkle_root: merkle_root})
