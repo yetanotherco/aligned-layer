@@ -131,19 +131,19 @@ pub struct FeeType {
     )]
     max_fee: Option<String>, // String because U256 expects hex
     #[arg(
-        name = "NUMBER_PROOFS_IN_BATCH",
+        name = "amount_of_proofs_in_batch",
         long = "custom_fee_estimate",
-        help = "Specifies a `max_fee` equivalent to the cost of paying (1 proof / `num_proofs_in_batch`) allowing the user to estimate a `max_fee` precisely based on the `number_proofs_in_batch`."
+        help = "Specifies a `max_fee` equivalent to the cost of 1 proof in a batch of size `num_proofs_in_batch`."
     )]
     custom_fee_estimate: Option<usize>,
     #[arg(
         long = "instant_fee_estimate",
-        help = "Specifies a `max_fee` that covers the cost of paying for the entire batch, ensuring the proof is included instantly."
+        help = "Specifies a `max_fee` that ensures the proof is included instantly, equivalent to the cost of 1 proof in a batch of size 1."
     )]
     instant_fee_estimate: bool,
     #[arg(
         long = "default_fee_estimate",
-        help = "Specifies a `max_fee`, based on the cost of one proof within a batch of 16 proofs, providing a `default` fee for batch inclusion."
+        help = "Specifies a `max_fee`, based on the cost of one proof in a batch of 10 proofs."
     )]
     default_fee_estimate: bool,
 }
