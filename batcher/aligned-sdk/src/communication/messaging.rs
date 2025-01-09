@@ -191,7 +191,7 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             Err(SubmitError::InvalidMaxFee)
         }
         Ok(SubmitProofResponseMessage::InsufficientBalance(addr)) => {
-            error!("Batcher responded with insufficient balance. Funds have not been spent.");
+            error!("Batcher responded with insufficient balance. Funds have not been spent for submittions which had insufficient balance.");
             Err(SubmitError::InsufficientBalance(addr))
         }
         Ok(SubmitProofResponseMessage::InvalidChainId) => {
