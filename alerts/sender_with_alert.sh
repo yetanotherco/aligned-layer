@@ -137,7 +137,7 @@ do
     batch_explorer_url="$EXPLORER_URL/batches/$batch_merkle_root"
     batch_explorer_urls+=($batch_explorer_url)
 
-    log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'TaskCreated(bytes32 indexed batchMerkleRoot, uint256 feePerProof)' --address $SENDER_ADDRESS)
+    log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'TaskCreated (bytes32 indexed batchMerkleRoot, uint256 feePerProof)' --address $SENDER_ADDRESS)
     task_creation_tx_hash=$(echo "$log" | grep -oE "transactionHash: 0x[[:alnum:]]{64}" | awk '{ print $2 }')
 
     log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'NewBatchV3 (bytes32 indexed batchMerkleRoot, address senderAddress, uint32 taskCreatedBlock, string batchDataPointer, uint256 respondToTaskFeeLimit)' $batch_merkle_root)
@@ -148,6 +148,7 @@ do
 
     # Calculate fees for transactions
     number_proofs_in_batch=$(get_number_proofs_in_batch_from_create_task_tx $task_creation_tx_hash)
+    echo "here 2"
     submission_fee_in_wei=$(fetch_tx_cost $submission_tx_hash)
     response_fee_in_wei=$(fetch_tx_cost $response_tx_hash)
     batch_fee_in_wei=$((submission_fee_in_wei + response_fee_in_wei))
