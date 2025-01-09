@@ -118,7 +118,7 @@ pub async fn submit_multiple_and_wait_verification(
 
 /// Returns the estimated `max_fee` depending on the batch inclusion preference of the user, computed based on the current gas price, and the number of proofs in a batch.
 /// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
-/// To estimate the `max_fee` of a batch we compute it based on a batch size of 1 (Instant), 16 (Default), or a user supplied `number_proofs_in_batch` (Custom).
+/// To estimate the `max_fee` of a batch we compute it based on a batch size of 1 (Instant), 10 (Default), or a user supplied `number_proofs_in_batch` (Custom).
 /// The `max_fee` estimates therefore are:
 /// * `Default`: Specifies a `max_fee` equivalent to the cost of paying for one proof within a batch of 10 proofs ie. 1 / 10 proofs.
 ///        This estimates a default `max_fee` the user should specify for including there proof within the batch.
