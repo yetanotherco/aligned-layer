@@ -8,7 +8,7 @@ use std::str::FromStr;
 use aligned_sdk::communication::serialization::cbor_deserialize;
 use aligned_sdk::core::types::FeeEstimationType;
 use aligned_sdk::core::{
-    errors::{AlignedError, SubmitError, FeeEstimateError},
+    errors::{AlignedError, FeeEstimateError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
 use aligned_sdk::sdk::estimate_fee;
@@ -160,7 +160,10 @@ impl SubmitArgs {
 
             let max_fee_ether = max_fee.replace("ether", "");
             return Ok(parse_ether(max_fee_ether).map_err(|e| {
-                FeeEstimateError::FeeEstimateParseError(format!("Error while parsing `max_fee`: {}", e))
+                FeeEstimateError::FeeEstimateParseError(format!(
+                    "Error while parsing `max_fee`: {}",
+                    e
+                ))
             })?);
         }
 
