@@ -76,21 +76,32 @@ defmodule Batches do
     Explorer.Repo.one(query)
   end
 
-  def get_latest_batches(%{amount: amount}) do
+  def get_latest_batches(%{amount: amount} = %{order_by: :desc}) do
     query = from(b in Batches,
       order_by: [desc: b.submission_block_number],
       limit: ^amount,
       select: b)
 
     Explorer.Repo.all(query)
-  end
-
-  def get_paginated_batches(%{page: page, page_size: page_size}) do
+  end 
+  
+  def get_latest_batches(%{amount: amount} = %{order_by: :asc}) do
     query = from(b in Batches,
-      order_by: [desc: b.submission_block_number],
-      limit: ^page_size,
-      offset: ^((page - 1) * page_size),
+      order_by: [asc: b.submission_block_number],
+      limit: ^amount,
       select: b)
+
+    Explorer.Repo.all(query)
+  end
+  
+  def get_paginated_batches(%{page: page, page_size: page_size}) do
+    query =
+      from(b in Batches,
+        order_by: [desc: b.submission_block_number],
+        limit: ^page_size,
+        offset: ^((page - 1) * page_size),
+        select: b
+      )
 
     Explorer.Repo.all(query)
   end
@@ -128,6 +139,19 @@ defmodule Batches do
       result -> result
     end
   end
+  
+  def get_avg_fee_per_proof() do
+    query =
+      from(b in Batches,
+        where: b.is_verified == true,
+        select: avg(b.fee_per_proof)
+      )
+
+    case Explorer.Repo.one(query) do
+      nil -> 0
+      result -> result
+    end
+  end
 
   def get_amount_of_verified_proofs() do
     query = from(b in Batches,
@@ -138,6 +162,25 @@ defmodule Batches do
       nil -> 0
       result -> result
     end
+  end
+
+  def get_last_24h_verified_proof_stats() do
+    minutes_in_a_day = 1440
+    threshold_datetime = DateTime.utc_now() |> DateTime.add(-1 * minutes_in_a_day, :minute) # Last 24 hours
+
+    query = from(b in Batches,
+      where: b.is_verified == true and b.submission_timestamp > ^threshold_datetime,
+      select: {sum(b.amount_of_proofs), avg(b.fee_per_proof)})
+
+    {amount_of_proofs, avg_fee_per_proof} = case Explorer.Repo.one(query) do
+      nil -> {0, 0.0}
+      result -> result
+    end
+
+    %{
+      amount_of_proofs: amount_of_proofs,
+      avg_fee_per_proof: avg_fee_per_proof
+    }
   end
 
   def insert_or_update(batch_changeset, proofs) do
