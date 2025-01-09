@@ -2,6 +2,7 @@ package chainio
 
 import (
 	"context"
+	"github.com/rs/zerolog/log"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum"
@@ -206,6 +207,7 @@ func SubscribeToNewTasksV2Retryable(
 	config *retry.RetryParams,
 ) (event.Subscription, error) {
 	subscribe_func := func() (event.Subscription, error) {
+		log.Info().Msg("Subscribing to NewBatchV2")
 		return serviceManager.WatchNewBatchV2(opts, newTaskCreatedChan, batchMerkleRoot)
 	}
 	return retry.RetryWithData(subscribe_func, config)
@@ -225,6 +227,7 @@ func SubscribeToNewTasksV3Retryable(
 	config *retry.RetryParams,
 ) (event.Subscription, error) {
 	subscribe_func := func() (event.Subscription, error) {
+		log.Info().Msg("Subscribing to NewBatchV3")
 		return serviceManager.WatchNewBatchV3(opts, newTaskCreatedChan, batchMerkleRoot)
 	}
 	return retry.RetryWithData(subscribe_func, config)
