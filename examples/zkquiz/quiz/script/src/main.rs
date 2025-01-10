@@ -219,6 +219,11 @@ async fn claim_nft_with_verified_proof(
             .to_vec(),
     );
 
+    let proving_system_aux_data_commitment_hex: String = aligned_verification_data
+        .verification_data_commitment
+        .proving_system_aux_data_commitment.iter().map(|byte| format!("{:02x}", byte)).collect();
+    println!("ELF Commitment: {}", proving_system_aux_data_commitment_hex);
+
     let receipt = verifier_contract
         .verify_batch_inclusion(
             aligned_verification_data
