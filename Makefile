@@ -1226,3 +1226,57 @@ ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
 		-i $(INVENTORY) \
 		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
 		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+
+__ETHEREUM_PACKAGE__:  ## ____
+
+ethereum_package_start: ## Starts the ethereum_package environment
+	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package --args-file network_params.yaml
+
+ethereum_package_inspect: ## Prints detailed information about the net
+	kurtosis enclave inspect aligned
+
+ethereum_package_rm: ## Stops and removes the ethereum_package environment and used resources
+	kurtosis enclave rm aligned -f
+
+batcher_start_ethereum_package: user_fund_payment_service
+	@echo "Starting Batcher..."
+	@$(MAKE) run_storage &
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher-ethereum-package.yaml --env-file ./batcher/aligned-batcher/.env.dev
+
+aggregator_start_ethereum_package:
+	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
+
+operator_start_ethereum_package:
+	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+
+operator_register_start_ethereum_package:
+	$(MAKE) operator_full_registration OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml \
+	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+
+
+install_spamoor: ## Instal spamoor to spam transactions
+	@echo "Installing spamoor..."
+	@git clone https://github.com/ethpandaops/spamoor.git
+	@cd spamoor && make
+	@mv spamoor/bin/spamoor $(HOME)/.local/bin
+	@rm -rf spamoor
+	@echo "======================================================================="
+	@echo "Installation complete! Run 'spamoor --help' to verify the installation."
+	@echo "If 'spamoor' is not recognized, make sure it's in your PATH by adding the following line to your shell configuration:"
+	@echo "export PATH=\$$PATH:\$$HOME/.local/bin"
+	@echo "======================================================================="
+
+# Spamoor funding wallet
+SPAMOOR_PRIVATE_KEY?=dbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97
+NUM_WALLETS?=1000
+TX_PER_BLOCK?=250
+# Similar to a swap
+TX_CONSUMES_GAS?=150000
+
+spamoor_send_transactions: ## Sends normal transactions and also replacement transactions
+	spamoor gasburnertx -p $(SPAMOOR_PRIVATE_KEY) -c $(COUNT) \
+		--gas-units-to-burn $(TX_CONSUMES_GAS) \
+		--max-wallets $(NUM_WALLETS) --max-pending $(TX_PER_BLOCK) \
+		-t $(TX_PER_BLOCK) -h http://127.0.0.1:8545/ -h http://127.0.0.1:8550/ -h http://127.0.0.1:8555/ -h http://127.0.0.1:8565/ \
+		--refill-amount 5 --refill-balance 2 --tipfee $(TIP_FEE) --basefee 100  \
+		2>&1 | grep -v 'checked child wallets (no funding needed)'
