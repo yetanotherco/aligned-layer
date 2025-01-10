@@ -73,7 +73,7 @@ Submit a proof to the Aligned Layer batcher.
   - By default, the nonce is set automatically. By setting the nonce manually, you can perform a proof replacement.
 - `--network <working_network_name>`: Network name to interact with.  
   - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `mainnet`
+  - Possible values: `devnet`, `holesky`, `mainnet`, `custom BATCHER_PAYMENT_SERVICE_ADDRESS ALIGNED_SERVICE_MANAGER_ADDRESS`
 
 #### Example:
 ```bash
@@ -110,7 +110,7 @@ Check if a proof was verified by Aligned on Ethereum.
   - Also, you can use your own Ethereum RPC providers.
 - `--network <working_network_name>`: Network name to interact with.  
   - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `mainnet`
+  - Possible values: `devnet`, `holesky`, `mainnet`, `custom BATCHER_PAYMENT_SERVICE_ADDRESS ALIGNED_SERVICE_MANAGER_ADDRESS`
 
 #### Example:
 ```bash
@@ -159,7 +159,7 @@ Deposits Ethereum into the Aligned Layer's `BatcherPaymentService.sol` contract.
   - Also, you can use your own Ethereum RPC providers.
 - `--network <working_network_name>`: Network name to interact with.  
   - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `mainnet`
+  - Possible values: `devnet`, `holesky`, `mainnet`, `custom BATCHER_PAYMENT_SERVICE_ADDRESS ALIGNED_SERVICE_MANAGER_ADDRESS`
 - `--amount <amount (ether)>`: Amount of Ether to deposit.
   
 #### Example:
@@ -187,7 +187,7 @@ Retrieves the user's balance in the Aligned Layer's contract.
 #### Options:
 - `--network <working_network_name>`: Network name to interact with.  
   - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `mainnet`
+  - Possible values: `devnet`, `holesky`, `mainnet`, `custom BATCHER_PAYMENT_SERVICE_ADDRESS ALIGNED_SERVICE_MANAGER_ADDRESS`
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
