@@ -216,9 +216,9 @@ pub struct GetUserNonceArgs {
 #[derive(Args, Debug)]
 #[group(required = true, multiple = false)]
 pub struct PrivateKeyType {
-    #[arg(name = "Path to local keystore", long = "keystore_path")]
+    #[arg(name = "path_to_keystore", long = "keystore_path")]
     keystore_path: Option<PathBuf>,
-    #[arg(name = "Private key", long = "private_key")]
+    #[arg(name = "private_key", long = "private_key")]
     private_key: Option<String>,
 }
 
@@ -310,7 +310,7 @@ async fn main() -> Result<(), AlignedError> {
                     .parse::<LocalWallet>()
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
-                warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
+                warn!("Missing keystore or private key used for payment. This proof will not be included if sent to Eth Mainnet");
                 match LocalWallet::from_str(ANVIL_PRIVATE_KEY) {
                     Ok(wallet) => wallet,
                     Err(e) => {
@@ -485,17 +485,8 @@ async fn main() -> Result<(), AlignedError> {
                     .parse::<LocalWallet>()
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
-                warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
-                match LocalWallet::from_str(ANVIL_PRIVATE_KEY) {
-                    Ok(wallet) => wallet,
-                    Err(e) => {
-                        warn!(
-                            "Failed to create wallet from anvil private key: {}",
-                            e.to_string()
-                        );
-                        return Ok(());
-                    }
-                }
+                warn!("Missing keystore or private key used for payment.");
+                return Ok(());
             };
 
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
