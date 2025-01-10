@@ -1,18 +1,20 @@
 package pkg
 
-func (agg *Aggregator) SubscribeToNewTasks() error {
-	err := agg.subscribeToNewTasks()
-	if err != nil {
-		return err
+import "github.com/yetanotherco/aligned_layer/core/chainio"
+
+func (agg *Aggregator) SubscribeToNewTasks() *chainio.ErrorPair {
+	errorPairPtr := agg.subscribeToNewTasks()
+	if errorPairPtr != nil {
+		return errorPairPtr
 	}
 
 	for {
 		select {
 		case err := <-agg.taskSubscriber:
 			agg.AggregatorConfig.BaseConfig.Logger.Info("Failed to subscribe to new tasks", "err", err)
-			err = agg.subscribeToNewTasks()
-			if err != nil {
-				return err
+			errorPairPtr = agg.subscribeToNewTasks()
+			if errorPairPtr != nil {
+				return errorPairPtr
 			}
 		case newBatch := <-agg.NewBatchChan:
 			agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task")
@@ -21,14 +23,12 @@ func (agg *Aggregator) SubscribeToNewTasks() error {
 	}
 }
 
-func (agg *Aggregator) subscribeToNewTasks() error {
-	var err error
-	//subV3 := make(chan error)
-	err = agg.avsSubscriber.SubscribeToNewTasksV3(agg.NewBatchChan, agg.taskSubscriber)
+func (agg *Aggregator) subscribeToNewTasks() *chainio.ErrorPair {
+	errorPairPtr := agg.avsSubscriber.SubscribeToNewTasksV3(agg.NewBatchChan, agg.taskSubscriber)
 
-	if err != nil {
-		agg.AggregatorConfig.BaseConfig.Logger.Info("Failed to create task subscriber", "err", err)
+	if errorPairPtr != nil {
+		agg.AggregatorConfig.BaseConfig.Logger.Info("Failed to create task subscriber", "err", errorPairPtr)
 	}
 
-	return err
+	return errorPairPtr
 }

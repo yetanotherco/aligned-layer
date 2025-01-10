@@ -60,8 +60,8 @@ func aggregatorMain(ctx *cli.Context) error {
 
 	// Listen for new task created in the ServiceManager contract in a separate goroutine, both V1 and V2 subscriptions:
 	go func() {
-		listenErr := aggregator.SubscribeToNewTasks()
-		if listenErr != nil {
+		listenErrPair := aggregator.SubscribeToNewTasks()
+		if listenErrPair != nil {
 			aggregatorConfig.BaseConfig.Logger.Fatal("Error subscribing for new tasks", "err", listenErr)
 		}
 	}()
