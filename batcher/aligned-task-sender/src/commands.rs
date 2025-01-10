@@ -2,7 +2,6 @@ use aligned_sdk::core::types::{Network, ProvingSystemId, VerificationData};
 use aligned_sdk::sdk::{deposit_to_aligned, get_nonce_from_batcher, submit_multiple};
 use ethers::prelude::*;
 use ethers::utils::parse_ether;
-use futures_util::StreamExt;
 use k256::ecdsa::SigningKey;
 use log::{debug, error, info};
 use rand::seq::SliceRandom;
@@ -189,7 +188,7 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         );
         let signer = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
         if let Err(err) =
-            deposit_to_aligned(amount_to_deposit_to_aligned, signer, args.network.into()).await
+            deposit_to_aligned(amount_to_deposit_to_aligned, signer, args.network.clone()).await
         {
             error!("Could not deposit to aligned, err: {:?}", err);
             return;
@@ -213,9 +212,10 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
 pub async fn test_connection(args: TestConnectionsArgs) {
     info!("Going to only open a connection");
     let mut handlers = vec![];
+    let network = network.clone();
 
     for i in 0..args.num_senders {
-        let ws_url = args.network.get_batcher_url().clone();
+        let ws_url = network.get_batcher_url().clone();
         let handle = tokio::spawn(async move {
             let conn = connect_async(ws_url).await;
             if let Ok((mut ws_stream, _)) = conn {

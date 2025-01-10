@@ -1,4 +1,5 @@
 use aligned_sdk::core::types::Network;
+use clap::value_parser;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;

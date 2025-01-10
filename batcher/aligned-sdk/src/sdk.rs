@@ -86,7 +86,7 @@ pub async fn submit_multiple_and_wait_verification(
     nonce: U256,
 ) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
     let mut aligned_verification_data = submit_multiple(
-        network,
+        network.clone(),
         verification_data,
         max_fee,
         wallet,
