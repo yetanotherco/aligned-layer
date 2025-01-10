@@ -129,15 +129,13 @@ do
   fi
 
   total_fee_in_wei=0
+  total_number_of_proofs=0
   batch_explorer_urls=()
   for batch_merkle_root in $batch_merkle_roots 
   do
     # Construct the batcher explorer url
     batch_explorer_url="$EXPLORER_URL/batches/$batch_merkle_root"
     batch_explorer_urls+=($batch_explorer_url)
-
-    log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'TaskCreated (bytes32 indexed batchMerkleRoot, uint256 feePerProof)' --address $SENDER_ADDRESS)
-    task_creation_tx_hash=$(echo "$log" | grep -oE "transactionHash: 0x[[:alnum:]]{64}" | awk '{ print $2 }')
 
     log=$(cast logs --rpc-url $RPC_URL --from-block $from_block_number --to-block latest 'NewBatchV3 (bytes32 indexed batchMerkleRoot, address senderAddress, uint32 taskCreatedBlock, string batchDataPointer, uint256 respondToTaskFeeLimit)' $batch_merkle_root)
     submission_tx_hash=$(echo "$log" | grep -oE "transactionHash: 0x[[:alnum:]]{64}" | awk '{ print $2 }')
@@ -146,13 +144,16 @@ do
     response_tx_hash=$(echo "$log" | grep -oE "transactionHash: 0x[[:alnum:]]{64}" | awk '{ print $2 }')
 
     # Calculate fees for transactions
-    number_proofs_in_batch=$(get_number_proofs_in_batch_from_create_task_tx $task_creation_tx_hash)
+    number_proofs_in_batch=$(get_number_proofs_in_batch_from_create_task_tx $submission_tx_hash)
     submission_fee_in_wei=$(fetch_tx_cost $submission_tx_hash)
     response_fee_in_wei=$(fetch_tx_cost $response_tx_hash)
     batch_fee_in_wei=$((submission_fee_in_wei + response_fee_in_wei))
 
     # Accumulate the fee
     total_fee_in_wei=$(($total_fee_in_wei + $batch_fee_in_wei))
+
+    # Accumulate proofs in batch
+    total_number_of_proofs=$((total_number_of_proofs + $number_proofs_in_batch))
   done
 
   # Calculate the spent amount by converting the fee to ETH
