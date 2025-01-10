@@ -21,7 +21,7 @@ use sha3::{Digest, Keccak256};
 
 use super::constants::{
     ALIGNED_SERVICE_MANAGER_DEVNET, ALIGNED_SERVICE_MANAGER_HOLESKY,
-    ALIGNED_SERVICE_MANAGER_MAINNET, ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE,
+    ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE, ALIGNED_SERVICE_MANAGER_MAINNET,
     BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET, BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY,
     BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE, BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET,
 };
@@ -454,7 +454,7 @@ impl FromStr for Network {
                 }
                 let parts: Vec<&str> = s.split_whitespace().collect();
 
-                if parts.len() == 3  && parts[0].contains("custom") {
+                if parts.len() == 3 && parts[0].contains("custom") {
                     Ok(Network::Custom(parts[1].to_string(), parts[2].to_string()))
                 } else {
                     Err(
