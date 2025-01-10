@@ -205,6 +205,7 @@ func (o *Operator) UpdateLastProcessBatch(blockNumber uint32) error {
 }
 
 func (o *Operator) Start(ctx context.Context) error {
+	// create a new channel to foward errors
 	subV2 := make(chan error)
 	err := o.SubscribeToNewTasksV2(subV2)
 	if err != nil {

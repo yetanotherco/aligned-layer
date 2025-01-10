@@ -69,13 +69,13 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 	sub, err := SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
 	if err != nil {
 		s.logger.Error("Primary failed to subscribe to new AlignedLayer V2 tasks after %d retries", retry.NetworkNumRetries, "err", err)
-		//return nil, err
+		//return err
 	}
 
 	subFallback, errFallback := SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
 	if errFallback != nil {
 		s.logger.Error("Fallback failed to subscribe to new AlignedLayer V2 tasks after %d retries", retry.NetworkNumRetries, "err", err)
-		//return nil, err
+		//return err
 	}
 
 	if err != nil && errFallback != nil {
@@ -86,7 +86,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 	s.logger.Info("Subscribed to new AlignedLayer V2 tasks")
 
 	// create a new channel to foward errors
-	//errorChannel := make(chan error)
+	// errorChannel := make(chan error)
 
 	pollLatestBatchTicker := time.NewTicker(PollLatestBatchInterval)
 
@@ -151,13 +151,13 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 	sub, err := SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
 	if err != nil {
 		s.logger.Error("Primary failed to subscribe to new AlignedLayer V3 tasks after %d retries", MaxRetries, "err", err)
-		//return nil, err
+		//return err
 	}
 
 	subFallback, errFallback := SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
 	if errFallback != nil {
 		s.logger.Error("Fallback failed to subscribe to new AlignedLayer V3 tasks after %d retries", MaxRetries, "err", err)
-		//return nil, errFallback
+		//return errFallback
 	}
 
 	if err != nil && errFallback != nil {
@@ -168,7 +168,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 	s.logger.Info("Subscribed to new AlignedLayer V3 tasks")
 
 	// create a new channel to foward errors
-	//errorChannel := make(chan error)
+	// errorChannel := make(chan error)
 
 	pollLatestBatchTicker := time.NewTicker(PollLatestBatchInterval)
 
