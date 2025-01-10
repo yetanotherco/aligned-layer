@@ -60,7 +60,7 @@ function get_number_proofs_in_batch_from_create_task_tx() {
     echo 0
   else
     # Get the tx receipt from the blockchain
-    calldata=$(cast tx $1 --rpc-url $RPC_URL | grep -i input | cut -d' ' -f2-)
+    calldata=$(cast tx $1 --rpc-url $RPC_URL input)
     decoded_calldata=$(cast --calldata-decode --json "createNewTask(bytes32 batchMerkleRoot, string batchDataPointer, address[] proofSubmitters, uint256 feeForAggregator, uint256 feePerProof, uint256 respondToTaskFeeLimit)" $calldata)
     # We count the number of proofSubmitters within the tx which corresponds to the number of proofs sent in the last batch
     number_proofs_in_batch=$(echo $decoded_calldata | jq '.[2] | [ match(","; "g")] | length + 1')
@@ -153,7 +153,7 @@ do
     total_fee_in_wei=$(($total_fee_in_wei + $batch_fee_in_wei))
 
     # Accumulate proofs in batch
-    total_number_proofs=$((total_number_proofs + $number_proofs_in_batch))
+    total_number_proofs=$(($total_number_proofs + $number_proofs_in_batch))
   done
 
   # Calculate the spent amount by converting the fee to ETH
@@ -189,9 +189,9 @@ do
   done
 
   if [ $verified -eq 1 ]; then
-    slack_message=$total_number_proofs proofs submitted and verified. We sent $REPETITIONS proofs. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]
+    slack_message="$total_number_proofs proofs submitted and verified. We sent $REPETITIONS proofs. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
   else
-    slack_message=$total_number_proofs proofs submitted but not verified. We sent $REPETITIONS proofs. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]
+    slack_message="$total_number_proofs proofs submitted but not verified. We sent $REPETITIONS proofs. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
   fi
 
   ## Send Update to Slack
