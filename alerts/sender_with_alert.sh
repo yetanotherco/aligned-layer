@@ -129,7 +129,7 @@ do
   fi
 
   total_fee_in_wei=0
-  total_number_of_proofs=0
+  total_number_proofs=0
   batch_explorer_urls=()
   for batch_merkle_root in $batch_merkle_roots 
   do
@@ -153,7 +153,7 @@ do
     total_fee_in_wei=$(($total_fee_in_wei + $batch_fee_in_wei))
 
     # Accumulate proofs in batch
-    total_number_of_proofs=$((total_number_of_proofs + $number_proofs_in_batch))
+    total_number_proofs=$((total_number_proofs + $number_proofs_in_batch))
   done
 
   # Calculate the spent amount by converting the fee to ETH
@@ -189,9 +189,9 @@ do
   done
 
   if [ $verified -eq 1 ]; then
-    slack_message=$number_proofs_in_batch proofs submitted and verified. We sent $REPETITIONS proofs. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]
+    slack_message=$total_number_proofs proofs submitted and verified. We sent $REPETITIONS proofs. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]
   else
-    slack_message=$number_proofs_in_batch proofs submitted but not verified. We sent $REPETITIONS proofs. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]
+    slack_message=$total_number_proofs proofs submitted but not verified. We sent $REPETITIONS proofs. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]
   fi
 
   ## Send Update to Slack
