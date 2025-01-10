@@ -300,11 +300,6 @@ async fn main() -> Result<(), AlignedError> {
             let keystore_path = &submit_args.private_key_type.keystore_path;
             let private_key = &submit_args.private_key_type.private_key;
 
-            if keystore_path.is_some() && private_key.is_some() {
-                warn!("Can't have a keystore path and a private key as input. Please use only one");
-                return Ok(());
-            }
-
             let mut wallet = if let Some(keystore_path) = keystore_path {
                 let password = rpassword::prompt_password("Please enter your keystore password:")
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?;
