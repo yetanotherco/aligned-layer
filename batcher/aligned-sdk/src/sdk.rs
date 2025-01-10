@@ -49,7 +49,6 @@ use std::path::PathBuf;
 
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
-/// * `batcher_url` - The url of the batcher to which the proof will be submitted.
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
@@ -79,7 +78,6 @@ use std::path::PathBuf;
 /// * `GenericError` if the error doesn't match any of the previous ones.
 #[allow(clippy::too_many_arguments)] // TODO: Refactor this function, use NoncedVerificationData
 pub async fn submit_multiple_and_wait_verification(
-    batcher_url: &str,
     eth_rpc_url: &str,
     network: Network,
     verification_data: &[VerificationData],
@@ -88,8 +86,7 @@ pub async fn submit_multiple_and_wait_verification(
     nonce: U256,
 ) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
     let mut aligned_verification_data = submit_multiple(
-        batcher_url,
-        network.clone(),
+        network,
         verification_data,
         max_fee,
         wallet,
@@ -219,7 +216,6 @@ async fn fetch_gas_price(
 
 /// Submits multiple proofs to the batcher to be verified in Aligned.
 /// # Arguments
-/// * `batcher_url` - The url of the batcher to which the proof will be submitted.
 /// * `network` - The netork on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
@@ -243,14 +239,13 @@ async fn fetch_gas_price(
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
-    batcher_url: &str,
     network: Network,
     verification_data: &[VerificationData],
     max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
-    let (ws_stream, _) = match connect_async(batcher_url).await {
+    let (ws_stream, _) = match connect_async(network.get_batcher_url()).await {
         Ok((ws_stream, response)) => (ws_stream, response),
         Err(e) => return vec![Err(errors::SubmitError::WebSocketConnectionError(e))],
     };
@@ -333,7 +328,6 @@ async fn _submit_multiple(
 
 /// Submits a proof to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
-/// * `batcher_url` - The url of the batcher to which the proof will be submitted.
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - The verification data of the proof.
@@ -363,7 +357,6 @@ async fn _submit_multiple(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 #[allow(clippy::too_many_arguments)] // TODO: Refactor this function, use NoncedVerificationData
 pub async fn submit_and_wait_verification(
-    batcher_url: &str,
     eth_rpc_url: &str,
     network: Network,
     verification_data: &VerificationData,
@@ -374,7 +367,6 @@ pub async fn submit_and_wait_verification(
     let verification_data = vec![verification_data.clone()];
 
     let aligned_verification_data = submit_multiple_and_wait_verification(
-        batcher_url,
         eth_rpc_url,
         network,
         &verification_data,
@@ -395,7 +387,6 @@ pub async fn submit_and_wait_verification(
 
 /// Submits a proof to the batcher to be verified in Aligned.
 /// # Arguments
-/// * `batcher_url` - The url of the batcher to which the proof will be submitted.
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - The verification data of the proof.
 /// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
@@ -419,7 +410,6 @@ pub async fn submit_and_wait_verification(
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
-    batcher_url: &str,
     network: Network,
     verification_data: &VerificationData,
     max_fee: U256,
@@ -429,7 +419,6 @@ pub async fn submit(
     let verification_data = vec![verification_data.clone()];
 
     let aligned_verification_data = submit_multiple(
-        batcher_url,
         network,
         &verification_data,
         max_fee,
@@ -537,17 +526,17 @@ pub fn get_vk_commitment(
 /// as the batcher proofs might not yet be on ethereum,
 /// producing an out-of-sync nonce with the payment service contract on ethereum
 /// # Arguments
-/// * `batcher_url` - The batcher websocket url.
 /// * `address` - The user address for which the nonce will be retrieved.
+/// * `network` - The network from which the nonce will be retrieved.
 /// # Returns
 /// * The next nonce of the proof submitter account.
 /// # Errors
 /// * `EthRpcError` if the batcher has an error in the Ethereum call when retrieving the nonce if not already cached.
 pub async fn get_nonce_from_batcher(
-    batcher_ws_url: &str,
+    network: Network,
     address: Address,
 ) -> Result<U256, GetNonceError> {
-    let (ws_stream, _) = connect_async(batcher_ws_url).await.map_err(|_| {
+    let (ws_stream, _) = connect_async(network.get_batcher_url()).await.map_err(|_| {
         GetNonceError::ConnectionFailed("Ws connection to batcher failed".to_string())
     })?;
 

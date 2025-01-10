@@ -78,22 +78,24 @@ pub struct GenerateAndFundWalletsArgs {
     )]
     pub private_keys_filepath: String,
     #[arg(
-        name = "The Ethereum network's name",
+        name = "The working network's name",
         long = "network",
-        default_value = "devnet"
+        default_value = "devnet",
+        value_parser = value_parser!(Network)
     )]
-    pub network: NetworkArg,
+    pub network: Network,
 }
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct TestConnectionsArgs {
     #[arg(
-        name = "Batcher connection address",
-        long = "batcher-url",
-        default_value = "ws://localhost:8080"
+        name = "The working network's name",
+        long = "network",
+        default_value = "devnet",
+        value_parser = value_parser!(Network)
     )]
-    pub batcher_url: String,
+    pub network: Network,
     #[arg(
         name = "Number of spawned sockets",
         long = "num-senders",
@@ -132,11 +134,12 @@ pub struct SendInfiniteProofsArgs {
     #[arg(name = "Max Fee", long = "max-fee", default_value = "1300000000000000")]
     pub max_fee: String,
     #[arg(
-        name = "The Ethereum network's name",
+        name = "The working network's name",
         long = "network",
-        default_value = "devnet"
+        default_value = "devnet",
+        value_parser = value_parser!(Network)
     )]
-    pub network: NetworkArg,
+    pub network: Network,
     #[arg(
         name = "Private keys filepath for the senders",
         long = "private-keys-filepath"
@@ -148,23 +151,4 @@ pub struct SendInfiniteProofsArgs {
         default_value = "devnet"
     )]
     pub proofs_dir: String,
-}
-
-#[derive(Debug, Clone, Copy, ValueEnum)]
-pub enum NetworkArg {
-    Devnet,
-    Holesky,
-    HoleskyStage,
-    Mainnet,
-}
-
-impl From<NetworkArg> for Network {
-    fn from(chain_arg: NetworkArg) -> Self {
-        match chain_arg {
-            NetworkArg::Devnet => Network::Devnet,
-            NetworkArg::Holesky => Network::Holesky,
-            NetworkArg::HoleskyStage => Network::HoleskyStage,
-            NetworkArg::Mainnet => Network::Mainnet,
-        }
-    }
 }

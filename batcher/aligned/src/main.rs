@@ -65,12 +65,6 @@ pub enum AlignedCommands {
 #[command(version, about, long_about = None)]
 pub struct SubmitArgs {
     #[arg(
-        name = "Batcher connection address",
-        long = "batcher_url",
-        default_value = "ws://localhost:8080"
-    )]
-    batcher_url: String,
-    #[arg(
         name = "Ethereum RPC provider connection address",
         long = "rpc_url",
         default_value = "http://localhost:8545"
@@ -210,11 +204,12 @@ pub struct GetUserBalanceArgs {
 #[command(version, about, long_about = None)]
 pub struct GetUserNonceArgs {
     #[arg(
-        name = "Batcher connection address",
-        long = "batcher_url",
-        default_value = "ws://localhost:8080"
+        name = "The working network's name",
+        long = "network",
+        default_value = "devnet",
+        value_parser = value_parser!(Network)
     )]
-    batcher_url: String,
+    network: Network,
     #[arg(
         name = "The user's Ethereum address",
         long = "user_addr",
@@ -317,7 +312,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let nonce = match &submit_args.nonce {
                 Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
-                None => get_nonce_from_batcher(&connect_addr, wallet.address())
+                None => get_nonce_from_batcher(&submit_args.network, wallet.address())
                     .await
                     .map_err(|e| match e {
                         aligned_sdk::core::errors::GetNonceError::EthRpcError(e) => {
@@ -351,7 +346,6 @@ async fn main() -> Result<(), AlignedError> {
             info!("Submitting proofs to the Aligned batcher...");
 
             let aligned_verification_data_vec = submit_multiple(
-                &connect_addr,
                 submit_args.network,
                 &verification_data_arr,
                 max_fee_wei,
@@ -512,7 +506,7 @@ async fn main() -> Result<(), AlignedError> {
         }
         GetUserNonce(args) => {
             let address = H160::from_str(&args.address).unwrap();
-            match get_nonce_from_batcher(&args.batcher_url, address).await {
+            match get_nonce_from_batcher(&args.network, address).await {
                 Ok(nonce) => {
                     info!("Nonce for address {} is {}", address, nonce);
                 }

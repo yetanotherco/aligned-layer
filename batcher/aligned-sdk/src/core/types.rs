@@ -24,6 +24,7 @@ use super::constants::{
     ALIGNED_SERVICE_MANAGER_MAINNET, ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE,
     BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET, BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY,
     BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE, BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET,
+    BATCHER_URL_DEVNET, BATCHER_URL_HOLESKY, BATCHER_URL_HOLESKY_STAGE, BATCHER_URL_MAINNET,
 };
 use super::errors::VerifySignatureError;
 
@@ -409,7 +410,7 @@ pub enum Network {
     Holesky,
     HoleskyStage,
     Mainnet,
-    Custom(String, String),
+    Custom(String, String, String),
 }
 
 impl Network {
@@ -421,7 +422,7 @@ impl Network {
                 H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE).unwrap()
             }
             Self::Mainnet => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET).unwrap(),
-            Self::Custom(s, _) => H160::from_str(s.as_str()).unwrap(),
+            Self::Custom(s, _, _) => H160::from_str(s.as_str()).unwrap(),
         }
     }
 
@@ -431,7 +432,17 @@ impl Network {
             Self::Holesky => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY).unwrap(),
             Self::HoleskyStage => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE).unwrap(),
             Self::Mainnet => H160::from_str(ALIGNED_SERVICE_MANAGER_MAINNET).unwrap(),
-            Self::Custom(_, s) => H160::from_str(s.as_str()).unwrap(),
+            Self::Custom(_, s, _) => H160::from_str(s.as_str()).unwrap(),
+        }
+    }
+
+    pub fn get_batcher_url(&self) -> &str {
+        match self {
+            Self::Devnet => BATCHER_URL_DEVNET,
+            Self::Holesky => BATCHER_URL_HOLESKY,
+            Self::HoleskyStage => BATCHER_URL_HOLESKY_STAGE,
+            Self::Mainnet => BATCHER_URL_MAINNET,
+            Self::Custom(_, _, s) => s.as_str(),
         }
     }
 }
@@ -448,17 +459,17 @@ impl FromStr for Network {
             s => {
                 if !s.contains("custom") {
                     return Err(
-                        "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\", \"mainnet\", \"custom <BATCHER_PAYMENT_SERVICE_ADDRESS> <ALIGNED_SERVICE_MANAGER_ADDRESS>\""
+                        "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\", \"mainnet\", \"custom <BATCHER_PAYMENT_SERVICE_ADDRESS> <ALIGNED_SERVICE_MANAGER_ADDRESS> <BATCHER_URL>\""
                             .to_string(),
                     );
                 }
                 let parts: Vec<&str> = s.split_whitespace().collect();
 
-                if parts.len() == 3  && parts[0].contains("custom") {
-                    Ok(Network::Custom(parts[1].to_string(), parts[2].to_string()))
+                if parts.len() == 4  && parts[0].contains("custom") {
+                    Ok(Network::Custom(parts[1].to_string(), parts[2].to_string(), parts[3].to_string()))
                 } else {
                     Err(
-                        "Invalid custom network, \"custom <BATCHER_PAYMENT_SERVICE_ADDRESS, ALIGNED_SERVICE_MANAGER_ADDRESS>\""
+                        "Invalid custom network, \"custom <BATCHER_PAYMENT_SERVICE_ADDRESS, ALIGNED_SERVICE_MANAGER_ADDRESS> <BATCHER_URL>\""
                             .to_string()
                     )
                 }

@@ -4,7 +4,6 @@
 # - REPETITIONS
 # - EXPLORER_URL
 # - SENDER_ADDRESS
-# - BATCHER_URL
 # - RPC_URL
 # - EXPLORER_URL
 # - NETWORK
@@ -76,7 +75,7 @@ do
   mkdir -p ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 
   ## Generate Proof
-  nonce=$(aligned get-user-nonce --batcher_url $BATCHER_URL --user_addr $SENDER_ADDRESS 2>&1 | awk '{print $9}')
+  nonce=$(aligned get-user-nonce --network $NETWORK --user_addr $SENDER_ADDRESS 2>&1 | awk '{print $9}')
   x=$((nonce + 1)) # So we don't have any issues with nonce = 0
   echo "Generating proof $x != 0"
   go run ./scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $x
@@ -92,7 +91,6 @@ do
     --proof_generator_addr $SENDER_ADDRESS \
     --private_key $PRIVATE_KEY \
     --rpc_url $RPC_URL \
-    --batcher_url $BATCHER_URL \
     --network $NETWORK \
     --max_fee 4000000000000000 \
     2>&1)
