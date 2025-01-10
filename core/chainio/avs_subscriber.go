@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/event"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
@@ -116,23 +117,28 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 	// Handle errors and resubscribe
 	go func() {
 		var err1, err2 error
-		for err1 == nil || err2 == nil {
+		var auxSub, auxSubFallback event.Subscription
+		for err1 == nil || err2 == nil { //while one is active
 			select {
 			case err := <-sub.Err():
 				s.logger.Warn("Error in new task subscription", "err", err)
+				s.logger.Info("failed states:", "err1", err1, "err2", err2)
 
-				auxSub, err1 := SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
+				auxSub, err1 = SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
 				if err1 == nil {
 					//sub.Unsubscribe()
 					sub = auxSub // update the subscription only if it was successful
+					s.logger.Info("Resubscribed to fallback new task subscription")
 				}
 			case err := <-subFallback.Err():
+				s.logger.Info("failed states:", "err1", err1, "err2", err2)
 				s.logger.Warn("Error in fallback new task subscription", "err", err)
 
-				auxSubFallback, err2 := SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
+				auxSubFallback, err2 = SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
 				if err2 == nil {
 					//subFallback.Unsubscribe()
 					subFallback = auxSubFallback // update the subscription only if it was successful
+					s.logger.Info("Resubscribed to fallback new task subscription")
 				}
 			}
 		}
@@ -197,24 +203,30 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 
 	// Handle errors and resubscribe
 	go func() {
+		s.logger.Info("Starting error handling goroutine")
 		var err1, err2 error
-		for err1 == nil || err2 == nil {
+		var auxSub, auxSubFallback event.Subscription
+		for err1 == nil || err2 == nil { //while one is active
 			select {
 			case err := <-sub.Err():
 				s.logger.Warn("Error in new task subscription", "err", err)
+				s.logger.Info("failed states:", "err1", err1, "err2", err2)
 
-				auxSub, err1 := SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
+				auxSub, err1 = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
 				if err1 == nil {
 					//sub.Unsubscribe()
 					sub = auxSub // update the subscription only if it was successful
+					s.logger.Info("Resubscribed to fallback new task subscription")
 				}
 			case err := <-subFallback.Err():
 				s.logger.Warn("Error in fallback new task subscription", "err", err)
+				s.logger.Info("failed states:", "err1", err1, "err2", err2)
 
-				auxSubFallback, err2 := SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
+				auxSubFallback, err2 = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
 				if err2 == nil {
 					//subFallback.Unsubscribe()
 					subFallback = auxSubFallback // update the subscription only if it was successful
+					s.logger.Info("Resubscribed to fallback new task subscription")
 				}
 			}
 		}
