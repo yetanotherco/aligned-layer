@@ -26,7 +26,9 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 # Install go deps
 RUN go install github.com/maoueh/zap-pretty@v0.3.0
 RUN go install github.com/ethereum/go-ethereum/cmd/abigen@latest
-RUN go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@v0.12.0-beta
+
+# Install eigenlayer cli using downloading the binary
+RUN curl -sSfL https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh | sh -s -- v0.11.0
 
 # Install rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
