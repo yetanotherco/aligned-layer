@@ -8,12 +8,13 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	contractERC20Mock "github.com/yetanotherco/aligned_layer/contracts/bindings/ERC20Mock"
 	"github.com/yetanotherco/aligned_layer/core/config"
 
-	eigenClients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	eigenClientsV0113 "github.com/Layr-Labs/eigensdk-go-v0.1.13/chainio/clients"
+	eigenClients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
 
 	sdkavsregistry "github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/logging"
@@ -39,6 +40,7 @@ func NewAvsReaderFromConfig(baseConfig *config.BaseConfig) (*AvsReader, error) {
 
 	clients_v0113, err := eigenClientsV0113.BuildReadClients(buildAllConfig_v0113, baseConfig.Logger)
 	if err != nil {
+		log.Warn("Failed to build v0.1.13 clients, trying to build v0.2.0-beta.1 clients", "err", err)
 		// v0.1.13 failed,
 		// We build the V0.2.0-beta.1 clients
 		buildAllConfig := eigenClients.BuildAllConfig{
