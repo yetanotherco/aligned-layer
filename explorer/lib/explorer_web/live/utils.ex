@@ -205,6 +205,12 @@ defmodule Utils do
                      _ -> 268_435_456
                    end)
 
+  @batcher_submission_gas_cost Application.compile_env(:explorer, :batcher_submission_gas_cost)
+  @aggregator_gas_cost Application.compile_env(:explorer, :aggregator_gas_cost)
+  @aggregator_fee_percentage_multiplier Application.compile_env(:explorer, :aggregator_fee_percentage_multiplier)
+  @percentage_divider Application.compile_env(:explorer, :percentage_divider)
+  @additional_submission_gas_cost_per_proof Application.compile_env(:explorer, :additional_submission_gas_cost_per_proof)
+
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix
     hex =
@@ -408,5 +414,17 @@ defmodule Utils do
 
   def random_id(prefix) do
     prefix <> "_" <> (:crypto.strong_rand_bytes(8) |> Base.url_encode64(padding: false))
+  end
+
+  def constant_batch_submission_gas_cost() do
+    trunc(
+      @aggregator_gas_cost * @aggregator_fee_percentage_multiplier /
+      @percentage_divider +
+      @batcher_submission_gas_cost
+    )
+  end
+
+  def additional_batch_submission_gas_cost_per_proof() do
+    @additional_submission_gas_cost_per_proof
   end
 end
