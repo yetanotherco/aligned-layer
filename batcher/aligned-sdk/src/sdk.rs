@@ -499,9 +499,7 @@ async fn _is_proof_verified(
     eth_rpc_provider: Provider<Http>,
 ) -> Result<bool, errors::VerificationError> {
     let contract_address = get_aligned_service_manager_address(network);
-    println!("aligned service manager: {:?}", contract_address);
     let payment_service_addr = get_payment_service_address(network);
-    println!("batcher_payment_service: {:?}", payment_service_addr);
 
     // All the elements from the merkle proof have to be concatenated
     let merkle_proof: Vec<u8> = aligned_verification_data
