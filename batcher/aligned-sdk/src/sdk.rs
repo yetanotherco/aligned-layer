@@ -284,7 +284,7 @@ pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {
 
 pub fn get_aligned_service_manager_address(network: Network) -> ethers::types::H160 {
     match network {
-        Network::Devnet => H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap(),
+        Network::Devnet => H160::from_str("0x851356ae760d987E095750cCeb3bC6014560891C").unwrap(),
         Network::Holesky => H160::from_str("0x58F280BeBE9B34c9939C3C39e0890C81f163B623").unwrap(),
         Network::HoleskyStage => {
             H160::from_str("0x9C5231FC88059C086Ea95712d105A2026048c39B").unwrap()
@@ -499,7 +499,9 @@ async fn _is_proof_verified(
     eth_rpc_provider: Provider<Http>,
 ) -> Result<bool, errors::VerificationError> {
     let contract_address = get_aligned_service_manager_address(network);
+    println!("aligned service manager: {:?}", contract_address);
     let payment_service_addr = get_payment_service_address(network);
+    println!("batcher_payment_service: {:?}", payment_service_addr);
 
     // All the elements from the merkle proof have to be concatenated
     let merkle_proof: Vec<u8> = aligned_verification_data

@@ -69,10 +69,6 @@ function send_slack_message() {
 while true
 do
 
-  ## Remove Proof Data
-  rm -rf ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/*
-  rm -rf ./aligned_verification_data/*
-
   mkdir -p ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 
   ## Generate Proof
@@ -153,7 +149,7 @@ do
   spent_amount_usd=$(echo "$spent_amount * $eth_usd" | bc | awk '{printf "%.2f", $1}')
 
   slack_messsage=""
-  verified=1
+  verified=0
 
   ## Verify Proofs
   echo "Verifying $REPETITIONS proofs $x != 0"
@@ -170,17 +166,17 @@ do
       message="Proof verification failed for $proof [ ${batch_explorer_urls[@]} ]"
       echo "$message"
       send_pagerduty_alert "$message"
-      verified=0 # Some proofs failed, so we should not send the success message
       break
     elif echo "$verification" | grep -q verified; then
+      ((verified++))
       echo "Proof verification succeeded for $proof"
     fi
   done
 
-  if [ $verified -eq 1 ]; then
-    slack_message="$REPETITIONS Proofs submitted and verified. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
-  else
+  if [ $verified -eq 0 ]; then
     slack_message="$REPETITIONS Proofs submitted but not verified. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+  else
+    slack_message="$verified / $REPETITIONS Proofs submitted and verified. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
   fi
 
   ## Send Update to Slack
