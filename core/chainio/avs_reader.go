@@ -12,7 +12,9 @@ import (
 	contractERC20Mock "github.com/yetanotherco/aligned_layer/contracts/bindings/ERC20Mock"
 	"github.com/yetanotherco/aligned_layer/core/config"
 
-	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
+	eigenClients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
+	eigenClientsV0113 "github.com/Layr-Labs/eigensdk-go-v0.1.13/chainio/clients"
+
 	sdkavsregistry "github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 )
@@ -25,8 +27,8 @@ type AvsReader struct {
 }
 
 func NewAvsReaderFromConfig(baseConfig *config.BaseConfig) (*AvsReader, error) {
-
-	buildAllConfig := clients.BuildAllConfig{
+	
+	buildAllConfig_v0113 := eigenClientsV0113.BuildAllConfig{
 		EthHttpUrl:                 baseConfig.EthRpcUrl,
 		EthWsUrl:                   baseConfig.EthWsUrl,
 		RegistryCoordinatorAddr:    baseConfig.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
@@ -35,12 +37,37 @@ func NewAvsReaderFromConfig(baseConfig *config.BaseConfig) (*AvsReader, error) {
 		PromMetricsIpPortAddress:   baseConfig.EigenMetricsIpPortAddress,
 	}
 
-	clients, err := clients.BuildReadClients(buildAllConfig, baseConfig.Logger)
+	clients_v0113, err := eigenClientsV0113.BuildReadClients(buildAllConfig_v0113, baseConfig.Logger)
 	if err != nil {
-		return nil, err
-	}
+		// v0.1.13 failed,
+		// We build the V0.2.0-beta.1 clients
+		buildAllConfig := eigenClients.BuildAllConfig{
+			EthHttpUrl:                 baseConfig.EthRpcUrl,
+			EthWsUrl:                   baseConfig.EthWsUrl,
+			RegistryCoordinatorAddr:    baseConfig.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
+			OperatorStateRetrieverAddr: baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.String(),
+			AvsName:                    "AlignedLayer",
+			PromMetricsIpPortAddress:   baseConfig.EigenMetricsIpPortAddress,
+		}
+		clients, err := eigenClients.BuildReadClients(buildAllConfig, baseConfig.Logger)
+		if err != nil {
+			return nil, err
+		}
+		chainReader := clients.AvsRegistryChainReader
 
-	chainReader := clients.AvsRegistryChainReader
+		avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.EthRpcClientFallback, baseConfig.Logger)
+		if err != nil {
+			return nil, err
+		}
+
+		return &AvsReader{
+			ChainReader:                    chainReader,
+			AvsContractBindings:            avsServiceBindings,
+			AlignedLayerServiceManagerAddr: baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr,
+			logger:                         baseConfig.Logger,
+		}, nil
+	}
+	chainReader := clients_v0113.AvsRegistryChainReader
 
 	avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.EthRpcClientFallback, baseConfig.Logger)
 	if err != nil {
