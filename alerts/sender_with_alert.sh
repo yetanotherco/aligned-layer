@@ -94,10 +94,20 @@ do
     --rpc_url $RPC_URL \
     --batcher_url $BATCHER_URL \
     --network $NETWORK \
-    --max_fee 4000000000000000 \
+    --max_fee 0.04ether \
     2>&1)
 
   echo "$submit"
+
+  submit_errors=$(echo "$submit" | grep -oE 'ERROR[^]]*]([^[]*)' | sed 's/^[^]]*]//;s/[[:space:]]*$//')
+  
+  # Loop through each error found and print with the custom message
+  while IFS= read -r error; do
+      if [[ -n "$error" ]]; then
+          slack_error_message="Error submitting proof to $NETWORK: $error"
+          send_slack_message "$slack_error_message"
+      fi
+  done <<< "$submit_errors"
   
   echo "Waiting $VERIFICATION_WAIT_TIME seconds for verification"
   sleep $VERIFICATION_WAIT_TIME
