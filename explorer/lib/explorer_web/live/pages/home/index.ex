@@ -36,7 +36,7 @@ defmodule ExplorerWeb.Home.Index do
       |> Decimal.to_integer()
       |> Helpers.convert_number_to_shorthand()
 
-    operator_latest_release = "v0.13.0"
+    operator_latest_release = ReleasesHelper.get_latest_release()
 
     [
       %{
