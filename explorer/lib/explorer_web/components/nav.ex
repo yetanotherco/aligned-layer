@@ -20,7 +20,7 @@ defmodule NavComponent do
   def mount(socket) do
     {:ok,
      assign(socket,
-       latest_release: ReleasesHelper.get_latest_release()
+       latest_release: "v0.13.0"
      )}
   end
 
