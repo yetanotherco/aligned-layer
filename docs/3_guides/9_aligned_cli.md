@@ -152,6 +152,7 @@ Deposits Ethereum into the Aligned Layer's `BatcherPaymentService.sol` contract.
 
 #### Options:
 - `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
+- `--private_key <private_key>`: User's wallet private key.
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
