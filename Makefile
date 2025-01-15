@@ -155,7 +155,7 @@ _AGGREGATOR_:
 build_aggregator:
 	$(GET_SDK_VERSION)
 	@echo "Building aggregator"
-	@go build -o aggregator/aligned_layer/build/aligned-aggregator aggregator/aligned_layer/aggregator/cmd/main.go
+	@go build -o ./build/aligned-aggregator ./aggregator/cmd/main.go
 
 aggregator_start:
 	$(GET_SDK_VERSION)
