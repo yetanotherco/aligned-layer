@@ -54,18 +54,30 @@ make install_foundry
 foundryup
 ```
 
-To build the operator binary, run:
+To build the operator binary for **Testnet**, run:
 
 ```bash
-make build_operator
+make build_operator ENVIRONMENT=testnet
+```
+
+To build the operator binary for **Mainnet**, run:
+
+```bash
+make build_operator ENVIRONMENT=mainnet
 ```
 
 ### Upgrading the Operator
 
-If you want to upgrade the operator, run:
+If you want to upgrade the operator in **Testnet**, run:
 
 ```bash
-make update_operator
+make update_operator ENVIRONMENT=testnet
+```
+
+If you want to upgrade the operator in **Mainnet**, run:
+
+```bash
+make update_operator ENVIRONMENT=mainnet
 ```
 
 This will recreate the binaries. You can then proceed to restart the operator.
