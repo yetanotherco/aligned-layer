@@ -36,7 +36,7 @@ ifeq ($(ENVIRONMENT), devnet)
 	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_devnet
 else ifeq ($(ENVIRONMENT), testnet)
 	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_testnet
-else ifeq ($(ENVIRONMENT), devnet)
+else ifeq ($(ENVIRONMENT), mainnet)
 	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_mainnet
 else
 	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_error
