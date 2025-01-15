@@ -152,6 +152,11 @@ anvil_start_with_block_time_with_more_prefunded_accounts:
 
 _AGGREGATOR_:
 
+build_aggregator:
+	$(GET_SDK_VERSION)
+	@echo "Building aggregator"
+	@go build -o aggregator/aligned_layer/build/aligned-aggregator aggregator/aligned_layer/aggregator/cmd/main.go
+
 aggregator_start:
 	$(GET_SDK_VERSION)
 	@echo "Starting Aggregator..."
