@@ -60,4 +60,18 @@ This API uses Ecto for migrations. To apply migrations, run:
 make telemetry_ecto_migrate
 ```
 
+## Scripts
 
+This API has a script to make it fetch operator's metadata from the blockchain.
+
+To run it you must run:
+
+```bash
+make telemetry_fetch_operators_metadata
+```
+
+Once connected to the Telemetry node, you must run what appears on screen:
+
+```iex
+Scripts.FetchOperatorsMetadata.run()
+```

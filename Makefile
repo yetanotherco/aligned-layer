@@ -1118,7 +1118,7 @@ telemetry_compile_bls_verifier:
 
 telemetry_fetch_operators_metadata:
 	@cd telemetry_api && \
-		./scripts/fetch_operators_metadata.sh $(FROM_BLOCK)
+		./scripts/fetch_operators_metadata.sh
 
 setup_local_aligned_all:
 	tmux kill-session -t aligned_layer || true
