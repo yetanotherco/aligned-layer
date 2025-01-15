@@ -414,6 +414,16 @@ pub enum Network {
 }
 
 impl Network {
+    pub fn get_aligned_service_manager_address(&self) -> ethers::types::H160 {
+        match self {
+            Self::Devnet => H160::from_str(ALIGNED_SERVICE_MANAGER_DEVNET).unwrap(),
+            Self::Holesky => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY).unwrap(),
+            Self::HoleskyStage => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE).unwrap(),
+            Self::Mainnet => H160::from_str(ALIGNED_SERVICE_MANAGER_MAINNET).unwrap(),
+            Self::Custom(s, _, _) => H160::from_str(s.as_str()).unwrap(),
+        }
+    }
+    
     pub fn get_batcher_payment_service_address(&self) -> ethers::types::H160 {
         match self {
             Self::Devnet => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET).unwrap(),
@@ -422,16 +432,6 @@ impl Network {
                 H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE).unwrap()
             }
             Self::Mainnet => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET).unwrap(),
-            Self::Custom(s, _, _) => H160::from_str(s.as_str()).unwrap(),
-        }
-    }
-
-    pub fn get_aligned_service_manager_address(&self) -> ethers::types::H160 {
-        match self {
-            Self::Devnet => H160::from_str(ALIGNED_SERVICE_MANAGER_DEVNET).unwrap(),
-            Self::Holesky => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY).unwrap(),
-            Self::HoleskyStage => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE).unwrap(),
-            Self::Mainnet => H160::from_str(ALIGNED_SERVICE_MANAGER_MAINNET).unwrap(),
             Self::Custom(_, s, _) => H160::from_str(s.as_str()).unwrap(),
         }
     }
@@ -447,36 +447,6 @@ impl Network {
     }
 }
 
-impl FromStr for Network {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "holesky" => Ok(Network::Holesky),
-            "holesky-stage" => Ok(Network::HoleskyStage),
-            "devnet" => Ok(Network::Devnet),
-            "mainnet" => Ok(Network::Mainnet),
-            s => {
-                if !s.contains("custom") {
-                    return Err(
-                        "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\", \"mainnet\", \"custom <BATCHER_PAYMENT_SERVICE_ADDRESS> <ALIGNED_SERVICE_MANAGER_ADDRESS> <BATCHER_URL>\""
-                            .to_string(),
-                    );
-                }
-                let parts: Vec<&str> = s.split_whitespace().collect();
-
-                if parts.len() == 4  && parts[0].contains("custom") {
-                    Ok(Network::Custom(parts[1].to_string(), parts[2].to_string(), parts[3].to_string()))
-                } else {
-                    Err(
-                        "Invalid custom network, \"custom <BATCHER_PAYMENT_SERVICE_ADDRESS, ALIGNED_SERVICE_MANAGER_ADDRESS> <BATCHER_URL>\""
-                            .to_string()
-                    )
-                }
-            }
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
