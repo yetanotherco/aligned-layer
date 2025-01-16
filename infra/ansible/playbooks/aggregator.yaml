@@ -97,6 +97,11 @@
       vars:
         ansible_ssh_user: "{{ admin_user }}"
 
+    - name: Create systemd services directory
+      file:
+        path: "/home/{{ ansible_user }}/.config/systemd/user/"
+        state: directory
+
     - name: Add service to systemd
       template:
         src: services/aggregator.service.j2
