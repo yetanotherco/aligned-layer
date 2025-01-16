@@ -188,8 +188,12 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
             amount_to_deposit_to_aligned, i
         );
         let signer = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
-        if let Err(err) =
-            deposit_to_aligned(amount_to_deposit_to_aligned, signer, args.network.clone().into()).await
+        if let Err(err) = deposit_to_aligned(
+            amount_to_deposit_to_aligned,
+            signer,
+            args.network.clone().into(),
+        )
+        .await
         {
             error!("Could not deposit to aligned, err: {:?}", err);
             return;

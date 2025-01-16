@@ -133,7 +133,6 @@ pub struct SendInfiniteProofsArgs {
     pub proofs_dir: String,
 }
 
-
 #[derive(Debug, Clone, Copy)]
 enum NetworkNameArg {
     Devnet,
