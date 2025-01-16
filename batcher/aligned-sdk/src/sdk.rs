@@ -85,14 +85,8 @@ pub async fn submit_multiple_and_wait_verification(
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
-    let mut aligned_verification_data = submit_multiple(
-        network.clone(),
-        verification_data,
-        max_fee,
-        wallet,
-        nonce,
-    )
-    .await;
+    let mut aligned_verification_data =
+        submit_multiple(network.clone(), verification_data, max_fee, wallet, nonce).await;
 
     // TODO: open issue: use a join to .await all at the same time, avoiding the loop
     // And await only once per batch, no need to await multiple proofs if they are in the same batch.
@@ -418,14 +412,8 @@ pub async fn submit(
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
-    let aligned_verification_data = submit_multiple(
-        network,
-        &verification_data,
-        max_fee,
-        wallet,
-        nonce,
-    )
-    .await;
+    let aligned_verification_data =
+        submit_multiple(network, &verification_data, max_fee, wallet, nonce).await;
 
     match aligned_verification_data.first() {
         Some(Ok(aligned_verification_data)) => Ok(aligned_verification_data.clone()),
@@ -536,9 +524,11 @@ pub async fn get_nonce_from_batcher(
     network: Network,
     address: Address,
 ) -> Result<U256, GetNonceError> {
-    let (ws_stream, _) = connect_async(network.get_batcher_url()).await.map_err(|_| {
-        GetNonceError::ConnectionFailed("Ws connection to batcher failed".to_string())
-    })?;
+    let (ws_stream, _) = connect_async(network.get_batcher_url())
+        .await
+        .map_err(|_| {
+            GetNonceError::ConnectionFailed("Ws connection to batcher failed".to_string())
+        })?;
 
     debug!("WebSocket handshake has been successfully completed");
     let (mut ws_write, mut ws_read) = ws_stream.split();

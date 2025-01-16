@@ -21,7 +21,7 @@ use sha3::{Digest, Keccak256};
 
 use super::constants::{
     ALIGNED_SERVICE_MANAGER_DEVNET, ALIGNED_SERVICE_MANAGER_HOLESKY,
-    ALIGNED_SERVICE_MANAGER_MAINNET, ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE,
+    ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE, ALIGNED_SERVICE_MANAGER_MAINNET,
     BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET, BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY,
     BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE, BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET,
     BATCHER_URL_DEVNET, BATCHER_URL_HOLESKY, BATCHER_URL_HOLESKY_STAGE, BATCHER_URL_MAINNET,
@@ -423,7 +423,7 @@ impl Network {
             Self::Custom(s, _, _) => H160::from_str(s.as_str()).unwrap(),
         }
     }
-    
+
     pub fn get_batcher_payment_service_address(&self) -> ethers::types::H160 {
         match self {
             Self::Devnet => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET).unwrap(),
@@ -446,7 +446,6 @@ impl Network {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

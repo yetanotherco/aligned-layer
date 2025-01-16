@@ -235,14 +235,17 @@ enum NetworkNameArg {
 
 impl FromStr for NetworkNameArg {
     type Err = String;
-    
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "devnet" => Ok(NetworkNameArg::Devnet),
             "holesky" => Ok(NetworkNameArg::Holesky),
             "holesky-stage" => Ok(NetworkNameArg::HoleskyStage),
             "mainnet" => Ok(NetworkNameArg::Mainnet),
-            _ => Err("Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet".to_string()),
+            _ => Err(
+                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet"
+                    .to_string(),
+            ),
         }
     }
 }
@@ -261,7 +264,7 @@ struct NetworkArg {
         long = "aligned_service_manager",
         conflicts_with("The working network's name"),
         requires("Batcher Payment Service Contract Address"),
-        requires("Batcher URL"),
+        requires("Batcher URL")
     )]
     aligned_service_manager_address: Option<String>,
 
@@ -270,7 +273,7 @@ struct NetworkArg {
         long = "batcher_payment_service",
         conflicts_with("The working network's name"),
         requires("Aligned Service Manager Contract Address"),
-        requires("Batcher URL"),
+        requires("Batcher URL")
     )]
     batcher_payment_service_address: Option<String>,
 
@@ -279,7 +282,7 @@ struct NetworkArg {
         long = "batcher_url",
         conflicts_with("The working network's name"),
         requires("Aligned Service Manager Contract Address"),
-        requires("Batcher Payment Service Contract Address"),
+        requires("Batcher Payment Service Contract Address")
     )]
     batcher_url: Option<String>,
 }
@@ -288,7 +291,10 @@ impl From<NetworkArg> for Network {
     fn from(network_arg: NetworkArg) -> Self {
         let mut processed_network_argument = network_arg.clone();
 
-        if network_arg.batcher_url.is_some() || network_arg.aligned_service_manager_address.is_some() || network_arg.batcher_payment_service_address.is_some() {
+        if network_arg.batcher_url.is_some()
+            || network_arg.aligned_service_manager_address.is_some()
+            || network_arg.batcher_payment_service_address.is_some()
+        {
             processed_network_argument.network = None; // We need this because network is Devnet as default, which is not true for a Custom network
         }
 
@@ -302,7 +308,7 @@ impl From<NetworkArg> for Network {
             Some(NetworkNameArg::Holesky) => Network::Holesky,
             Some(NetworkNameArg::HoleskyStage) => Network::HoleskyStage,
             Some(NetworkNameArg::Mainnet) => Network::Mainnet,
-        }  
+        }
     }
 }
 
@@ -366,29 +372,31 @@ async fn main() -> Result<(), AlignedError> {
 
             let nonce = match &submit_args.nonce {
                 Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
-                None => get_nonce_from_batcher(submit_args.network.clone().into(), wallet.address())
-                    .await
-                    .map_err(|e| match e {
-                        aligned_sdk::core::errors::GetNonceError::EthRpcError(e) => {
-                            SubmitError::GetNonceError(e)
-                        }
-                        aligned_sdk::core::errors::GetNonceError::ConnectionFailed(e) => {
-                            SubmitError::GenericError(e)
-                        }
-                        aligned_sdk::core::errors::GetNonceError::InvalidRequest(e) => {
-                            SubmitError::GenericError(e)
-                        }
-                        aligned_sdk::core::errors::GetNonceError::SerializationError(e) => {
-                            SubmitError::GenericError(e)
-                        }
-                        aligned_sdk::core::errors::GetNonceError::ProtocolMismatch {
-                            current,
-                            expected,
-                        } => SubmitError::ProtocolVersionMismatch { current, expected },
-                        aligned_sdk::core::errors::GetNonceError::UnexpectedResponse(e) => {
-                            SubmitError::UnexpectedBatcherResponse(e)
-                        }
-                    })?,
+                None => {
+                    get_nonce_from_batcher(submit_args.network.clone().into(), wallet.address())
+                        .await
+                        .map_err(|e| match e {
+                            aligned_sdk::core::errors::GetNonceError::EthRpcError(e) => {
+                                SubmitError::GetNonceError(e)
+                            }
+                            aligned_sdk::core::errors::GetNonceError::ConnectionFailed(e) => {
+                                SubmitError::GenericError(e)
+                            }
+                            aligned_sdk::core::errors::GetNonceError::InvalidRequest(e) => {
+                                SubmitError::GenericError(e)
+                            }
+                            aligned_sdk::core::errors::GetNonceError::SerializationError(e) => {
+                                SubmitError::GenericError(e)
+                            }
+                            aligned_sdk::core::errors::GetNonceError::ProtocolMismatch {
+                                current,
+                                expected,
+                            } => SubmitError::ProtocolVersionMismatch { current, expected },
+                            aligned_sdk::core::errors::GetNonceError::UnexpectedResponse(e) => {
+                                SubmitError::UnexpectedBatcherResponse(e)
+                            }
+                        })?
+                }
             };
 
             warn!("Nonce: {nonce}");
@@ -529,7 +537,9 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network.into()).await {
+            match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network.into())
+                .await
+            {
                 Ok(receipt) => {
                     info!(
                         "Payment sent to the batcher successfully. Tx: 0x{:x}",
