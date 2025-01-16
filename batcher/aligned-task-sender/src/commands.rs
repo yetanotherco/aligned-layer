@@ -352,7 +352,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                 );
 
                 let aligned_verification_data = submit_multiple(
-                    n.clone().into(),
+                    n.clone(),
                     &verification_data_to_send.clone(),
                     max_fee,
                     wallet.clone(),
