@@ -63,7 +63,7 @@ pub async fn generate_proofs(args: GenerateProofsArgs) {
 }
 
 pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
-    if matches!(args.network.into(), Network::Devnet) {
+    if matches!(args.network.clone().into(), Network::Devnet) {
         let Ok(eth_rpc_provider) = Provider::<Http>::try_from(args.eth_rpc_url.clone()) else {
             error!("Could not connect to eth rpc");
             return;
@@ -96,11 +96,12 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
             let funded_wallet_signer =
                 SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
             tokio::time::sleep(Duration::from_millis(50)).await; // To avoid overloading the RPC
+            let network = args.network.clone();
             let handle = tokio::spawn(async move {
                 if let Err(err) = deposit_to_aligned(
                     amount_to_deposit_to_aligned,
                     funded_wallet_signer.clone(),
-                    args.network.into(),
+                    network.into(),
                 )
                 .await
                 {
@@ -188,7 +189,7 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         );
         let signer = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
         if let Err(err) =
-            deposit_to_aligned(amount_to_deposit_to_aligned, signer, args.network.clone()).await
+            deposit_to_aligned(amount_to_deposit_to_aligned, signer, args.network.clone().into()).await
         {
             error!("Could not deposit to aligned, err: {:?}", err);
             return;
@@ -212,10 +213,11 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
 pub async fn test_connection(args: TestConnectionsArgs) {
     info!("Going to only open a connection");
     let mut handlers = vec![];
-    let network = network.clone();
+    let network: Network = args.network.into();
+    let ws_url_string = network.get_batcher_url().to_string();
 
     for i in 0..args.num_senders {
-        let ws_url = network.get_batcher_url().clone();
+        let ws_url = ws_url_string.clone();
         let handle = tokio::spawn(async move {
             let conn = connect_async(ws_url).await;
             if let Ok((mut ws_stream, _)) = conn {
@@ -246,7 +248,7 @@ struct Sender {
 }
 
 pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
-    if matches!(args.network.into(), Network::Holesky) {
+    if matches!(args.network.clone().into(), Network::Holesky) {
         error!("Network not supported this infinite proof sender");
         return;
     }
@@ -310,18 +312,20 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
     let max_fee = U256::from_dec_str(&args.max_fee).expect("Invalid max fee");
 
     let mut handles = vec![];
+    let network: Network = args.network.into();
     info!("Starting senders!");
     for (i, sender) in senders.iter().enumerate() {
-        // this is necessary because of the move
-        let batcher_url = args.batcher_url.clone();
         let wallet = sender.wallet.clone();
         let verification_data = verification_data.clone();
+        // this is necessary because of the move
+        let network_clone = network.clone();
 
         // a thread to send tasks from each loaded wallet:
         let handle = tokio::spawn(async move {
             loop {
+                let n = network_clone.clone();
                 let mut result = Vec::with_capacity(args.burst_size);
-                let nonce = get_nonce_from_batcher(&batcher_url, wallet.address())
+                let nonce = get_nonce_from_batcher(n.clone(), wallet.address())
                     .await
                     .inspect_err(|e| {
                         error!(
@@ -340,12 +344,11 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
 
                 info!(
                     "Sending {:?} Proofs to Aligned Batcher on {:?} from sender {}, nonce: {}, address: {:?}",
-                    args.burst_size, args.network, i, nonce, wallet.address(),
+                    args.burst_size, n.clone(), i, nonce, wallet.address(),
                 );
-                let batcher_url = batcher_url.clone();
 
                 let aligned_verification_data = submit_multiple(
-                    args.network.into(),
+                    n.clone().into(),
                     &verification_data_to_send.clone(),
                     max_fee,
                     wallet.clone(),

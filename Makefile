@@ -504,7 +504,6 @@ task_sender_send_infinite_proofs_devnet:
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
 	--eth-rpc-url http://localhost:8545 \
-	--batcher-url ws://localhost:8080 \
 	--network devnet \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
 	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
@@ -512,8 +511,8 @@ task_sender_send_infinite_proofs_devnet:
 task_sender_test_connections_devnet:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- test-connections \
-	--batcher-url ws://localhost:8080 \
-	--num-senders $(NUM_SENDERS)
+	--num-senders $(NUM_SENDERS) \
+	--network devnet
 
 # ===== HOLESKY-STAGE =====
 task_sender_generate_and_fund_wallets_holesky_stage:
@@ -532,7 +531,6 @@ task_sender_send_infinite_proofs_holesky_stage:
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
 	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
-	--batcher-url wss://stage.batcher.alignedlayer.com  \
 	--network holesky-stage \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
 	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
@@ -540,13 +538,14 @@ task_sender_send_infinite_proofs_holesky_stage:
 task_sender_test_connections_holesky_stage:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- test-connections \
-	--batcher-url wss://stage.batcher.alignedlayer.com \
-	--num-senders $(NUM_SENDERS)
+	--num-senders $(NUM_SENDERS) \
+	--network holesky-stage
 
 __UTILS__:
 aligned_get_user_balance_devnet:
 	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
-		--user_addr $(USER_ADDR)
+		--user_addr $(USER_ADDR) \
+		--network devnet
 
 aligned_get_user_balance_holesky:
 	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
