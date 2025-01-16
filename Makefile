@@ -190,7 +190,7 @@ operator_set_eigen_sdk_go_version_mainnet:
 	go get github.com/Layr-Labs/eigensdk-go@$(EIGEN_SDK_GO_VERSION_MAINNET)
 
 operator_set_eigen_sdk_go_version_error:
-	@echo "Error setting Eigen SDK version, missing ENVIRONMENT"
+	@echo "Error setting Eigen SDK version, missing ENVIRONMENT. Possible values for ENVIRONMENT=<devnet|testnet|mainnet>"
 	exit 1
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
