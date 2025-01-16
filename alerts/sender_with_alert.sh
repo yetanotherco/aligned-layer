@@ -90,9 +90,10 @@ do
   ## Generate Proof
   nonce=$(aligned get-user-nonce --batcher_url $BATCHER_URL --user_addr $SENDER_ADDRESS 2>&1 | awk '{print $9}')
   if ! [[ "$nonce" =~ ^[0-9]+$ ]]; then
-    echo "Failed getting nonce value, exiting"
+    echo "Failed getting user nonce, exiting"
     exit 1
   fi
+
   x=$((nonce + 1)) # So we don't have any issues with nonce = 0
   echo "Generating proof $x != 0, nonce: $nonce"
   go run ./scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $x
