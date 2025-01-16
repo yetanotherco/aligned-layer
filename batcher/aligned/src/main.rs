@@ -15,6 +15,7 @@ use aligned_sdk::sdk::get_nonce_from_batcher;
 use aligned_sdk::sdk::get_nonce_from_ethereum;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
+use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -120,14 +121,12 @@ pub struct SubmitArgs {
         default_value = "./aligned_verification_data/"
     )]
     batch_inclusion_data_directory_path: String,
-    #[arg(name = "Path to local keystore", long = "keystore_path")]
-    keystore_path: Option<PathBuf>,
-    #[arg(name = "Private key", long = "private_key")]
-    private_key: Option<String>,
+    #[command(flatten)]
+    private_key_type: PrivateKeyType,
     #[arg(
-        name = "Max Fee",
+        name = "Max Fee (ether)",
         long = "max_fee",
-        default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
+        default_value = "0.0013ether" // 13_000 gas per proof * 100 gwei gas price (upper bound)
     )]
     max_fee: String, // String because U256 expects hex
     #[arg(name = "Nonce", long = "nonce")]
@@ -144,17 +143,13 @@ pub struct SubmitArgs {
 #[command(version, about, long_about = None)]
 pub struct DepositToBatcherArgs {
     #[arg(
-        name = "Path to local keystore",
-        long = "keystore_path",
-        required = true
-    )]
-    keystore_path: Option<PathBuf>,
-    #[arg(
         name = "Ethereum RPC provider address",
         long = "rpc_url",
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
+    #[command(flatten)]
+    private_key_type: PrivateKeyType,
     #[arg(
         name = "The working network's name",
         long = "network",
@@ -287,11 +282,21 @@ pub struct GetUserNumberOfQueuedProofsArgs {
     batcher_url: String,
 }
 
+#[derive(Args, Debug)]
+#[group(required = true, multiple = false)]
+pub struct PrivateKeyType {
+    #[arg(name = "path_to_keystore", long = "keystore_path")]
+    keystore_path: Option<PathBuf>,
+    #[arg(name = "private_key", long = "private_key")]
+    private_key: Option<String>,
+}
+
 #[derive(Debug, Clone, ValueEnum, Copy)]
 enum NetworkArg {
     Devnet,
     Holesky,
     HoleskyStage,
+    Mainnet,
 }
 
 impl From<NetworkArg> for Network {
@@ -300,6 +305,7 @@ impl From<NetworkArg> for Network {
             NetworkArg::Devnet => Network::Devnet,
             NetworkArg::Holesky => Network::Holesky,
             NetworkArg::HoleskyStage => Network::HoleskyStage,
+            NetworkArg::Mainnet => Network::Mainnet,
         }
     }
 }
@@ -346,19 +352,22 @@ async fn main() -> Result<(), AlignedError> {
                 SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
             })?;
 
-            let max_fee =
-                U256::from_dec_str(&submit_args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
+            if !submit_args.max_fee.ends_with("ether") {
+                error!("`max_fee` should be in the format XX.XXether");
+                return Ok(());
+            }
+
+            let max_fee_ether = submit_args.max_fee.replace("ether", "");
+
+            let max_fee_wei: U256 = parse_ether(&max_fee_ether).map_err(|e| {
+                SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
+            })?;
 
             let repetitions = submit_args.repetitions;
             let connect_addr = submit_args.batcher_url.clone();
 
-            let keystore_path = &submit_args.keystore_path;
-            let private_key = &submit_args.private_key;
-
-            if keystore_path.is_some() && private_key.is_some() {
-                warn!("Can't have a keystore path and a private key as input. Please use only one");
-                return Ok(());
-            }
+            let keystore_path = &submit_args.private_key_type.keystore_path;
+            let private_key = &submit_args.private_key_type.private_key;
 
             let mut wallet = if let Some(keystore_path) = keystore_path {
                 let password = rpassword::prompt_password("Please enter your keystore password:")
@@ -370,7 +379,7 @@ async fn main() -> Result<(), AlignedError> {
                     .parse::<LocalWallet>()
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
-                warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
+                warn!("Missing keystore or private key used for payment. This proof will not be included if sent to Eth Mainnet");
                 match LocalWallet::from_str(ANVIL_PRIVATE_KEY) {
                     Ok(wallet) => wallet,
                     Err(e) => {
@@ -427,7 +436,7 @@ async fn main() -> Result<(), AlignedError> {
                 &connect_addr,
                 submit_args.network.into(),
                 &verification_data_arr,
-                max_fee,
+                max_fee_wei,
                 wallet.clone(),
                 nonce,
             )
@@ -512,13 +521,13 @@ async fn main() -> Result<(), AlignedError> {
         }
         DepositToBatcher(deposit_to_batcher_args) => {
             if !deposit_to_batcher_args.amount.ends_with("ether") {
-                error!("Amount should be in the format XX.XXether");
+                error!("`amount` should be in the format XX.XXether");
                 return Ok(());
             }
 
-            let amount = deposit_to_batcher_args.amount.replace("ether", "");
+            let amount_ether = deposit_to_batcher_args.amount.replace("ether", "");
 
-            let amount_ether = parse_ether(&amount).map_err(|e| {
+            let amount_wei = parse_ether(&amount_ether).map_err(|e| {
                 SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
             })?;
 
@@ -532,15 +541,20 @@ async fn main() -> Result<(), AlignedError> {
                     ))
                 })?;
 
-            let keystore_path = &deposit_to_batcher_args.keystore_path;
+            let keystore_path = &deposit_to_batcher_args.private_key_type.keystore_path;
+            let private_key = &deposit_to_batcher_args.private_key_type.private_key;
 
             let mut wallet = if let Some(keystore_path) = keystore_path {
                 let password = rpassword::prompt_password("Please enter your keystore password:")
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?;
                 Wallet::decrypt_keystore(keystore_path, password)
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?
+            } else if let Some(private_key) = private_key {
+                private_key
+                    .parse::<LocalWallet>()
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
-                warn!("Missing keystore used for payment.");
+                warn!("Missing keystore or private key used for payment.");
                 return Ok(());
             };
 
@@ -549,7 +563,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            match deposit_to_aligned(amount_ether, client, deposit_to_batcher_args.network.into())
+            match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network.into())
                 .await
             {
                 Ok(receipt) => {

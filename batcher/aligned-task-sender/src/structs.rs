@@ -155,6 +155,7 @@ pub enum NetworkArg {
     Devnet,
     Holesky,
     HoleskyStage,
+    Mainnet,
 }
 
 impl From<NetworkArg> for Network {
@@ -163,6 +164,7 @@ impl From<NetworkArg> for Network {
             NetworkArg::Devnet => Network::Devnet,
             NetworkArg::Holesky => Network::Holesky,
             NetworkArg::HoleskyStage => Network::HoleskyStage,
+            NetworkArg::Mainnet => Network::Mainnet,
         }
     }
 }
