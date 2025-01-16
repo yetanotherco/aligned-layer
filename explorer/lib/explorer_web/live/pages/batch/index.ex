@@ -2,6 +2,21 @@ defmodule ExplorerWeb.Batch.Index do
   require Logger
   use ExplorerWeb, :live_view
 
+  defp set_empty_values(socket) do
+    Logger.info("Setting empty values")
+
+    socket
+    |> assign(
+      merkle_root: :empty,
+      current_batch: :empty,
+      newBatchInfo: :empty,
+      batchWasResponded: :empty,
+      proof_hashes: :empty,
+      proofs: :empty,
+      eth_usd_price: :empty
+    )
+  end
+
   @impl true
   def mount(%{"merkle_root" => merkle_root}, _, socket) do
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
@@ -12,13 +27,16 @@ defmodule ExplorerWeb.Batch.Index do
           :empty
 
         %Batches{fee_per_proof: fee_per_proof} = batch ->
-          {_, fee_per_proof_usd} = EthConverter.wei_to_usd(fee_per_proof)
+          {_, fee_per_proof_usd} = EthConverter.wei_to_usd_sf(fee_per_proof, 2)
 
           %{
             batch
             | fee_per_proof: EthConverter.wei_to_eth(fee_per_proof)
           }
-          |> Map.put(:fee_per_proof_usd, fee_per_proof_usd)
+          |> Map.merge(%{
+            fee_per_proof_usd: fee_per_proof_usd,
+            status: batch |> Helpers.get_batch_status
+          })
       end
 
     {
@@ -35,16 +53,9 @@ defmodule ExplorerWeb.Batch.Index do
   rescue
     _ ->
       {:ok,
-       socket
-       |> assign(
-         merkle_root: :empty,
-         current_batch: :empty,
-         newBatchInfo: :empty,
-         batchWasResponded: :empty,
-         proof_hashes: :empty,
-         proofs: :empty,
-         eth_usd_price: :empty
-       )}
+        set_empty_values(socket)
+        |> put_flash(:error, "Something went wrong, please try again later.")
+    }
   end
 
   @impl true
@@ -55,13 +66,16 @@ defmodule ExplorerWeb.Batch.Index do
           :empty
 
         %{fee_per_proof: fee_per_proof} = batch ->
-          {_, fee_per_proof_usd} = EthConverter.wei_to_usd(fee_per_proof)
+          {_, fee_per_proof_usd} = EthConverter.wei_to_usd_sf(fee_per_proof, 2)
 
           %{
             batch
             | fee_per_proof: EthConverter.wei_to_eth(fee_per_proof)
           }
-          |> Map.put(:fee_per_proof_usd, fee_per_proof_usd)
+          |> Map.merge(%{
+            fee_per_proof_usd: fee_per_proof_usd,
+            status: batch |> Helpers.get_batch_status
+          })
 
       end
 

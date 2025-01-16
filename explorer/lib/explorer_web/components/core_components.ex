@@ -305,19 +305,23 @@ defmodule ExplorerWeb.CoreComponents do
   """
   attr(:class, :string, default: nil)
   attr(:title, :string, default: nil)
+  attr(:subtitle, :string, default: nil)
   attr(:inner_class, :string, default: nil)
-
+  attr(:header_container_class, :string, default: nil)
   slot(:inner_block, default: nil)
 
   def card(assigns) do
     ~H"""
-    <.card_background class={@class}>
-      <h2 class="font-medium text-muted-foreground capitalize">
-        <%= @title %>
-      </h2>
-      <span class={classes(["text-4xl font-bold slashed-zero", @inner_class])}>
+    <.card_background class={classes(["px-10 py-8", @class])}>
+      <div class={classes(["mb-6", @header_container_class])}>
+        <h2 class="text-2xl mb-1 text-foreground font-bold">
+          <%= @title %>
+        </h2>
+        <p class="text-md text-muted-foreground"><%= @subtitle %></p>
+      </div>
+      <div class={classes(["w-full", @inner_class])}>
         <%= render_slot(@inner_block) %>
-      </span>
+      </div>
     </.card_background>
     """
   end
@@ -473,6 +477,7 @@ defmodule ExplorerWeb.CoreComponents do
           :invalid -> "destructive"
           :verified -> "accent"
           :pending -> "foreground"
+          :stale -> "destructive"
         end
       }
       class={
@@ -485,9 +490,92 @@ defmodule ExplorerWeb.CoreComponents do
         :invalid -> "Invalid"
         :verified -> "Verified"
         :pending -> "Pending"
+        :stale -> "Unverified"
       end %>
       <%= render_slot(@inner_block) %>
     </.badge>
+    """
+  end
+
+  @doc """
+    Renders a selector dropdown on hover component with buttons that trigger actions on click.
+
+    The selector allows you to display a list of options and enables the user to select a value by clicking on a button.
+    The component supports different styling variants, and the current selected value can be displayed as part of the selector.
+
+    ## Attributes
+
+    - `:class` (optional, :string) - Additional custom CSS classes to apply to the outermost div container.
+
+    - `:variant` (optional, :string, default: "accent") - The style variant of the selector.
+    - `:current_value` (required, :string) - The current value being displayed in the selector. This is usually the name of the currently selected option.
+    - `:icon` (required, :string) - The icon to show on small devices instead of `current_value`.
+    - `:options` (required, :list of tuples) - A list of options to render. Each option is a tuple containing:
+      - `name`: The display name of the option (string).
+      - `on_click`: The JavaScript `onclick` action to trigger when the option is clicked (string).
+  """
+  attr(:class, :string, default: nil)
+  attr(:variant, :string, default: "accent")
+  attr(:current_value, :list, doc: "the current selector value")
+  attr(:options, :string, doc: "the options to render")
+  attr(:icon, :string, doc: "hero icon to render on small devices")
+
+  def hover_dropdown_selector(assigns) do
+    ~H"""
+    <div class={
+      classes([
+        "px-3 py-1 rounded-full font-semibold relative group",
+        case @variant do
+          "accent" ->
+            "color-accent text-accent-foreground bg-accent group-hover:bg-accent/80"
+
+          "primary" ->
+            "color-primary text-primary-foreground bg-primary group-hover:bg-primary/80"
+
+          "secondary" ->
+            "color-secondary text-secondary-foreground bg-secondary group-hover:bg-secondary/80"
+
+          "destructive" ->
+            "color-destructive text-destructive-foreground bg-destructive group-hover:bg-destructive/80"
+
+          "foreground" ->
+            "color-foreground text-background bg-foreground group-hover:bg-foreground/80"
+
+          "card" ->
+            "color-card text-card-foreground bg-card group-hover:bg-card/80"
+
+          _ ->
+            "color-accent text-accent-foreground bg-accent group-hover:bg-accent/80"
+        end,
+        @class
+      ])
+    }>
+      <.icon name={@icon} class="h-5 w-5 hidden max-md:block" />
+      <p class="pointer hidden md:block"><%= @current_value %></p>
+      <div
+        class="hidden absolute w-full right-0 group-hover:block hidden pt-3"
+        style="min-width: 100px;"
+      >
+        <div class="w-full bg-card border border-muted-foreground/30 rounded-lg">
+          <%= for {value, on_click} <- @options do %>
+            <button
+              class={
+                classes([
+                  "text-card-foreground w-full rounded-lg p-4 text-center hover:bg-accent",
+                  case @current_value do
+                    ^value -> "text-accent hover:text-accent-foreground"
+                    _ -> ""
+                  end
+                ])
+              }
+              onclick={on_click}
+            >
+              <%= value %>
+            </button>
+          <% end %>
+        </div>
+      </div>
+    </div>
     """
   end
 
@@ -713,6 +801,7 @@ defmodule ExplorerWeb.CoreComponents do
   attr(:rows, :list, required: true)
   attr(:row_id, :any, default: nil, doc: "the function for generating the row id")
   attr(:row_click, :any, default: nil, doc: "the function for handling phx-click on each row")
+  attr(:class, :any, default: nil, doc: "css class attributes for the card background")
 
   attr(:row_item, :any,
     default: &Function.identity/1,
@@ -733,56 +822,46 @@ defmodule ExplorerWeb.CoreComponents do
       end
 
     ~H"""
-    <.card_background class="overflow-x-auto">
-      <table class="table-auto border-collapse w-full">
-        <thead>
-          <tr class="text-muted-foreground font-normal truncate">
-            <th
-              :for={{col, i} <- Enum.with_index(@col)}
-              class={classes(["pr-4", i == 0 && "text-left", i != 0 && "text-center"])}
-            >
-              <%= col[:label] %>
-            </th>
-            <th :if={@action != []} class="p-0 pb-4">
-              <span class="sr-only"><%= gettext("Actions") %></span>
-            </th>
-          </tr>
-        </thead>
-        <tbody id={@id} phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}>
-          <tr
-            :for={row <- @rows}
-            id={@row_id && @row_id.(row)}
-            class="gap-y-2 [&>td]:pt-3 animate-in fade-in-0 duration-700 truncate"
+    <table class="table-auto border-collapse w-full">
+      <thead>
+        <tr class="text-muted-foreground truncate">
+          <th :for={{col, _i} <- Enum.with_index(@col)} class="text-left font-normal pb-5">
+            <%= col[:label] %>
+          </th>
+          <th :if={@action != []} class="p-0 pb-4">
+            <span class="sr-only"><%= gettext("Actions") %></span>
+          </th>
+        </tr>
+      </thead>
+      <tbody id={@id} phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}>
+        <tr
+          :for={row <- @rows}
+          id={@row_id && @row_id.(row)}
+          class="gap-y-2 [&>td]:pb-4 animate-in fade-in-0 duration-700 truncate"
+        >
+          <td
+            :for={{col, _i} <- Enum.with_index(@col)}
+            phx-click={@row_click && @row_click.(row)}
+            class={classes(["p-0 pr-10", @row_click && "hover:cursor-pointer"])}
           >
-            <td
-              :for={{col, _i} <- Enum.with_index(@col)}
-              phx-click={@row_click && @row_click.(row)}
-              class={classes(["p-0", @row_click && "hover:cursor-pointer"])}
-            >
-              <div class={
-                classes([
-                  "group block normal-case font-medium text-base min-w-28",
-                  col[:class] != nil && col[:class],
-                  col[:class] == nil && "text-center font-semibold"
-                ])
-              }>
-                <%= render_slot(col, @row_item.(row)) %>
-              </div>
-            </td>
-            <td :if={@action != []} class="w-14 p-0">
-              <div class="whitespace-nowrap py-4 text-right text-sm font-medium">
-                <span
-                  :for={action <- @action}
-                  class="ml-4 font-semibold leading-6 text-muted-foreground"
-                >
-                  <%= render_slot(action, @row_item.(row)) %>
-                </span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </.card_background>
+            <div class={
+              classes([
+                "group block normal-case  text-base min-w-28"
+              ])
+            }>
+              <%= render_slot(col, @row_item.(row)) %>
+            </div>
+          </td>
+          <td :if={@action != []} class="w-14 p-0">
+            <div class="whitespace-nowrap py-4 text-left text-sm">
+              <span :for={action <- @action} class="ml-4 leading-6 text-muted-foreground">
+                <%= render_slot(action, @row_item.(row)) %>
+              </span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
     """
   end
 

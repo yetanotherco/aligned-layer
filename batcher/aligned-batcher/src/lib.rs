@@ -16,6 +16,7 @@ use tokio::time::{timeout, Instant};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
+use batch_queue::calculate_batch_size;
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
@@ -1043,10 +1044,13 @@ impl Batcher {
             BatchQueueEntryPriority::new(max_fee, nonce),
         );
 
-        info!(
-            "Current batch queue length: {}",
-            batch_state_lock.batch_queue.len()
-        );
+        // Update metrics
+        let queue_len = batch_state_lock.batch_queue.len();
+        let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+        self.metrics
+            .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
+
+        info!("Current batch queue length: {}", queue_len);
 
         let mut proof_submitter_addr = proof_submitter_addr;
 
@@ -1226,6 +1230,13 @@ impl Batcher {
                 ))?;
         }
 
+        // Update metrics
+        let queue_len = batch_state_lock.batch_queue.len();
+        let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+
+        self.metrics
+            .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
+
         Ok(())
     }
 
@@ -1373,6 +1384,8 @@ impl Batcher {
         batch_state_lock
             .user_states
             .insert(nonpaying_replacement_addr, nonpaying_user_state);
+
+        self.metrics.update_queue_metrics(0, 0);
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
@@ -1557,6 +1570,10 @@ impl Batcher {
                 {
                     warn!("Failed to send task status to telemetry: {:?}", e);
                 }
+                let gas_cost = Self::gas_cost_in_eth(receipt.effective_gas_price, receipt.gas_used);
+                self.metrics
+                    .batcher_gas_cost_create_task_total
+                    .inc_by(gas_cost);
                 Ok(receipt)
             }
             Err(RetryError::Permanent(BatcherError::ReceiptNotFoundError)) => {
@@ -1646,12 +1663,38 @@ impl Batcher {
         )
         .await
         {
-            Ok(_) => info!("createNewTask transaction successfully canceled"),
+            Ok(receipt) => {
+                info!("createNewTask transaction successfully canceled");
+                let gas_cost = Self::gas_cost_in_eth(receipt.effective_gas_price, receipt.gas_used);
+                self.metrics
+                    .batcher_gas_cost_cancel_task_total
+                    .inc_by(gas_cost);
+            }
             Err(e) => error!("Could not cancel createNewTask transaction: {e}"),
         };
         self.metrics
             .cancel_create_new_task_duration
             .set(start.elapsed().as_millis() as i64);
+    }
+
+    fn gas_cost_in_eth(gas_price: Option<U256>, gas_used: Option<U256>) -> f64 {
+        if let (Some(gas_price), Some(gas_used)) = (gas_price, gas_used) {
+            let wei_gas_cost = gas_price
+                .checked_mul(gas_used)
+                .unwrap_or_else(U256::max_value);
+
+            // f64 is typically sufficient for transaction gas costs.
+            let max_f64_u256 = U256::from(f64::MAX as u64);
+            if wei_gas_cost > max_f64_u256 {
+                return f64::MAX;
+            }
+
+            let wei_gas_cost_f64 = wei_gas_cost.low_u128() as f64;
+            let eth_gas_cost = wei_gas_cost_f64 / 1e18;
+
+            return eth_gas_cost;
+        }
+        0.0
     }
 
     /// Only relevant for testing and for users to easily use Aligned
