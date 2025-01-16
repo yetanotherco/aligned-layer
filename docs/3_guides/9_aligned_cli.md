@@ -194,7 +194,7 @@ Retrieves the user's balance in the Aligned Layer's contract.
   - Mainnet: `https://ethereum-rpc.publicnode.com`
   - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
-- **`--user_addr`**: User's Ethereum address.
+- `--user_addr`: User's Ethereum address.
 
 #### Example:
 ```bash
@@ -206,27 +206,67 @@ aligned get-user-balance \
 
 ---
 
-### **get-user-nonce**
+### **get-user-nonce-from-ethereum**
 
 
 #### Description:
 
-Retrieves the user's current nonce from the batcher.
+Retrieves the user's current nonce from the Blockhain, in the Batcher Payment Service Contract.
 
 #### Command:
 
-`get-user-nonce [OPTIONS] --user_addr <user_ethereum_address>`
+`get-user-nonce-from-ethereum [OPTIONS] --user_addr <user_ethereum_address>`
 
 #### Options:
-- **`--batcher_url`**: Websocket URL for the Aligned Layer batcher.  
-  - Default: `ws://localhost:8080`
-  - Mainnet: `wss://mainnet.batcher.alignedlayer.com`
-  - Holesky: `wss://batcher.alignedlayer.com`
 - `--user_addr <user_address>`: User's Ethereum address.
+- `--network <working_network_name>`: Network name to interact with.  
+  - Default: `devnet`  
+  - Possible values: `devnet`, `holesky`, `mainnet`
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
 
 #### Example:
 ```bash
-aligned get-user-nonce \
+aligned get-user-nonce-from-ethereum \
 --user_addr <USER_ETH_ADDRESS> \
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
+```
+
+---
+
+### **get-user-amount-of-queued-proofs**
+
+#### Description:
+
+Retrieves the user's amount of queued proofs in the Batcher.
+
+#### Command:
+
+`get-user-amount-of-queued-proofs [OPTIONS] --user_addr <user_ethereum_address>`
+
+#### Options:
+- `--user_addr <user_address>`: User's Ethereum address.
+- `--network <working_network_name>`: Network name to interact with.  
+  - Default: `devnet`  
+  - Possible values: `devnet`, `holesky`, `mainnet`
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- `--batcher_url <batcher_connection_address>`: Websocket URL for the Aligned Layer batcher  
+  - Default: `ws://localhost:8080`  
+  - Mainnet: `wss://mainnet.batcher.alignedlayer.com`
+  - Holesky: `wss://batcher.alignedlayer.com`
+
+#### Example:
+```bash
+aligned get-user-amount-of-queued-proofs  \
+--user_addr <USER_ETH_ADDRESS> \
+--network holesky \
 --batcher_url wss://batcher.alignedlayer.com
 ```
