@@ -30,10 +30,10 @@ use log::{error, info};
 use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
+use crate::AlignedCommands::GetUserAmountOfQueuedProofs;
 use crate::AlignedCommands::GetUserBalance;
 use crate::AlignedCommands::GetUserNonce;
 use crate::AlignedCommands::GetUserNonceFromEthereum;
-use crate::AlignedCommands::GetUserAmountOfQueuedProofs;
 use crate::AlignedCommands::GetVkCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
