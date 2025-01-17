@@ -71,9 +71,15 @@ Submit a proof to the Aligned Layer batcher.
   - Default: `0.0013ether`
 - `--nonce <n>`: Proof nonce.
   - By default, the nonce is set automatically. By setting the nonce manually, you can perform a proof replacement.
-- `--network <working_network_name>`: Network name to interact with.  
-  - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `mainnet`
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `holesky`, `mainnet`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+
 
 #### Example:
 ```bash
@@ -108,9 +114,14 @@ Check if a proof was verified by Aligned on Ethereum.
   - Mainnet: `https://ethereum-rpc.publicnode.com`
   - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
-- `--network <working_network_name>`: Network name to interact with.  
-  - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `mainnet`
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `holesky`, `mainnet`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
 
 #### Example:
 ```bash
@@ -158,10 +169,15 @@ Deposits Ethereum into the Aligned Layer's `BatcherPaymentService.sol` contract.
   - Mainnet: `https://ethereum-rpc.publicnode.com`
   - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
-- `--network <working_network_name>`: Network name to interact with.  
-  - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `mainnet`
 - `--amount <amount (ether)>`: Amount of Ether to deposit.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `holesky`, `mainnet`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
   
 #### Example:
 ```bash
@@ -186,9 +202,14 @@ Retrieves the user's balance in the Aligned Layer's contract.
 
 
 #### Options:
-- `--network <working_network_name>`: Network name to interact with.  
-  - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `mainnet`
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `holesky`, `mainnet`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
@@ -219,9 +240,14 @@ Retrieves the user's current nonce from the Blockhain, in the Batcher Payment Se
 
 #### Options:
 - `--user_addr <user_address>`: User's Ethereum address.
-- `--network <working_network_name>`: Network name to interact with.  
-  - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `mainnet`
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `holesky`, `mainnet`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
