@@ -457,9 +457,6 @@ async fn _is_proof_verified(
     let contract_address = network.clone().get_aligned_service_manager_address();
     let payment_service_addr = network.get_batcher_payment_service_address();
 
-    info!("contract_address: {}", contract_address);
-    info!("payment_service_addr: {}", payment_service_addr);
-
     // All the elements from the merkle proof have to be concatenated
     let merkle_proof: Vec<u8> = aligned_verification_data
         .batch_inclusion_proof
