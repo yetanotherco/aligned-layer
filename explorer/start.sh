@@ -17,6 +17,7 @@ env_vars=(
   "MAX_BATCH_SIZE"
   "BATCH_TTL_MINUTES"
   "SCHEDULED_BATCH_INTERVAL_MINUTES"
+  "LATEST_RELEASE"
 )
 
 for var in "${env_vars[@]}"; do

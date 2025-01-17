@@ -7,7 +7,7 @@ use crate::{
     },
     core::{
         constants::{
-            ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
+            ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, DEFAULT_CONSTANT_GAS_COST,
             MAX_FEE_BATCH_PROOF_NUMBER, MAX_FEE_DEFAULT_PROOF_NUMBER,
         },
         errors::{self, GetNonceError},
@@ -191,7 +191,7 @@ pub async fn fee_per_proof(
     let gas_price = fetch_gas_price(&eth_rpc_provider).await?;
 
     // Cost for estimate `num_proofs_per_batch` proofs
-    let estimated_gas_per_proof = (CONSTANT_GAS_COST
+    let estimated_gas_per_proof = (DEFAULT_CONSTANT_GAS_COST
         + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_per_batch as u128)
         / num_proofs_per_batch as u128;
 
@@ -284,7 +284,7 @@ pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {
 
 pub fn get_aligned_service_manager_address(network: Network) -> ethers::types::H160 {
     match network {
-        Network::Devnet => H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap(),
+        Network::Devnet => H160::from_str("0x851356ae760d987E095750cCeb3bC6014560891C").unwrap(),
         Network::Holesky => H160::from_str("0x58F280BeBE9B34c9939C3C39e0890C81f163B623").unwrap(),
         Network::HoleskyStage => {
             H160::from_str("0x9C5231FC88059C086Ea95712d105A2026048c39B").unwrap()
