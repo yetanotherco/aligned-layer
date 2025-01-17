@@ -1060,12 +1060,14 @@ docker_verify_proof_submission_success:
 			sleep $(DOCKER_PROOFS_WAIT_TIME); \
 			for proof in ./aligned_verification_data/*.cbor; do \
 				echo "Verifying proof $${proof} \n"; \
+				cat $${proof};
 				verification=$$(aligned verify-proof-onchain \
 									--aligned-verification-data $${proof} \
 									--rpc_url $$(echo $(DOCKER_RPC_URL)) 2>&1); \
 				if echo "$$verification" | grep -q not; then \
 					echo "ERROR: Proof verification failed for $${proof}"; \
-					echo "With error: $$verification"; \
+					echo "With error:"; \
+					echo "$$verification"; \
 					exit 1; \
 				elif echo "$$verification" | grep -q verified; then \
 					echo "Proof verification succeeded for $${proof}"; \
