@@ -1516,7 +1516,7 @@ impl Batcher {
             }
             Err(e) => {
                 error!(
-                    "Failed to send batch to contract, batch will be lost: {:?}",
+                    "Failed to send batch to contract: {:?}",
                     e
                 );
 
