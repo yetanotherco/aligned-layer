@@ -1065,6 +1065,7 @@ docker_verify_proof_submission_success:
 									--rpc_url $$(echo $(DOCKER_RPC_URL)) 2>&1); \
 				if echo "$$verification" | grep -q not; then \
 					echo "ERROR: Proof verification failed for $${proof}"; \
+					echo "With error: $$verification"; \
 					exit 1; \
 				elif echo "$$verification" | grep -q verified; then \
 					echo "Proof verification succeeded for $${proof}"; \
