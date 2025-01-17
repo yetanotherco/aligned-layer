@@ -85,6 +85,10 @@ function send_slack_message() {
 while true
 do
 
+  ## Remove Proof Data
+  rm -rf ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/*
+  rm -rf ./aligned_verification_data/*
+
   mkdir -p ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 
   ## Generate Proof
