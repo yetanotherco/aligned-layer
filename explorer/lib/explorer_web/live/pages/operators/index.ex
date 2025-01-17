@@ -54,46 +54,54 @@ defmodule ExplorerWeb.Operators.Index do
         operators_registered={@operators_registered}
       />
       <%= if @operators != [] do %>
-        <.table id="operators" rows={@operators}>
-          <:col :let={operator} label="Name" class="[animation-delay: 3s]">
-            <.link navigate={~p"/operators/#{operator.address}"} class="flex gap-x-2">
-              <span class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80">
-                <img
-                  src={operator.logo_link}
-                  alt={operator.name}
-                  class="rounded-full size-5 object-scale-down"
-                />
-                <span>
-                  <%= operator.name %>
-                  <%= if @operator_versions[operator.address] != nil do %>
-                    <.badge class="text-xs px-1.5" variant="secondary">
-                      <%= @operator_versions[operator.address] %>
-                    </.badge>
-                  <% end %>
+        <.card_background class="overflow-x-auto">
+          <.table id="operators" rows={@operators}>
+            <:col :let={operator} label="Name" class="[animation-delay: 3s]">
+              <.link navigate={~p"/operators/#{operator.address}"} class="flex gap-x-2">
+                <span class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80">
+                  <img
+                    src={operator.logo_link}
+                    alt={operator.name}
+                    class="rounded-full size-5 object-scale-down"
+                  />
+                  <span>
+                    <%= operator.name %>
+                    <%= if @operator_versions[operator.address] != nil do %>
+                      <.badge class="text-xs px-1.5" variant="secondary">
+                        <%= @operator_versions[operator.address] %>
+                      </.badge>
+                    <% end %>
+                  </span>
+                  <.right_arrow />
+                  <.tooltip class="py-2 px-2.5 rounded-2xl">
+                    <span class="font-semibold text-muted-foreground">Id:</span> <%= operator.id
+                    |> Helpers.binary_to_hex_string() %>
+                    <br />
+                    <span class="font-semibold text-muted-foreground">Address:</span> <%= operator.address %>
+                  </.tooltip>
                 </span>
-                <.right_arrow />
-                <.tooltip class="py-2 px-2.5 rounded-2xl">
-                  <span class="font-semibold text-muted-foreground">Id:</span> <%= operator.id
-                  |> Helpers.binary_to_hex_string() %>
-                  <br />
-                  <span class="font-semibold text-muted-foreground">Address:</span> <%= operator.address %>
-                </.tooltip>
-              </span>
-            </.link>
-          </:col>
-          <:col :let={operator} label="Restake Concentration">
-            <%= operator.weight |> Numbers.show_percentage() %>
-          </:col>
-          <:col :let={operator} label="Total Restaked">
-            <div class="flex flex-col">
-              <p><%= operator.total_stake_usd |> Helpers.format_number() %> USD</p>
-              <p class="text-gray-500 font-normal"><%= operator.total_stake_eth |> Helpers.format_number() %> ETH</p>
-            </div>
-          </:col>
-          <:col :let={operator} label="Status">
-            <.dynamic_badge_boolean status={operator.is_active} truthy_text="Active" falsy_text="Inactive" />
-          </:col>
-        </.table>
+              </.link>
+            </:col>
+            <:col :let={operator} label="Restake Concentration">
+              <%= operator.weight |> Numbers.show_percentage() %>
+            </:col>
+            <:col :let={operator} label="Total Restaked">
+              <div class="flex flex-col">
+                <p><%= operator.total_stake_usd |> Helpers.format_number() %> USD</p>
+                <p class="text-gray-500 font-normal">
+                  <%= operator.total_stake_eth |> Helpers.format_number() %> ETH
+                </p>
+              </div>
+            </:col>
+            <:col :let={operator} label="Status">
+              <.dynamic_badge_boolean
+                status={operator.is_active}
+                truthy_text="Active"
+                falsy_text="Inactive"
+              />
+            </:col>
+          </.table>
+        </.card_background>
       <% else %>
         <.empty_card_background text="No operators found." />
       <% end %>

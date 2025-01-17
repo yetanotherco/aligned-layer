@@ -33,6 +33,8 @@
 * [Generating & submitting proofs of Rust code with ZKRust](3_guides/5_using_zkrust.md)
 * [Setup Aligned Infrastructure Locally](3_guides/6_setup_aligned.md)
 * [Contract Addresses](3_guides/7_contract_addresses.md)
+* [Submitting Batch Without Batcher](3_guides/8_submitting_batch_without_batcher.md)
+* [Aligned CLI](3_guides/9_aligned_cli.md)
 
 ## Operators
 
@@ -45,6 +47,8 @@
 
 ## Useful links
 
+* [Mainnet Explorer](https://explorer.alignedlayer.com)
+* [Holesky Explorer](https://holesky.explorer.alignedlayer.com)
 * [All the proof aggregation solutions will use RISC-V zkvms](https://blog.alignedlayer.com/all-the-proof-aggregation-solutions-will-use-risc-v-zkvms/)
 * [Manifesto](https://blog.alignedlayer.com/aligned-manifesto/)
 
