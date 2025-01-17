@@ -1522,10 +1522,7 @@ impl Batcher {
                 Ok(())
             }
             Err(e) => {
-                error!(
-                    "Failed to send batch to contract: {:?}",
-                    e
-                );
+                error!("Failed to send batch to contract: {:?}", e);
 
                 self.metrics.reverted_batches.inc();
                 Err(e)
