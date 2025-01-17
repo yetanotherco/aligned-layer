@@ -1053,6 +1053,11 @@ docker_verify_proof_submission_success:
 					exit 1; \
 				elif echo "$$verification" | grep -q verified; then \
 					echo "Proof verification succeeded for $${proof}"; \
+				else \
+					echo "WARNING: Unexpected verification result for $${proof}"; \
+					echo "Output:"; \
+					echo "$$verification"; \
+					exit 1; \
 				fi; \
 				echo "---------------------------------------------------------------------------------------------------"; \
 			done; \
