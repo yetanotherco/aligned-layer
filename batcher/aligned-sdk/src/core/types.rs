@@ -2,6 +2,7 @@ use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::str::FromStr;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use ethers::core::k256::ecdsa::SigningKey;
 use ethers::signers::Signer;
@@ -231,6 +232,8 @@ pub enum ClientMessage {
     // Needs to be wrapped in box as the message is 3x bigger than the others
     // see https://rust-lang.github.io/rust-clippy/master/index.html#large_enum_variant
     SubmitProof(Box<SubmitProofMessage>),
+    // BumpFee(BumpUnit, U256, usize), // BumpUnit, value, proof_qty
+    BumpFee(BumpFeeMessage), // BumpUnit, value, proof_qty
 }
 
 impl Display for ClientMessage {
@@ -239,6 +242,7 @@ impl Display for ClientMessage {
         match self {
             ClientMessage::GetNonceForAddress(_) => write!(f, "GetNonceForAddress"),
             ClientMessage::SubmitProof(_) => write!(f, "SubmitProof"),
+            ClientMessage::BumpFee(_, _, _) => write!(f, "BumpFee"),
         }
     }
 }
@@ -394,6 +398,86 @@ pub enum GetNonceResponseMessage {
     Nonce(U256),
     EthRpcError(String),
     InvalidRequest(String),
+}
+
+pub struct BumpFeeMessage {
+    pub conent: BumpFeeMessageContent,
+    pub signature: Signature,
+}
+
+pub struct BumpFeeMessageContent {
+    pub bump_unit: BumpUnit,
+    pub value: U256,
+    pub proof_qty: usize,
+    pub timestamp: u64,
+}
+
+impl EIP712 for BumpFeeMessageContent {
+    type Error = Eip712Error;
+    fn domain(&self) -> Result<EIP712Domain, Self::Error> {
+        Ok(EIP712Domain {
+            name: Some("Aligned".into()),
+            version: Some("1".into()),
+            chain_id: Some(self.chain_id),
+            verifying_contract: Some("0x00"),
+            salt: None,
+        })
+    }
+    fn type_hash() -> Result<[u8; 32], Self::Error> {
+        let mut hasher = Keccak256::new();
+        hasher.update(NONCED_VERIFICATION_DATA_TYPE);
+        Ok(hasher.finalize().into())
+    }
+
+    pub fn new(bump_unit: BumpUnit, value: U256, proof_qty: usize) -> Self {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards");
+        let timestamp = now.as_secs(); // Seconds since UNIX_EPOCH
+
+        Self {
+            bump_unit,
+            value,
+            proof_qty,
+            timestamp,
+        }
+    }
+}
+
+impl BumpFeeMessage {
+    pub fn new(
+        bump_unit: BumpUnit,
+        value: U256,
+        proof_qty: usize,
+        wallet: Wallet<SigningKey>
+    ) -> Self {
+        let signature = wallet.sign_typed_data(&BumpFeeMessageContent::new(bump_unit, value, proof_qty)).unwrap();
+
+        Self {
+            bump_unit,
+            value,
+            proof_qty,
+            timestamp,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum BumpFeeResponseMessage {
+    Ok(),
+    EthRpcError(String),
+    InvalidRequest(String),
+    InvalidBumpUnit,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum BumpUnit {
+    Percentage,
+    Wei,
+    Gwei,
+    Eth,
+    NewMaxFee,
+    BatchSize,
 }
 
 #[derive(Debug, Clone, Copy)]

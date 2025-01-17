@@ -8,11 +8,11 @@ use crate::{
         retry_function,
     },
 };
-use aligned_sdk::core::constants::{
+use aligned_sdk::core::{constants::{
     ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
     ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_INCREMENT_PERCENTAGE_PER_ITERATION,
     OVERRIDE_GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
-};
+}, errors::BumpError, types::BumpUnit};
 use ethers::prelude::*;
 use ethers::providers::{Http, Provider};
 use log::error;
@@ -103,6 +103,40 @@ pub async fn get_gas_price(
         e.inner()
     })
 }
+
+pub async fn calculate_bumped_proof_cost(
+    current_gas_price: U256,
+    bump_unit: BumpUnit,
+    amount: U256,
+) -> Result<U256, BumpError> {
+    let new_max_fee = match bump_unit {
+        BumpUnit::NewMaxFee => {
+            amount
+        }
+        BumpUnit::Wei => {
+            current_gas_price + amount
+        }
+        BumpUnit::Gwei => {
+            current_gas_price + (amount * U256::from(1_000_000_000))
+        }
+        BumpUnit::Eth => {
+            current_gas_price + (amount * U256::from(1_000_000_000_000_000_000))
+        }
+        BumpUnit::Percentage => {
+            current_gas_price + (current_gas_price * amount / U256::from(PERCENTAGE_DIVIDER))
+        }
+        // TODO once Pats pr is done:
+        // BumpUnit::BatchSize => {
+
+        // }
+        _ => {
+            warn!("Invalid bump unit: {bump_unit:?}");
+            return Err(BumpError::InvalidBumpUnit);
+        }
+    };
+    Ok(new_max_fee)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
