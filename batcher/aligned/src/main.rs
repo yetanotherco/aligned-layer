@@ -220,11 +220,7 @@ pub struct GetUserNonceFromEthereumArgs {
         required = true
     )]
     address: String,
-    #[arg(
-        name = "The working network's name",
-        long = "network",
-        default_value = "devnet"
-    )]
+    #[clap(flatten)]
     network: NetworkArg,
 }
 
@@ -243,18 +239,8 @@ pub struct GetUserAmountOfQueuedProofsArgs {
         required = true
     )]
     address: String,
-    #[arg(
-        name = "The working network's name",
-        long = "network",
-        default_value = "devnet"
-    )]
+    #[clap(flatten)]
     network: NetworkArg,
-    #[arg(
-        name = "Batcher connection address",
-        long = "batcher_url",
-        default_value = "ws://localhost:8080"
-    )]
-    batcher_url: String,
 }
 
 #[derive(Args, Debug)]
@@ -672,10 +658,10 @@ async fn main() -> Result<(), AlignedError> {
         }
         GetUserAmountOfQueuedProofs(args) => {
             let address = H160::from_str(&args.address).unwrap();
-            let network = args.network.into();
+            let network: Network = args.network.into();
             let Ok((ethereum_nonce, batcher_nonce)) = future::try_join(
-                get_nonce_from_ethereum(&args.eth_rpc_url, address, network),
-                get_nonce_from_batcher(&args.batcher_url, address),
+                get_nonce_from_ethereum(&args.eth_rpc_url, address, network.clone()),
+                get_nonce_from_batcher(network, address),
             )
             .await
             .map_err(|e| error!("Error while getting nonce: {:?}", e)) else {
