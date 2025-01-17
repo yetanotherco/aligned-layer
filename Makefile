@@ -1046,6 +1046,8 @@ docker_verify_proof_submission_success:
 				verification=$$(aligned verify-proof-onchain \
 									--aligned-verification-data $${proof} \
 									--rpc_url $$(echo $(DOCKER_RPC_URL)) 2>&1); \
+				cat $${proof%.cbor}.json; \
+				echo "$$verification"; \
 				if echo "$$verification" | grep -q not; then \
 					echo "ERROR: Proof verification failed for $${proof}"; \
 					exit 1; \
