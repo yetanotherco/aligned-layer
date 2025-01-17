@@ -65,12 +65,6 @@ pub enum AlignedCommands {
 #[command(version, about, long_about = None)]
 pub struct SubmitArgs {
     #[arg(
-        name = "Batcher connection address",
-        long = "batcher_url",
-        default_value = "ws://localhost:8080"
-    )]
-    batcher_url: String,
-    #[arg(
         name = "Ethereum RPC provider connection address",
         long = "rpc_url",
         default_value = "http://localhost:8545"
@@ -114,30 +108,22 @@ pub struct SubmitArgs {
     max_fee: String, // String because U256 expects hex
     #[arg(name = "Nonce", long = "nonce")]
     nonce: Option<String>, // String because U256 expects hex
-    #[arg(
-        name = "The working network's name",
-        long = "network",
-        default_value = "devnet"
-    )]
+    #[clap(flatten)]
     network: NetworkArg,
 }
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct DepositToBatcherArgs {
+    #[command(flatten)]
+    private_key_type: PrivateKeyType,
     #[arg(
         name = "Ethereum RPC provider address",
         long = "rpc_url",
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
-    #[command(flatten)]
-    private_key_type: PrivateKeyType,
-    #[arg(
-        name = "The working network's name",
-        long = "network",
-        default_value = "devnet"
-    )]
+    #[clap(flatten)]
     network: NetworkArg,
     #[arg(name = "Amount to deposit", long = "amount", required = true)]
     amount: String,
@@ -154,11 +140,8 @@ pub struct VerifyProofOnchainArgs {
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
-    #[arg(
-        name = "The working network's name",
-        long = "network",
-        default_value = "devnet"
-    )]
+
+    #[clap(flatten)]
     network: NetworkArg,
 }
 
@@ -176,11 +159,7 @@ pub struct GetVkCommitmentArgs {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct GetUserBalanceArgs {
-    #[arg(
-        name = "The working network's name",
-        long = "network",
-        default_value = "devnet"
-    )]
+    #[clap(flatten)]
     network: NetworkArg,
     #[arg(
         name = "Ethereum RPC provider address",
@@ -199,12 +178,8 @@ pub struct GetUserBalanceArgs {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct GetUserNonceArgs {
-    #[arg(
-        name = "Batcher connection address",
-        long = "batcher_url",
-        default_value = "ws://localhost:8080"
-    )]
-    batcher_url: String,
+    #[clap(flatten)]
+    network: NetworkArg,
     #[arg(
         name = "The user's Ethereum address",
         long = "user_addr",
@@ -220,25 +195,6 @@ pub struct PrivateKeyType {
     keystore_path: Option<PathBuf>,
     #[arg(name = "private_key", long = "private_key")]
     private_key: Option<String>,
-}
-
-#[derive(Debug, Clone, ValueEnum, Copy)]
-enum NetworkArg {
-    Devnet,
-    Holesky,
-    HoleskyStage,
-    Mainnet,
-}
-
-impl From<NetworkArg> for Network {
-    fn from(env_arg: NetworkArg) -> Self {
-        match env_arg {
-            NetworkArg::Devnet => Network::Devnet,
-            NetworkArg::Holesky => Network::Holesky,
-            NetworkArg::HoleskyStage => Network::HoleskyStage,
-            NetworkArg::Mainnet => Network::Mainnet,
-        }
-    }
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -269,6 +225,93 @@ impl From<ProvingSystemArg> for ProvingSystemId {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum NetworkNameArg {
+    Devnet,
+    Holesky,
+    HoleskyStage,
+    Mainnet,
+}
+
+impl FromStr for NetworkNameArg {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "devnet" => Ok(NetworkNameArg::Devnet),
+            "holesky" => Ok(NetworkNameArg::Holesky),
+            "holesky-stage" => Ok(NetworkNameArg::HoleskyStage),
+            "mainnet" => Ok(NetworkNameArg::Mainnet),
+            _ => Err(
+                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet"
+                    .to_string(),
+            ),
+        }
+    }
+}
+
+#[derive(Debug, clap::Args, Clone)]
+struct NetworkArg {
+    #[arg(
+        name = "The working network's name",
+        long = "network",
+        default_value = "devnet",
+        help = "[possible values: devnet, holesky, holesky-stage, mainnet]"
+    )]
+    network: Option<NetworkNameArg>,
+    #[arg(
+        name = "Aligned Service Manager Contract Address",
+        long = "aligned_service_manager",
+        conflicts_with("The working network's name"),
+        requires("Batcher Payment Service Contract Address"),
+        requires("Batcher URL")
+    )]
+    aligned_service_manager_address: Option<String>,
+
+    #[arg(
+        name = "Batcher Payment Service Contract Address",
+        long = "batcher_payment_service",
+        conflicts_with("The working network's name"),
+        requires("Aligned Service Manager Contract Address"),
+        requires("Batcher URL")
+    )]
+    batcher_payment_service_address: Option<String>,
+
+    #[arg(
+        name = "Batcher URL",
+        long = "batcher_url",
+        conflicts_with("The working network's name"),
+        requires("Aligned Service Manager Contract Address"),
+        requires("Batcher Payment Service Contract Address")
+    )]
+    batcher_url: Option<String>,
+}
+
+impl From<NetworkArg> for Network {
+    fn from(network_arg: NetworkArg) -> Self {
+        let mut processed_network_argument = network_arg.clone();
+
+        if network_arg.batcher_url.is_some()
+            || network_arg.aligned_service_manager_address.is_some()
+            || network_arg.batcher_payment_service_address.is_some()
+        {
+            processed_network_argument.network = None; // We need this because network is Devnet as default, which is not true for a Custom network
+        }
+
+        match processed_network_argument.network {
+            None => Network::Custom(
+                network_arg.aligned_service_manager_address.unwrap(),
+                network_arg.batcher_payment_service_address.unwrap(),
+                network_arg.batcher_url.unwrap(),
+            ),
+            Some(NetworkNameArg::Devnet) => Network::Devnet,
+            Some(NetworkNameArg::Holesky) => Network::Holesky,
+            Some(NetworkNameArg::HoleskyStage) => Network::HoleskyStage,
+            Some(NetworkNameArg::Mainnet) => Network::Mainnet,
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), AlignedError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
@@ -295,7 +338,6 @@ async fn main() -> Result<(), AlignedError> {
             })?;
 
             let repetitions = submit_args.repetitions;
-            let connect_addr = submit_args.batcher_url.clone();
 
             let keystore_path = &submit_args.private_key_type.keystore_path;
             let private_key = &submit_args.private_key_type.private_key;
@@ -330,29 +372,31 @@ async fn main() -> Result<(), AlignedError> {
 
             let nonce = match &submit_args.nonce {
                 Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
-                None => get_nonce_from_batcher(&connect_addr, wallet.address())
-                    .await
-                    .map_err(|e| match e {
-                        aligned_sdk::core::errors::GetNonceError::EthRpcError(e) => {
-                            SubmitError::GetNonceError(e)
-                        }
-                        aligned_sdk::core::errors::GetNonceError::ConnectionFailed(e) => {
-                            SubmitError::GenericError(e)
-                        }
-                        aligned_sdk::core::errors::GetNonceError::InvalidRequest(e) => {
-                            SubmitError::GenericError(e)
-                        }
-                        aligned_sdk::core::errors::GetNonceError::SerializationError(e) => {
-                            SubmitError::GenericError(e)
-                        }
-                        aligned_sdk::core::errors::GetNonceError::ProtocolMismatch {
-                            current,
-                            expected,
-                        } => SubmitError::ProtocolVersionMismatch { current, expected },
-                        aligned_sdk::core::errors::GetNonceError::UnexpectedResponse(e) => {
-                            SubmitError::UnexpectedBatcherResponse(e)
-                        }
-                    })?,
+                None => {
+                    get_nonce_from_batcher(submit_args.network.clone().into(), wallet.address())
+                        .await
+                        .map_err(|e| match e {
+                            aligned_sdk::core::errors::GetNonceError::EthRpcError(e) => {
+                                SubmitError::GetNonceError(e)
+                            }
+                            aligned_sdk::core::errors::GetNonceError::ConnectionFailed(e) => {
+                                SubmitError::GenericError(e)
+                            }
+                            aligned_sdk::core::errors::GetNonceError::InvalidRequest(e) => {
+                                SubmitError::GenericError(e)
+                            }
+                            aligned_sdk::core::errors::GetNonceError::SerializationError(e) => {
+                                SubmitError::GenericError(e)
+                            }
+                            aligned_sdk::core::errors::GetNonceError::ProtocolMismatch {
+                                current,
+                                expected,
+                            } => SubmitError::ProtocolVersionMismatch { current, expected },
+                            aligned_sdk::core::errors::GetNonceError::UnexpectedResponse(e) => {
+                                SubmitError::UnexpectedBatcherResponse(e)
+                            }
+                        })?
+                }
             };
 
             warn!("Nonce: {nonce}");
@@ -364,7 +408,6 @@ async fn main() -> Result<(), AlignedError> {
             info!("Submitting proofs to the Aligned batcher...");
 
             let aligned_verification_data_vec = submit_multiple(
-                &connect_addr,
                 submit_args.network.into(),
                 &verification_data_arr,
                 max_fee_wei,
@@ -532,7 +575,7 @@ async fn main() -> Result<(), AlignedError> {
         }
         GetUserNonce(args) => {
             let address = H160::from_str(&args.address).unwrap();
-            match get_nonce_from_batcher(&args.batcher_url, address).await {
+            match get_nonce_from_batcher(args.network.into(), address).await {
                 Ok(nonce) => {
                     info!("Nonce for address {} is {}", address, nonce);
                 }

@@ -38,3 +38,25 @@ pub const BUMP_MIN_RETRY_DELAY: u64 = 500; // milliseconds
 pub const BUMP_MAX_RETRIES: usize = 33; // ~ 1 day
 pub const BUMP_BACKOFF_FACTOR: f32 = 2.0;
 pub const BUMP_MAX_RETRY_DELAY: u64 = 3600; // seconds
+
+/// NETWORK ADDRESSES ///
+/// BatcherPaymentService
+pub const BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET: &str =
+    "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650";
+pub const BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY: &str =
+    "0x815aeCA64a974297942D2Bbf034ABEe22a38A003";
+pub const BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE: &str =
+    "0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b";
+pub const BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET: &str =
+    "0xb0567184A52cB40956df6333510d6eF35B89C8de";
+/// AlignedServiceManager
+pub const ALIGNED_SERVICE_MANAGER_DEVNET: &str = "0x851356ae760d987E095750cCeb3bC6014560891C";
+pub const ALIGNED_SERVICE_MANAGER_HOLESKY: &str = "0x58F280BeBE9B34c9939C3C39e0890C81f163B623";
+pub const ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE: &str =
+    "0x9C5231FC88059C086Ea95712d105A2026048c39B";
+pub const ALIGNED_SERVICE_MANAGER_MAINNET: &str = "0xeF2A435e5EE44B2041100EF8cbC8ae035166606c";
+/// Batcher URL's
+pub const BATCHER_URL_DEVNET: &str = "ws://localhost:8080";
+pub const BATCHER_URL_HOLESKY: &str = "wss://batcher.alignedlayer.com";
+pub const BATCHER_URL_HOLESKY_STAGE: &str = "wss://stage.batcher.alignedlayer.com";
+pub const BATCHER_URL_MAINNET: &str = "wss://mainnet.batcher.alignedlayer.com";
