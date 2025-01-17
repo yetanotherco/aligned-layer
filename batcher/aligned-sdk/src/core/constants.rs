@@ -57,6 +57,6 @@ pub const ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE: &str =
 pub const ALIGNED_SERVICE_MANAGER_MAINNET: &str = "0xeF2A435e5EE44B2041100EF8cbC8ae035166606c";
 /// Batcher URL's
 pub const BATCHER_URL_DEVNET: &str = "ws://localhost:8080";
-pub const BATCHER_URL_HOLESKY: &str = "wss://holesky.batcher.alignedlayer.com";
+pub const BATCHER_URL_HOLESKY: &str = "wss://batcher.alignedlayer.com";
 pub const BATCHER_URL_HOLESKY_STAGE: &str = "wss://stage.batcher.alignedlayer.com";
-pub const BATCHER_URL_MAINNET: &str = "wss://batcher.alignedlayer.com";
+pub const BATCHER_URL_MAINNET: &str = "wss://mainnet.batcher.alignedlayer.com";
