@@ -154,7 +154,7 @@ defmodule Batches do
     query =
       from(b in Batches,
         where: b.is_verified == true,
-        select: avg(b.fee_per_proof)
+        select: sum(b.fee_per_proof * b.amount_of_proofs) / sum(b.amount_of_proofs)
       )
 
     case Explorer.Repo.one(query) do
@@ -174,23 +174,26 @@ defmodule Batches do
     end
   end
 
-  def get_last_24h_verified_proof_stats() do
-    minutes_in_a_day = 1440
-    threshold_datetime = DateTime.utc_now() |> DateTime.add(-1 * minutes_in_a_day, :minute) # Last 24 hours
+  # The following query was built by reading:
+  # - https://hexdocs.pm/ecto/Ecto.Query.html#module-fragments
+  # - https://www.postgresql.org/docs/9.1/functions-datetime.html#FUNCTIONS-DATETIME-TABLE
+  # - https://stackoverflow.com/questions/43288914/how-to-use-date-trunc-with-timezone-in-ecto-fragment-statement
+  # - https://glennjon.es/2016/09/24/elixir-ecto-how-to-group-and-count-records-by-week.html
+  def get_daily_verified_batches_summary() do
+    submission_constant_cost = Utils.constant_batch_submission_gas_cost()
+    additional_cost_per_proof = Utils.additional_batch_submission_gas_cost_per_proof()
 
-    query = from(b in Batches,
-      where: b.is_verified == true and b.submission_timestamp > ^threshold_datetime,
-      select: {sum(b.amount_of_proofs), avg(b.fee_per_proof)})
+    query = Batches
+      |> where([b], b.is_verified == true)
+      |> group_by([b], fragment("DATE_TRUNC('day', ?)", b.response_timestamp))
+      |> select([b], %{
+        date: fragment("DATE_TRUNC('day', ?)::date", b.response_timestamp),
+        amount_of_proofs: sum(b.amount_of_proofs),
+        gas_cost: sum(fragment("? + ? * ?", ^submission_constant_cost, ^additional_cost_per_proof, b.amount_of_proofs))
+      })
+      |> order_by([b], fragment("DATE_TRUNC('day', ?)", b.response_timestamp))
 
-    {amount_of_proofs, avg_fee_per_proof} = case Explorer.Repo.one(query) do
-      nil -> {0, 0.0}
-      result -> result
-    end
-
-    %{
-      amount_of_proofs: amount_of_proofs,
-      avg_fee_per_proof: avg_fee_per_proof
-    }
+    Explorer.Repo.all(query)
   end
 
   def insert_or_update(batch_changeset, proofs) do
