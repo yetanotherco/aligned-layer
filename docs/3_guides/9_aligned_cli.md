@@ -244,7 +244,9 @@ Retrieves the user's current nonce from the batcher.
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  
     - Possible values: `devnet`, `holesky`, `mainnet`
-  - For a custom Network, you must specify the following parameter:
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
     - `--batcher_url <batcher_websocket_url>`
 
 #### Example:
