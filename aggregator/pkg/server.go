@@ -51,7 +51,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 
 	if signedTaskResponse.BlsSignature.G1Point == nil {
-		agg.logger.Error("invalid operator response with nil signature",
+		agg.logger.Warn("invalid operator response with nil signature",
 			"BatchMerkleRoot", "0x"+hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
 			"SenderAddress", "0x"+hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 			"BatchIdentifierHash", "0x"+hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
