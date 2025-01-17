@@ -1061,6 +1061,7 @@ docker_verify_proof_submission_success:
 			for proof in ./aligned_verification_data/*.cbor; do \
 				echo "Verifying proof $${proof} \n"; \
 				cat $${proof};
+				cat $${proof%.cbor}.json
 				verification=$$(aligned verify-proof-onchain \
 									--aligned-verification-data $${proof} \
 									--rpc_url $$(echo $(DOCKER_RPC_URL)) 2>&1); \
