@@ -7,7 +7,7 @@ use crate::{
     },
     core::{
         constants::{
-            ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
+            ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, DEFAULT_CONSTANT_GAS_COST,
             MAX_FEE_BATCH_PROOF_NUMBER, MAX_FEE_DEFAULT_PROOF_NUMBER,
         },
         errors::{self, GetNonceError},
@@ -183,7 +183,7 @@ pub async fn fee_per_proof(
     let gas_price = fetch_gas_price(&eth_rpc_provider).await?;
 
     // Cost for estimate `num_proofs_per_batch` proofs
-    let estimated_gas_per_proof = (CONSTANT_GAS_COST
+    let estimated_gas_per_proof = (DEFAULT_CONSTANT_GAS_COST
         + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_per_batch as u128)
         / num_proofs_per_batch as u128;
 
