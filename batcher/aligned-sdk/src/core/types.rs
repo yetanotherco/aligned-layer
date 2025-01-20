@@ -94,12 +94,12 @@ impl NoncedVerificationData {
     }
 }
 
-// Defines an estimate price preference for the user.
+// Defines a price estimate type for the user.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum PriceEstimate {
-    Min,
+pub enum FeeEstimationType {
     Default,
     Instant,
+    Custom(usize),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
