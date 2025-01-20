@@ -31,6 +31,7 @@ import (
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/groth16"
+	bn254 "github.com/consensys/gnark/backend/groth16/bn254"
 	"github.com/consensys/gnark/backend/plonk"
 	"github.com/consensys/gnark/backend/witness"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -595,6 +596,18 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 	proof := groth16.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {
 		o.Logger.Infof("Could not deserialize proof: %v", err)
+		return false
+	}
+
+	bn254Proof, ok := proof.(*bn254.Proof)
+	if !ok {
+		o.Logger.Warn("groth16 proof is not bn254")
+		return false
+	}
+	numCommitments := len(bn254Proof.Commitments)
+	if numCommitments > 1 {
+		o.Logger.Warn("too many commitments for groth16 proof (unsound for v0.10.0)",
+			"numCommitments", numCommitments)
 		return false
 	}
 

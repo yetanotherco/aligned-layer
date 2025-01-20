@@ -20,6 +20,7 @@ import (
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/groth16"
+	bn254 "github.com/consensys/gnark/backend/groth16/bn254"
 	"github.com/consensys/gnark/backend/plonk"
 	"github.com/consensys/gnark/backend/witness"
 )
@@ -95,6 +96,17 @@ func verifyGroth16Proof(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, ver
 	proof := groth16.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {
 		log.Printf("Could not deserialize proof: %v", err)
+		return false
+	}
+
+	bn254Proof, ok := proof.(*bn254.Proof)
+	if !ok {
+		log.Printf("groth16 proof is not bn254")
+		return false
+	}
+	numCommitments := len(bn254Proof.Commitments)
+	if numCommitments > 1 {
+		log.Printf("too many commitments (%v) for groth16 proof (unsound for v0.10.0)", numCommitments)
 		return false
 	}
 
