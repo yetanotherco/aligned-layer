@@ -7,7 +7,7 @@ CONFIG_FILE?=config-files/config.yaml
 export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.13.0
+OPERATOR_VERSION=v0.14.0
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_MAINNET=v0.1.13
 
@@ -31,7 +31,7 @@ endif
 ifeq ($(OS),Darwin)
 	BUILD_OPERATOR = $(MAKE) build_operator_macos
 endif
-	
+
 ifeq ($(ENVIRONMENT), devnet)
 	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_devnet
 else ifeq ($(ENVIRONMENT), testnet)
