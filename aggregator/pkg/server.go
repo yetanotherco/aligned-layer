@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/rpc"
@@ -59,7 +60,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	if err != nil {
 		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
 		*reply = 1
-		return nil
+		return errors.New("task not found in the internal map")
 	}
 	agg.telemetry.LogOperatorResponse(signedTaskResponse.BatchMerkleRoot, signedTaskResponse.OperatorId)
 
@@ -68,38 +69,19 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel() // Ensure the cancel function is called to release resources
 
-	// Create a channel to signal when the task is done
-	done := make(chan struct{})
-
 	agg.logger.Info("Starting bls signature process")
-	go func() {
-		err := agg.blsAggregationService.ProcessNewSignature(
-			context.Background(), taskIndex, signedTaskResponse.BatchIdentifierHash,
-			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
-		)
-
-		if err != nil {
-			agg.logger.Warnf("BLS aggregation service error: %s", err)
-			// todo shouldn't we here close the channel with a reply = 1?
-		} else {
-			agg.logger.Info("BLS process succeeded")
-		}
-
-		close(done)
-	}()
-
-	*reply = 1
-	// Wait for either the context to be done or the task to complete
-	select {
-	case <-ctx.Done():
-		// The context's deadline was exceeded or it was canceled
-		agg.logger.Info("Bls process timed out, operator signature will be lost. Batch may not reach quorum")
-	case <-done:
-		// The task completed successfully
-		agg.logger.Info("Bls context finished correctly")
-		*reply = 0
+	err = agg.blsAggregationService.ProcessNewSignature(
+		ctx, taskIndex, signedTaskResponse.BatchIdentifierHash,
+		&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
+	)
+	if err != nil {
+		agg.logger.Warnf("BLS aggregation service error: %s", err)
+		*reply = 1
+		return fmt.Errorf("bls aggregation failed: %v", err)
 	}
 
+	agg.logger.Info("BLS process succeeded")
+	*reply = 0
 	return nil
 }
 
