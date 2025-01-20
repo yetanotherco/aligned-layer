@@ -56,6 +56,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 			"SenderAddress", "0x"+hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 			"BatchIdentifierHash", "0x"+hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
 			"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
+		*reply = 1
 		return errors.New("invalid response: nil signature")
 	}
 
