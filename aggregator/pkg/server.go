@@ -49,6 +49,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"SenderAddress", "0x"+hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 		"BatchIdentifierHash", "0x"+hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
+	*reply = 1
 	taskIndex := uint32(0)
 
 	// The Aggregator may receive the Task Identifier after the operators.
@@ -59,7 +60,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 
 	if err != nil {
 		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
-		*reply = 1
 		return errors.New("task not found in the internal map")
 	}
 	agg.telemetry.LogOperatorResponse(signedTaskResponse.BatchMerkleRoot, signedTaskResponse.OperatorId)
@@ -76,7 +76,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	)
 	if err != nil {
 		agg.logger.Warnf("BLS aggregation service error: %s", err)
-		*reply = 1
 		return fmt.Errorf("bls aggregation failed: %v", err)
 	}
 
