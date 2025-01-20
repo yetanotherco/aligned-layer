@@ -68,7 +68,7 @@ contract AlignedLayerServiceManager is
         address _alignedAggregator,
         IPauserRegistry _pauserRegistry,
         uint256 _initialPausedStatus
-    ) public initializer {
+    ) public initializer { // Applied on Testnet & Mainnet
         if (_initialOwner == address(0)) {
             revert InvalidAddress("initialOwner");
         }
@@ -84,23 +84,25 @@ contract AlignedLayerServiceManager is
         _initializePauser(_pauserRegistry, _initialPausedStatus);
     }
 
-    // This function is to be run only on upgrade
-    // If a new contract is deployed, this function should be removed
-    // Because this new value is also added in the initializer
-    function initializeAggregator(
-        address _alignedAggregator
-    ) public reinitializer(2) {
-        setAggregator(_alignedAggregator);
-    }
+    // Reinitializers:
+    // The following reinitializers have been run in testnet, so their code should remain in the codebase.
+    // But they have not been run in mainnet, so their code should not be deployed here.
 
-    // Just to be used to upgrade contracts without the pausable functionality
-    // Once the contract is pausable this method is not needed anymore
-    function initializePauser(
-        IPauserRegistry _pauserRegistry,
-        uint256 _initialPausedStatus
-    ) public reinitializer(3) {
-        _initializePauser(_pauserRegistry, _initialPausedStatus);
-    }
+    // function initializeAggregator( // applied on Testnet
+    //     address _alignedAggregator
+    // ) public reinitializer(2) {
+    //     setAggregator(_alignedAggregator);
+    // }
+
+    // function initializePauser( // applied on Testnet
+    //     IPauserRegistry _pauserRegistry,
+    //     uint256 _initialPausedStatus
+    // ) public reinitializer(3) {
+    //     _initializePauser(_pauserRegistry, _initialPausedStatus);
+    // }
+
+    // Current Testnet initializer version: 3
+    // Current Mainnet initializer version: 1
 
     function createNewTask(
         bytes32 batchMerkleRoot,
