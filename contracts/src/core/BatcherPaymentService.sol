@@ -178,6 +178,16 @@ contract BatcherPaymentService is
         emit FundsWithdrawn(msg.sender, amount);
     }
 
+    function withdraw_from_service_manager(
+        uint256 amount
+    ) public onlyOwner { // or onlyBatcher ??
+        alignedLayerServiceManager.withdraw(amount); // reverts on InsufficientBalance
+        // money is now in this contract
+        // now transfer to hardcoded batcher wallet
+        payable(batcherWallet).transfer(amount);
+        // todo test
+    }
+
     function pause() public onlyOwner {
         _pause();
     }
