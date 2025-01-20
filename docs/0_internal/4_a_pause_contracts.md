@@ -46,7 +46,7 @@ Note: when executing a Pause, you can only ADD functions to the paused list, and
 Note: the list of pausable functions and their numbers can be seen in the `AlignedLayerServiceManager.sol` contract. But the list is the following:
 
 0. createNewTask
-1. respondToTaskV2
+1. respondToTask
 2. verifyBatchInclusion
 3. withdraw
 4. depositToBatcher
