@@ -40,10 +40,10 @@ const (
 	WaitForTxMaxInterval = 2 * time.Second // Maximum interval for an individual retry.
 	WaitForTxNumRetries  = 0               // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
 
-	// Retry Parameters for RespondToTaskV2 in the Fee Bump
-	RespondToTaskV2MaxInterval           = time.Millisecond * 500 // Maximum interval for an individual retry.
-	RespondToTaskV2MaxElapsedTime        = 0                      //	Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
-	RespondToTaskV2NumRetries     uint64 = 0                      // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
+	// Retry Parameters for RespondToTask in the Fee Bump
+	RespondToTaskMaxInterval           = time.Millisecond * 500 // Maximum interval for an individual retry.
+	RespondToTaskMaxElapsedTime        = 0                      //	Maximum time all retries may take. `0` corresponds to no limit on the time of the retries.
+	RespondToTaskNumRetries     uint64 = 0                      // Total number of retries attempted. If 0, retries indefinitely until maxElapsedTime is reached.
 )
 
 type RetryParams struct {
@@ -77,14 +77,14 @@ func SendToChainRetryParams() *RetryParams {
 	}
 }
 
-func RespondToTaskV2() *RetryParams {
+func RespondToTask() *RetryParams {
 	return &RetryParams{
 		InitialInterval:     ChainInitialInterval,
-		MaxInterval:         RespondToTaskV2MaxInterval,
-		MaxElapsedTime:      RespondToTaskV2MaxElapsedTime,
+		MaxInterval:         RespondToTaskMaxInterval,
+		MaxElapsedTime:      RespondToTaskMaxElapsedTime,
 		RandomizationFactor: NetworkRandomizationFactor,
 		Multiplier:          NetworkMultiplier,
-		NumRetries:          RespondToTaskV2NumRetries,
+		NumRetries:          RespondToTaskNumRetries,
 	}
 }
 

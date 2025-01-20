@@ -93,7 +93,7 @@ Get the gas price from the client with retry logic.
 - Retry times: 1 sec, 2 sec, 4 sec
 */
 func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.InstrumentedClient, config *retry.RetryParams) (*big.Int, error) {
-	respondToTaskV2_func := func() (*big.Int, error) {
+	suggestGasPrice_func := func() (*big.Int, error) {
 		gasPrice, err := client.SuggestGasPrice(context.Background())
 		if err != nil {
 			gasPrice, err = fallbackClient.SuggestGasPrice(context.Background())
@@ -104,5 +104,5 @@ func GetGasPriceRetryable(client eth.InstrumentedClient, fallbackClient eth.Inst
 
 		return gasPrice, nil
 	}
-	return retry.RetryWithData(respondToTaskV2_func, config)
+	return retry.RetryWithData(suggestGasPrice_func, config)
 }

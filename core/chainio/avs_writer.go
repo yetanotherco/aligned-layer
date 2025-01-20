@@ -92,7 +92,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, gasBumpPercentageLimit uint, timeToWaitBeforeBump time.Duration, metrics *metrics.Metrics, onSetGasPrice func(*big.Int)) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
-	simTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, retry.SendToChainRetryParams())
+	simTx, err := w.RespondToTaskRetryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, retry.SendToChainRetryParams())
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 
 	batchMerkleRootHashString := hex.EncodeToString(batchMerkleRoot[:])
 
-	respondToTaskV2Func := func() (*types.Receipt, error) {
+	respondToTaskFunc := func() (*types.Receipt, error) {
 		gasPrice, err := utils.GetGasPriceRetryable(w.Client, w.ClientFallback, retry.NetworkRetryParams())
 		if err != nil {
 			return nil, err
@@ -175,7 +175,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		}
 
 		w.logger.Infof("Sending RespondToTask transaction with a gas price of %v", txOpts.GasPrice, "merkle root", batchMerkleRootHashString)
-		realTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, retry.SendToChainRetryParams())
+		realTx, err := w.RespondToTaskRetryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, retry.SendToChainRetryParams())
 		if err != nil {
 			w.logger.Errorf("Respond to task transaction err, %v", err, "merkle root", batchMerkleRootHashString)
 			return nil, err
@@ -203,7 +203,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	// This just retries the bump of a fee in case of a timeout
 	// The wait is done before on WaitForTransactionReceiptRetryable, and all the functions are retriable,
 	// so this retry doesn't need to wait more time
-	return retry.RetryWithData(respondToTaskV2Func, retry.RespondToTaskV2())
+	return retry.RetryWithData(respondToTaskFunc, retry.RespondToTask())
 }
 
 // Calculates the transaction cost from the receipt and updates the total amount paid by the aggregator metric
