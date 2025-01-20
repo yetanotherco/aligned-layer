@@ -15,6 +15,8 @@ env_vars=(
   "DEBUG_ERRORS"
   "TRACKER_API_URL"
   "MAX_BATCH_SIZE"
+  "BATCH_TTL_MINUTES"
+  "LATEST_RELEASE"
 )
 
 for var in "${env_vars[@]}"; do
