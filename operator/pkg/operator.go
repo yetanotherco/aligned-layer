@@ -207,14 +207,14 @@ func (o *Operator) UpdateLastProcessBatch(blockNumber uint32) error {
 func (o *Operator) Start(ctx context.Context) error {
 	// create a new channel to foward errors
 	subV2ErrorChannel := make(chan chainio.ErrorPair)
-	errorPairPtr := o.SubscribeToNewTasksV2(subV2ErrorChannel)
-	if errorPairPtr != nil {
+	errorPair := o.SubscribeToNewTasksV2(subV2ErrorChannel)
+	if errorPair != nil {
 		log.Fatal("Could not subscribe to new tasks")
 	}
 
 	subV3ErrorChannel := make(chan chainio.ErrorPair)
-	errorPairPtr = o.SubscribeToNewTasksV3(subV3ErrorChannel)
-	if errorPairPtr != nil {
+	errorPair = o.SubscribeToNewTasksV3(subV3ErrorChannel)
+	if errorPair != nil {
 		log.Fatal("Could not subscribe to new tasks")
 	}
 
@@ -236,14 +236,14 @@ func (o *Operator) Start(ctx context.Context) error {
 			o.Logger.Errorf("Metrics server failed", "err", err)
 		case errorPair := <-subV2ErrorChannel:
 			o.Logger.Infof("Error in websocket subscription", "err", errorPair)
-			errorPairPtr = o.SubscribeToNewTasksV2(subV2ErrorChannel)
-			if errorPairPtr != nil {
+			errorPair = o.SubscribeToNewTasksV2(subV2ErrorChannel)
+			if errorPair != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks V2")
 			}
 		case errorPair := <-subV3ErrorChannel:
 			o.Logger.Infof("Error in websocket subscription", "err", errorPair)
-			errorPairPtr = o.SubscribeToNewTasksV3(subV3ErrorChannel)
-			if errorPairPtr != nil {
+			errorPair = o.SubscribeToNewTasksV3(subV3ErrorChannel)
+			if errorPair != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks V3")
 			}
 		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
