@@ -67,8 +67,6 @@ Submit a proof to the Aligned Layer batcher.
   - Default: `./aligned_verification_data/`
 - `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
 - `--private_key <private_key>`: User's wallet private key.
-- `--max_fee <max_fee (ether)>`: Maximum fee in Ether to deposit into the contract.
-  - Default: `0.0013ether`
 - `--nonce <n>`: Proof nonce.
   - By default, the nonce is set automatically. By setting the nonce manually, you can perform a proof replacement.
 - One of the following, to specify which Network to interact with:
@@ -79,6 +77,11 @@ Submit a proof to the Aligned Layer batcher.
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
     - `--batcher_url <batcher_websocket_url>`
+- Max Fee allowed to be spent for each proof verification, use one of the following:
+  - `--max_fee <max_fee (ether)>`: Specifies a `max_fee` in Ether.
+  - `--default_fee_estimate`: Specifies a `max_fee` equivalent to the cost of 1 proof in a batch of size 10.
+  - `--instant_fee_estimate`: Specifies a `max_fee` that ensures the proof is included instantly, equivalent to the cost of a proof in a batch of size 1.
+  - `--custom_fee_estimate <amount_of_proofs_in_batch>`: Specifies a `max_fee` equivalent to the cost of 1 proof in a batch of size `num_proofs_in_batch`.
 
 
 #### Example:
@@ -151,7 +154,7 @@ Computes the verification data commitment from the verification data file.
 
 ---
 
-### deposit-to-batcher
+### **deposit-to-batcher**
 
 #### Description:
 

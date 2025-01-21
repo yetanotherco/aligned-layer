@@ -6,10 +6,12 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use aligned_sdk::communication::serialization::cbor_deserialize;
+use aligned_sdk::core::types::FeeEstimationType;
 use aligned_sdk::core::{
-    errors::{AlignedError, SubmitError},
+    errors::{AlignedError, FeeEstimateError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
+use aligned_sdk::sdk::estimate_fee;
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_nonce_from_batcher;
 use aligned_sdk::sdk::get_nonce_from_ethereum;
@@ -79,7 +81,6 @@ pub enum AlignedCommands {
 }
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
 pub struct SubmitArgs {
     #[arg(
         name = "Ethereum RPC provider connection address",
@@ -117,16 +118,52 @@ pub struct SubmitArgs {
     batch_inclusion_data_directory_path: String,
     #[command(flatten)]
     private_key_type: PrivateKeyType,
-    #[arg(
-        name = "Max Fee (ether)",
-        long = "max_fee",
-        default_value = "0.0013ether" // 13_000 gas per proof * 100 gwei gas price (upper bound)
-    )]
-    max_fee: String, // String because U256 expects hex
     #[arg(name = "Nonce", long = "nonce")]
     nonce: Option<String>, // String because U256 expects hex
     #[clap(flatten)]
     network: NetworkArg,
+    #[command(flatten)]
+    fee_type: FeeType,
+}
+
+impl SubmitArgs {
+    async fn get_max_fee(&self) -> Result<U256, AlignedError> {
+        if let Some(max_fee) = &self.fee_type.max_fee {
+            if !max_fee.ends_with("ether") {
+                error!("`max_fee` should be in the format XX.XXether");
+                Err(FeeEstimateError::FeeEstimateParseError(
+                    "Error while parsing `max_fee`".to_string(),
+                ))?
+            }
+
+            let max_fee_ether = max_fee.replace("ether", "");
+            return Ok(parse_ether(max_fee_ether).map_err(|e| {
+                FeeEstimateError::FeeEstimateParseError(format!(
+                    "Error while parsing `max_fee`: {}",
+                    e
+                ))
+            })?);
+        }
+
+        if let Some(number_proofs_in_batch) = &self.fee_type.custom_fee_estimate {
+            return estimate_fee(
+                &self.eth_rpc_url,
+                FeeEstimationType::Custom(*number_proofs_in_batch),
+            )
+            .await
+            .map_err(AlignedError::FeeEstimateError);
+        }
+
+        if self.fee_type.instant_fee_estimate {
+            estimate_fee(&self.eth_rpc_url, FeeEstimationType::Instant)
+                .await
+                .map_err(AlignedError::FeeEstimateError)
+        } else {
+            estimate_fee(&self.eth_rpc_url, FeeEstimationType::Default)
+                .await
+                .map_err(AlignedError::FeeEstimateError)
+        }
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -367,6 +404,33 @@ impl From<NetworkArg> for Network {
     }
 }
 
+#[derive(Args, Debug)]
+#[group(required = false, multiple = false)]
+pub struct FeeType {
+    #[arg(
+        name = "Max Fee (ether)",
+        long = "max_fee",
+        help = "Specifies the maximum fee (`max_fee`) the user is willing to pay for the submitted proof, in Ether."
+    )]
+    max_fee: Option<String>, // String because U256 expects hex
+    #[arg(
+        name = "amount_of_proofs_in_batch",
+        long = "custom_fee_estimate",
+        help = "Specifies a `max_fee` equivalent to the cost of 1 proof in a batch of size `num_proofs_in_batch`."
+    )]
+    custom_fee_estimate: Option<usize>,
+    #[arg(
+        long = "instant_fee_estimate",
+        help = "Specifies a `max_fee` that ensures the proof is included instantly, equivalent to the cost of 1 proof in a batch of size 1."
+    )]
+    instant_fee_estimate: bool,
+    #[arg(
+        long = "default_fee_estimate",
+        help = "Specifies a `max_fee`, based on the cost of one proof in a batch of 10 proofs."
+    )]
+    default_fee_estimate: bool,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), AlignedError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
@@ -381,17 +445,12 @@ async fn main() -> Result<(), AlignedError> {
                 SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
             })?;
 
-            if !submit_args.max_fee.ends_with("ether") {
-                error!("`max_fee` should be in the format XX.XXether");
-                return Ok(());
-            }
-
-            let max_fee_ether = submit_args.max_fee.replace("ether", "");
-
-            let max_fee_wei: U256 = parse_ether(&max_fee_ether).map_err(|e| {
-                SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
-            })?;
-
+            let eth_rpc_url = submit_args.eth_rpc_url.clone();
+            let max_fee_wei = submit_args.get_max_fee().await?;
+            info!(
+                "Will send each proof with an estimated max_fee of: {}ether",
+                format_ether(max_fee_wei)
+            );
             let repetitions = submit_args.repetitions;
 
             let keystore_path = &submit_args.private_key_type.keystore_path;
@@ -419,8 +478,6 @@ async fn main() -> Result<(), AlignedError> {
                     }
                 }
             };
-
-            let eth_rpc_url = submit_args.eth_rpc_url.clone();
 
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
             wallet = wallet.with_chain_id(chain_id);
@@ -550,7 +607,7 @@ async fn main() -> Result<(), AlignedError> {
         }
         DepositToBatcher(deposit_to_batcher_args) => {
             if !deposit_to_batcher_args.amount.ends_with("ether") {
-                error!("`amount` should be in the format XX.XXether");
+                error!("Amount should be in the format XX.XXether");
                 return Ok(());
             }
 
