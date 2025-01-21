@@ -236,14 +236,14 @@ func (o *Operator) Start(ctx context.Context) error {
 			o.Logger.Errorf("Metrics server failed", "err", err)
 		case errorPair := <-subV2ErrorChannel:
 			o.Logger.Infof("Error in websocket subscription", "err", errorPair)
-			errorPair = o.SubscribeToNewTasksV2(subV2ErrorChannel)
-			if errorPair != nil {
+			errorPairPtr := o.SubscribeToNewTasksV2(subV2ErrorChannel)
+			if errorPairPtr != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks V2")
 			}
 		case errorPair := <-subV3ErrorChannel:
 			o.Logger.Infof("Error in websocket subscription", "err", errorPair)
-			errorPair = o.SubscribeToNewTasksV3(subV3ErrorChannel)
-			if errorPair != nil {
+			errorPairPtr := o.SubscribeToNewTasksV3(subV3ErrorChannel)
+			if errorPairPtr != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks V3")
 			}
 		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
