@@ -122,22 +122,18 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 		for errMain == nil || errFallback == nil { //while one is active
 			select {
 			case err := <-sub.Err():
-				s.logger.Warn("Error in new task subscription", "err", err)
-				s.logger.Info("failed states:", "errMain", errMain, "errFallback", errFallback)
+				s.logger.Warn("Error in new task subscription of main connection", "err", err)
 
 				auxSub, errMain = SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
 				if errMain == nil {
-					//sub.Unsubscribe()
 					sub = auxSub // update the subscription only if it was successful
 					s.logger.Info("Resubscribed to fallback new task subscription")
 				}
 			case err := <-subFallback.Err():
-				s.logger.Info("failed states:", "errMain", errMain, "errFallback", errFallback)
-				s.logger.Warn("Error in fallback new task subscription", "err", err)
+				s.logger.Warn("Error in new task subscription of fallback connection", "err", err)
 
 				auxSubFallback, errFallback = SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
 				if errFallback == nil {
-					//subFallback.Unsubscribe()
 					subFallback = auxSubFallback // update the subscription only if it was successful
 					s.logger.Info("Resubscribed to fallback new task subscription")
 				}
@@ -206,22 +202,18 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 		for errMain == nil || errFallback == nil { //while one is active
 			select {
 			case err := <-sub.Err():
-				s.logger.Warn("Error in new task subscription", "err", err)
-				s.logger.Info("failed states:", "errMain", errMain, "errFallback", errFallback)
+				s.logger.Warn("Error in new task subscription of main connection", "err", err)
 
 				auxSub, errMain = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
 				if errMain == nil {
-					//sub.Unsubscribe()
 					sub = auxSub // update the subscription only if it was successful
 					s.logger.Info("Resubscribed to fallback new task subscription")
 				}
 			case err := <-subFallback.Err():
-				s.logger.Warn("Error in fallback new task subscription", "err", err)
-				s.logger.Info("failed states:", "errMain", errMain, "errFallback", errFallback)
+				s.logger.Warn("Error in new task subscription of fallback connection", "err", err)
 
 				auxSubFallback, errFallback = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
 				if errFallback == nil {
-					//subFallback.Unsubscribe()
 					subFallback = auxSubFallback // update the subscription only if it was successful
 					s.logger.Info("Resubscribed to fallback new task subscription")
 				}
