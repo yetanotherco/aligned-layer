@@ -281,7 +281,7 @@ pub struct GetUserAmountOfQueuedProofsArgs {
 }
 
 #[derive(Args, Debug)]
-#[group(required = true, multiple = false)]
+#[group(multiple = false)]
 pub struct PrivateKeyType {
     #[arg(name = "path_to_keystore", long = "keystore_path")]
     keystore_path: Option<PathBuf>,
