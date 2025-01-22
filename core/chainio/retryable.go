@@ -16,24 +16,24 @@ import (
 // |---AVS_WRITER---|
 
 /*
-RespondToTaskV2Retryable
+RespondToTaskRetryable
 Send a transaction to the AVS contract to respond to a task.
 - All errors are considered Transient Errors
 - Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
 - NOTE: Contract call reverts are not considered `PermanentError`'s as block reorg's may lead to contract call revert in which case the aggregator should retry.
 */
-func (w *AvsWriter) RespondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkleRoot [32]byte, senderAddress common.Address, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, config *retry.RetryParams) (*types.Transaction, error) {
-	respondToTaskV2_func := func() (*types.Transaction, error) {
+func (w *AvsWriter) RespondToTaskRetryable(opts *bind.TransactOpts, batchMerkleRoot [32]byte, senderAddress common.Address, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, config *retry.RetryParams) (*types.Transaction, error) {
+	respondToTask_func := func() (*types.Transaction, error) {
 		// Try with main connection
-		tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
 			// If error try with fallback
-			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTask(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		}
 
 		return tx, err
 	}
-	return retry.RetryWithData(respondToTaskV2_func, config)
+	return retry.RetryWithData(respondToTask_func, config)
 }
 
 /*

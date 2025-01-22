@@ -43,7 +43,7 @@ interface IAlignedLayerServiceManager {
         uint256 respondToTaskFeeLimit
     ) external payable;
 
-    function respondToTaskV2(
+    function respondToTask(
         bytes32 batchMerkleRoot,
         address senderAddress,
         IBLSSignatureChecker.NonSignerStakesAndSignature

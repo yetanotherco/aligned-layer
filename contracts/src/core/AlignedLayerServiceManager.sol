@@ -149,7 +149,7 @@ contract AlignedLayerServiceManager is
         );
     }
 
-    function respondToTaskV2(
+    function respondToTask(
         // (batchMerkleRoot,senderAddress) is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,
         address senderAddress,
