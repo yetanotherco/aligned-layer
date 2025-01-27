@@ -511,8 +511,6 @@ async fn main() -> Result<(), AlignedError> {
                 }
             };
 
-            warn!("Nonce: {nonce}");
-
             let verification_data = verification_data_from_args(&submit_args)?;
 
             let verification_data_arr = vec![verification_data; repetitions];
@@ -545,15 +543,22 @@ async fn main() -> Result<(), AlignedError> {
                             .insert(aligned_verification_data.batch_merkle_root);
                     }
                     Err(e) => {
-                        warn!("Error while submitting proof: {:?}", e);
-                        handle_submit_err(e).await;
-                        return Ok(());
+                        warn!("Error detected while submitting proof: {:?}", e);
+                        handle_submit_err(&e).await;
+                        // In the case of an InsufficientBalance error we record and continue processing the entire msg queue.
+                        // This covers the case of a `submit_multiple` in which some submissions succeed but others fail because of a cumulative `insufficient balance`.
+                        if let SubmitError::InsufficientBalance(_, _) = e {
+                            continue;
+                        } else {
+                            return Ok(());
+                        }
                     }
                 };
             }
 
             match unique_batch_merkle_roots.len() {
                 1 => info!("Proofs submitted to aligned. See the batch in the explorer:"),
+                0 => (), // No verification data, we do not log the msg. This happens when insufficient balance for first nonce
                 _ => info!("Proofs submitted to aligned. See the batches in the explorer:"),
             }
 
@@ -794,7 +799,7 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
     })
 }
 
-async fn handle_submit_err(err: SubmitError) {
+async fn handle_submit_err(err: &SubmitError) {
     match err {
         SubmitError::InvalidNonce => {
             error!("Invalid nonce. try again");
@@ -803,10 +808,10 @@ async fn handle_submit_err(err: SubmitError) {
             error!("Batch was reset. try resubmitting the proof");
         }
         SubmitError::InvalidProof(reason) => error!("Submitted proof is invalid: {}", reason),
-        SubmitError::InsufficientBalance(sender_address) => {
-            error!(
-                "Insufficient balance to pay for the transaction, address: {}",
-                sender_address
+        SubmitError::InsufficientBalance(sender_address, error_nonce) => {
+            warn!(
+                "Insufficient balance to pay for the proof verification, address: {}, for proof_nonce: {}.",
+                sender_address, error_nonce
             )
         }
         _ => {}

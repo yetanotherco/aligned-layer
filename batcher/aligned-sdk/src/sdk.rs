@@ -294,12 +294,12 @@ async fn _submit_multiple(
             nonce,
         )
         .await;
-        receive(response_stream, sent_verification_data_rev).await
+        receive(response_stream, sent_verification_data_rev, nonce).await
     }
     .await;
 
     // Close connection
-    info!("Closing WS connection");
+    info!("All responses received, closing WS connection");
     if let Err(e) = ws_write_clone.lock().await.close().await {
         return vec![Err(errors::SubmitError::GenericError(e.to_string()))];
     }
