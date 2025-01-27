@@ -5,7 +5,7 @@ use aligned_sdk::core::types::{
     AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
 };
 use aligned_sdk::sdk::{deposit_to_aligned, estimate_fee};
-use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
+use aligned_sdk::sdk::{get_nonce_from_ethereum, submit_and_wait_verification};
 use clap::Parser;
 use dialoguer::Confirm;
 use ethers::prelude::*;
@@ -132,7 +132,7 @@ async fn main() {
         .expect("Failed to read user input")
     {   return; }
 
-    let nonce = get_next_nonce(&rpc_url, wallet.address(), args.network)
+    let nonce = get_nonce_from_ethereum(&rpc_url, wallet.address(), args.network)
         .await
         .expect("Failed to get next nonce");
 
@@ -218,6 +218,11 @@ async fn claim_nft_with_verified_proof(
             .flatten()
             .to_vec(),
     );
+
+    let proving_system_aux_data_commitment_hex: String = aligned_verification_data
+        .verification_data_commitment
+        .proving_system_aux_data_commitment.iter().map(|byte| format!("{:02x}", byte)).collect();
+    println!("ELF Commitment: {}", proving_system_aux_data_commitment_hex);
 
     let receipt = verifier_contract
         .verify_batch_inclusion(

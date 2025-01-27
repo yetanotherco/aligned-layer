@@ -27,3 +27,6 @@ telemetry_api-*.tar
 
 # Elixir lsp server
 .elixir_ls
+
+# Binaries
+priv/bls_verify

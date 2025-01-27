@@ -27,8 +27,12 @@ Next, we will see how to execute ZKQuiz to get your own ZKQuiz NFT!
 
 ### Requirements
 
-1. [Rust](https://www.rust-lang.org/tools/install)
+1. [Rust v1.80.0](https://www.rust-lang.org/tools/install)
 2. [Foundry](https://getfoundry.sh)
+
+{% hint style="info" %}
+ELF commitment was generated with Rust v1.80.1 and SP1 v3.0.0.
+{% endhint %}
 
 ### Usage
 
@@ -84,6 +88,7 @@ This will:
 The ZkQuiz source code is available [here](../../examples/zkquiz).
 
 ZkQuiz has three main components:
+
 - App/script
 - Program
 - Verifier contract
@@ -159,6 +164,7 @@ You can generate the expected commitment without actually generating and submitt
 ```bash
 aligned get-vk-commitment --verification_key_file <path_to_input_file> --proving_system <proving_system_id>
 ```
+
 where the `path_to_input_file` is the path to the `elf` file generated with the program compilation and the `proving_system_id` the name of the proving system used for compilation, in this case `SP1`.
 
 Then, the contract validates if the provided commitment of the program identifier matches the expected one.
@@ -244,7 +250,7 @@ println!("Proof verified successfully.");
 Now we can send the generated proof to Aligned using the SDK.
 
 ```rust
-// script/src/main.rs  
+// script/src/main.rs
 
 // Serialize the proof to later save in a file.
 let proof = bincode::serialize(&proof).expect("Failed to serialize proof");
@@ -265,7 +271,7 @@ let max_fee = estimate_fee(&rpc_url, PriceEstimate::Default)
 
 let max_fee_string = ethers::utils::format_units(max_fee, 18).unwrap();
 
-let nonce = get_next_nonce(&rpc_url, wallet.address(), NETWORK)
+let nonce = get_nonce_from_ethereum(&rpc_url, wallet.address(), NETWORK)
     .await
     .expect("Failed to get next nonce");
 
@@ -286,9 +292,9 @@ let aligned_verification_data = submit_and_wait_verification(
 Finally, if the proof was sent to Aligned correctly, we can interact with our verifier Smart Contract to verify that the proof was correctly posted in aligned and claim the NFT.
 
 ```rust
-// script/src/main.rs 
+// script/src/main.rs
 
-// Sends a transaction to the verifier contract with the 
+// Sends a transaction to the verifier contract with the
 // verification data provided by aligned
 claim_nft_with_verified_proof(
     &aligned_verification_data,

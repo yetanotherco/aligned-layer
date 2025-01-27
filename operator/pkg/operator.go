@@ -3,7 +3,6 @@ package operator
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -20,12 +19,14 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/mina"
 	"github.com/yetanotherco/aligned_layer/operator/mina_account"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
+	"github.com/yetanotherco/aligned_layer/operator/risc_zero_old"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	"github.com/yetanotherco/aligned_layer/operator/sp1_old"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
@@ -48,7 +49,6 @@ type Operator struct {
 	Address                   ethcommon.Address
 	Socket                    string
 	Timeout                   time.Duration
-	PrivKey                   *ecdsa.PrivateKey
 	KeyPair                   *bls.KeyPair
 	OperatorId                eigentypes.OperatorId
 	avsSubscriber             chainio.AvsSubscriber
@@ -75,7 +75,7 @@ const (
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
 	logger := configuration.BaseConfig.Logger
 
-	avsReader, err := chainio.NewAvsReaderFromConfig(configuration.BaseConfig, configuration.EcdsaConfig)
+	avsReader, err := chainio.NewAvsReaderFromConfig(configuration.BaseConfig)
 	if err != nil {
 		log.Fatalf("Could not create AVS reader")
 	}
@@ -84,21 +84,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	if err != nil {
 		log.Fatalf("Could not check if operator is registered")
 	}
-
 	if !registered {
-		log.Println("Operator is not registered with AlignedLayer AVS, registering...")
-		quorumNumbers := []byte{0}
-
-		// Generate salt and expiry
-		privateKeyBytes := []byte(configuration.BlsConfig.KeyPair.PrivKey.String())
-		salt := [32]byte{}
-
-		copy(salt[:], crypto.Keccak256([]byte("churn"), []byte(time.Now().String()), quorumNumbers, privateKeyBytes))
-
-		err = RegisterOperator(context.Background(), &configuration, salt)
-		if err != nil {
-			log.Fatalf("Could not register operator")
-		}
+		log.Fatal("Operator not registered")
 	}
 
 	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(configuration.BaseConfig)
@@ -254,7 +241,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			}
 		case err := <-subV3:
 			o.Logger.Infof("Error in websocket subscription", "err", err)
-			subV2, err = o.SubscribeToNewTasksV3()
+			subV3, err = o.SubscribeToNewTasksV3()
 			if err != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks V3")
 			}
@@ -520,14 +507,28 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 
 	case common.SP1:
 		verificationResult, err := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
+		if !verificationResult {
+			o.Logger.Infof("SP1 proof verification failed. Trying old SP1 version...")
+			verificationResult, err = sp1_old.VerifySp1ProofOld(verificationData.Proof, verificationData.VmProgramCode)
+			if !verificationResult {
+				o.Logger.Errorf("Old SP1 proof verification failed")
+			}
+		}
+		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 		o.handleVerificationResult(results, verificationResult, err, "SP1 proof verification")
 
 	case common.Risc0:
 		verificationResult, err := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
 			verificationData.VmProgramCode, verificationData.PubInput)
-		o.handleVerificationResult(results, verificationResult, err, "RiscZero proof verification")
-
+		if !verificationResult {
+			o.Logger.Infof("Risc0 proof verification failed. Trying old Risc0 version...")
+			verificationResult, err = risc_zero_old.VerifyRiscZeroReceiptOld(verificationData.Proof, verificationData.VmProgramCode, verificationData.PubInput)
+			if !verificationResult {
+				o.Logger.Errorf("Old Risc0 proof verification failed")
+			}
+		}
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
+		o.handleVerificationResult(results, verificationResult, err, "Risc0 proof verification")
 		results <- verificationResult
 	case common.Mina:
 		proofLen := (uint)(len(verificationData.Proof))
@@ -539,7 +540,8 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 
 		verificationResult := mina.VerifyMinaState(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
 		o.Logger.Infof("Mina state proof verification result: %t", verificationResult)
-		results <- verificationResult
+		// TODO: Remove the nil value passed as err argument
+		o.handleVerificationResult(results, verificationResult, nil, "Mina state proof verification")
 	case common.MinaAccount:
 		proofLen := (uint)(len(verificationData.Proof))
 		pubInputLen := (uint)(len(verificationData.PubInput))
@@ -550,7 +552,8 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 
 		verificationResult := mina_account.VerifyAccountInclusion(([mina_account.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina_account.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
 		o.Logger.Infof("Mina account inclusion proof verification result: %t", verificationResult)
-		results <- verificationResult
+		// TODO: Remove the nil value passed as err argument
+		o.handleVerificationResult(results, verificationResult, nil, "Mina account state proof verification")
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
@@ -655,13 +658,12 @@ func (o *Operator) SendTelemetryData(ctx *cli.Context) error {
 	hash.Write([]byte(ctx.App.Version))
 
 	// get hash
-	version := hash.Sum(nil)
+	var version [32]byte // All zeroed initially
+	copy(version[:], hash.Sum(nil))
 
 	// sign version
-	signature, err := crypto.Sign(version[:], o.Config.EcdsaConfig.PrivateKey)
-	if err != nil {
-		return err
-	}
+	signature := o.Config.BlsConfig.KeyPair.SignMessage(version)
+	public_key_g2 := o.Config.BlsConfig.KeyPair.GetPubKeyG2()
 	ethRpcUrl, err := BaseUrlOnly(o.Config.BaseConfig.EthRpcUrl)
 	if err != nil {
 		return err
@@ -680,12 +682,14 @@ func (o *Operator) SendTelemetryData(ctx *cli.Context) error {
 	}
 
 	body := map[string]interface{}{
-		"version":              ctx.App.Version,
-		"signature":            signature,
 		"eth_rpc_url":          ethRpcUrl,
 		"eth_rpc_url_fallback": ethRpcUrlFallback,
 		"eth_ws_url":           ethWsUrl,
 		"eth_ws_url_fallback":  ethWsUrlFallback,
+		"address":              o.Address,
+		"version":              ctx.App.Version,
+		"signature":            signature.Bytes(),
+		"pub_key_g2":           public_key_g2.Bytes(),
 	}
 
 	bodyBuffer := new(bytes.Buffer)

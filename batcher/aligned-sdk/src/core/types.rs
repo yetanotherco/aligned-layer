@@ -11,6 +11,7 @@ use ethers::types::transaction::eip712::Eip712;
 use ethers::types::transaction::eip712::Eip712Error;
 use ethers::types::Address;
 use ethers::types::Signature;
+use ethers::types::H160;
 use ethers::types::U256;
 use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
@@ -18,6 +19,13 @@ use lambdaworks_crypto::merkle_tree::{
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
+use super::constants::{
+    ALIGNED_SERVICE_MANAGER_DEVNET, ALIGNED_SERVICE_MANAGER_HOLESKY,
+    ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE, ALIGNED_SERVICE_MANAGER_MAINNET,
+    BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET, BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY,
+    BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE, BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET,
+    BATCHER_URL_DEVNET, BATCHER_URL_HOLESKY, BATCHER_URL_HOLESKY_STAGE, BATCHER_URL_MAINNET,
+};
 use super::errors::VerifySignatureError;
 
 // VerificationData is a bytes32 instead of a VerificationData struct because in the BatcherPaymentService contract
@@ -90,12 +98,12 @@ impl NoncedVerificationData {
     }
 }
 
-// Defines an estimate price preference for the user.
+// Defines a price estimate type for the user.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum PriceEstimate {
-    Min,
+pub enum FeeEstimationType {
     Default,
     Instant,
+    Custom(usize),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -201,12 +209,14 @@ pub struct BatchInclusionData {
     pub batch_merkle_root: [u8; 32],
     pub batch_inclusion_proof: Proof<[u8; 32]>,
     pub index_in_batch: usize,
+    pub user_nonce: U256,
 }
 
 impl BatchInclusionData {
     pub fn new(
         verification_data_batch_index: usize,
         batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
+        user_nonce: U256,
     ) -> Self {
         let batch_inclusion_proof = batch_merkle_tree
             .get_proof_by_pos(verification_data_batch_index)
@@ -216,14 +226,33 @@ impl BatchInclusionData {
             batch_merkle_root: batch_merkle_tree.root,
             batch_inclusion_proof,
             index_in_batch: verification_data_batch_index,
+            user_nonce,
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClientMessage {
+pub struct SubmitProofMessage {
     pub verification_data: NoncedVerificationData,
     pub signature: Signature,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ClientMessage {
+    GetNonceForAddress(Address),
+    // Needs to be wrapped in box as the message is 3x bigger than the others
+    // see https://rust-lang.github.io/rust-clippy/master/index.html#large_enum_variant
+    SubmitProof(Box<SubmitProofMessage>),
+}
+
+impl Display for ClientMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // Use pattern matching to print the variant name
+        match self {
+            ClientMessage::GetNonceForAddress(_) => write!(f, "GetNonceForAddress"),
+            ClientMessage::SubmitProof(_) => write!(f, "SubmitProof"),
+        }
+    }
 }
 
 impl Eip712 for NoncedVerificationData {
@@ -276,7 +305,7 @@ impl Eip712 for NoncedVerificationData {
     }
 }
 
-impl ClientMessage {
+impl SubmitProofMessage {
     /// Client message is a wrap around verification data and its signature.
     /// The signature is obtained by calculating the commitments and then hashing them.
     pub async fn new(
@@ -288,7 +317,7 @@ impl ClientMessage {
             .await
             .expect("Failed to sign the verification data");
 
-        ClientMessage {
+        Self {
             verification_data,
             signature,
         }
@@ -334,57 +363,10 @@ impl AlignedVerificationData {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ValidityResponseMessage {
-    Valid,
-    InvalidNonce,
-    InvalidSignature,
-    InvalidChainId,
-    InvalidProof(ProofInvalidReason),
-    InvalidMaxFee,
-    InvalidReplacementMessage,
-    AddToBatchError,
-    ProofTooLarge,
-    InsufficientBalance(Address),
-    EthRpcError,
-    InvalidPaymentServiceAddress(Address, Address),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ProofInvalidReason {
     RejectedProof,
     VerifierNotSupported,
     DisabledVerifier(ProvingSystemId),
-}
-
-impl Display for ValidityResponseMessage {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ValidityResponseMessage::Valid => write!(f, "Valid"),
-            ValidityResponseMessage::InvalidNonce => write!(f, "Invalid nonce"),
-            ValidityResponseMessage::InvalidSignature => write!(f, "Invalid signature"),
-            ValidityResponseMessage::InvalidChainId => write!(f, "Invalid chain id"),
-            ValidityResponseMessage::InvalidProof(reason) => {
-                write!(f, "Invalid proof: {}", reason)
-            }
-            ValidityResponseMessage::InvalidMaxFee => write!(f, "Invalid max fee"),
-            ValidityResponseMessage::InvalidReplacementMessage => {
-                write!(f, "Invalid replacement message")
-            }
-            ValidityResponseMessage::AddToBatchError => write!(f, "Add to batch error"),
-            ValidityResponseMessage::ProofTooLarge => write!(f, "Proof too large"),
-            ValidityResponseMessage::InsufficientBalance(addr) => {
-                write!(f, "Insufficient balance for address {}", addr)
-            }
-            ValidityResponseMessage::EthRpcError => write!(f, "Eth RPC error"),
-            ValidityResponseMessage::InvalidPaymentServiceAddress(addr, expected) => {
-                write!(
-                    f,
-                    "Invalid payment service address: {}, expected: {}",
-                    addr, expected
-                )
-            }
-        }
-    }
 }
 
 impl Display for ProofInvalidReason {
@@ -400,34 +382,71 @@ impl Display for ProofInvalidReason {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ResponseMessage {
+pub enum SubmitProofResponseMessage {
     BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
-    CreateNewTaskError(String),
+    CreateNewTaskError(String, String), //merkle-root, error
     InvalidProof(ProofInvalidReason),
     BatchReset,
     Error(String),
+    InvalidNonce,
+    InvalidSignature,
+    ProofTooLarge,
+    InvalidMaxFee,
+    InsufficientBalance(Address),
+    InvalidChainId,
+    InvalidReplacementMessage,
+    AddToBatchError,
+    EthRpcError,
+    InvalidPaymentServiceAddress(Address, Address),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GetNonceResponseMessage {
+    Nonce(U256),
+    EthRpcError(String),
+    InvalidRequest(String),
+}
+
+#[derive(Debug, Clone)]
 pub enum Network {
     Devnet,
     Holesky,
     HoleskyStage,
+    Mainnet,
+    Custom(String, String, String),
 }
 
-impl FromStr for Network {
-    type Err = String;
+impl Network {
+    pub fn get_aligned_service_manager_address(&self) -> ethers::types::H160 {
+        match self {
+            Self::Devnet => H160::from_str(ALIGNED_SERVICE_MANAGER_DEVNET).unwrap(),
+            Self::Holesky => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY).unwrap(),
+            Self::HoleskyStage => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE).unwrap(),
+            Self::Mainnet => H160::from_str(ALIGNED_SERVICE_MANAGER_MAINNET).unwrap(),
+            Self::Custom(s, _, _) => H160::from_str(s.as_str()).unwrap(),
+        }
+    }
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "holesky" => Ok(Network::Holesky),
-            "holesky-stage" => Ok(Network::HoleskyStage),
-            "devnet" => Ok(Network::Devnet),
-            _ => Err(
-                "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\""
-                    .to_string(),
-            ),
+    pub fn get_batcher_payment_service_address(&self) -> ethers::types::H160 {
+        match self {
+            Self::Devnet => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET).unwrap(),
+            Self::Holesky => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY).unwrap(),
+            Self::HoleskyStage => {
+                H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE).unwrap()
+            }
+            Self::Mainnet => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET).unwrap(),
+            Self::Custom(_, s, _) => H160::from_str(s.as_str()).unwrap(),
+        }
+    }
+
+    pub fn get_batcher_url(&self) -> &str {
+        match self {
+            Self::Devnet => BATCHER_URL_DEVNET,
+            Self::Holesky => BATCHER_URL_HOLESKY,
+            Self::HoleskyStage => BATCHER_URL_HOLESKY_STAGE,
+            Self::Mainnet => BATCHER_URL_MAINNET,
+            Self::Custom(_, _, s) => s.as_str(),
         }
     }
 }

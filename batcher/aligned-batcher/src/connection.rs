@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
+use crate::types::{batch_queue::BatchQueueEntry, errors::BatcherError};
 use aligned_sdk::{
     communication::serialization::cbor_serialize,
-    core::types::{BatchInclusionData, ResponseMessage, VerificationCommitmentBatch},
+    core::types::{BatchInclusionData, SubmitProofResponseMessage, VerificationCommitmentBatch},
 };
 use futures_util::{stream::SplitSink, SinkExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use log::{error, info};
+use log::{debug, error};
 use serde::Serialize;
 use tokio::{net::TcpStream, sync::RwLock};
 use tokio_tungstenite::{
@@ -14,17 +15,21 @@ use tokio_tungstenite::{
     WebSocketStream,
 };
 
-use crate::types::{batch_queue::BatchQueueEntry, errors::BatcherError};
-
 pub(crate) type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
 
 pub(crate) async fn send_batch_inclusion_data_responses(
     finalized_batch: Vec<BatchQueueEntry>,
     batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
 ) -> Result<(), BatcherError> {
-    for (vd_batch_idx, entry) in finalized_batch.iter().enumerate() {
-        let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
-        let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
+    // Finalized_batch is ordered as the PriorityQueue, ordered by: ascending max_fee && if max_fee is equal, by descending nonce.
+    // We iter it in reverse because each sender wants to receive responses in ascending nonce order
+    for (vd_batch_idx, entry) in finalized_batch.iter().enumerate().rev() {
+        let batch_inclusion_data = BatchInclusionData::new(
+            vd_batch_idx,
+            batch_merkle_tree,
+            entry.nonced_verification_data.nonce,
+        );
+        let response = SubmitProofResponseMessage::BatchInclusionData(batch_inclusion_data);
 
         let serialized_response = cbor_serialize(&response)
             .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
@@ -45,7 +50,7 @@ pub(crate) async fn send_batch_inclusion_data_responses(
             Ok(_) => (),
         }
 
-        info!("Response sent");
+        debug!("Response sent");
     }
 
     Ok(())

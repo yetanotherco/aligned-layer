@@ -1,20 +1,23 @@
 use std::collections::HashSet;
 use std::fs::File;
-use std::io;
 use std::io::BufReader;
 use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
 use aligned_sdk::communication::serialization::cbor_deserialize;
+use aligned_sdk::core::types::FeeEstimationType;
 use aligned_sdk::core::{
-    errors::{AlignedError, SubmitError},
+    errors::{AlignedError, FeeEstimateError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
+use aligned_sdk::sdk::estimate_fee;
 use aligned_sdk::sdk::get_chain_id;
-use aligned_sdk::sdk::get_next_nonce;
+use aligned_sdk::sdk::get_nonce_from_batcher;
+use aligned_sdk::sdk::get_nonce_from_ethereum;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
+use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -23,12 +26,16 @@ use ethers::prelude::*;
 use ethers::utils::format_ether;
 use ethers::utils::hex;
 use ethers::utils::parse_ether;
+use futures_util::future;
 use log::warn;
 use log::{error, info};
 use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
+use crate::AlignedCommands::GetUserAmountOfQueuedProofs;
 use crate::AlignedCommands::GetUserBalance;
+use crate::AlignedCommands::GetUserNonce;
+use crate::AlignedCommands::GetUserNonceFromEthereum;
 use crate::AlignedCommands::GetVkCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -56,17 +63,25 @@ pub enum AlignedCommands {
     DepositToBatcher(DepositToBatcherArgs),
     #[clap(about = "Get user balance from the batcher", name = "get-user-balance")]
     GetUserBalance(GetUserBalanceArgs),
+    #[clap(
+        about = "Gets user current nonce from the batcher. This is the nonce you should send in your next proof.",
+        name = "get-user-nonce"
+    )]
+    GetUserNonce(GetUserNonceArgs),
+    #[clap(
+        about = "Gets the user nonce directly from the BatcherPaymentService contract. Useful for validating the on-chain state and check if your transactions are pending in the batcher.",
+        name = "get-user-nonce-from-ethereum"
+    )]
+    GetUserNonceFromEthereum(GetUserNonceFromEthereumArgs),
+    #[clap(
+        about = "Gets the number of proofs a user has queued in the Batcher.",
+        name = "get-user-amount-of-queued-proofs"
+    )]
+    GetUserAmountOfQueuedProofs(GetUserAmountOfQueuedProofsArgs),
 }
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
 pub struct SubmitArgs {
-    #[arg(
-        name = "Batcher connection address",
-        long = "batcher_url",
-        default_value = "ws://localhost:8080"
-    )]
-    batcher_url: String,
     #[arg(
         name = "Ethereum RPC provider connection address",
         long = "rpc_url",
@@ -101,46 +116,68 @@ pub struct SubmitArgs {
         default_value = "./aligned_verification_data/"
     )]
     batch_inclusion_data_directory_path: String,
-    #[arg(name = "Path to local keystore", long = "keystore_path")]
-    keystore_path: Option<PathBuf>,
-    #[arg(name = "Private key", long = "private_key")]
-    private_key: Option<String>,
-    #[arg(
-        name = "Max Fee",
-        long = "max_fee",
-        default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
-    )]
-    max_fee: String, // String because U256 expects hex
+    #[command(flatten)]
+    private_key_type: PrivateKeyType,
     #[arg(name = "Nonce", long = "nonce")]
     nonce: Option<String>, // String because U256 expects hex
-    #[arg(
-        name = "The working network's name",
-        long = "network",
-        default_value = "devnet"
-    )]
+    #[clap(flatten)]
     network: NetworkArg,
+    #[command(flatten)]
+    fee_type: FeeType,
+}
+
+impl SubmitArgs {
+    async fn get_max_fee(&self) -> Result<U256, AlignedError> {
+        if let Some(max_fee) = &self.fee_type.max_fee {
+            if !max_fee.ends_with("ether") {
+                error!("`max_fee` should be in the format XX.XXether");
+                Err(FeeEstimateError::FeeEstimateParseError(
+                    "Error while parsing `max_fee`".to_string(),
+                ))?
+            }
+
+            let max_fee_ether = max_fee.replace("ether", "");
+            return Ok(parse_ether(max_fee_ether).map_err(|e| {
+                FeeEstimateError::FeeEstimateParseError(format!(
+                    "Error while parsing `max_fee`: {}",
+                    e
+                ))
+            })?);
+        }
+
+        if let Some(number_proofs_in_batch) = &self.fee_type.custom_fee_estimate {
+            return estimate_fee(
+                &self.eth_rpc_url,
+                FeeEstimationType::Custom(*number_proofs_in_batch),
+            )
+            .await
+            .map_err(AlignedError::FeeEstimateError);
+        }
+
+        if self.fee_type.instant_fee_estimate {
+            estimate_fee(&self.eth_rpc_url, FeeEstimationType::Instant)
+                .await
+                .map_err(AlignedError::FeeEstimateError)
+        } else {
+            estimate_fee(&self.eth_rpc_url, FeeEstimationType::Default)
+                .await
+                .map_err(AlignedError::FeeEstimateError)
+        }
+    }
 }
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct DepositToBatcherArgs {
-    #[arg(
-        name = "Path to local keystore",
-        long = "keystore_path",
-        required = true
-    )]
-    keystore_path: Option<PathBuf>,
+    #[command(flatten)]
+    private_key_type: PrivateKeyType,
     #[arg(
         name = "Ethereum RPC provider address",
         long = "rpc_url",
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
-    #[arg(
-        name = "The working network's name",
-        long = "network",
-        default_value = "devnet"
-    )]
+    #[clap(flatten)]
     network: NetworkArg,
     #[arg(name = "Amount to deposit", long = "amount", required = true)]
     amount: String,
@@ -157,11 +194,8 @@ pub struct VerifyProofOnchainArgs {
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
-    #[arg(
-        name = "The working network's name",
-        long = "network",
-        default_value = "devnet"
-    )]
+
+    #[clap(flatten)]
     network: NetworkArg,
 }
 
@@ -179,11 +213,7 @@ pub struct GetVkCommitmentArgs {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct GetUserBalanceArgs {
-    #[arg(
-        name = "The working network's name",
-        long = "network",
-        default_value = "devnet"
-    )]
+    #[clap(flatten)]
     network: NetworkArg,
     #[arg(
         name = "Ethereum RPC provider address",
@@ -199,21 +229,64 @@ pub struct GetUserBalanceArgs {
     user_address: String,
 }
 
-#[derive(Debug, Clone, ValueEnum, Copy)]
-enum NetworkArg {
-    Devnet,
-    Holesky,
-    HoleskyStage,
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct GetUserNonceArgs {
+    #[clap(flatten)]
+    network: NetworkArg,
+    #[arg(
+        name = "The user's Ethereum address",
+        long = "user_addr",
+        required = true
+    )]
+    address: String,
 }
 
-impl From<NetworkArg> for Network {
-    fn from(env_arg: NetworkArg) -> Self {
-        match env_arg {
-            NetworkArg::Devnet => Network::Devnet,
-            NetworkArg::Holesky => Network::Holesky,
-            NetworkArg::HoleskyStage => Network::HoleskyStage,
-        }
-    }
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct GetUserNonceFromEthereumArgs {
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc_url",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[arg(
+        name = "The user's Ethereum address",
+        long = "user_addr",
+        required = true
+    )]
+    address: String,
+    #[clap(flatten)]
+    network: NetworkArg,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct GetUserAmountOfQueuedProofsArgs {
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc_url",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[arg(
+        name = "The user's Ethereum address",
+        long = "user_addr",
+        required = true
+    )]
+    address: String,
+    #[clap(flatten)]
+    network: NetworkArg,
+}
+
+#[derive(Args, Debug)]
+#[group(multiple = false)]
+pub struct PrivateKeyType {
+    #[arg(name = "path_to_keystore", long = "keystore_path")]
+    keystore_path: Option<PathBuf>,
+    #[arg(name = "private_key", long = "private_key")]
+    private_key: Option<String>,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -250,6 +323,120 @@ impl From<ProvingSystemArg> for ProvingSystemId {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum NetworkNameArg {
+    Devnet,
+    Holesky,
+    HoleskyStage,
+    Mainnet,
+}
+
+impl FromStr for NetworkNameArg {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "devnet" => Ok(NetworkNameArg::Devnet),
+            "holesky" => Ok(NetworkNameArg::Holesky),
+            "holesky-stage" => Ok(NetworkNameArg::HoleskyStage),
+            "mainnet" => Ok(NetworkNameArg::Mainnet),
+            _ => Err(
+                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet"
+                    .to_string(),
+            ),
+        }
+    }
+}
+
+#[derive(Debug, clap::Args, Clone)]
+struct NetworkArg {
+    #[arg(
+        name = "The working network's name",
+        long = "network",
+        default_value = "devnet",
+        help = "[possible values: devnet, holesky, holesky-stage, mainnet]"
+    )]
+    network: Option<NetworkNameArg>,
+    #[arg(
+        name = "Aligned Service Manager Contract Address",
+        long = "aligned_service_manager",
+        conflicts_with("The working network's name"),
+        requires("Batcher Payment Service Contract Address"),
+        requires("Batcher URL")
+    )]
+    aligned_service_manager_address: Option<String>,
+
+    #[arg(
+        name = "Batcher Payment Service Contract Address",
+        long = "batcher_payment_service",
+        conflicts_with("The working network's name"),
+        requires("Aligned Service Manager Contract Address"),
+        requires("Batcher URL")
+    )]
+    batcher_payment_service_address: Option<String>,
+
+    #[arg(
+        name = "Batcher URL",
+        long = "batcher_url",
+        conflicts_with("The working network's name"),
+        requires("Aligned Service Manager Contract Address"),
+        requires("Batcher Payment Service Contract Address")
+    )]
+    batcher_url: Option<String>,
+}
+
+impl From<NetworkArg> for Network {
+    fn from(network_arg: NetworkArg) -> Self {
+        let mut processed_network_argument = network_arg.clone();
+
+        if network_arg.batcher_url.is_some()
+            || network_arg.aligned_service_manager_address.is_some()
+            || network_arg.batcher_payment_service_address.is_some()
+        {
+            processed_network_argument.network = None; // We need this because network is Devnet as default, which is not true for a Custom network
+        }
+
+        match processed_network_argument.network {
+            None => Network::Custom(
+                network_arg.aligned_service_manager_address.unwrap(),
+                network_arg.batcher_payment_service_address.unwrap(),
+                network_arg.batcher_url.unwrap(),
+            ),
+            Some(NetworkNameArg::Devnet) => Network::Devnet,
+            Some(NetworkNameArg::Holesky) => Network::Holesky,
+            Some(NetworkNameArg::HoleskyStage) => Network::HoleskyStage,
+            Some(NetworkNameArg::Mainnet) => Network::Mainnet,
+        }
+    }
+}
+
+#[derive(Args, Debug)]
+#[group(required = false, multiple = false)]
+pub struct FeeType {
+    #[arg(
+        name = "Max Fee (ether)",
+        long = "max_fee",
+        help = "Specifies the maximum fee (`max_fee`) the user is willing to pay for the submitted proof, in Ether."
+    )]
+    max_fee: Option<String>, // String because U256 expects hex
+    #[arg(
+        name = "amount_of_proofs_in_batch",
+        long = "custom_fee_estimate",
+        help = "Specifies a `max_fee` equivalent to the cost of 1 proof in a batch of size `num_proofs_in_batch`."
+    )]
+    custom_fee_estimate: Option<usize>,
+    #[arg(
+        long = "instant_fee_estimate",
+        help = "Specifies a `max_fee` that ensures the proof is included instantly, equivalent to the cost of 1 proof in a batch of size 1."
+    )]
+    instant_fee_estimate: bool,
+    #[arg(
+        long = "default_fee_estimate",
+        help = "Specifies a `max_fee`, based on the cost of one proof in a batch of 10 proofs."
+    )]
+    default_fee_estimate: bool,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), AlignedError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
@@ -264,19 +451,16 @@ async fn main() -> Result<(), AlignedError> {
                 SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
             })?;
 
-            let max_fee =
-                U256::from_dec_str(&submit_args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
-
+            let eth_rpc_url = submit_args.eth_rpc_url.clone();
+            let max_fee_wei = submit_args.get_max_fee().await?;
+            info!(
+                "Will send each proof with an estimated max_fee of: {}ether",
+                format_ether(max_fee_wei)
+            );
             let repetitions = submit_args.repetitions;
-            let connect_addr = submit_args.batcher_url.clone();
 
-            let keystore_path = &submit_args.keystore_path;
-            let private_key = &submit_args.private_key;
-
-            if keystore_path.is_some() && private_key.is_some() {
-                warn!("Can't have a keystore path and a private key as input. Please use only one");
-                return Ok(());
-            }
+            let keystore_path = &submit_args.private_key_type.keystore_path;
+            let private_key = &submit_args.private_key_type.private_key;
 
             let mut wallet = if let Some(keystore_path) = keystore_path {
                 let password = rpassword::prompt_password("Please enter your keystore password:")
@@ -288,7 +472,7 @@ async fn main() -> Result<(), AlignedError> {
                     .parse::<LocalWallet>()
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
-                warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
+                warn!("Missing keystore or private key used for payment. This proof will not be included if sent to Eth Mainnet");
                 match LocalWallet::from_str(ANVIL_PRIVATE_KEY) {
                     Ok(wallet) => wallet,
                     Err(e) => {
@@ -301,23 +485,39 @@ async fn main() -> Result<(), AlignedError> {
                 }
             };
 
-            let eth_rpc_url = submit_args.eth_rpc_url.clone();
-
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
             wallet = wallet.with_chain_id(chain_id);
 
             let nonce = match &submit_args.nonce {
                 Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
                 None => {
-                    get_nonce(
-                        &eth_rpc_url,
-                        wallet.address(),
-                        submit_args.network.into(),
-                        repetitions,
-                    )
-                    .await?
+                    get_nonce_from_batcher(submit_args.network.clone().into(), wallet.address())
+                        .await
+                        .map_err(|e| match e {
+                            aligned_sdk::core::errors::GetNonceError::EthRpcError(e) => {
+                                SubmitError::GetNonceError(e)
+                            }
+                            aligned_sdk::core::errors::GetNonceError::ConnectionFailed(e) => {
+                                SubmitError::GenericError(e)
+                            }
+                            aligned_sdk::core::errors::GetNonceError::InvalidRequest(e) => {
+                                SubmitError::GenericError(e)
+                            }
+                            aligned_sdk::core::errors::GetNonceError::SerializationError(e) => {
+                                SubmitError::GenericError(e)
+                            }
+                            aligned_sdk::core::errors::GetNonceError::ProtocolMismatch {
+                                current,
+                                expected,
+                            } => SubmitError::ProtocolVersionMismatch { current, expected },
+                            aligned_sdk::core::errors::GetNonceError::UnexpectedResponse(e) => {
+                                SubmitError::UnexpectedBatcherResponse(e)
+                            }
+                        })?
                 }
             };
+
+            warn!("Nonce: {nonce}");
 
             let verification_data = verification_data_from_args(&submit_args)?;
 
@@ -325,35 +525,37 @@ async fn main() -> Result<(), AlignedError> {
 
             info!("Submitting proofs to the Aligned batcher...");
 
-            let max_fees = vec![max_fee; repetitions];
-
-            let aligned_verification_data_vec = match submit_multiple(
-                &connect_addr,
+            let aligned_verification_data_vec = submit_multiple(
                 submit_args.network.into(),
                 &verification_data_arr,
-                &max_fees,
+                max_fee_wei,
                 wallet.clone(),
                 nonce,
             )
-            .await
-            {
-                Ok(aligned_verification_data_vec) => aligned_verification_data_vec,
-                Err(e) => {
-                    let nonce_file = format!("nonce_{:?}.bin", wallet.address());
-
-                    handle_submit_err(e, nonce_file.as_str()).await;
-                    return Ok(());
-                }
-            };
+            .await;
 
             let mut unique_batch_merkle_roots = HashSet::new();
 
             for aligned_verification_data in aligned_verification_data_vec {
-                save_response(
-                    batch_inclusion_data_directory_path.clone(),
-                    &aligned_verification_data,
-                )?;
-                unique_batch_merkle_roots.insert(aligned_verification_data.batch_merkle_root);
+                match aligned_verification_data {
+                    Ok(aligned_verification_data) => {
+                        info!(
+                            "Proof submitted to aligned. Batch merkle root: 0x{}",
+                            hex::encode(aligned_verification_data.batch_merkle_root)
+                        );
+                        save_response(
+                            batch_inclusion_data_directory_path.clone(),
+                            &aligned_verification_data,
+                        )?;
+                        unique_batch_merkle_roots
+                            .insert(aligned_verification_data.batch_merkle_root);
+                    }
+                    Err(e) => {
+                        warn!("Error while submitting proof: {:?}", e);
+                        handle_submit_err(e).await;
+                        return Ok(());
+                    }
+                };
             }
 
             match unique_batch_merkle_roots.len() {
@@ -415,9 +617,9 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let amount = deposit_to_batcher_args.amount.replace("ether", "");
+            let amount_ether = deposit_to_batcher_args.amount.replace("ether", "");
 
-            let amount_ether = parse_ether(&amount).map_err(|e| {
+            let amount_wei = parse_ether(&amount_ether).map_err(|e| {
                 SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
             })?;
 
@@ -431,15 +633,20 @@ async fn main() -> Result<(), AlignedError> {
                     ))
                 })?;
 
-            let keystore_path = &deposit_to_batcher_args.keystore_path;
+            let keystore_path = &deposit_to_batcher_args.private_key_type.keystore_path;
+            let private_key = &deposit_to_batcher_args.private_key_type.private_key;
 
             let mut wallet = if let Some(keystore_path) = keystore_path {
                 let password = rpassword::prompt_password("Please enter your keystore password:")
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?;
                 Wallet::decrypt_keystore(keystore_path, password)
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?
+            } else if let Some(private_key) = private_key {
+                private_key
+                    .parse::<LocalWallet>()
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
-                warn!("Missing keystore used for payment.");
+                warn!("Missing keystore or private key used for payment.");
                 return Ok(());
             };
 
@@ -448,7 +655,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            match deposit_to_aligned(amount_ether, client, deposit_to_batcher_args.network.into())
+            match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network.into())
                 .await
             {
                 Ok(receipt) => {
@@ -483,6 +690,52 @@ async fn main() -> Result<(), AlignedError> {
                     return Ok(());
                 }
             }
+        }
+        GetUserNonce(args) => {
+            let address = H160::from_str(&args.address).unwrap();
+            match get_nonce_from_batcher(args.network.into(), address).await {
+                Ok(nonce) => {
+                    info!("Nonce for address {} is {}", address, nonce);
+                }
+                Err(e) => {
+                    error!("Error while getting nonce: {:?}", e);
+                    return Ok(());
+                }
+            }
+        }
+        GetUserNonceFromEthereum(args) => {
+            let address = H160::from_str(&args.address).unwrap();
+            let network = args.network.into();
+            match get_nonce_from_ethereum(&args.eth_rpc_url, address, network).await {
+                Ok(nonce) => {
+                    info!(
+                        "Nonce for address {} in BatcherPaymentService contract is {}",
+                        address, nonce
+                    );
+                }
+                Err(e) => {
+                    error!("Error while getting nonce: {:?}", e);
+                    return Ok(());
+                }
+            }
+        }
+        GetUserAmountOfQueuedProofs(args) => {
+            let address = H160::from_str(&args.address).unwrap();
+            let network: Network = args.network.into();
+            let Ok((ethereum_nonce, batcher_nonce)) = future::try_join(
+                get_nonce_from_ethereum(&args.eth_rpc_url, address, network.clone()),
+                get_nonce_from_batcher(network, address),
+            )
+            .await
+            .map_err(|e| error!("Error while getting nonce: {:?}", e)) else {
+                return Ok(());
+            };
+            info!(
+                "User {} has {} proofs in the batcher queue",
+                address,
+                batcher_nonce - ethereum_nonce
+            );
+            return Ok(());
         }
     }
 
@@ -559,7 +812,7 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
     })
 }
 
-async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
+async fn handle_submit_err(err: SubmitError) {
     match err {
         SubmitError::InvalidNonce => {
             error!("Invalid nonce. try again");
@@ -568,15 +821,14 @@ async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
             error!("Batch was reset. try resubmitting the proof");
         }
         SubmitError::InvalidProof(reason) => error!("Submitted proof is invalid: {}", reason),
-        SubmitError::InsufficientBalance => {
-            error!("Insufficient balance to pay for the transaction")
+        SubmitError::InsufficientBalance(sender_address) => {
+            error!(
+                "Insufficient balance to pay for the transaction, address: {}",
+                sender_address
+            )
         }
         _ => {}
     }
-
-    delete_file(nonce_file).unwrap_or_else(|e| {
-        error!("Error while deleting nonce file: {}", e);
-    });
 }
 
 fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
@@ -588,43 +840,6 @@ fn read_file_option(param_name: &str, file_name: Option<PathBuf>) -> Result<Vec<
         param_name.to_string(),
     ))?;
     read_file(file_name)
-}
-
-fn write_file(file_name: &str, content: &[u8]) -> Result<(), SubmitError> {
-    std::fs::write(file_name, content)
-        .map_err(|e| SubmitError::IoError(PathBuf::from(file_name), e))
-}
-
-fn delete_file(file_name: &str) -> Result<(), io::Error> {
-    std::fs::remove_file(file_name)
-}
-
-async fn get_nonce(
-    eth_rpc_url: &str,
-    address: Address,
-    network: Network,
-    proof_count: usize,
-) -> Result<U256, AlignedError> {
-    let nonce = get_next_nonce(eth_rpc_url, address, network).await?;
-
-    let nonce_file = format!("nonce_{:?}.bin", address);
-
-    let local_nonce = read_file(PathBuf::from(nonce_file.clone())).unwrap_or(vec![0u8; 32]);
-    let local_nonce = U256::from_big_endian(local_nonce.as_slice());
-
-    let nonce = if local_nonce > nonce {
-        local_nonce
-    } else {
-        nonce
-    };
-
-    let mut nonce_bytes = [0; 32];
-
-    (nonce + U256::from(proof_count)).to_big_endian(&mut nonce_bytes);
-
-    write_file(nonce_file.as_str(), &nonce_bytes)?;
-
-    Ok(nonce)
 }
 
 pub async fn get_user_balance(

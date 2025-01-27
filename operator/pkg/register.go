@@ -15,9 +15,10 @@ import (
 func RegisterOperator(
 	ctx context.Context,
 	configuration *config.OperatorConfig,
+	ecdsaConfig *config.EcdsaConfig,
 	operatorToAvsRegistrationSigSalt [32]byte,
 ) error {
-	writer, err := chainio.NewAvsWriterFromConfig(configuration.BaseConfig, configuration.EcdsaConfig)
+	writer, err := chainio.NewAvsWriterFromConfig(configuration.BaseConfig, ecdsaConfig, nil)
 	if err != nil {
 		configuration.BaseConfig.Logger.Error("Failed to create AVS writer", "err", err)
 		return err
@@ -27,7 +28,7 @@ func RegisterOperator(
 
 	quorumNumbers := types.QuorumNums{0}
 
-	_, err = writer.RegisterOperator(ctx, configuration.EcdsaConfig.PrivateKey,
+	_, err = writer.RegisterOperator(ctx, ecdsaConfig.PrivateKey,
 		configuration.BlsConfig.KeyPair,
 		quorumNumbers, socket, true)
 

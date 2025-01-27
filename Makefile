@@ -4,9 +4,12 @@ SHELL := /bin/bash
 OS := $(shell uname -s)
 
 CONFIG_FILE?=config-files/config.yaml
+export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.10.0
+OPERATOR_VERSION=v0.14.0
+EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
+EIGEN_SDK_GO_VERSION_MAINNET=v0.1.13
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -17,7 +20,8 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	LD_LIBRARY_PATH += $(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/mina/lib:$(CURDIR)/operator/mina_account/lib
+	export LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/mina/lib:$(CURDIR)/operator/mina_account/lib
+	OPERATOR_FFIS=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/mina/lib:$(CURDIR)/operator/mina_account/lib
 endif
 
 ifeq ($(OS),Linux)
@@ -26,6 +30,16 @@ endif
 
 ifeq ($(OS),Darwin)
 	BUILD_OPERATOR = $(MAKE) build_operator_macos
+endif
+
+ifeq ($(ENVIRONMENT), devnet)
+	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_devnet
+else ifeq ($(ENVIRONMENT), testnet)
+	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_testnet
+else ifeq ($(ENVIRONMENT), mainnet)
+	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_mainnet
+else
+	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_error
 endif
 
 
@@ -50,7 +64,7 @@ deps: submodules go_deps build_all_ffi ## Install deps
 
 go_deps:
 	@echo "Installing Go dependencies..."
-	go install github.com/maoueh/zap-pretty@latest
+	go install github.com/maoueh/zap-pretty@v0.3.0
 	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
 	go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 
@@ -93,6 +107,30 @@ anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
 
+pause_all_aligned_service_manager:
+	@echo "Pausing all contracts..."
+	. contracts/scripts/pause_aligned_service_manager.sh all
+
+unpause_all_aligned_service_manager:
+	@echo "Pausing all contracts..."
+	. contracts/scripts/unpause_aligned_service_manager.sh all
+
+get_paused_state_aligned_service_manager:
+	@echo "Getting paused state of Aligned Service Manager contract..."
+	. contracts/scripts/get_paused_state_aligned_service_manager.sh
+
+pause_batcher_payment_service:
+	@echo "Pausing BatcherPayments contract..."
+	. contracts/scripts/pause_batcher_payment_service.sh
+
+unpause_batcher_payment_service:
+	@echo "Unpausing BatcherPayments contract..."
+	. contracts/scripts/unpause_batcher_payment_service.sh
+
+get_paused_state_batcher_payments_service:
+	@echo "Getting paused state of Batcher Payments Service contract..."
+	. contracts/scripts/get_paused_state_batcher_payments_service.sh
+	
 anvil_upgrade_initialize_disable_verifiers:
 	@echo "Initializing disabled verifiers..."
 	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh
@@ -108,9 +146,19 @@ anvil_start_with_block_time:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
 
+anvil_start_with_block_time_with_more_prefunded_accounts:
+	@echo "Starting Anvil..."
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 -a 2000
+
 _AGGREGATOR_:
 
+build_aggregator:
+	$(GET_SDK_VERSION)
+	@echo "Building aggregator"
+	@go build -o ./build/aligned-aggregator ./aggregator/cmd/main.go
+
 aggregator_start:
+	$(GET_SDK_VERSION)
 	@echo "Starting Aggregator..."
 	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
 	2>&1 | zap-pretty
@@ -119,19 +167,38 @@ aggregator_send_dummy_responses:
 	@echo "Sending dummy responses to Aggregator..."
 	@cd aggregator && go run dummy/submit_task_responses.go
 
+test_go_retries:
+	@cd core/ && \
+	go test -v -timeout 15m
 
 __OPERATOR__:
 
 operator_start:
+	$(GET_SDK_VERSION)
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
+
+operator_set_eigen_sdk_go_version_testnet:
+	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_TESTNET)"
+	go get github.com/Layr-Labs/eigensdk-go@$(EIGEN_SDK_GO_VERSION_TESTNET)
+
+operator_set_eigen_sdk_go_version_devnet: operator_set_eigen_sdk_go_version_mainnet
+
+operator_set_eigen_sdk_go_version_mainnet:
+	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_MAINNET)"
+	go get github.com/Layr-Labs/eigensdk-go@$(EIGEN_SDK_GO_VERSION_MAINNET)
+
+operator_set_eigen_sdk_go_version_error:
+	@echo "Error setting Eigen SDK version, missing ENVIRONMENT. Possible values for ENVIRONMENT=<devnet|testnet|mainnet>"
+	exit 1
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
 operator_register_and_start: operator_full_registration operator_start
 
 build_operator: deps
+	$(GET_SDK_VERSION)
 	$(BUILD_OPERATOR)
 
 build_operator_macos:
@@ -141,10 +208,11 @@ build_operator_macos:
 
 build_operator_linux:
 	@echo "Building Operator..."
-	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(OPERATOR_FFIS)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
 update_operator:
+	$(GET_SDK_VERSION)
 	@echo "Updating Operator..."
 	@./scripts/fetch_latest_release.sh
 	@make build_operator
@@ -168,7 +236,7 @@ bindings:
 	cd contracts && ./generate-go-bindings.sh
 
 test:
-	go test ./...
+	go test ./... -timeout 15m
 
 
 get_delegation_manager_address:
@@ -198,19 +266,21 @@ operator_mint_mock_tokens:
 
 operator_whitelist_devnet:
 	@echo "Whitelisting operator"
-	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
 	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
 
-operator_remove_devnet:
+operator_remove_from_whitelist_devnet:
 	@echo "Removing operator"
-	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
 	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/remove_operator.sh $(OPERATOR_ADDRESS)
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_whitelist:
 	@echo "Whitelisting operator $(OPERATOR_ADDRESS)"
-	@. contracts/scripts/.env && . contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+	@. contracts/scripts/.env && . contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
+
+operator_remove_from_whitelist:
+	@echo "Removing operator $(OPERATOR_ADDRESS)"
+	@. contracts/scripts/.env && . contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_deposit_into_mock_strategy:
 	@echo "Depositing into mock strategy"
@@ -220,11 +290,15 @@ operator_deposit_into_mock_strategy:
 		--strategy-address $(STRATEGY_ADDRESS) \
 		--amount 100000000000000000
 
+
+AMOUNT ?= 1000
+
 operator_deposit_into_strategy:
 	@echo "Depositing into strategy"
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
-		--amount 1000
+		--strategy-address $(STRATEGY_ADDRESS) \
+		--amount $(AMOUNT)
 
 operator_register_with_aligned_layer:
 	@echo "Registering operator with AlignedLayer"
@@ -251,9 +325,27 @@ verifier_disable:
 	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
 	@. contracts/scripts/.env && . contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
 
+strategies_get_weight:
+	@echo "Getting weight of strategy: $(STRATEGY_INDEX)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_strategy_weight.sh $(STRATEGY_INDEX)
+
+strategies_update_weight:
+	@echo "Updating strategy weights: "
+	@echo "STRATEGY_INDICES: $(STRATEGY_INDICES)"
+	@echo "NEW_MULTIPLIERS: $(NEW_MULTIPLIERS)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/update_strategy_weight.sh $(STRATEGY_INDICES) $(NEW_MULTIPLIERS)
+
+strategies_remove:
+	@echo "Removing strategies: $(INDICES_TO_REMOVE)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/remove_strategy.sh $(INDICES_TO_REMOVE)
+
+strategies_get_addresses:
+	@echo "Getting strategy addresses"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_restakeable_strategies.sh
+
 __BATCHER__:
 
-BURST_SIZE=5
+BURST_SIZE ?= 5
 
 user_fund_payment_service:
 	@. ./scripts/user_fund_payment_service_devnet.sh
@@ -266,6 +358,11 @@ batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
 
 batcher_start_local: user_fund_payment_service
+	@echo "Starting Batcher..."
+	@$(MAKE) run_storage &
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
+
+batcher_start_local_no_fund:
 	@echo "Starting Batcher..."
 	@$(MAKE) run_storage &
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
@@ -336,7 +433,7 @@ batcher_send_risc0_task_no_pub_input:
         --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
@@ -370,7 +467,7 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--repetitions 4 \
+		--repetitions $(BURST_SIZE) \
 		--network $(NETWORK)
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
@@ -459,6 +556,80 @@ batcher_send_mina_account_burst:
 		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
+__TASK_SENDER__:
+BURST_TIME_SECS ?= 3
+
+task_sender_generate_groth16_proofs:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- generate-proofs \
+	--number-of-proofs $(NUMBER_OF_PROOFS) --proof-type groth16 \
+	--dir-to-save-proofs $(CURDIR)/scripts/test_files/task_sender/proofs
+
+# ===== DEVNET =====
+task_sender_fund_wallets_devnet:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- generate-and-fund-wallets \
+	--eth-rpc-url http://localhost:8545 \
+	--network devnet \
+	--amount-to-deposit 1 \
+	--amount-to-deposit-to-aligned 0.9999 \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
+
+task_sender_send_infinite_proofs_devnet:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- send-infinite-proofs \
+	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
+	--eth-rpc-url http://localhost:8545 \
+	--network devnet \
+	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
+
+task_sender_test_connections_devnet:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- test-connections \
+	--num-senders $(NUM_SENDERS) \
+	--network devnet
+
+# ===== HOLESKY-STAGE =====
+task_sender_generate_and_fund_wallets_holesky_stage:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- generate-and-fund-wallets \
+	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
+	--network holesky-stage \
+	--funding-wallet-private-key $(FUNDING_WALLET_PRIVATE_KEY) \
+	--number-wallets $(NUM_WALLETS) \
+	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) \
+	--amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
+
+task_sender_send_infinite_proofs_holesky_stage:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- send-infinite-proofs \
+	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
+	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
+	--network holesky-stage \
+	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
+
+task_sender_test_connections_holesky_stage:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- test-connections \
+	--num-senders $(NUM_SENDERS) \
+	--network holesky-stage
+
+__UTILS__:
+aligned_get_user_balance_devnet:
+	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
+		--user_addr $(USER_ADDR) \
+		--network devnet
+
+aligned_get_user_balance_holesky:
+	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
+		--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+		--network holesky \
+		--user_addr $(USER_ADDR)
+
+
 __GENERATE_PROOFS__:
  # TODO add a default proving system
 
@@ -479,7 +650,13 @@ generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
 __METRICS__:
-# Prometheus and graphana
+# Prometheus and Grafana
+metrics_remove_containers:
+	@docker stop prometheus grafana
+	@docker rm prometheus grafana
+metrics_clean_db: metrics_remove_containers
+	@docker volume rm aligned_layer_grafana_data aligned_layer_prometheus_data
+
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
 	@docker compose -f metrics-docker-compose.yaml up
@@ -489,14 +666,22 @@ run_storage: ## Run storage using storage-docker-compose.yaml
 	@echo "Running storage..."
 	@docker compose -f storage-docker-compose.yaml up
 
-__DEPLOYMENT__:
-deploy_aligned_contracts: ## Deploy Aligned Contracts
-	@echo "Deploying Aligned Contracts..."
-	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
+__DEPLOYMENT__: ## ____
+deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Deploying Aligned Contracts on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
 
-upgrade_aligned_contracts: ## Upgrade Aligned Contracts
-	@echo "Upgrading Aligned Contracts..."
-	@. contracts/scripts/.env && . contracts/scripts/upgrade_aligned_contracts.sh
+deploy_pauser_registry: ## Deploy Pauser Registry
+	@echo "Deploying Pauser Registry..."
+	@. contracts/scripts/.env && . contracts/scripts/deploy_pauser_registry.sh
+
+upgrade_aligned_contracts: ## Upgrade Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Upgrading Aligned Contracts on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_aligned_contracts.sh
+
+upgrade_pauser_aligned_contracts: ## Upgrade Aligned Contracts with Pauser initialization
+	@echo "Upgrading Aligned Contracts with Pauser initialization..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_pausable_to_service_manager.sh
 
 upgrade_registry_coordinator: ## Upgrade Registry Coordinator
 	@echo "Upgrading Registry Coordinator..."
@@ -518,6 +703,16 @@ upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
 
+set_aggregator_address:
+	@echo "Setting Aggregator Address in Aligned Service Manager Contract on $(NETWORK) network..."
+	@echo "Aggregator address: $(AGGREGATOR_ADDRESS)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/set_aggregator_address.sh $(AGGREGATOR_ADDRESS)
+
+set_aggregator_address_devnet:
+	@echo "Setting Aggregator Address in Aligned Service Manager Contract..."
+	@echo "Aggregator address: $(AGGREGATOR_ADDRESS)"
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/set_aggregator_address.sh $(AGGREGATOR_ADDRESS)
+
 upgrade_initialize_disabled_verifiers:
 	@echo "Adding disabled verifiers to Aligned Service Manager..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_disabled_verifiers_in_service_manager.sh
@@ -526,13 +721,13 @@ deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."
 	@. examples/verify/.env && . examples/verify/scripts/deploy_verify_batch_inclusion_caller.sh
 
-deploy_batcher_payment_service:
-	@echo "Deploying BatcherPayments contract..."
-	@. contracts/scripts/.env && . contracts/scripts/deploy_batcher_payment_service.sh
+deploy_batcher_payment_service: ## Deploy BatcherPayments contract. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Deploying BatcherPayments contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_batcher_payment_service.sh
 
-upgrade_batcher_payment_service:
-	@echo "Upgrading BatcherPayments contract..."
-	@. contracts/scripts/.env && . contracts/scripts/upgrade_batcher_payment_service.sh
+upgrade_batcher_payment_service: ## Upgrade BatcherPayments contract. Parameters: NETWORK=<mainnet|holesky|sepolia
+	@echo "Upgrading BatcherPayments Contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_batcher_payment_service.sh
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
@@ -555,11 +750,11 @@ build_binaries:
 __SP1_FFI__: ##
 build_sp1_macos:
 	@cd operator/sp1/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier.dylib
+	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier_ffi.dylib
 
 build_sp1_linux:
 	@cd operator/sp1/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier.so
+	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier_ffi.so
 
 test_sp1_rust_ffi:
 	@echo "Testing SP1 Rust FFI source code..."
@@ -584,6 +779,25 @@ generate_risc_zero_empty_journal_proof:
 	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
 	@echo "Fibonacci proof and ELF with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
 
+build_sp1_macos_old:
+	@cd operator/sp1_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_old_ffi.dylib operator/sp1_old/lib/libsp1_verifier_old_ffi.dylib
+
+build_sp1_linux_old:
+	@cd operator/sp1_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_old_ffi.so operator/sp1_old/lib/libsp1_verifier_old_ffi.so
+
+test_sp1_rust_ffi_old:
+	@echo "Testing SP1 Rust FFI source code..."
+	@cd operator/sp1_old/lib && RUST_MIN_STACK=83886080 cargo t --release
+
+test_sp1_go_bindings_macos_old: build_sp1_macos_old
+	@echo "Testing SP1 Go bindings..."
+	go test ./operator/sp1_old/... -v
+
+test_sp1_go_bindings_linux_old: build_sp1_linux_old
+	@echo "Testing SP1 Go bindings..."
+	go test ./operator/sp1_old/... -v
 
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
@@ -610,6 +824,27 @@ generate_risc_zero_fibonacci_proof:
 	@cd scripts/test_files/risc_zero/fibonacci_proof_generator && \
 		RUST_LOG=info cargo run --release && \
 		echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero folder"
+
+build_risc_zero_macos_old:
+	@cd operator/risc_zero_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/risc_zero_old/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_old_ffi.dylib operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.dylib
+
+build_risc_zero_linux_old:
+	@cd operator/risc_zero_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/risc_zero_old/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_old_ffi.so operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.so
+
+test_risc_zero_rust_ffi_old:
+	@echo "Testing RISC Zero Rust FFI source code..."
+	@cd operator/risc_zero_old/lib && cargo test --release
+
+test_risc_zero_go_bindings_macos_old: build_risc_zero_macos_old
+	@echo "Testing RISC Zero Go bindings..."
+	go test ./operator/risc_zero_old/... -v
+
+test_risc_zero_go_bindings_linux_old: build_risc_zero_linux_old
+	@echo "Testing RISC Zero Go bindings..."
+	go test ./operator/risc_zero_old/... -v
+
 
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
@@ -691,6 +926,8 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@echo "Building all FFIs for macOS..."
 	@$(MAKE) build_sp1_macos
 	@$(MAKE) build_risc_zero_macos
+	@$(MAKE) build_sp1_macos_old
+	@$(MAKE) build_risc_zero_macos_old
 	@$(MAKE) build_merkle_tree_macos
 	@$(MAKE) build_mina_macos
 	@$(MAKE) build_mina_account_macos
@@ -700,12 +937,21 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "Building all FFIs for Linux..."
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
+	@$(MAKE) build_sp1_linux_old
+	@$(MAKE) build_risc_zero_linux_old
 	@$(MAKE) build_merkle_tree_linux
 	@$(MAKE) build_mina_linux
 	@$(MAKE) build_mina_account_linux
 	@echo "All Linux FFIs built successfully."
 
 __EXPLORER__:
+
+run_explorer_without_docker_db: explorer_ecto_setup_db
+	@cd explorer/ && \
+		pnpm install --prefix assets && \
+		mix setup && \
+		./start.sh
+
 run_explorer: explorer_run_db explorer_ecto_setup_db
 	@cd explorer/ && \
 		pnpm install --prefix assets && \
@@ -747,48 +993,250 @@ explorer_recover_db: explorer_run_db
 
 explorer_fetch_old_batches:
 	@cd explorer && \
-	./scripts/fetch_old_batches.sh 1728056 1729806
+	./scripts/fetch_old_batches.sh $(FROM_BLOCK) $(TO_BLOCK)
 
-explorer_fetch_old_operators_strategies_restakes:
+explorer_fetch_old_operators_strategies_restakes: # recommended for prod: 19000000
 	@cd explorer && \
-	./scripts/fetch_old_operators_strategies_restakes.sh 0
+	./scripts/fetch_old_operators_strategies_restakes.sh $(FROM_BLOCK)
 
 explorer_create_env:
 	@cd explorer && \
 	cp .env.dev .env
 
-__TRACKER__:
+DOCKER_RPC_URL=http://anvil:8545
+PROOF_GENERATOR_ADDRESS=0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-tracker_devnet_start: tracker_run_db
-	@cd operator_tracker/ && \
-		cargo run -r -- --env-file .env.dev
+docker_build_base_image:
+	docker compose -f docker-compose.yaml --profile aligned_base build
 
-tracker_install: tracker_build_db
-	cargo install --path ./operator_tracker
+docker_build_aggregator:
+	docker compose -f docker-compose.yaml --profile aggregator build
 
-tracker_build_db:
-	@cd operator_tracker && \
-		docker build -t tracker-postgres-image .
+docker_build_operator:
+	docker compose -f docker-compose.yaml --profile operator build
 
-tracker_run_db: tracker_build_db tracker_remove_db_container
-	@cd operator_tracker && \
-		docker run -d --name tracker-postgres-container -p 5433:5432 -v tracker-postgres-data:/var/lib/postgresql/data tracker-postgres-image
+docker_build_batcher:
+	docker compose -f docker-compose.yaml --profile batcher build
 
-tracker_remove_db_container:
-	docker stop tracker-postgres-container || true  && \
-	    docker rm tracker-postgres-container || true
+docker_restart_aggregator:
+	docker compose -f docker-compose.yaml --profile aggregator down
+	docker compose -f docker-compose.yaml --profile aggregator up -d --remove-orphans --force-recreate
 
-tracker_clean_db: tracker_remove_db_container
-	docker volume rm tracker-postgres-data || true
+docker_restart_operator:
+	docker compose -f docker-compose.yaml --profile operator down
+	docker compose -f docker-compose.yaml --profile operator up -d --remove-orphans --force-recreate
 
-tracker_dump_db:
-	@cd operator_tracker && \
-		docker exec -t tracker-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
-	@echo "Dumped database successfully to /operator_tracker"
+docker_restart_batcher:
+	docker compose -f docker-compose.yaml --profile batcher down
+	docker compose -f docker-compose.yaml --profile batcher up -d --remove-orphans --force-recreate
+
+docker_build:
+	docker compose -f docker-compose.yaml --profile aligned_base build
+	docker compose -f docker-compose.yaml --profile eigenlayer-cli build
+	docker compose -f docker-compose.yaml --profile foundry build
+	docker compose -f docker-compose.yaml --profile base build
+	docker compose -f docker-compose.yaml --profile operator build
+	docker compose -f docker-compose.yaml --profile batcher build
+	docker compose -f docker-compose.yaml --profile aggregator build
+
+docker_up:
+	docker compose -f docker-compose.yaml --profile base up -d --remove-orphans --force-recreate
+	@until [ "$$(docker inspect $$(docker ps | grep anvil | awk '{print $$1}') | jq -r '.[0].State.Health.Status')" = "healthy" ]; do sleep .5; done; sleep 2
+	docker compose -f docker-compose.yaml --profile aggregator up -d --remove-orphans --force-recreate
+	docker compose -f docker-compose.yaml run --rm fund-operator
+	docker compose -f docker-compose.yaml run --rm register-operator-eigenlayer
+	docker compose -f docker-compose.yaml run --rm mint-mock-tokens
+	docker compose -f docker-compose.yaml run --rm operator-deposit-into-mock-strategy
+	docker compose -f docker-compose.yaml run --rm operator-whitelist-devnet
+	docker compose -f docker-compose.yaml run --rm operator-register-with-aligned-layer
+	docker compose -f docker-compose.yaml --profile operator up -d --remove-orphans --force-recreate
+	docker compose -f docker-compose.yaml run --rm user-fund-payment-service-devnet
+	docker compose -f docker-compose.yaml --profile batcher up -d --remove-orphans --force-recreate
+	@echo "Up and running"
+
+docker_down:
+	docker compose -f docker-compose.yaml --profile batcher down
+	docker compose -f docker-compose.yaml --profile operator down
+	docker compose -f docker-compose.yaml --profile base down
+	@echo "Everything down"
+	docker ps
+
+DOCKER_BURST_SIZE=1
+DOCKER_PROOFS_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+docker_batcher_send_sp1_burst:
+	@echo "Sending SP1 fibonacci task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system SP1 \
+              --proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
+              --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
+              --repetitions $(DOCKER_BURST_SIZE) \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
+
+docker_batcher_send_risc0_burst:
+	@echo "Sending Risc0 fibonacci task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system Risc0 \
+              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
+              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
+              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+              --repetitions $(DOCKER_BURST_SIZE) \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
+
+docker_batcher_send_plonk_bn254_burst:
+	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system GnarkPlonkBn254 \
+              --proof ./scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
+              --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL) \
+              --repetitions $(DOCKER_BURST_SIZE) \
+			  --max_fee 0.1ether
+
+docker_batcher_send_plonk_bls12_381_burst:
+	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system GnarkPlonkBls12_381 \
+              --proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
+              --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --repetitions $(DOCKER_BURST_SIZE) \
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
+
+docker_batcher_send_groth16_burst:
+	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+            --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+			--proving_system Groth16Bn254 \
+			--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
+			--public_input ./scripts/test_files/gnark_groth16_bn254_script/plonk_pub_input.pub \
+			--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
+			--proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+			--repetitions $(DOCKER_BURST_SIZE) \
+			--rpc_url $(DOCKER_RPC_URL) \
+			--max_fee 0.1ether
+
+# Update target as new proofs are supported.
+docker_batcher_send_all_proofs_burst:
+	@$(MAKE) docker_batcher_send_sp1_burst
+	@$(MAKE) docker_batcher_send_risc0_burst
+	@$(MAKE) docker_batcher_send_plonk_bn254_burst
+	@$(MAKE) docker_batcher_send_plonk_bls12_381_burst
+	@$(MAKE) docker_batcher_send_groth16_burst
+
+docker_batcher_send_infinite_groth16:
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
+	sh -c ' \
+		mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs; \
+	  counter=1; \
+	  timer=3; \
+	  while true; do \
+	    echo "Generating proof $${counter} != 0"; \
+	    gnark_groth16_bn254_infinite_script $${counter}; \
+	    aligned submit \
+	              --rpc_url $(DOCKER_RPC_URL) \
+	              --repetitions $(DOCKER_BURST_SIZE) \
+	              --proving_system Groth16Bn254 \
+	              --proof scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.proof \
+	              --public_input scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.pub \
+	              --vk scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.vk \
+	              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS); \
+				  --max_fee 0.1ether
+	    sleep $${timer}; \
+	    counter=$$((counter + 1)); \
+	  done \
+	'
+
+docker_verify_proofs_onchain:
+	@echo "Verifying proofs..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
+	sh -c ' \
+	    for proof in ./aligned_verification_data/*.cbor; do \
+			  echo "Verifying $${proof}"; \
+	      aligned verify-proof-onchain \
+	                --aligned-verification-data $${proof} \
+	                --rpc_url $(DOCKER_RPC_URL); \
+	    done \
+	  '
+
+DOCKER_PROOFS_WAIT_TIME=60
+
+docker_verify_proof_submission_success: 
+	@echo "Verifying proofs were successfully submitted..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
+	sh -c ' \
+			if [ -z "$$(ls -A ./aligned_verification_data)" ]; then echo "ERROR: There are no proofs on aligned_verification_data/ directory" && exit 1; fi; \
+			echo "Waiting $(DOCKER_PROOFS_WAIT_TIME) seconds before starting proof verification. \n"; \
+			sleep $(DOCKER_PROOFS_WAIT_TIME); \
+			for proof in ./aligned_verification_data/*.cbor; do \
+				echo "Verifying proof $${proof} \n"; \
+				verification=$$(aligned verify-proof-onchain \
+									--aligned-verification-data $${proof} \
+									--rpc_url $$(echo $(DOCKER_RPC_URL)) 2>&1); \
+				cat $${proof%.cbor}.json; \
+				echo "$$verification"; \
+				if echo "$$verification" | grep -q not; then \
+					echo "ERROR: Proof verification failed for $${proof}"; \
+					exit 1; \
+				elif echo "$$verification" | grep -q verified; then \
+					echo "Proof verification succeeded for $${proof}"; \
+				else \
+					echo "WARNING: Unexpected verification result for $${proof}"; \
+					echo "Output:"; \
+					echo "$$verification"; \
+					exit 1; \
+				fi; \
+				echo "---------------------------------------------------------------------------------------------------"; \
+			done; \
+			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne 5 ]; then \
+				echo "ERROR: Some proofs were verified successfully, but some proofs are missing in the aligned_verification_data/ directory"; \
+				exit 1; \
+			fi; \
+			echo "All proofs verified successfully!"; \
+		'
+
+docker_attach_foundry:
+	docker exec -ti $(shell docker ps | grep anvil | awk '{print $$1}') /bin/bash
+
+docker_attach_anvil:
+	docker exec -ti $(shell docker ps | grep anvil | awk '{print $$1}') /bin/bash
+
+docker_attach_aggregator:
+	docker exec -ti $(shell docker ps | grep aggregator | awk '{print $$1}') /bin/bash
+
+docker_attach_operator:
+	docker exec -ti $(shell docker ps | grep operator | awk '{print $$1}') /bin/bash
+
+docker_attach_batcher:
+	docker exec -ti $(shell docker ps | grep batcher | awk '{print $$1}') /bin/bash
+
+docker_logs_anvil:
+	docker compose -f docker-compose.yaml logs anvil -f
+
+docker_logs_aggregator:
+	docker compose -f docker-compose.yaml logs aggregator -f
+
+docker_logs_operator:
+	docker compose -f docker-compose.yaml logs operator -f
+
+docker_logs_batcher:
+	docker compose -f docker-compose.yaml logs batcher -f
 
 __TELEMETRY__:
 # Collector, Jaeger and Elixir API
-telemetry_full_start: open_telemetry_start telemetry_start
+telemetry_full_start: telemetry_compile_bls_verifier open_telemetry_start telemetry_start
 
 # Collector and Jaeger
 open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
@@ -802,11 +1250,11 @@ open_telemetry_prod_start: ## Run open telemetry services with Cassandra using t
 # Elixir API
 telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
-	 	./start.sh	
+	 	./start.sh
 
 telemetry_ecto_migrate: ##
 		@cd telemetry_api && \
-			./ecto_setup_db.sh	
+			./ecto_setup_db.sh
 
 telemetry_build_db:
 	@cd telemetry_api && \
@@ -831,3 +1279,137 @@ telemetry_dump_db:
 telemetry_create_env:
 	@cd telemetry_api && \
 		cp .env.dev .env
+
+telemetry_compile_bls_verifier:
+	@cd telemetry_api/priv && \
+	go build ../bls_verifier/bls_verify.go
+
+setup_local_aligned_all:
+	tmux kill-session -t aligned_layer || true
+	tmux new-session -d -s aligned_layer
+
+	tmux new-window -t aligned_layer -n anvil
+	tmux send-keys -t aligned_layer 'make anvil_start_with_block_time' C-m
+
+	tmux new-window -t aligned_layer -n aggregator
+	tmux send-keys -t aligned_layer:aggregator 'make aggregator_start' C-m
+
+	tmux new-window -t aligned_layer -n operator
+	tmux send-keys -t aligned_layer:operator 'sleep 5 && make operator_register_and_start' C-m
+
+	tmux new-window -t aligned_layer -n batcher
+	tmux send-keys -t aligned_layer:batcher 'sleep 60 && make batcher_start_local' C-m
+
+	tmux new-window -t aligned_layer -n explorer
+	tmux send-keys -t aligned_layer:explorer 'make explorer_create_env && make explorer_build_db && make run_explorer' C-m
+
+	tmux new-window -t aligned_layer -n telemetry
+	tmux send-keys -t aligned_layer:telemetry 'docker compose -f telemetry-docker-compose.yaml down && make telemetry_create_env && make telemetry_run_db && make open_telemetry_start && make telemetry_start' C-m
+
+__ANSIBLE__: ## ____
+
+ansible_batcher_create_env: ## Create empty variables files for the Batcher deploy
+	@cp -n infra/ansible/playbooks/ini/caddy-batcher.ini.example infra/ansible/playbooks/ini/caddy-batcher.ini
+	@cp -n infra/ansible/playbooks/ini/config-batcher.ini.example infra/ansible/playbooks/ini/config-batcher.ini
+	@cp -n infra/ansible/playbooks/ini/env-batcher.ini.example infra/ansible/playbooks/ini/env-batcher.ini
+	@echo "Config files for the Batcher created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_batcher_deploy"
+
+ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
+	@if [ -z "$(INVENTORY)" ] || [ -z "$(KEYSTORE)" ]; then \
+		echo "Error: Both INVENTORY and KEYSTORE must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/batcher.yaml \
+		-i $(INVENTORY) \
+		-e "keystore_path=$(KEYSTORE)"
+
+ansible_aggregator_create_env: ## Create empty variables files for the Aggregator deploy
+	@cp -n infra/ansible/playbooks/ini/config-aggregator.ini.example infra/ansible/playbooks/ini/config-aggregator.ini
+	@echo "Config files for the Aggregator created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_aggregator_deploy"
+
+ansible_aggregator_deploy: ## Deploy the Operator. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ] || [ -z "$(ECDSA_KEYSTORE)" ] || [ -z "$(BLS_KEYSTORE)" ]; then \
+		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/aggregator.yaml \
+		-i $(INVENTORY) \
+		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
+		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+
+ansible_operator_create_env: ## Create empty variables files for the Operator deploy
+	@cp -n infra/ansible/playbooks/ini/config-operator.ini.example infra/ansible/playbooks/ini/config-operator.ini
+	@cp -n infra/ansible/playbooks/ini/config-register-operator.ini.example infra/ansible/playbooks/ini/config-register-operator.ini
+	@echo "Config files for the Operator created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_operator_deploy"
+
+ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ]  || [ -z "$(ECDSA_KEYSTORE)" ]  || [ -z "$(BLS_KEYSTORE)" ]; then \
+		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/operator.yaml \
+		-i $(INVENTORY) \
+		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
+		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+
+__ETHEREUM_PACKAGE__:  ## ____
+
+ethereum_package_start: ## Starts the ethereum_package environment
+	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package --args-file network_params.yaml
+
+ethereum_package_inspect: ## Prints detailed information about the net
+	kurtosis enclave inspect aligned
+
+ethereum_package_rm: ## Stops and removes the ethereum_package environment and used resources
+	kurtosis enclave rm aligned -f
+
+batcher_start_ethereum_package: user_fund_payment_service
+	@echo "Starting Batcher..."
+	@$(MAKE) run_storage &
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher-ethereum-package.yaml --env-file ./batcher/aligned-batcher/.env.dev
+
+aggregator_start_ethereum_package:
+	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
+
+operator_start_ethereum_package:
+	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+
+operator_register_start_ethereum_package:
+	$(MAKE) operator_full_registration OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml \
+	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+
+
+install_spamoor: ## Instal spamoor to spam transactions
+	@echo "Installing spamoor..."
+	@git clone https://github.com/ethpandaops/spamoor.git
+	@cd spamoor && make
+	@mv spamoor/bin/spamoor $(HOME)/.local/bin
+	@rm -rf spamoor
+	@echo "======================================================================="
+	@echo "Installation complete! Run 'spamoor --help' to verify the installation."
+	@echo "If 'spamoor' is not recognized, make sure it's in your PATH by adding the following line to your shell configuration:"
+	@echo "export PATH=\$$PATH:\$$HOME/.local/bin"
+	@echo "======================================================================="
+
+# Spamoor funding wallet
+SPAMOOR_PRIVATE_KEY?=dbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97
+NUM_WALLETS?=1000
+TX_PER_BLOCK?=250
+# Similar to a swap
+TX_CONSUMES_GAS?=150000
+
+spamoor_send_transactions: ## Sends normal transactions and also replacement transactions
+	spamoor gasburnertx -p $(SPAMOOR_PRIVATE_KEY) -c $(COUNT) \
+		--gas-units-to-burn $(TX_CONSUMES_GAS) \
+		--max-wallets $(NUM_WALLETS) --max-pending $(TX_PER_BLOCK) \
+		-t $(TX_PER_BLOCK) -h http://127.0.0.1:8545/ -h http://127.0.0.1:8550/ -h http://127.0.0.1:8555/ -h http://127.0.0.1:8565/ \
+		--refill-amount 5 --refill-balance 2 --tipfee $(TIP_FEE) --basefee 100  \
+		2>&1 | grep -v 'checked child wallets (no funding needed)'
+
+__NODE_EXPORTER_: ##__
+
+install_node_exporter:
+	@./scripts/install_node_exporter.sh

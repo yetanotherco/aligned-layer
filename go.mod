@@ -3,7 +3,7 @@ module github.com/yetanotherco/aligned_layer
 go 1.22.2
 
 require (
-	github.com/Layr-Labs/eigensdk-go v0.1.12
+	github.com/Layr-Labs/eigensdk-go v0.1.13
 	github.com/ethereum/go-ethereum v1.14.0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/urfave/cli/v2 v2.27.1
@@ -12,10 +12,12 @@ require (
 
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/consensys/gnark v0.10.0
 	github.com/consensys/gnark-crypto v0.12.2-0.20240215234832-d72fcb379d3e
 	github.com/fxamacker/cbor/v2 v2.7.0
 	github.com/ugorji/go/codec v1.2.12
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -88,6 +90,5 @@ require (
 	golang.org/x/sys v0.19.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240730163845-b1a4ccb954bf // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )

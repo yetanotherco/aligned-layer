@@ -2,6 +2,11 @@
 
 In this tutorial, you will learn how to send your first SP1 proofs to get verified in Aligned in under 3 minutes.
 
+{% hint style="warning" %}
+This tutorial is for sending proofs on Holesky network.
+To send proofs on Mainnet, please refer to the [submitting proofs](../3_guides/0_submitting_proofs.md) guide.
+{% endhint %}
+
 ## Quickstart
 
 We will download a previously generated SP1 proof, send it to Aligned for verification, and retrieve the results from Ethereum Holesky testnet.
@@ -50,7 +55,7 @@ Use the link in the response to check the status of your transaction in the Alig
 
 ```bash
 aligned verify-proof-onchain \
---aligned-verification-data ~/.aligned/aligned_verification_data/*.json \
+--aligned-verification-data ~/.aligned/aligned_verification_data/*.cbor \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
 --network holesky 
 ```
