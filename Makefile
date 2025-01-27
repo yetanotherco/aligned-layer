@@ -174,7 +174,6 @@ test_go_retries:
 __OPERATOR__:
 
 operator_start:
-	$(GET_SDK_VERSION)
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
@@ -195,7 +194,7 @@ operator_set_eigen_sdk_go_version_error:
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
-operator_register_and_start: operator_full_registration operator_start
+operator_register_and_start: $(GET_SDK_VERSION) operator_full_registration operator_start
 
 build_operator: deps
 	$(GET_SDK_VERSION)
