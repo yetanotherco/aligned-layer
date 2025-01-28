@@ -78,9 +78,11 @@ contract BatcherPaymentService is
 
     // PAYABLE FUNCTIONS
     receive() external payable {
-        userData[msg.sender].balance += msg.value;
-        userData[msg.sender].unlockBlockTime = 0;
-        emit PaymentReceived(msg.sender, msg.value);
+        if (msg.sender != address(alignedLayerServiceManager)) { // `alignedLayerServiceManager.withdraw()` triggers `receive()` (and with only 2300 gas)
+            userData[msg.sender].balance += msg.value;
+            userData[msg.sender].unlockBlockTime = 0;
+            emit PaymentReceived(msg.sender, msg.value);
+        }
     }
 
     // PUBLIC FUNCTIONS
@@ -176,6 +178,18 @@ contract BatcherPaymentService is
         emit BalanceLocked(msg.sender);
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
+    }
+
+
+    function withdraw_from_service_manager(
+        uint256 amount,
+        address withdrawAddress
+    ) public payable onlyOwner {
+        alignedLayerServiceManager.withdraw(amount); // reverts if InsufficientBalance
+        // money is now in this contract
+        // we transfer it to the withdraw address
+        payable(withdrawAddress).transfer(amount); // non-reentrant since .transfer() has low gas limit. Also, Owner is a multisig.
+        // this.balance is unchanged
     }
 
     function pause() public onlyOwner {
