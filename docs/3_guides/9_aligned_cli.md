@@ -87,7 +87,6 @@ Submit a proof to the Aligned Layer batcher.
   - `--instant_fee_estimate`: Specifies a `max_fee` that ensures the proof is included instantly, equivalent to the cost of a proof in a batch of size 1.
   - `--custom_fee_estimate <amount_of_proofs_in_batch>`: Specifies a `max_fee` equivalent to the cost of 1 proof in a batch of size `num_proofs_in_batch`.
 
-
 #### Example:
 
 ```bash
@@ -215,7 +214,6 @@ Retrieves the user's balance in the Aligned Layer's contract.
 
 
 #### Options:
-
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  

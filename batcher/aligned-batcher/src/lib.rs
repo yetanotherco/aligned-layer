@@ -752,17 +752,6 @@ impl Batcher {
             return Ok(());
         };
 
-        if !self.verify_user_has_enough_balance(user_balance, user_accumulated_fee, msg_max_fee) {
-            std::mem::drop(batch_state_lock);
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(addr),
-            )
-            .await;
-            self.metrics.user_error(&["insufficient_balance", ""]);
-            return Ok(());
-        }
-
         let cached_user_nonce = batch_state_lock.get_user_nonce(&addr).await;
         let Some(expected_nonce) = cached_user_nonce else {
             error!("Failed to get cached user nonce: User not found in user states, but it should have been already inserted");
@@ -798,9 +787,22 @@ impl Batcher {
                 ws_conn_sink.clone(),
                 client_msg.signature,
                 addr,
+                user_balance,
+                user_accumulated_fee,
             )
             .await;
 
+            return Ok(());
+        }
+
+        if !self.verify_user_has_enough_balance(user_balance, user_accumulated_fee, msg_max_fee) {
+            std::mem::drop(batch_state_lock);
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InsufficientBalance(addr),
+            )
+            .await;
+            self.metrics.user_error(&["insufficient_balance", ""]);
             return Ok(());
         }
 
@@ -863,6 +865,7 @@ impl Batcher {
     /// If the max fee is lower, sends an error message to the client
     /// If the message is not in the batch, sends an error message to the client
     /// Returns true if the message was replaced in the batch, false otherwise
+    #[allow(clippy::too_many_arguments)]
     async fn handle_replacement_message(
         &self,
         mut batch_state_lock: MutexGuard<'_, BatchState>,
@@ -870,6 +873,8 @@ impl Batcher {
         ws_conn_sink: WsMessageSink,
         signature: Signature,
         addr: Address,
+        user_balance: U256,
+        user_accumulated_fee: U256,
     ) {
         let replacement_max_fee = nonced_verification_data.max_fee;
         let nonce = nonced_verification_data.nonce;
@@ -899,6 +904,23 @@ impl Batcher {
             return;
         }
 
+        // For a replacement msg we must subtract the original_max_fee of the message from the user's accumulated max fee.
+        // Because we calculate user has enough balance for the difference of the bumping fee.
+        if !self.verify_user_has_enough_balance(
+            user_balance,
+            user_accumulated_fee - original_max_fee,
+            replacement_max_fee,
+        ) {
+            std::mem::drop(batch_state_lock);
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InsufficientBalance(addr),
+            )
+            .await;
+            self.metrics.user_error(&["insufficient_balance", ""]);
+            return;
+        }
+
         info!("Replacing message for address {addr} with nonce {nonce} and max fee {replacement_max_fee}");
 
         // The replacement entry is built from the old entry and validated for then to be replaced
@@ -908,7 +930,21 @@ impl Batcher {
             nonced_verification_data.verification_data.clone().into();
         replacement_entry.nonced_verification_data = nonced_verification_data;
 
-        // Close old sink in old entry and replace it with the new one
+        if !batch_state_lock.replacement_entry_is_valid(&replacement_entry) {
+            std::mem::drop(batch_state_lock);
+            warn!("Invalid replacement message");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidReplacementMessage,
+            )
+            .await;
+            self.metrics
+                .user_error(&["invalid_replacement_message", ""]);
+            return;
+        }
+
+        // Replacement entry is valid,
+        // We must close the old sink in old entry and replace it with the new one
         {
             if let Some(messaging_sink) = replacement_entry.messaging_sink {
                 let mut old_sink = messaging_sink.write().await;
@@ -924,20 +960,7 @@ impl Batcher {
                 )
             };
         }
-
         replacement_entry.messaging_sink = Some(ws_conn_sink.clone());
-        if !batch_state_lock.replacement_entry_is_valid(&replacement_entry) {
-            std::mem::drop(batch_state_lock);
-            warn!("Invalid replacement message");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidReplacementMessage,
-            )
-            .await;
-            self.metrics
-                .user_error(&["invalid_replacement_message", ""]);
-            return;
-        }
 
         info!(
             "Replacement entry is valid, incrementing fee for sender: {:?}, nonce: {:?}, max_fee: {:?}",
