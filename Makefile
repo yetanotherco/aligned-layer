@@ -174,6 +174,7 @@ test_go_retries:
 __OPERATOR__:
 
 operator_start:
+	$(GET_SDK_VERSION)
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
