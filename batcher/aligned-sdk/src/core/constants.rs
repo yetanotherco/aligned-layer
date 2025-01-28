@@ -19,13 +19,14 @@ pub const OVERRIDE_GAS_PRICE_PERCENTAGE_MULTIPLIER: u128 = 120; // gasPrice modi
 pub const PERCENTAGE_DIVIDER: u128 = 100;
 
 /// SDK ///
-/// Number of proofs we a batch for estimation.
-/// This is the number of proofs in a batch of size n, where we set n = 32.
-/// i.e. the user pays for the entire batch and his proof is instantly submitted.
-pub const MAX_FEE_BATCH_PROOF_NUMBER: usize = 32;
-/// Estimated number of proofs for batch submission.
-/// This corresponds to the number of proofs to compute for a default max_fee.
-pub const MAX_FEE_DEFAULT_PROOF_NUMBER: usize = 10;
+/// Constants used for `max_fee` estimation in the sdk `estimate_fee()` function.
+/// The number of proofs in a batch to compute the `Instant` fee estimate for proof submission to Aligned.
+/// i.e. the user pays for the entire batch and his proof is instantly submitted, therefore a batch of one proof.
+pub const INSTANT_MAX_FEE_BATCH_SIZE: usize = 1;
+/// The number of proofs in a batch to compute the `Default` fee estimate for proof submission to Aligned.
+/// We define `10` as the `Default` setting as every 6 hours the batcher receives a batch of `16` proofs
+/// sent from Aligned to confirm the network is live and estimating with a batch size of `10` proofs provides a buffer in case of a network fee increase.
+pub const DEFAULT_MAX_FEE_BATCH_SIZE: usize = 10;
 
 /// Ethereum calls retry constants
 pub const ETHEREUM_CALL_MIN_RETRY_DELAY: u64 = 500; // milliseconds
