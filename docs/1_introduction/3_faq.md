@@ -100,7 +100,7 @@ Aligned provides recursive proof aggregation as part of its aggregation mode, a 
     
 ### What proof systems do you support?
     
-Aligned is designed to support any proof system. We [currently support](../2_architecture/0_supported_verifiers.md) Groth16 (limited to 1 commitment) and Plonk (gnark), SP1 and Risc0.
+Aligned is designed to support any proof system. We [currently support](../2_architecture/0_supported_verifiers.md) Groth16 and Plonk (gnark), SP1 and Risc0.
     
 ### How easy is it to add new proof systems?
     
