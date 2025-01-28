@@ -73,9 +73,19 @@ Submit a proof to the Aligned Layer batcher.
 - `--private_key <private_key>`: User's wallet private key.
 - `--nonce <n>`: Proof nonce.
   - By default, the nonce is set automatically. By setting the nonce manually, you can perform a proof replacement.
-- `--network <working_network_name>`: Network name to interact with.  
-  - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `mainnet`
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `holesky`, `mainnet`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+- Max Fee allowed to be spent for each proof verification, use one of the following:
+  - `--max_fee <max_fee (ether)>`: Specifies a `max_fee` in Ether.
+  - `--default_fee_estimate`: Specifies a `max_fee` equivalent to the cost of 1 proof in a batch of size 10.
+  - `--instant_fee_estimate`: Specifies a `max_fee` that ensures the proof is included instantly, equivalent to the cost of a proof in a batch of size 1.
+  - `--custom_fee_estimate <amount_of_proofs_in_batch>`: Specifies a `max_fee` equivalent to the cost of 1 proof in a batch of size `num_proofs_in_batch`.
 
 #### Example:
 
@@ -204,9 +214,14 @@ Retrieves the user's balance in the Aligned Layer's contract.
 
 
 #### Options:
-- `--network <working_network_name>`: Network name to interact with.  
-  - Default: `devnet` 
-  - Possible values: `devnet`, `holesky`, `mainnet`
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `holesky`, `mainnet`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
