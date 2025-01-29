@@ -59,7 +59,6 @@ mod connection;
 mod eth;
 pub mod gnark;
 pub mod metrics;
-pub mod mina;
 pub mod retry;
 pub mod risc_zero;
 pub mod s3;
