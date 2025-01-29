@@ -3,6 +3,8 @@ FROM ghcr.io/yetanotherco/aligned_layer/aligned_base:latest AS base
 COPY go.mod .
 COPY go.sum .
 COPY batcher/aligned-batcher/gnark/verifier.go /aligned_layer/batcher/aligned-batcher/gnark/verifier.go
+COPY operator/mina /aligned_layer/operator/mina
+COPY operator/mina_account /aligned_layer/operator/mina_account
 
 RUN apt update -y && apt install -y gcc
 RUN go build -buildmode=c-archive -o libverifier.a /aligned_layer/batcher/aligned-batcher/gnark/verifier.go
