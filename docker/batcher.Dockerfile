@@ -3,8 +3,6 @@ FROM ghcr.io/yetanotherco/aligned_layer/aligned_base:latest AS base
 COPY go.mod .
 COPY go.sum .
 COPY batcher/aligned-batcher/gnark/verifier.go /aligned_layer/batcher/aligned-batcher/gnark/verifier.go
-COPY operator/mina /aligned_layer/operator/mina
-COPY operator/mina_account /aligned_layer/operator/mina_account
 
 RUN apt update -y && apt install -y gcc
 RUN go build -buildmode=c-archive -o libverifier.a /aligned_layer/batcher/aligned-batcher/gnark/verifier.go
@@ -25,6 +23,9 @@ RUN cargo chef prepare --recipe-path /aligned_layer/batcher/aligned/recipe.json
 
 FROM chef AS chef_builder
 COPY batcher/aligned-sdk/ /aligned_layer/batcher/aligned-sdk/
+
+COPY operator/mina /aligned_layer/operator/mina
+COPY operator/mina_account /aligned_layer/operator/mina_account
 
 COPY --from=planner /aligned_layer/batcher/aligned-batcher/recipe.json /aligned_layer/batcher/aligned-batcher/recipe.json
 WORKDIR /aligned_layer/batcher/aligned-batcher
