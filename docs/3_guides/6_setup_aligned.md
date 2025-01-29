@@ -168,7 +168,7 @@ This will:
 
 - Start a postgres docker container
 - Run ecto setup
-- Start the explorer on http://localhost:4000.
+- Start the explorer on <http://localhost:4000>.
 
 If you want to run the explorer without docker run:
 

@@ -16,6 +16,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
+	"github.com/yetanotherco/aligned_layer/operator/mina"
+	"github.com/yetanotherco/aligned_layer/operator/mina_account"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero_old"
 	"golang.org/x/crypto/sha3"
@@ -527,6 +529,31 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 		}
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		o.handleVerificationResult(results, verificationResult, err, "Risc0 proof verification")
+		results <- verificationResult
+	case common.Mina:
+		proofLen := (uint)(len(verificationData.Proof))
+		pubInputLen := (uint)(len(verificationData.PubInput))
+		proofBuffer := make([]byte, mina.MAX_PROOF_SIZE)
+		copy(proofBuffer, verificationData.Proof)
+		pubInputBuffer := make([]byte, mina.MAX_PUB_INPUT_SIZE)
+		copy(pubInputBuffer, verificationData.PubInput)
+
+		verificationResult := mina.VerifyMinaState(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
+		o.Logger.Infof("Mina state proof verification result: %t", verificationResult)
+		// TODO: Remove the nil value passed as err argument
+		o.handleVerificationResult(results, verificationResult, nil, "Mina state proof verification")
+	case common.MinaAccount:
+		proofLen := (uint)(len(verificationData.Proof))
+		pubInputLen := (uint)(len(verificationData.PubInput))
+		proofBuffer := make([]byte, mina.MAX_PROOF_SIZE)
+		copy(proofBuffer, verificationData.Proof)
+		pubInputBuffer := make([]byte, mina.MAX_PUB_INPUT_SIZE)
+		copy(pubInputBuffer, verificationData.PubInput)
+
+		verificationResult := mina_account.VerifyAccountInclusion(([mina_account.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina_account.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
+		o.Logger.Infof("Mina account inclusion proof verification result: %t", verificationResult)
+		// TODO: Remove the nil value passed as err argument
+		o.handleVerificationResult(results, verificationResult, nil, "Mina account state proof verification")
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false

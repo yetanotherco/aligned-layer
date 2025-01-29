@@ -24,6 +24,9 @@ RUN cargo chef prepare --recipe-path /aligned_layer/batcher/aligned/recipe.json
 FROM chef AS chef_builder
 COPY batcher/aligned-sdk/ /aligned_layer/batcher/aligned-sdk/
 
+COPY operator/mina /aligned_layer/operator/mina
+COPY operator/mina_account /aligned_layer/operator/mina_account
+
 COPY --from=planner /aligned_layer/batcher/aligned-batcher/recipe.json /aligned_layer/batcher/aligned-batcher/recipe.json
 WORKDIR /aligned_layer/batcher/aligned-batcher
 RUN cargo chef cook --release --recipe-path /aligned_layer/batcher/aligned-batcher/recipe.json
