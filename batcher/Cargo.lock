@@ -5499,7 +5499,7 @@ dependencies = [
 [[package]]
 name = "mina_bridge_core"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/mina_bridge.git?branch=openmina_lc_forks#98c37e93abf12f36c950cabd83a0d6555c37937c"
+source = "git+https://github.com/lambdaclass/mina_bridge.git?rev=884f28b834b62133384661fdf73c9db283f68c62#884f28b834b62133384661fdf73c9db283f68c62"
 dependencies = [
  "aligned-sdk 0.1.0 (git+https://github.com/lambdaclass/aligned_layer.git?branch=use_two_vks)",
  "alloy",
