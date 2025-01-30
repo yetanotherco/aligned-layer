@@ -72,7 +72,15 @@ func (r *AvsReader) IsOperatorRegistered(address ethcommon.Address) (bool, error
 }
 
 func (r *AvsReader) DisabledVerifiers() (*big.Int, error) {
-	return r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.DisabledVerifiers(&bind.CallOpts{})
+	num, err := r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.DisabledVerifiers(&bind.CallOpts{})
+	if err != nil {
+		// Retry with fallback client
+		num, err = r.AvsContractBindings.ServiceManagerFallback.ContractAlignedLayerServiceManagerCaller.DisabledVerifiers(&bind.CallOpts{})
+		if err != nil {
+			r.logger.Error("Failed to fetch DisabledVerifiers", "err", err)
+		}
+	}
+	return num, err
 }
 
 // Returns all the "NewBatchV3" logs that have not been responded starting from the given block number
