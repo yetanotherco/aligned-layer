@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	retry "github.com/yetanotherco/aligned_layer/core"
+	"github.com/yetanotherco/aligned_layer/core/types"
 	"net/http"
 	"net/rpc"
 	"time"
-
-	retry "github.com/yetanotherco/aligned_layer/core"
-	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
 func (agg *Aggregator) ServeOperators() error {
@@ -34,11 +33,13 @@ func (agg *Aggregator) ServeOperators() error {
 	return err
 }
 
-// Aggregator Methods
+// ~~ AGGREGATOR METHODS ~~
 // This is the list of methods that the Aggregator exposes to the Operator
 // The Operator can call these methods to interact with the Aggregator
 // This methods are automatically registered by the RPC server
-// This takes a response an adds it to the internal. If reaching the quorum, it sends the aggregated signatures to ethereum
+
+// Takes a response from an operator and process it. After processing the response, the associated task may reach quorum, triggering a BLS service response.
+// If the task related to the response is not known to the aggregator (not stored in internal map), it will try to fetch it from the contract's Events.
 // Returns:
 //   - 0: Success
 //   - 1: Error
@@ -48,7 +49,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"SenderAddress", "0x"+hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 		"BatchIdentifierHash", "0x"+hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
-	taskIndex := uint32(0)
 
 	// The Aggregator may receive the Task Identifier after the operators.
 	// If that's the case, we won't know about the task at this point
@@ -57,10 +57,24 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	taskIndex, err := agg.GetTaskIndexRetryable(signedTaskResponse.BatchIdentifierHash, retry.NetworkRetryParams())
 
 	if err != nil {
-		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
-		*reply = 1
-		return nil
+		agg.logger.Warn("Task not found in the internal map, might have been missed. Trying to fetch task data from Ethereum")
+		batch, err := agg.avsReader.GetPendingBatchFromMerkleRoot(signedTaskResponse.BatchMerkleRoot, agg.AggregatorConfig.Aggregator.PendingBatchFetchBlockRange)
+		if err != nil || batch == nil {
+			agg.logger.Warnf("Pending task with merkle root 0x%x not found in the contract", signedTaskResponse.BatchMerkleRoot)
+			*reply = 1
+			return nil // TODO non urgent nice to have: return an error. With it, the Operator would know that his signature corresponded to a not found task
+		}
+		agg.logger.Info("Task was found in Ethereum, adding it to the internal map")
+		agg.AddNewTask(batch.BatchMerkleRoot, batch.SenderAddress, batch.TaskCreatedBlock)
+		taskIndex, err = agg.GetTaskIndexRetryable(signedTaskResponse.BatchIdentifierHash)
+		if err != nil {
+			// This shouldn't happen, since we just added the task
+			agg.logger.Error("Unexpected error trying to get taskIndex from internal map")
+			*reply = 1
+			return nil
+		}
 	}
+
 	agg.telemetry.LogOperatorResponse(signedTaskResponse.BatchMerkleRoot, signedTaskResponse.OperatorId)
 
 	// Don't wait infinitely if it can't answer
@@ -119,8 +133,10 @@ TODO: We should refactor the retry duration considering extending it to a larger
 func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte, config *retry.RetryParams) (uint32, error) {
 	getTaskIndex_func := func() (uint32, error) {
 		agg.taskMutex.Lock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Get task index")
 		taskIndex, ok := agg.batchesIdxByIdentifierHash[batchIdentifierHash]
 		agg.taskMutex.Unlock()
+		agg.logger.Info("- Unlocked Resources: Get task index")
 		if !ok {
 			return taskIndex, fmt.Errorf("Task not found in the internal map")
 		} else {

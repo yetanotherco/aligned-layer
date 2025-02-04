@@ -229,3 +229,70 @@ func SubscribeToNewTasksV3Retryable(
 	}
 	return retry.RetryWithData(subscribe_func, config)
 }
+
+// |---AVS_READER---|
+
+// TODO: These functions are being copied from AvsSubscriber and should be refactorized
+// we don't actually need access to the AvsReader, AvsSubscriber or AbsWriter, but instead to the AvsContractBindings
+
+// TODO: We should also add the fallback calls to the functions which are missing it
+
+/*
+- All errors are considered Transient Errors
+- Retry times (3 retries): 1 sec, 2 sec, 4 sec.
+*/
+func (r *AvsReader) BlockNumberRetryable(ctx context.Context) (uint64, error) {
+	latestBlock_func := func() (uint64, error) {
+		// Try with main connection
+		latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(ctx)
+		if err != nil {
+			// If error try with fallback connection
+			latestBlock, err = r.AvsContractBindings.ethClientFallback.BlockNumber(ctx)
+		}
+		return latestBlock, err
+	}
+	return retry.RetryWithData(latestBlock_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+}
+
+/*
+- All errors are considered Transient Errors
+- Retry times (3 retries): 1 sec, 2 sec, 4 sec.
+*/
+func (r *AvsReader) FilterBatchV3Retryable(opts *bind.FilterOpts, batchMerkleRoot [][32]byte) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
+	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
+		// Try with main connection
+		batch, err := r.AvsContractBindings.ServiceManager.FilterNewBatchV3(opts, batchMerkleRoot)
+		if err != nil {
+			// If error try with fallback connection
+			batch, err = r.AvsContractBindings.ServiceManagerFallback.FilterNewBatchV3(opts, batchMerkleRoot)
+		}
+		return batch, err
+	}
+	return retry.RetryWithData(filterNewBatchV2_func, retry.MinDelay, retry.RetryFactor, retry.NumRetries, retry.MaxInterval, retry.MaxElapsedTime)
+}
+
+/*
+- All errors are considered Transient Errors
+- Retry times (3 retries): 12 sec (1 Blocks), 24 sec (2 Blocks), 48 sec (4 Blocks)
+*/
+func (r *AvsReader) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (struct {
+	TaskCreatedBlock      uint32
+	Responded             bool
+	RespondToTaskFeeLimit *big.Int
+}, error) {
+	batchState_func := func() (struct {
+		TaskCreatedBlock      uint32
+		Responded             bool
+		RespondToTaskFeeLimit *big.Int
+	}, error) {
+		// Try with main connection
+		state, err := r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
+		if err != nil {
+			// If error try with fallback connection
+			state, err = r.AvsContractBindings.ServiceManagerFallback.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
+		}
+		return state, err
+	}
+
+	return retry.RetryWithData(batchState_func, retry.MinDelayChain, retry.RetryFactor, retry.NumRetries, retry.MaxIntervalChain, retry.MaxElapsedTime)
+}

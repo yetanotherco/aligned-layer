@@ -150,3 +150,46 @@ func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64, interval uint64) (*[32]byt
 	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 	return &batchIdentifierHash, nil
 }
+
+// Returns a pending batch from its merkle root or nil if it doesn't exist
+// Searches the last `blockRange` blocks at most
+func (r *AvsReader) GetPendingBatchFromMerkleRoot(merkleRoot [32]byte, blockRange uint64) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
+	latestBlock, err := r.BlockNumberRetryable(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get latest block number: %w", err)
+	}
+
+	var fromBlock uint64 = 0
+
+	if latestBlock > blockRange {
+		fromBlock = latestBlock - blockRange
+	}
+
+	logs, err := r.FilterBatchV3Retryable(&bind.FilterOpts{Start: fromBlock, End: &latestBlock, Context: context.Background()}, [][32]byte{merkleRoot})
+	if err != nil {
+		return nil, err
+	}
+	if err := logs.Error(); err != nil {
+		return nil, err
+	}
+
+	if !logs.Next() {
+		return nil, nil // Not an error, but no tasks found
+	}
+
+	batch := logs.Event
+
+	batchIdentifier := append(batch.BatchMerkleRoot[:], batch.SenderAddress[:]...)
+	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+	state, err := r.BatchesStateRetryable(nil, batchIdentifierHash)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if state.Responded {
+		return nil, nil // Task found but already responded
+	}
+
+	return batch, nil
+}
