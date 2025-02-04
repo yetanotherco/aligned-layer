@@ -1,8 +1,3 @@
-- name: Run setup playbook
-  ansible.builtin.import_playbook: setup.yaml
-  vars:
-    host: aggregator
-
 - name: Run go playbook
   ansible.builtin.import_playbook: go.yaml
   vars:
@@ -13,34 +8,22 @@
     service: "aggregator"
 
   tasks:
-    - name: Update apt and install required system packages
-      become: true
-      apt:
-        pkg:
-          - pkg-config
-          - libssl-dev
-        state: latest
-        update_cache: true
-      vars:
-        ansible_ssh_user: "{{ admin_user }}"
-
-    - name: Create directories for each service if do not exist
+    - name: Create directories
       file:
-        path: /home/{{ ansible_user }}/repos/{{ service }}
+        path: "{{ item }}"
+        recurse: yes
         state: directory
-        mode: '0755'
-        owner: '{{ ansible_user }}'
-        group: '{{ ansible_user }}'
       loop:
-        - aggregator
+        - /tmp/aggregator/aligned_layer
+        - /home/{{ ansible_user }}/repos/aggregator/aligned_layer/build
+        - /home/{{ ansible_user }}/config
+        - /home/{{ ansible_user }}/.config/systemd/user
 
-    - name: Clone Aligned repository
+    - name: Clone Aligned repository on /tmp/
       git:
         repo: https://github.com/yetanotherco/aligned_layer.git
-        dest: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
-        version: v0.10.2
-      loop:
-        - aggregator
+        dest: /tmp/aggregator/aligned_layer/
+        version: v0.12.0
 
     - name: Set permissions for cloned repository
       file:
@@ -50,15 +33,28 @@
         group: '{{ ansible_user }}'
         recurse: yes
 
-    - name: Build aggregator
+    - name: Build aggregator on /tmp/
       shell: 
-        chdir: /home/{{ ansible_user }}/repos/aggregator/aligned_layer/
-        cmd: /usr/local/go/bin/go build -o /home/{{ ansible_user }}/repos/aggregator/aligned_layer/build/aligned-aggregator /home/{{ ansible_user }}/repos/aggregator/aligned_layer/aggregator/cmd/main.go
+        chdir: /tmp/aggregator/aligned_layer/
+        cmd: /usr/local/go/bin/go build -o /tmp/aggregator/aligned_layer/build/aligned-aggregator /tmp/aggregator/aligned_layer/aggregator/cmd/main.go
+
+    - name: Move compiled aggregator to user directory
+      copy: 
+        src: /tmp/aggregator/aligned_layer/build/aligned-aggregator
+        dest: /home/{{ ansible_user }}/repos/aggregator/aligned_layer/build/aligned-aggregator
+        remote_src: true
+        force: true
+
+    - name: Remove Aligned repository on /tmp/
+      file:
+        path: /tmp/aggregator/aligned_layer/
+        state: absent
 
     - name: Upload config file for aggregator
       template:
         src: config-files/config-aggregator.yaml.j2
         dest: "/home/{{ ansible_user }}/config/config-aggregator.yaml"
+        force: yes
       vars:
         aligned_layer_deployment_config_file_path: "{{ lookup('ini', 'aligned_layer_deployment_config_file_path', file='ini/config-aggregator.ini') }}"
         eigen_layer_deployment_config_file_path: "{{ lookup('ini', 'eigen_layer_deployment_config_file_path', file='ini/config-aggregator.ini') }}"
@@ -72,31 +68,17 @@
         bls_private_key_store_password: "{{ lookup('ini', 'bls_private_key_store_password', file='ini/config-aggregator.ini') }}"
         enable_metrics: "{{ lookup('ini', 'enable_metrics', file='ini/config-aggregator.ini') }}"
         metrics_ip_port_address: "{{ lookup('ini', 'metrics_ip_port_address', file='ini/config-aggregator.ini') }}"
-        telemetry_ip_port_address: "{{ lookup('ini', 'telemetry_ip_port_address', file='ini/config-aggregator.ini') }}" 
-
-    - name: Allow access to tcp port 8090
-      become: true
-      ufw:
-        rule: allow
-        port: 8090
-        proto: tcp
-      vars:
-        ansible_ssh_user: "{{ admin_user }}"
-
-    - name: Create systemd services directory
-      file:
-        path: "/home/{{ ansible_user }}/.config/systemd/user/"
-        state: directory
+        telemetry_ip_port_address: "{{ lookup('ini', 'telemetry_ip_port_address', file='ini/config-aggregator.ini') }}"
 
     - name: Add service to systemd
       template:
         src: services/aggregator.service.j2
         dest: "/home/{{ ansible_user }}/.config/systemd/user/aggregator.service"
-        force: no
+        force: yes
 
-    - name: Start aggregator service
+    - name: Restart aggregator service
       systemd_service:
         name: aggregator
-        state: started
+        state: restarted
         enabled: true
         scope: user

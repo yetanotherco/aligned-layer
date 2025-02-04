@@ -1235,6 +1235,13 @@ ansible_aggregator_deploy: ## Deploy the Operator. Parameters: INVENTORY
 		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
 		-e "bls_keystore_path=$(BLS_KEYSTORE)"
 
+ansible_aggregator_update:
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
+		exit 1; \
+	fi
+	@ansible-playbook infra/ansible/playbooks/update/aggregator.yaml -i $(INVENTORY)
+
 ansible_operator_create_env: ## Create empty variables files for the Operator deploy
 	@cp -n infra/ansible/playbooks/ini/config-operator.ini.example infra/ansible/playbooks/ini/config-operator.ini
 	@cp -n infra/ansible/playbooks/ini/config-register-operator.ini.example infra/ansible/playbooks/ini/config-register-operator.ini
