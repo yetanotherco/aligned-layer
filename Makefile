@@ -1250,3 +1250,7 @@ ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
 		-i $(INVENTORY) \
 		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
 		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+
+ansible_explorer_deploy:
+	@ansible-playbook infra/ansible/playbooks/explorer.yaml \
+		-i $(INVENTORY)

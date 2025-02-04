@@ -1,4 +1,5 @@
-- hosts: "{{ host }}"
+- name: Server setup
+  hosts: "{{ host }}"
 
   tasks:
     # Install required packages
