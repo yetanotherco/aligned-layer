@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/logging"
+	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
@@ -15,11 +16,6 @@ type AggregatorRpcClient struct {
 	aggregatorIpPortAddr string
 	logger               logging.Logger
 }
-
-const (
-	MaxRetries    = 10
-	RetryInterval = 10 * time.Second
-)
 
 func NewAggregatorRpcClient(aggregatorIpPortAddr string, logger logging.Logger) (*AggregatorRpcClient, error) {
 	client, err := rpc.DialHTTP("tcp", aggregatorIpPortAddr)
@@ -34,31 +30,29 @@ func NewAggregatorRpcClient(aggregatorIpPortAddr string, logger logging.Logger) 
 	}, nil
 }
 
-// SendSignedTaskResponseToAggregator is the method called by operators via RPC to send
-// their signed task response.
-func (c *AggregatorRpcClient) SendSignedTaskResponseToAggregator(signedTaskResponse *types.SignedTaskResponse) {
-	var reply uint8
-	for retries := 0; retries < MaxRetries; retries++ {
+func SendSignedTaskResponse(c *AggregatorRpcClient, signedTaskResponse *types.SignedTaskResponse) func() (uint8, error) {
+	send_task_func := func() (uint8, error) {
+		var reply uint8
 		err := c.rpcClient.Call("Aggregator.ProcessOperatorSignedTaskResponseV2", signedTaskResponse, &reply)
 		if err != nil {
 			c.logger.Error("Received error from aggregator", "err", err)
 			if errors.Is(err, rpc.ErrShutdown) {
 				c.logger.Error("Aggregator is shutdown. Reconnecting...")
-				client, err := rpc.DialHTTP("tcp", c.aggregatorIpPortAddr)
-				if err != nil {
-					c.logger.Error("Could not reconnect to aggregator", "err", err)
-					time.Sleep(RetryInterval)
-				} else {
-					c.rpcClient = client
-					c.logger.Info("Reconnected to aggregator")
-				}
-			} else {
-				c.logger.Infof("Received error from aggregator: %s. Retrying ProcessOperatorSignedTaskResponseV2 RPC call...", err)
-				time.Sleep(RetryInterval)
 			}
 		} else {
 			c.logger.Info("Signed task response header accepted by aggregator.", "reply", reply)
-			return
 		}
+		return reply, err
 	}
+	return send_task_func
+}
+
+// SendSignedTaskResponseToAggregator is the method called by operators via RPC to send
+// their signed task response.
+func (c *AggregatorRpcClient) SendSignedTaskResponseToAggregatorRetryable(signedTaskResponse *types.SignedTaskResponse) (uint8, error) {
+	config := retry.DefaultRetryConfig()
+	config.NumRetries = 10
+	config.Multiplier = 1 // Constant retry interval
+	config.InitialInterval = 10 * time.Second
+	return retry.RetryWithData(SendSignedTaskResponse(c, signedTaskResponse), config)
 }
