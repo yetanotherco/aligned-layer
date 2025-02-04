@@ -66,7 +66,7 @@ pub struct SubmitArgs {
     #[arg(
         name = "Batcher connection address",
         long = "batcher_url",
-        default_value = "ws://localhost:8080"
+        default_value = "wss://localhost:8080"
     )]
     batcher_url: String,
     #[arg(
@@ -207,7 +207,7 @@ pub struct GetUserNonceArgs {
     #[arg(
         name = "Batcher connection address",
         long = "batcher_url",
-        default_value = "ws://localhost:8080"
+        default_value = "wss://localhost:8080"
     )]
     batcher_url: String,
     #[arg(

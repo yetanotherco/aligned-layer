@@ -10,12 +10,14 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use log::{debug, error};
 use serde::Serialize;
 use tokio::{net::TcpStream, sync::RwLock};
+use tokio_rustls::server::TlsStream;
 use tokio_tungstenite::{
     tungstenite::{Error, Message},
     WebSocketStream,
 };
 
-pub(crate) type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
+pub(crate) type WsMessageSink =
+    Arc<RwLock<SplitSink<WebSocketStream<TlsStream<TcpStream>>, Message>>>;
 
 pub(crate) async fn send_batch_inclusion_data_responses(
     finalized_batch: Vec<BatchQueueEntry>,

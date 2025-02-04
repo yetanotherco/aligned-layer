@@ -1,9 +1,10 @@
 extern crate dotenvy;
 
-use std::sync::Arc;
-
 use clap::Parser;
 use env_logger::Env;
+use rustls::crypto::{aws_lc_rs, CryptoProvider};
+use std::path::PathBuf;
+use std::sync::Arc;
 
 use aligned_batcher::{types::errors::BatcherError, Batcher};
 
@@ -24,10 +25,19 @@ struct Cli {
     env_file: Option<String>,
     #[arg(short, long)]
     port: Option<u16>,
+    /// cert file
+    #[arg(long, short = 'C')]
+    cert: PathBuf,
+    /// key file
+    #[arg(long, short = 'k')]
+    key: PathBuf,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), BatcherError> {
+    CryptoProvider::install_default(aws_lc_rs::default_provider())
+        .expect("failed to initialize crypto provider");
+
     let cli = Cli::parse();
     let port = cli.port.unwrap_or(8080);
 
@@ -39,8 +49,6 @@ async fn main() -> Result<(), BatcherError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let batcher = Batcher::new(cli.config).await;
     let batcher = Arc::new(batcher);
-
-    let addr = format!("localhost:{}", port);
 
     // spawn task to listening for incoming blocks
     tokio::spawn({
@@ -54,7 +62,8 @@ async fn main() -> Result<(), BatcherError> {
 
     batcher.metrics.inc_batcher_restart();
 
-    batcher.listen_connections(&addr).await?;
+    let addr = format!("0.0.0.0:{}", port);
+    batcher.listen_connections(&addr, cli.cert, cli.key).await?;
 
     Ok(())
 }

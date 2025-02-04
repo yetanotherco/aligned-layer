@@ -91,7 +91,7 @@ pub struct TestConnectionsArgs {
     #[arg(
         name = "Batcher connection address",
         long = "batcher-url",
-        default_value = "ws://localhost:8080"
+        default_value = "wss://localhost:8080"
     )]
     pub batcher_url: String,
     #[arg(
@@ -114,7 +114,7 @@ pub struct SendInfiniteProofsArgs {
     #[arg(
         name = "Batcher connection address",
         long = "batcher-url",
-        default_value = "ws://localhost:8080"
+        default_value = "wss://localhost:8080"
     )]
     pub batcher_url: String,
     #[arg(

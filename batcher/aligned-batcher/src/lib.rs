@@ -12,15 +12,15 @@ use retry::batcher_retryables::{
     user_balance_is_unlocked_retryable,
 };
 use retry::{retry_function, RetryError};
-use tokio::time::{timeout, Instant};
-use types::batch_state::BatchState;
-use types::user_state::UserState;
-
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::time::{timeout, Instant};
+use types::batch_state::BatchState;
+use types::user_state::UserState;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, BATCHER_SUBMISSION_BASE_GAS_COST,
@@ -44,8 +44,11 @@ use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{debug, error, info, warn};
+use rustls::pki_types::pem::PemObject;
+use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
+use tokio_rustls::{rustls, TlsAcceptor};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, TransactionSendError};
@@ -277,7 +280,25 @@ impl Batcher {
         }
     }
 
-    pub async fn listen_connections(self: Arc<Self>, address: &str) -> Result<(), BatcherError> {
+    pub async fn listen_connections(
+        self: Arc<Self>,
+        address: &str,
+        cert: PathBuf,
+        key: PathBuf,
+    ) -> Result<(), BatcherError> {
+        // Reference: https://github.com/rustls/tokio-rustls/blob/main/examples/server.rs
+        let cert = vec![CertificateDer::from_pem_file(cert)
+            .map_err(|e| BatcherError::TlsError(format!("{e}")))?];
+        let key = PrivateKeyDer::from_pem_file(key)
+            .map_err(|e| BatcherError::TlsError(format!("{e}")))?;
+
+        let config = rustls::ServerConfig::builder()
+            .with_no_client_auth()
+            .with_single_cert(cert, key)
+            .map_err(|e| BatcherError::TlsError(format!("{e}")))?;
+
+        let acceptor = Arc::new(TlsAcceptor::from(Arc::new(config)));
+
         // Create the event loop and TCP listener we'll accept connections on.
         let listener = TcpListener::bind(address)
             .await
@@ -289,7 +310,7 @@ impl Batcher {
                 Ok((stream, addr)) => {
                     let batcher = self.clone();
                     // Let's spawn the handling of each connection in a separate task.
-                    tokio::spawn(batcher.handle_connection(stream, addr));
+                    tokio::spawn(batcher.handle_connection(stream, addr, acceptor.clone()));
                 }
                 Err(e) => {
                     self.metrics.user_error(&["connection_accept_error", ""]);
@@ -383,11 +404,15 @@ impl Batcher {
         self: Arc<Self>,
         raw_stream: TcpStream,
         addr: SocketAddr,
+        acceptor: Arc<TlsAcceptor>,
     ) -> Result<(), BatcherError> {
         info!("Incoming TCP connection from: {}", addr);
         self.metrics.open_connections.inc();
-
-        let ws_stream_future = tokio_tungstenite::accept_async(raw_stream);
+        let tls_stream = acceptor
+            .accept(raw_stream)
+            .await
+            .map_err(|e| BatcherError::TlsError(e.to_string()))?;
+        let ws_stream_future = tokio_tungstenite::accept_async(tls_stream);
         let ws_stream =
             match timeout(Duration::from_secs(CONNECTION_TIMEOUT), ws_stream_future).await {
                 Ok(Ok(stream)) => stream,

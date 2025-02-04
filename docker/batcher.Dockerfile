@@ -60,6 +60,7 @@ COPY ../scripts/test_files/ ./scripts/test_files
 COPY ./config-files/config-batcher-docker.yaml ./config-files/
 COPY ./config-files/anvil.batcher.ecdsa.key.json ./config-files/
 
-RUN apt update -y && apt install -y libssl-dev ca-certificates
+RUN apt update -y && apt install -y libssl-dev ca-certificates mkcert
+RUN mkcert -install -cert-file rootCA.crt -key-file rootCA.key localhost
 
-CMD ["aligned-batcher", "--config", "./config-files/config-batcher-docker.yaml"]
+CMD ["aligned-batcher", "--config", "./config-files/config-batcher-docker.yaml", "--cert", "./rootCA.crt", "--key", "./rootCA.key"]

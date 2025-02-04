@@ -568,9 +568,9 @@ pub async fn get_nonce_from_batcher(
     batcher_ws_url: &str,
     address: Address,
 ) -> Result<U256, GetNonceError> {
-    let (ws_stream, _) = connect_async(batcher_ws_url).await.map_err(|_| {
-        GetNonceError::ConnectionFailed("Ws connection to batcher failed".to_string())
-    })?;
+    let (ws_stream, _) = connect_async(batcher_ws_url)
+        .await
+        .map_err(|e| GetNonceError::ConnectionFailed(e.to_string()))?;
 
     debug!("WebSocket handshake has been successfully completed");
     let (mut ws_write, mut ws_read) = ws_stream.split();
