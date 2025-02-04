@@ -186,6 +186,8 @@ defmodule ExplorerWeb.Home.Index do
     charts_query_limit = 20
     remaining_time = Helpers.get_next_scheduled_batch_remaining_time()
 
+    latest_batcher_payment_movements = BatcherPaymentServiceManager.get_latest_activity()
+
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
     {:ok,

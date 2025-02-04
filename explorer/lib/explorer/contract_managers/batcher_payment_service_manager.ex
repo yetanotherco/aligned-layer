@@ -68,4 +68,28 @@ defmodule BatcherPaymentServiceManager do
         raise("Unexpected response on fee per proof events.")
     end
   end
+
+  def get_latest_activity() do
+    # event TaskCreated(bytes32 indexed batchMerkleRoot, uint256 feePerProof);
+
+    event_filters = [
+      BatcherPaymentServiceManager.EventFilters.payment_received(nil),
+      BatcherPaymentServiceManager.EventFilters.funds_withdrawn(nil),
+      BatcherPaymentServiceManager.EventFilters.balance_locked(nil),
+      BatcherPaymentServiceManager.EventFilters.balance_unlocked(nil)
+      # BatcherPaymentServiceManager.EventFilters.task_created(nil) // We don't need this event for this feature
+    ]
+
+    events =
+      event_filters
+      |> Enum.map(fn filter ->
+        filter |> Ethers.get_logs(fromBlock: @first_block)
+      end)
+      |> Enum.flat_map(fn
+        {:ok, logs} -> logs
+        {:error, _} -> [] # Handle errors by skipping them
+      end)
+
+    events |> dbg
+  end
 end
